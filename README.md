@@ -83,7 +83,7 @@ for i in inputs:
 
 ### 1\. Handle Any Data Size
 
-**Keep it comfortable to run your logic with control.**
+**"Keep it clean, to be confortable."**
 
 関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、DBを圧迫しないよう `save_blob=True` を指定してください。`beautyspot` が自動的にデータを外部ストレージ（ファイルシステムやS3）へ逃がし、DBには軽量な参照のみを残します。
 
@@ -140,7 +140,7 @@ async def api_endpoint(prompt: str, tasks: BackgroundTasks):
 
 ### 3\. Declarative Rate Limiting
 
-**"Token Base rate control."**
+**"Token Base, self managed rate control."**
 
 APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
 並行実行モデル（Thread, AsyncIO）に関わらず、`tpm` (Tokens Per Minute) を宣言するだけで、`beautyspot` がグローバルな交通整理を行います。
