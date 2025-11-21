@@ -1,8 +1,11 @@
-# 1. Stable Hashing for Function Arguments
+---
+title: Stable Hashing for Function Arguments
+status: Proposed
+date: 2025-11-21
+context: Issue 1
+---
 
-* Status: Proposed
-* Date: 2025-11-21
-* Context: Issue #1
+# 1. Stable Hashing for Function Arguments
 
 ## Context / コンテキスト
 

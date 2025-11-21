@@ -4,57 +4,70 @@ import time
 import asyncio
 import threading
 
-
 class TokenBucket:
+    """
+    A smooth rate limiter based on the GCRA (Generic Cell Rate Algorithm).
+    
+    Features:
+    - No burst after long idle (Strict Pacing).
+    - No start-up delay for the very first request.
+    - Fails fast if a task cost exceeds the TPM limit.
+    - Thread-safe and Async-compatible.
+    - Uses monotonic clock.
+    """
     def __init__(self, tokens_per_minute: int):
-        self.capacity = 0
-        self.tokens = float(tokens_per_minute)
-        self.last_refill = time.time()
+        if tokens_per_minute <= 0:
+            raise ValueError("tokens_per_minute must be positive")
+            
+        # Rate: tokens per second
+        self.rate = float(tokens_per_minute) / 60.0
+        
+        # Maximum allowed cost per task. 
+        # A single task consuming more than the TPM limit is physically impossible 
+        # to process within the rate window, so it should be forbidden.
+        self.max_cost = int(tokens_per_minute)
+        
+        # Theoretical Arrival Time (TAT)
+        self.tat = time.monotonic()
         self.lock = threading.Lock()
 
-    def _refill(self):
-        now = time.time()
-        delta = now -self.last_refill
-        refill_amount = delta * (self.capacity / 60.0)
-        self.tokens = min(self.capacity, self.tokens + refill_amount)
-        self.last_refill = now
-
-    def _calculate_wait(self, cost: int) -> float:
+    def _consume_reservation(self, cost: int) -> float:
+        """
+        Calculates wait time and updates TAT.
+        Returns seconds to wait.
+        """
         if cost <= 0: return 0.0
-
-        needed = cost - self.tokens
-        if needed <= 0:
-            self.tokens -= cost
-            return 0.0
-        else:
-            rate = self.capacity / 60.0
-            wait_time = needed / rate
+        
+        # Guard: Prevent requests that exceed the rate limit capacity entirely
+        if cost > self.max_cost:
+            raise ValueError(
+                f"Requested cost ({cost}) exceeds the maximum limit of {self.max_cost} tokens per minute. "
+                "This task cannot be processed within the defined rate limit."
+            )
+        
+        now = time.monotonic()
+        increment = cost / self.rate
+        
+        with self.lock:
+            if now > self.tat:
+                self.tat = now
+            
+            wait_time = self.tat - now
+            if wait_time < 0: wait_time = 0.0
+            
+            self.tat += increment
+            
             return wait_time
 
     def consume(self, cost: int):
-        """Sync version: blocks thread"""
-        if cost <= 0: return
-        while True:
-            with self.lock:
-                self._refill()
-                wait_time = self._calculate_wait(cost)
-                if wait_time <= 0:
-                    return
-            
-            # ロックを解放して待機
-            time.sleep(wait_time + 0.01)
+        """Sync version: blocks thread until rate limit allows"""
+        wait_time = self._consume_reservation(cost)
+        if wait_time > 0:
+            time.sleep(wait_time)
 
     async def consume_async(self, cost: int):
         """Async version: non-blocking await"""
-        if cost <= 0: return
-        while True:
-            # スレッドロックは非同期でも必要（変数は共有されているため）
-            with self.lock:
-                self._refill()
-                wait_time = self._calculate_wait(cost)
-                if wait_time <= 0:
-                    return
-            
-            # イベントループをブロックせずに待機
-            await asyncio.sleep(wait_time + 0.01)
+        wait_time = self._consume_reservation(cost)
+        if wait_time > 0:
+            await asyncio.sleep(wait_time)
 
