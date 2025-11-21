@@ -1,8 +1,7 @@
 # 🌑 beautyspot
 
-[](https://www.google.com/search?q=https://pypi.org/project/beautyspot/)
-[](https://opensource.org/licenses/MIT)
-[](https://www.google.com/search?q=https://pypi.org/project/beautyspot/)
+[https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
+[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
 
 ## Concept
 
