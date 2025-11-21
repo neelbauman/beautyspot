@@ -141,6 +141,31 @@ $ beautyspot ui ./my_experiment.db
 
 -----
 
+## 🧠 Smart Caching
+
+`beautyspot` は、関数の引数を自動的に解析してキャッシュキーを生成します。
+v0.2.0 からは、以下のオブジェクトも設定なしで安定してキャッシュできるようになりました。
+
+* **Pydantic Models & Dataclasses:** オブジェクトの中身（値）に基づいてハッシュ化します。
+* **Sets:** 順序を自動ソートしてハッシュ化します（`{1, 2}` と `{2, 1}` は同じとみなされます）。
+
+### Custom Cache Keys (`input_key_fn`)
+
+巨大なDataFrameや、シリアライズできない特殊なオブジェクトを引数に取る場合、デフォルトのハッシュ計算がボトルネックになることがあります。
+その場合、`input_key_fn` を使って「何をもって同一とみなすか」を定義してください。
+
+```python
+def get_article_id(article):
+    # 記事の全文ではなく、IDだけをキャッシュキーにする（高速化）
+    return article.id
+
+@project.task(input_key_fn=get_article_id)
+def analyze_sentiment(article):
+    # ... 重い処理 ...
+    return score
+
+-----
+
 ## ⚙️ Configuration
 
 ### Environment Switching (Local \<-\> S3)
