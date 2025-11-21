@@ -34,27 +34,41 @@ wheels = [
 
 [[package]]
 name = "beautyspot"
-version = "0.1.0"
+version = "0.3.0"
 source = { editable = "." }
-dependencies = [
+
+[package.optional-dependencies]
+all = [
+    { name = "boto3" },
+    { name = "graphviz" },
     { name = "pandas" },
     { name = "streamlit" },
     { name = "watchdog" },
 ]
-
-[package.optional-dependencies]
+dashboard = [
+    { name = "graphviz" },
+    { name = "pandas" },
+    { name = "streamlit" },
+    { name = "watchdog" },
+]
 s3 = [
     { name = "boto3" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "boto3", marker = "extra == 'all'", specifier = ">=1.34.0" },
     { name = "boto3", marker = "extra == 's3'", specifier = ">=1.34.0" },
-    { name = "pandas", specifier = ">=2.3.3" },
-    { name = "streamlit", specifier = ">=1.51.0" },
-    { name = "watchdog", specifier = ">=6.0.0" },
+    { name = "graphviz", marker = "extra == 'all'", specifier = ">=0.20.1" },
+    { name = "graphviz", marker = "extra == 'dashboard'", specifier = ">=0.20.1" },
+    { name = "pandas", marker = "extra == 'all'", specifier = ">=2.3.3" },
+    { name = "pandas", marker = "extra == 'dashboard'", specifier = ">=2.3.3" },
+    { name = "streamlit", marker = "extra == 'all'", specifier = ">=1.51.0" },
+    { name = "streamlit", marker = "extra == 'dashboard'", specifier = ">=1.51.0" },
+    { name = "watchdog", marker = "extra == 'all'", specifier = ">=6.0.0" },
+    { name = "watchdog", marker = "extra == 'dashboard'", specifier = ">=6.0.0" },
 ]
-provides-extras = ["s3"]
+provides-extras = ["all", "s3", "dashboard"]
 
 [[package]]
 name = "blinker"
@@ -243,6 +257,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9a/c8/dd58967d119baab745caec2f9d853297cec1989ec1d63f677d3880632b88/gitpython-3.1.45.tar.gz", hash = "sha256:85b0ee964ceddf211c41b9f27a49086010a190fd8132a24e21f362a4b36a791c", size = 215076, upload-time = "2025-07-24T03:45:54.871Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/61/d4b89fec821f72385526e1b9d9a3a0385dda4a72b206d28049e2c7cd39b8/gitpython-3.1.45-py3-none-any.whl", hash = "sha256:8908cb2e02fb3b93b7eb0f2827125cb699869470432cc885f019b8fd0fccff77", size = 208168, upload-time = "2025-07-24T03:45:52.517Z" },
+]
+
+[[package]]
+name = "graphviz"
+version = "0.21"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/b3/3ac91e9be6b761a4b30d66ff165e54439dcd48b83f4e20d644867215f6ca/graphviz-0.21.tar.gz", hash = "sha256:20743e7183be82aaaa8ad6c93f8893c923bd6658a04c32ee115edb3c8a835f78", size = 200434, upload-time = "2025-06-15T09:35:05.824Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/91/4c/e0ce1ef95d4000ebc1c11801f9b944fa5910ecc15b5e351865763d8657f8/graphviz-0.21-py3-none-any.whl", hash = "sha256:54f33de9f4f911d7e84e4191749cac8cc5653f815b06738c54db9a15ab8b1e42", size = 47300, upload-time = "2025-06-15T09:35:04.433Z" },
 ]
 
 [[package]]
