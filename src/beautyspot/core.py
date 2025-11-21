@@ -3,6 +3,7 @@
 import sqlite3
 import json
 import hashlib
+import logging
 import os
 import functools
 import inspect
@@ -13,12 +14,14 @@ from typing import Any, Callable, Optional, Union
 from .limiter import TokenBucket
 from .storage import LocalStorage, S3Storage
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("beautyspot")
+
 # グローバルIO用スレッドプール
 _io_executor = ThreadPoolExecutor(max_workers=4)
 
 class Project:
     def __init__(self, name: str, db_path: str | None = None, storage_path: str = "./blobs", s3_opts: dict | None = None, tpm: int = 10000):
-        
         self.name = name
         self.db_path = db_path or f"{name}.db"
         self.bucket = TokenBucket(tpm)
@@ -58,6 +61,14 @@ class Project:
                     try:
                         return self.storage.load(r_val)
                     except FileNotFoundError:
+                        logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
+                        return None
+                    except CacheCorruptedError as e:
+                        logger.warning(
+                            f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
+                            f"   Error: {e}\n"
+                            f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
+                        )
                         return None
         return None
 
@@ -97,10 +108,14 @@ class Project:
             return async_wrapper if is_async else sync_wrapper
         return decorator
 
-    def task(self, _func: Optional[Callable] = None, *, save_blob: bool = False, input_key_fn: Optional[Callable] = None):
+    def task(self, _func: Optional[Callable] = None, *, save_blob: bool = False, input_key_fn: Optional[Callable] = None, version: str | None = None):
         """
-        Resumable Task Decorator
-        Supports both @project.task and @project.task(save_blob=True)
+        Resumable Task Decorator.
+        
+        Args:
+            save_blob: If True, saves result using Storage (pickle). If False, saves to DB directly (JSON).
+            input_key_fn: Custom function to generate input ID from args/kwargs.
+            version: Explicit version string. Change this to invalidate old cache entries.
         """
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
@@ -109,7 +124,12 @@ class Project:
             def make_key(args, kwargs):
                 from .utils import KeyGen
                 iid = input_key_fn(*args, **kwargs) if input_key_fn else KeyGen.default(args, kwargs)
-                ck = hashlib.md5(f"{func.__name__}:{iid}".encode()).hexdigest()
+                
+                key_source = f"{func.__name__}:{iid}"
+                if version:
+                    key_source += f":{version}"
+
+                ck = hashlib.md5(key_source.encode()).hexdigest()
                 return iid, ck
 
             @functools.wraps(func)
@@ -145,7 +165,7 @@ class Project:
 
             return async_wrapper if is_async else sync_wrapper
 
-        # --- 修正ポイント: 呼び出し方の判定ロジック ---
+        # --- 呼び出し方の判定ロジック ---
         
         # ケース1: @project.task として呼ばれた場合
         # _func にデコレート対象の関数が入ってくる
@@ -155,3 +175,4 @@ class Project:
         # ケース2: @project.task(save_blob=True) として呼ばれた場合
         # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
+

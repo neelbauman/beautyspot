@@ -121,6 +121,17 @@ async def generate(text: str, background_tasks: BackgroundTasks):
     return {"status": "accepted"}
 ```
 
+### 4. Robust Caching & Versioning
+
+開発中にコード（クラス定義など）を変更しても、beautyspotは古いキャッシュの読み込みエラーを検知して**自動的に再計算**します。アプリはクラッシュしません。
+
+もし、明示的にキャッシュを切り替えたい場合（ロジックを大きく変えた時など）は、`version` 引数を使ってください。
+
+```python
+@project.task(version="v2")  # v1のキャッシュは無視され、新しく計算されます。両者はキャッシュとして独立しているので、v1に戻せばv1が参照されます。
+def my_task(data):
+    # ...
+
 -----
 
 ## 📊 Dashboard (Built-in UI)

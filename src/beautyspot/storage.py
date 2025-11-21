@@ -12,6 +12,10 @@ try:
 except ImportError:
     boto3 = None
 
+class CacheCorruptedError(Exception):
+    """Raised when blob data cannot be deserialized (e.g. code changes)."""
+    pass
+
 class BlobStorageBase(ABC):
     @abstractmethod
     def save(self, key: str, data: Any) -> str: pass
@@ -26,7 +30,6 @@ class LocalStorage(BlobStorageBase):
     def save(self, key: str, data: Any) -> str:
         filename = f"{key}.pkl"
         filepath = os.path.join(self.base_dir, filename)
-        # Atomic Write pattern
         temp_path = filepath + ".tmp"
         with open(temp_path, 'wb') as f:
             pickle.dump(data, f)
@@ -36,15 +39,19 @@ class LocalStorage(BlobStorageBase):
     def load(self, location: str) -> Any:
         if not os.path.exists(location):
             raise FileNotFoundError(f"Local blob lost: {location}")
-        with open(location, 'rb') as f:
-            return pickle.load(f)
+        
+        try:
+            with open(location, 'rb') as f:
+                return pickle.load(f)
+        except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
+            # クラス定義変更やファイル破損時
+            raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
 
 class S3Storage(BlobStorageBase):
     def __init__(self, s3_uri: str, s3_opts: dict | None = None):
         if not boto3:
             raise ImportError("Run `pip install beautyspot[s3]` to use S3 storage.")
         
-        # Parse "s3://bucket/prefix..."
         parts = s3_uri.replace("s3://", "").split("/", 1)
         self.bucket_name = parts[0]
         self.prefix = parts[1].rstrip("/") if len(parts) > 1 else "blobs"
@@ -67,3 +74,6 @@ class S3Storage(BlobStorageBase):
             return pickle.loads(resp['Body'].read())
         except ClientError as e:
             raise FileNotFoundError(f"S3 blob lost: {location}") from e
+        except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
+            raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
+
