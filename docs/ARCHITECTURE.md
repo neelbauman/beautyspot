@@ -125,7 +125,7 @@ classDiagram
 
     Project *-- TokenBucket : owns
     Project o-- BlobStorageBase : uses (DI)
-    Project o-- "concurrent.futures.Executor" : uses / manages
+    Project o-- concurrent.futures.Executor : uses / manages
     BlobStorageBase <|-- LocalStorage
     BlobStorageBase <|-- S3Storage
     Project ..> KeyGen : uses internal
