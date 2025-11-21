@@ -8,7 +8,8 @@ import os
 import functools
 import inspect
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+import weakref
+from concurrent.futures import ThreadPoolExecutor, Executor
 from typing import Any, Callable, Optional, Union
 
 from .limiter import TokenBucket
@@ -17,11 +18,18 @@ from .storage import LocalStorage, S3Storage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("beautyspot")
 
-# グローバルIO用スレッドプール
-_io_executor = ThreadPoolExecutor(max_workers=4)
 
 class Project:
-    def __init__(self, name: str, db_path: str | None = None, storage_path: str = "./blobs", s3_opts: dict | None = None, tpm: int = 10000):
+    def __init__(
+        self,
+        name: str,
+        db_path: str | None = None,
+        storage_path: str = "./blobs",
+        s3_opts: dict | None = None,
+        tpm: int = 10000,
+        io_workers: int = 4,
+        executor: Optional[Executor] = None,
+    ):
         self.name = name
         self.db_path = db_path or f"{name}.db"
         self.bucket = TokenBucket(tpm)
@@ -33,6 +41,33 @@ class Project:
             self.storage = LocalStorage(storage_path)
             
         self._init_db()
+
+        # -- Executor Management ---
+        if executor is not None:
+            self.executor = executor
+            self._own_executor = False
+        else:
+            self.executor = ThreadPoolExecutor(max_workers=io_workers)
+            self._own_executor = True
+
+            # 自動クリーンアップの登録
+            # selfへの強い参照を持たせないよう、executorオブジェクトだけを残す
+            self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
+
+    @staticmethod
+    def _shutdown_executor(executor: Executor):
+        """
+        内部Executor用のクリーンアップ関数
+        インスタンスの状態には依存しない。
+        """
+        executor.shutdown(wait=True)
+
+    def shutdown(self, wait: bool = True):
+        """
+        手動でリソースを解放する場合に使用
+        """
+        if self._own_executor and self._finalizer.alive:
+            self._finalizer()
 
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
@@ -153,14 +188,14 @@ class Project:
                 loop = asyncio.get_running_loop()
 
                 # 1. Check Cache (Offload IO)
-                cached = await loop.run_in_executor(_io_executor, self._check_cache_sync, ck)
+                cached = await loop.run_in_executor(self.executor, self._check_cache_sync, ck)
                 if cached is not None: return cached
 
                 # 2. Execute (Async)
                 res = await func(*args, **kwargs)
 
                 # 3. Save (Offload IO)
-                await loop.run_in_executor(_io_executor, self._save_result_sync, ck, func.__name__, str(iid), res, save_blob)
+                await loop.run_in_executor(self.executor, self._save_result_sync, ck, func.__name__, str(iid), res, save_blob)
                 return res
 
             return async_wrapper if is_async else sync_wrapper
