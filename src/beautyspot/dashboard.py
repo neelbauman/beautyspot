@@ -5,7 +5,6 @@ import pandas as pd
 import sqlite3
 import json
 import argparse
-import sys
 import os
 
 # CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
@@ -59,26 +58,42 @@ if df.empty:
 
 # --- Sidebar Filters ---
 st.sidebar.header("Filter")
+st.sidebar.metric("Total Records", len(df))
+
 funcs = st.sidebar.multiselect("Function", df["func_name"].unique())
 if funcs: df = df[df["func_name"].isin(funcs)]
 
-search = st.sidebar.text_input("Search ID")
+result_types = st.sidebar.multiselect("Result Type", df["result_type"].unique())
+if result_types: df = df[df["result_type"].isin(result_types)]
+
+search = st.sidebar.text_input("Search Input ID")
 if search: df = df[df["input_id"].str.contains(search, na=False)]
 
-st.sidebar.metric("Total Records", len(df))
 
 # --- Main Table ---
-st.dataframe(
-    df[["updated_at", "func_name", "input_id", "result_type", "result_value"]],
+st.subheader("📋 Tasks")
+event = st.dataframe(
+    df[["cache_key", "updated_at", "func_name", "input_id", "result_type", "result_value"]],
     width="stretch",
     hide_index=True,
+    on_select="rerun",
+    selection_mode="single-row",
 )
 
 # --- Detail & Restore ---
 st.markdown("---")
 st.subheader("🔍 Restore Data")
 
-selected_key = st.selectbox("Select Task Key", df["cache_key"])
+selected_key = None
+
+if len(event.selection.rows) > 0:
+    row_idx = event.selection.rows[0]
+    selected_key = df.iloc[row_idx]["cache_key"]
+
+if selected_key:
+    st.info(f"Selected from table: `{selected_key}`")
+else:
+    st.info("Select Record from Table")
 
 if selected_key:
     row = df[df["cache_key"] == selected_key].iloc[0]
@@ -116,7 +131,7 @@ if selected_key:
                             st.error(f"File not found on this machine: {r_val}")
             
             if data:
-                st.success("Restored!")
+                st.success("Restored successfully!")
                 if isinstance(data, (dict, list)):
                     st.json(data)
                 else:
