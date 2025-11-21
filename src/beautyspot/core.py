@@ -13,7 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, Executor
 from typing import Any, Callable, Optional, Union
 
 from .limiter import TokenBucket
-from .storage import LocalStorage, S3Storage
+from .storage import LocalStorage, S3Storage, CacheCorruptedError
+from .types import ContentType
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("beautyspot")
@@ -70,8 +71,18 @@ class Project:
             self._finalizer()
 
     def _init_db(self):
+        """
+        NOTE: Schema Evolution Strategy
+        We use "Auto-Migration on Startup" for UX simplicity.
+        Instead of requiring users to run manual upgrade commands, we check schema compatibility
+        every time the Project is initialized.
+        Since SQLite allows adding columns (ALTER TABLE ADD COLUMN) transactionally and cheaply,
+        this adds negligible overhead while ensuring backward compatibility.
+        """
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("PRAGMA journal_mode=WAL;")
+
+            # 1. Create Table (if not exists)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
                     cache_key TEXT PRIMARY KEY,
@@ -82,6 +93,18 @@ class Project:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            # 2. Migration: Check and Add 'content_type' column
+            # PRAGMA table_info で現在のカラム一覧を取得
+            cursor = conn.execute("PRAGMA table_info(tasks)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if "content_type" not in columns:
+                # カラムがなければ追加 (既存レコードは NULL になる)
+                conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
+            if "version" not in columns:
+                # カラムがなければ追加 (既存レコードは NULL になる)
+                conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
 
     # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str) -> Any:
@@ -107,7 +130,7 @@ class Project:
                         return None
         return None
 
-    def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, result: Any, save_blob: bool):
+    def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, version: str | None, result: Any, content_type: str | None, save_blob: bool):
         if save_blob:
             r_val = self.storage.save(cache_key, result)
             r_type = 'FILE'
@@ -117,8 +140,8 @@ class Project:
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO tasks (cache_key, func_name, input_id, result_type, result_value) VALUES (?, ?, ?, ?, ?)",
-                (cache_key, func_name, input_id, r_type, r_val)
+                "INSERT OR REPLACE INTO tasks (cache_key, func_name, input_id, version, result_type, content_type, result_value) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (cache_key, func_name, input_id, version,  r_type, content_type,  r_val)
             )
 
     # --- Decorators ---
@@ -143,7 +166,15 @@ class Project:
             return async_wrapper if is_async else sync_wrapper
         return decorator
 
-    def task(self, _func: Optional[Callable] = None, *, save_blob: bool = False, input_key_fn: Optional[Callable] = None, version: str | None = None):
+    def task(
+        self,
+        _func: Optional[Callable] = None,
+        *,
+        save_blob: bool = False,
+        input_key_fn: Optional[Callable] = None,
+        version: str | None = None,
+        content_type: Optional[str] = None,
+    ):
         """
         Resumable Task Decorator.
         
@@ -179,7 +210,7 @@ class Project:
                 res = func(*args, **kwargs)
 
                 # 3. Save
-                self._save_result_sync(ck, func.__name__, str(iid), res, save_blob)
+                self._save_result_sync(ck, func.__name__, str(iid), version, res, content_type, save_blob)
                 return res
 
             @functools.wraps(func)
@@ -195,7 +226,7 @@ class Project:
                 res = await func(*args, **kwargs)
 
                 # 3. Save (Offload IO)
-                await loop.run_in_executor(self.executor, self._save_result_sync, ck, func.__name__, str(iid), res, save_blob)
+                await loop.run_in_executor(self.executor, self._save_result_sync, ck, func.__name__, str(iid), version, res, content_type, save_blob)
                 return res
 
             return async_wrapper if is_async else sync_wrapper

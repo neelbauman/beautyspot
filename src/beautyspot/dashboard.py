@@ -1,11 +1,13 @@
 # src/beautyspot/dashboard.py
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import sqlite3
 import json
 import argparse
 import os
+from beautyspot.types import ContentType
 
 # CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
 def get_args():
@@ -22,6 +24,26 @@ except:
     st.error("Database path not provided. Run via `beautyspot ui <db>`")
     st.stop()
 
+
+# --- Helper: Mermaid Renderer ---
+def render_mermaid(code: str, height: int = 500):
+    """
+    Mermaid.jsをCDNから読み込んで描画するヘルパー。
+    Streamlit標準でMermaidがないためのWorkaround。
+    """
+    html_code = f"""
+    <div class="mermaid" style="display: flex; justify-content: center;">
+        {code}
+    </div>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+    </script>
+    """
+    # scrolling=Trueにしておくと大きな図でも見切れない
+    components.html(html_code, height=height, scrolling=True)
+
+
 # プロジェクトインスタンスの作成（DBを読むだけなのでStorage設定はDummyで可）
 # ただしLoad機能を使うなら正しいStorage設定が必要だが、
 # ここではDB内のパス情報を見て動的に判断する簡易版を実装
@@ -30,6 +52,7 @@ from beautyspot.storage import LocalStorage, S3Storage
 st.set_page_config(page_title="beautyspot Dashboard", layout="wide", page_icon="🌑")
 st.title("🌑 beautyspot Dashboard")
 st.caption(f"Database: `{DB_PATH}`")
+
 
 # --- Data Loading ---
 def load_data():
@@ -73,7 +96,7 @@ if search: df = df[df["input_id"].str.contains(search, na=False)]
 # --- Main Table ---
 st.subheader("📋 Tasks")
 event = st.dataframe(
-    df[["cache_key", "updated_at", "func_name", "input_id", "result_type", "result_value"]],
+    df[["cache_key", "updated_at", "func_name", "input_id", "version", "result_type", "content_type", "result_value"]],
     width="stretch",
     hide_index=True,
     on_select="rerun",
@@ -101,14 +124,15 @@ if selected_key:
     r_type = row["result_type"]
     r_val = row["result_value"]
     
-    col1, col2 = st.columns(2)
+    c_type = row.get("content_type")
+    col1, col2 = st.columns([1,2])
     
     with col1:
         st.write("**Metadata**")
         st.json(row.to_dict())
         
     with col2:
-        st.write("**Content**")
+        st.write(f"**Content**: {c_type or 'Unknown Type'}")
         
         try:
             data = None
@@ -130,13 +154,52 @@ if selected_key:
                         else:
                             st.error(f"File not found on this machine: {r_val}")
             
-            if data:
+            if data is not None:
+                """
+                Rendering Strategy :
+                We strictly separate the 'Storage Layer' (how to fetch bytes) from the 'Presentation Layer' (how to show it).
+                The 'content_type' metadata drives the widget selection.
+                If 'content_type' is missing (legacy records), we fallback to a generic text/json view.
+                """
                 st.success("Restored successfully!")
-                if isinstance(data, (dict, list)):
+
+                if c_type == ContentType.GRAPHVIZ:
+                    try:
+                        st.graphviz_chart(data)
+                    except Exception as e:
+                        st.error("Graphviz rendering failed.")
+                        st.warning("Hint: Is 'graphviz' installed on your OS? (e.g., `apt install graphviz`)")
+                        st.code(data) # フォールバックとしてソースを表示
+
+                # === Mermaid ===
+                elif c_type == ContentType.MERMAID:
+                    render_mermaid(data)
+                    # ソースも見たい場合のためにExpanderに隠しておく
+                    with st.expander("View Source"):
+                        st.code(data, language="mermaid")
+
+                elif c_type == ContentType.PNG or c_type == ContentType.JPEG:
+                    # dataがバイト列かPIL画像かパスかによるが、
+                    # ここではpickleされたオブジェクト(PIL Imageなど)を想定
+                    st.image(data)
+                
+                elif c_type == ContentType.HTML:
+                    st.html(data)
+                
+                elif c_type == ContentType.JSON:
                     st.json(data)
+                
+                elif c_type == ContentType.MARKDOWN:
+                    st.markdown(data)
+                
                 else:
-                    st.text(str(data))
+                    # Fallback (Default Text Representation)
+                    if isinstance(data, (dict, list)):
+                        st.json(data)
+                    else:
+                        st.text(str(data))
                     
         except Exception as e:
             st.error(f"Restore Failed: {e}")
+            st.exception(e)
 
