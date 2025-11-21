@@ -1,28 +1,30 @@
 # 🌑 beautyspot
 
-**Make your functions beautiful with beauty spots.**
-
 [](https://www.google.com/search?q=https://pypi.org/project/beautyspot/)
 [](https://opensource.org/licenses/MIT)
 [](https://www.google.com/search?q=https://pypi.org/project/beautyspot/)
 
-## 🎭 Concept
+## Concept
 
 **"You focus on the logic. We handle the rest."**
 
-生成AIのバッチ処理、スクレイピング、重いデータ解析……。
+生成AIのバッチ処理やスクレイピングを行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
 
-  * APIのレート制限計算
-  * 途中停止した時のリカバリ処理
-  * 巨大なJSONや画像の保存先管理
-  * 重複リクエストの排除
+  * API制限を守るための `time.sleep()` やトークン計算
+  * 途中停止した際のリカバリ処理（ `try-except` と `continue` ）
+  * 結果を保存・ロードするためのファイルI/O
+  * 重複リクエストを防ぐためのID管理
 
 `beautyspot` は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、
 これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
 
+デコレータ1行でこれらをすべて引き受け、あなたのコードを「純粋なロジック」の状態に保ちます。
+
 -----
 
 ## ⚡ Installation
+
+最軽量版:
 
 ```bash
 pip install beautyspot
@@ -34,11 +36,23 @@ S3 などのクラウドストレージを利用する場合:
 pip install "beautyspot[s3]"
 ```
 
+Dashboard機能を利用する場合:
+
+```bash
+pip install "beautyspot[dashboard]"
+```
+
+全部入り:
+
+```bash
+pip install "beautyspot[all]"
+```
+
 -----
 
 ## 🚀 Quick Start
 
-最もシンプルな例です。関数に `@project.task` を付けるだけで、その関数は「永続化」され、二度と同じ計算を行わなくなります。
+関数に `@project.task` を付けるだけで、その関数は「永続化」され、二度と同じ計算を行わなくなります。
 
 ```python
 import time
@@ -67,10 +81,69 @@ for i in inputs:
 
 ## 💡 Key Features
 
-### 1\. 思考停止できる「レート制限 (Rate Limiting)」
+### 1\. Handle Any Data Size
+
+**Keep it comfortable to run your logic with control.**
+
+関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、DBを圧迫しないよう `save_blob=True` を指定してください。`beautyspot` が自動的にデータを外部ストレージ（ファイルシステムやS3）へ逃がし、DBには軽量な参照のみを残します。
+
+```python
+# Small Data -> DBに直入れ (Default)
+# 数値、短いテキスト、メタデータなど
+@project.task
+def calc_score(text):
+    return 0.8
+
+# Large Data -> Blobに退避 (Explicit Choice)
+# 画像バイナリや巨大なJSONなど
+@project.task(save_blob=True)
+def download_image(url):
+    return requests.get(url).content
+```
+
+### 2\. Portability with Control
+
+**"Write once, run anywhere with control."**
+
+レート制限やキャッシュのロジックは、呼び出し側のフレームワークではなく、**関数そのもの（デコレータ）** に内包されます。
+そのため、一度 `beautyspot` でラップした関数は、コードを一切書き換えることなく、あらゆる実行環境で「制御された状態」で再利用できます。
+
+**The Logic (共通ロジック):**
+
+```python
+# logic.py
+@project.task
+def generate_text(prompt):
+    # 冪等性が担保された関数
+    return api.call(prompt)
+```
+
+**Context A: CLI Batch Script**
+
+```python
+# 単純なループで呼ぶだけ。
+# 中断しても、次回は「未完了のタスク」だけが実行されます。
+for prompt in large_list:
+    print(generate_text(prompt))
+```
+
+**Context B: FastAPI Worker**
+
+```python
+# Web APIのバックグラウンドタスクとして呼ぶ。
+# 既に誰かが同じ入力をしていれば、APIを叩かずに即座に完了します。
+@app.post("/generate")
+async def api_endpoint(prompt: str, tasks: BackgroundTasks):
+    tasks.add_task(generate_text, prompt)
+    return {"status": "accepted"}
+```
+
+### 3\. Declarative Rate Limiting
+
+**"Token Base rate control."**
 
 APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
-`tpm` (Tokens Per Minute) を指定して、何も考えずに並列化してください。
+並行実行モデル（Thread, AsyncIO）に関わらず、`tpm` (Tokens Per Minute) を宣言するだけで、`beautyspot` がグローバルな交通整理を行います。
 
 ```python
 # 1分間に 50,000 トークンまでに制限
@@ -83,105 +156,37 @@ def calc_cost(text):
 @project.limiter(cost=calc_cost)  # リトライ時も含めて自動制御
 def call_api(text):
     return api.generate(text)
-
-# スレッドプールで適当に並列化しても、beautyspotが交通整理します
-with ThreadPoolExecutor(max_workers=50) as ex:
-    ex.map(call_api, huge_list)
 ```
-
-### 2\. 巨大データも安心「ハイブリッド・ストレージ」
-
-画像や巨大なJSONを扱う場合、`save_blob=True` を指定してください。
-メタデータはSQLiteで高速に管理し、実データはファイルシステム（またはS3）へ自動的に退避させます。DBがパンクすることはありません。
-
-```python
-@project.task(save_blob=True)
-def ocr_task(image_path):
-    # 戻り値が10MBのJSONでも問題なし
-    return {"text": "...", "boxes": [...]}
-```
-
-### 3\. Web API (FastAPI) のワーカーとして
-
-バッチ処理で作ったロジックを、そのまま Web API のバックグラウンド処理に持ち込めます。
-**「同じ入力なら再計算しない」** という特性により、意図せずとも強力なキャッシュ層として機能します。
-
-```python
-# api.py
-from fastapi import FastAPI, BackgroundTasks
-from my_batch_logic import heavy_process # beautyspotでデコレート済み
-
-app = FastAPI()
-
-@app.post("/generate")
-async def generate(text: str, background_tasks: BackgroundTasks):
-    # 1. 既に誰かが同じ入力をしていれば、DBから即座に結果取得可能
-    # 2. 未実行なら、バックグラウンドで実行（APIをブロックしない）
-    background_tasks.add_task(heavy_process, text)
-    return {"status": "accepted"}
-```
-
-### 4. Robust Caching & Versioning
-
-開発中にコード（クラス定義など）を変更しても、beautyspotは古いキャッシュの読み込みエラーを検知して**自動的に再計算**します。アプリはクラッシュしません。
-
-もし、明示的にキャッシュを切り替えたい場合（ロジックを大きく変えた時など）は、`version` 引数を使ってください。
-
-```python
-@project.task(version="v2")  # v1のキャッシュは無視され、新しく計算されます。両者はキャッシュとして独立しているので、v1に戻せばv1が参照されます。
-def my_task(data):
-    # ...
 
 -----
 
-## 📊 Dashboard (Built-in UI)
+## 📊 Dashboard (Result Viewer)
 
-処理結果やエラーログを確認するために、SQLを書く必要はありません。
-付属のコマンドで、専用のダッシュボードが起動します。
+**"Minimal viewer, not a full tracer."**
+
+`beautyspot` は、すべての入出力を記録するトレーシングツール（MLflow, Langfuse等）とは異なります。
+実行制御という役割を軽量に実現することを重視し、**入力データ（引数）は保存せず、ハッシュ値のみを管理します。**
+
+そのため、入出力を対比して生成AIのプロンプトエンジニアリングを頑張るみたいな
+使い方には向いていません。
+
+ダッシュボードは、あくまで\*\*「実行状況（戻り値）の確認」**と**「キャッシュDBが破綻していないかの確認」\*\*に特化しています。
+
+一応、Blobとして退避された巨大な戻り値も、ここから自動的に復元してプレビュー可能です。
+
 
 ```bash
 # プロジェクトのDBファイルを指定して起動
 $ beautyspot ui ./my_experiment.db
 ```
 
-**できること:**
-
-  * **データの復元:** 保存先がローカルでもS3でも、画面上で画像やJSONを自動復元して表示します。
-  * **進捗確認:** 成功/失敗のステータス推移をグラフ化。
-  * **エラー分析:** 失敗したタスクの入力データを検索・特定。
-
------
-
-## 🧠 Smart Caching
-
-`beautyspot` は、関数の引数を自動的に解析してキャッシュキーを生成します。
-v0.2.0 からは、以下のオブジェクトも設定なしで安定してキャッシュできるようになりました。
-
-* **Pydantic Models & Dataclasses:** オブジェクトの中身（値）に基づいてハッシュ化します。
-* **Sets:** 順序を自動ソートしてハッシュ化します（`{1, 2}` と `{2, 1}` は同じとみなされます）。
-
-### Custom Cache Keys (`input_key_fn`)
-
-巨大なDataFrameや、シリアライズできない特殊なオブジェクトを引数に取る場合、デフォルトのハッシュ計算がボトルネックになることがあります。
-その場合、`input_key_fn` を使って「何をもって同一とみなすか」を定義してください。
-
-```python
-def get_article_id(article):
-    # 記事の全文ではなく、IDだけをキャッシュキーにする（高速化）
-    return article.id
-
-@project.task(input_key_fn=get_article_id)
-def analyze_sentiment(article):
-    # ... 重い処理 ...
-    return score
-
 -----
 
 ## ⚙️ Configuration
 
-### Environment Switching (Local \<-\> S3)
+### Storage Switching (Local \<-\> S3)
 
-コードを書き換えることなく、開発環境と本番環境を行き来できます。
+S3互換のストレージを、blobの保存先として指定することができます。
 
 ```python
 import os
@@ -220,3 +225,4 @@ async def async_fetch(url):
 ## 🤝 License
 
 MIT License
+
