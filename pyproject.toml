@@ -8,14 +8,17 @@ authors = [
 ]
 requires-python = ">=3.10"
 license = "MIT"
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.34.0"]
+dashboard = [
     "pandas>=2.3.3",
     "streamlit>=1.51.0",
     "watchdog>=6.0.0",
 ]
 
-[project.optional-dependencies]
-s3 = ["boto3>=1.34.0"]
+
 
 [project.scripts]
 beautyspot = "beautyspot.cli:main"

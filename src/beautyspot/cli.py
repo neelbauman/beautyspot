@@ -3,12 +3,21 @@
 import sys
 import os
 import subprocess
+import shutil
 
 def main():
     args = sys.argv[1:]
     if not args or args[0] != "ui":
         print("Usage: beautyspot ui <path_to_db>")
         sys.exit(1)
+
+    # ---  依存チェック ---
+    if not shutil.which("streamlit"):
+        print("❌ Streamlit not found.")
+        print("Please install dashboard dependencies:")
+        print("\n    pip install 'beautyspot[dashboard]'\n")
+        sys.exit(1)
+    # ------------------------
 
     if len(args) < 2:
         print("Error: Please specify database path.\nExample: beautyspot ui ./my_project.db")
