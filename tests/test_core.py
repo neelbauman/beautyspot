@@ -2,6 +2,16 @@
 
 import pytest
 from beautyspot import Project
+from beautyspot.serializer import SerializationError
+
+
+class ComplexObj:
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        return self.name == other.name
+
 
 @pytest.fixture
 def project(tmp_path):
@@ -53,4 +63,39 @@ def test_task_with_blob(project):
     record = project.db.get_history(limit=1)
     # result_type が FILE になっているか確認
     assert record.iloc[0]["result_type"] == "FILE"
+
+def test_custom_type_task(project):
+    """
+    Project.register_type を使用して、
+    未知のオブジェクトを返すタスクが正常に動作するか確認
+    """
+    import msgpack
+
+    # 1. 未登録状態で実行 -> 失敗するはず
+    @project.task(save_blob=True)
+    def fail_task():
+        return ComplexObj("test")
+
+    with pytest.raises(SerializationError):
+        fail_task()
+
+    # 2. 型を登録
+    def enc(o): return o.name.encode('utf-8')
+    def dec(b): return ComplexObj(b.decode('utf-8'))
+    
+    project.register_type(ComplexObj, 20, enc, dec)
+
+    # 3. 登録後に実行 -> 成功するはず
+    @project.task(save_blob=True)
+    def success_task():
+        return ComplexObj("success")
+
+    res1 = success_task()
+    assert res1.name == "success"
+    
+    # 4. キャッシュヒット時の復元確認
+    # (内部DBのカウンタ等はモックしていないので、再度呼んでエラーが出ないことを確認)
+    res2 = success_task()
+    assert res2.name == "success"
+    assert res2 == res1
 

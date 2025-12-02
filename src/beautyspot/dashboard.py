@@ -142,8 +142,8 @@ if selected_key:
                         # 絶対パスか確認しつつ読み込む
                         if os.path.exists(r_val):
                             with open(r_val, 'rb') as f:
-                                import pickle
-                                data = pickle.load(f)
+                                import msgpack
+                                data = msgpack.unpack(f, raw=False)
                         else:
                             st.error(f"File not found on this machine: {r_val}")
             

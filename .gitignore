@@ -11,3 +11,8 @@ wheels/
 
 # .environments
 .env
+
+# blobs
+blobs
+
+.pytest_cache

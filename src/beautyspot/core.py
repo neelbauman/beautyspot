@@ -8,11 +8,12 @@ import inspect
 import asyncio
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, Type
 
 from .limiter import TokenBucket
-from .storage import CacheCorruptedError, BlobStorageBase, create_storage
+from .storage import BlobStorageBase, create_storage
 from .db import TaskDB
+from .serializer import MsgpackSerializer, SerializationError
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -35,6 +36,8 @@ class Project:
 
         self.db = TaskDB(self.db_path)
         self.db.init_schema()
+
+        self.serializer = MsgpackSerializer()
         
         # Storage Selection
         if storage is not None:
@@ -58,7 +61,6 @@ class Project:
     def _shutdown_executor(executor: Executor):
         """
         内部Executor用のクリーンアップ関数
-        インスタンスの状態には依存しない。
         """
         executor.shutdown(wait=True)
 
@@ -68,6 +70,18 @@ class Project:
         """
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
+
+    def register_type(self, type_: Type, code: int, encoder: Callable, decoder: Callable):
+        """
+        Register a custom type for serialization (Msgpack Extension Type).
+        
+        Args:
+            type_: The class to handle (e.g. MyClass)
+            code: Unique integer ID (0-127) for this type
+            encoder: Function that converts obj -> bytes
+            decoder: Function that converts bytes -> obj
+        """
+        self.serializer.register(type_, code, encoder, decoder)
 
     # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str) -> Any:
@@ -81,24 +95,36 @@ class Project:
                 return json.loads(r_val)
             elif r_type == 'FILE':
                 try:
-                    return self.storage.load(r_val)
+                    data_bytes = self.storage.load(r_val)
+                    return self.serializer.loads(data_bytes)
                 except FileNotFoundError:
                     logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
                     return None
-                except CacheCorruptedError as e:
+                except (ValueError, SerializationError, Exception) as e:
                     logger.warning(
-                        f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
-                        f"   Error: {e}\n"
-                        f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
+                        f"⚠️ Cache corrupted or incompatible for '{cache_key}'. Re-computing...\n"
+                        f"   Error: {e}"
                     )
                     return None
+                # except CacheCorruptedError as e:
+                #     logger.warning(
+                #         f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
+                #         f"   Error: {e}\n"
+                #         f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
+                #     )
+                #     return None
         return None
 
     def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, version: str | None, result: Any, content_type: str | None, save_blob: bool):
         if save_blob:
-            r_val = self.storage.save(cache_key, result)
+            data_bytes = self.serializer.dumps(result)
+            r_val = self.storage.save(cache_key, data_bytes)
             r_type = 'FILE'
         else:
+            # Small data: Keep using JSON for now to maintain DB readability
+            # Note: This limits `save_blob=False` to JSON-serializable types only.
+            # If users want to use Custom Types, they should prefer `save_blob=True` 
+            # OR we can switch this to base64 encoded msgpack in the future.
             r_type = 'DIRECT'
             r_val = json.dumps(result, default=str)
 

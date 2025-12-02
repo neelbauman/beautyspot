@@ -1,10 +1,9 @@
 # src/beautyspot/storage.py
 
 import os
-import pickle
 import io
 from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 try:
     import boto3
@@ -31,24 +30,29 @@ class LocalStorage(BlobStorageBase):
         os.makedirs(base_dir, exist_ok=True)
 
     def save(self, key: str, data: Any) -> str:
-        filename = f"{key}.pkl"
+        filename = f"{key}.bin"
         filepath = os.path.join(self.base_dir, filename)
         temp_path = filepath + ".tmp"
+
         with open(temp_path, 'wb') as f:
-            pickle.dump(data, f)
+            f.write(data)
+
         os.replace(temp_path, filepath)
         return filepath
 
-    def load(self, location: str) -> Any:
+    def load(self, location: str) -> bytes:
         if not os.path.exists(location):
             raise FileNotFoundError(f"Local blob lost: {location}")
+
+        with open(location, 'rb') as f:
+            return f.read()
         
-        try:
-            with open(location, 'rb') as f:
-                return pickle.load(f)
-        except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
-            # クラス定義変更やファイル破損時
-            raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
+        # try:
+        #     with open(location, 'rb') as f:
+        #         return pickle.load(f)
+        # except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
+        #     # クラス定義変更やファイル破損時
+        #     raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
 
 
 class S3Storage(BlobStorageBase):
@@ -64,22 +68,20 @@ class S3Storage(BlobStorageBase):
         self.s3 = boto3.client('s3', **opts)
 
     def save(self, key: str, data: Any) -> str:
-        s3_key = f"{self.prefix}/{key}.pkl"
-        buffer = io.BytesIO()
-        pickle.dump(data, buffer)
-        buffer.seek(0)
+        s3_key = f"{self.prefix}/{key}.bin"
+        buffer = io.BytesIO(data)
         self.s3.put_object(Bucket=self.bucket_name, Key=s3_key, Body=buffer)
         return f"s3://{self.bucket_name}/{s3_key}"
 
-    def load(self, location: str) -> Any:
+    def load(self, location: str) -> bytes:
         parts = location.replace("s3://", "").split("/", 1)
         try:
             resp = self.s3.get_object(Bucket=parts[0], Key=parts[1])
-            return pickle.loads(resp['Body'].read())
+            return resp['Body'].read()
         except ClientError as e:
             raise FileNotFoundError(f"S3 blob lost: {location}") from e
-        except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
-            raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
+        # except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
+        #     raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
 
 
 def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
