@@ -4,7 +4,7 @@ import os
 import pickle
 import io
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 try:
     import boto3
@@ -12,15 +12,18 @@ try:
 except ImportError:
     boto3 = None
 
+
 class CacheCorruptedError(Exception):
     """Raised when blob data cannot be deserialized (e.g. code changes)."""
     pass
+
 
 class BlobStorageBase(ABC):
     @abstractmethod
     def save(self, key: str, data: Any) -> str: pass
     @abstractmethod
     def load(self, location: str) -> Any: pass
+
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str):
@@ -46,6 +49,7 @@ class LocalStorage(BlobStorageBase):
         except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
             # クラス定義変更やファイル破損時
             raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
+
 
 class S3Storage(BlobStorageBase):
     def __init__(self, s3_uri: str, s3_opts: dict | None = None):
@@ -76,4 +80,22 @@ class S3Storage(BlobStorageBase):
             raise FileNotFoundError(f"S3 blob lost: {location}") from e
         except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
             raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
+
+
+def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
+    """
+    Factory function to create a storage backend based on the path protocol.
+    
+    Args:
+        path: Storage path or URI (e.g., "./data", "s3://my-bucket/prefix").
+        options: Extra options passed to the backend (e.g., boto3 client args).
+    """
+    if path.startswith("s3://"):
+        return S3Storage(path, options)
+    
+    # 将来的な拡張ポイント (例: gs://, azure://)
+    # if path.startswith("gs://"):
+    #     return GCSStorage(path, options)
+
+    return LocalStorage(path)
 

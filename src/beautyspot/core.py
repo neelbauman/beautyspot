@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, Executor
 from typing import Any, Callable, Optional, Union
 
 from .limiter import TokenBucket
-from .storage import LocalStorage, S3Storage, CacheCorruptedError
+from .storage import LocalStorage, S3Storage, CacheCorruptedError, BlobStorageBase, create_storage
 from .types import ContentType
 
 logger = logging.getLogger(__name__)
@@ -29,16 +29,17 @@ class Project:
         tpm: int = 10000,
         io_workers: int = 4,
         executor: Optional[Executor] = None,
+        storage: Optional[BlobStorageBase] = None,
     ):
         self.name = name
         self.db_path = db_path or f"{name}.db"
         self.bucket = TokenBucket(tpm)
         
         # Storage Selection
-        if storage_path.startswith("s3://"):
-            self.storage = S3Storage(storage_path, s3_opts)
+        if storage is not None:
+            self.storage = storage
         else:
-            self.storage = LocalStorage(storage_path)
+            self.storage = create_storage(storage_path, s3_opts)
             
         self._init_db()
 
