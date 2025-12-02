@@ -16,9 +16,8 @@ from .limiter import TokenBucket
 from .storage import LocalStorage, S3Storage, CacheCorruptedError
 from .types import ContentType
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("beautyspot")
-
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 class Project:
     def __init__(
@@ -231,8 +230,6 @@ class Project:
 
             return async_wrapper if is_async else sync_wrapper
 
-        # --- 呼び出し方の判定ロジック ---
-        
         # ケース1: @project.task として呼ばれた場合
         # _func にデコレート対象の関数が入ってくる
         if _func is not None and callable(_func):
