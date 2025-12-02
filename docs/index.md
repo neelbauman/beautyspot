@@ -1,5 +1,6 @@
 # 🌑 beautyspot
 
+- [https://neelbauman.github.io/beautyspot/](https://neelbauman.github.io/beautyspot/)
 - [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
 - [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
 
@@ -26,7 +27,7 @@ v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と **
 
 ```bash
 pip install beautyspot
-````
+```
 
   * **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。
   * **Options:**
@@ -62,84 +63,6 @@ for i in inputs:
     # 3. 途中停止しても、次回は「未完了のタスク」だけが実行される
     print(heavy_process(i))
 ```
-
-承知いたしました。
-これまでの一連の決定事項（Msgpackデフォルト化、DIサポート）と、先ほどの「ダッシュボードの制約」を明記した、v1.0.0 リリース用のドキュメントセットを提示します。
-
-これで、ユーザーは新機能を正しく理解し、制約事項にも納得した上でライブラリを利用できるようになります。
-
------
-
-### 1\. 📄 `README.md` (Final)
-
-ダッシュボードのセクションと、DIのセクションに注記を追加しました。
-
-````markdown
-# 🌑 beautyspot
-
-[https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
-[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
-
-## Concept
-
-**"You focus on the logic. We handle the rest."**
-
-生成AIのバッチ処理やスクレイピング、重い計算処理を行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
-
-  * API制限を守るための `time.sleep()` やトークン計算
-  * 途中停止した際のリカバリ処理（ `try-except` と `continue` ）
-  * 結果を保存・ロードするためのファイルI/O
-  * 重複リクエストを防ぐためのID管理
-
-`beautyspot` は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、
-これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
-
-v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と **高度な拡張性（Dependency Injection）** を強化しました。
-
------
-
-## ⚡ Installation
-
-```bash
-pip install beautyspot
-````
-
-  * **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。
-  * **Options:**
-      * `pip install "beautyspot[s3]"`: S3ストレージを利用する場合
-      * `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
-
------
-
-## 🚀 Quick Start
-
-関数に `@project.task` を付けるだけで、その関数は「永続化」され、二度と同じ計算を行わなくなります。
-
-```python
-import time
-import beautyspot as bs
-
-# プロジェクト定義（DBや保存先を自動管理）
-# デフォルトで "./my_experiment.db" (SQLite) が作成されます
-project = bs.Project("my_experiment")
-
-@project.task
-def heavy_process(text):
-    # 実行に時間がかかる処理や、課金されるAPIコール
-    time.sleep(2)
-    return f"Processed: {text}"
-
-# バッチ処理
-inputs = ["A", "B", "C", "A"]
-
-for i in inputs:
-    # 1. 初回の "A", "B", "C" は実行される
-    # 2. 最後の "A" は、DBからキャッシュが即座に返る（実行時間0秒）
-    # 3. もし途中でエラーで止まっても、再実行時は完了済みをスキップする
-    print(heavy_process(i))
-```
-
------
 
 ## 💡 Key Features
 
