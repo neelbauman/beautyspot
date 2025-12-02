@@ -12,6 +12,8 @@
       
       
       
+        <link rel="next" href="reference/philosophy/">
+      
       
         
       
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              🌑 beautyspot
+              Home
             
           </span>
         </div>
@@ -253,10 +255,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="reference/index.md" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
         
   
   
@@ -272,6 +301,153 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concept
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚡ Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🚀 Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💡 Key Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="💡 Key Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-handle-any-data-size-and-securely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Handle Any Data Size (and Securely)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-custom-type-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Custom Type Registration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-flexible-backend-with-dependency-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Flexible Backend with Dependency Injection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-declarative-rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Declarative Rate Limiting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-guide-v0x-v100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ Migration Guide (v0.x -> v1.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dashboard-result-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 Dashboard (Result Viewer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🤝 License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -915,23 +1091,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="⚡ Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-readmemd-final" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. 📄 README.md (Final)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1061,6 +1220,7 @@
 
 <h1 id="beautyspot">🌑 beautyspot</h1>
 <ul>
+<li><a href="https://neelbauman.github.io/beautyspot/">https://neelbauman.github.io/beautyspot/</a></li>
 <li><a href="https://pypi.org/project/beautyspot/">https://pypi.org/project/beautyspot/</a></li>
 <li><a href="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</a></li>
 </ul>
@@ -1079,110 +1239,40 @@
 <hr />
 <h2 id="installation">⚡ Installation</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>beautyspot
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="sb">````</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>*<span class="w"> </span>**Standard:**<span class="w"> </span><span class="sb">`</span>msgpack<span class="sb">`</span><span class="w"> </span>が同梱され、高速かつ安全に動作します。
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>*<span class="w"> </span>**Options:**
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span>*<span class="w"> </span><span class="sb">`</span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;beautyspot[s3]&quot;</span><span class="sb">`</span>:<span class="w"> </span>S3ストレージを利用する場合
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span>*<span class="w"> </span><span class="sb">`</span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;beautyspot[dashboard]&quot;</span><span class="sb">`</span>:<span class="w"> </span>ダッシュボードを利用する場合
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span>*<span class="w"> </span><span class="sb">`</span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;beautyspot[all]&quot;</span><span class="sb">`</span>:<span class="w"> </span>全部入り
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>-----
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1">## 🚀 Quick Start</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>関数に<span class="w"> </span><span class="sb">`</span>@project.task<span class="sb">`</span><span class="w"> </span>を付けるだけで、その関数および入出力は永続化され、同じ計算無駄に多重に繰り返すことを華麗に回避します。
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="sb">```</span>python
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>import<span class="w"> </span><span class="nb">time</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>import<span class="w"> </span>beautyspot<span class="w"> </span>as<span class="w"> </span>bs
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># プロジェクト定義（デフォルトで &quot;./my_experiment.db&quot; を作成）</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nv">project</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bs.Project<span class="o">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="o">)</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>@project.task
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>def<span class="w"> </span>heavy_process<span class="o">(</span>text<span class="o">)</span>:
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="c1"># 実行に時間がかかる処理や、課金されるAPIコール</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span>time.sleep<span class="o">(</span><span class="m">2</span><span class="o">)</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span>f<span class="s2">&quot;Processed: {text}&quot;</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="c1"># バッチ処理</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="nv">inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s2">&quot;A&quot;</span>,<span class="w"> </span><span class="s2">&quot;B&quot;</span>,<span class="w"> </span><span class="s2">&quot;C&quot;</span>,<span class="w"> </span><span class="s2">&quot;A&quot;</span><span class="o">]</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span>inputs:
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">    </span><span class="c1"># 1. 初回の &quot;A&quot;, &quot;B&quot;, &quot;C&quot; は実行される</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">    </span><span class="c1"># 2. 最後の &quot;A&quot; は、DBからキャッシュが即座に返る（実行時間0秒）</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">    </span><span class="c1"># 3. 途中停止しても、次回は「未完了のタスク」だけが実行される</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">    </span>print<span class="o">(</span>heavy_process<span class="o">(</span>i<span class="o">))</span>
-</code></pre></div>
-<p>承知いたしました。
-これまでの一連の決定事項（Msgpackデフォルト化、DIサポート）と、先ほどの「ダッシュボードの制約」を明記した、v1.0.0 リリース用のドキュメントセットを提示します。</p>
-<p>これで、ユーザーは新機能を正しく理解し、制約事項にも納得した上でライブラリを利用できるようになります。</p>
-<hr />
-<h3 id="1-readmemd-final">1. 📄 <code>README.md</code> (Final)</h3>
-<p>ダッシュボードのセクションと、DIのセクションに注記を追加しました。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gh"># 🌑 beautyspot</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>[<span class="nt">https://pypi.org/project/beautyspot/</span>](<span class="na">https://pypi.org/project/beautyspot/</span>)
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>[<span class="nt">https://opensource.org/licenses/MIT</span>](<span class="na">https://opensource.org/licenses/MIT</span>)
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="gu">## Concept</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="gs">**&quot;You focus on the logic. We handle the rest.&quot;**</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>生成AIのバッチ処理やスクレイピング、重い計算処理を行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="k">*</span><span class="w"> </span>API制限を守るための <span class="sb">`time.sleep()`</span> やトークン計算
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="k">*</span><span class="w"> </span>途中停止した際のリカバリ処理（ <span class="sb">`try-except`</span> と <span class="sb">`continue`</span> ）
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="k">*</span><span class="w"> </span>結果を保存・ロードするためのファイルI/O
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="k">*</span><span class="w"> </span>重複リクエストを防ぐためのID管理
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="sb">`beautyspot`</span> は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と <span class="gs">**高度な拡張性（Dependency Injection）**</span> を強化しました。
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>-----
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="gu">## ⚡ Installation</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>```bash
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>pip install beautyspot
 </code></pre></div>
 <ul>
 <li><strong>Standard:</strong> <code>msgpack</code> が同梱され、高速かつ安全に動作します。</li>
 <li><strong>Options:</strong><ul>
 <li><code>pip install "beautyspot[s3]"</code>: S3ストレージを利用する場合</li>
 <li><code>pip install "beautyspot[dashboard]"</code>: ダッシュボードを利用する場合</li>
+<li><code>pip install "beautyspot[all]"</code>: 全部入り</li>
 </ul>
 </li>
 </ul>
 <hr />
 <h2 id="quick-start">🚀 Quick Start</h2>
-<p>関数に <code>@project.task</code> を付けるだけで、その関数は「永続化」され、二度と同じ計算を行わなくなります。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># プロジェクト定義（DBや保存先を自動管理）</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># デフォルトで &quot;./my_experiment.db&quot; (SQLite) が作成されます</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_process</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="c1"># 実行に時間がかかる処理や、課金されるAPIコール</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Processed: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># バッチ処理</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">]</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="c1"># 1. 初回の &quot;A&quot;, &quot;B&quot;, &quot;C&quot; は実行される</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="c1"># 2. 最後の &quot;A&quot; は、DBからキャッシュが即座に返る（実行時間0秒）</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="c1"># 3. もし途中でエラーで止まっても、再実行時は完了済みをスキップする</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">heavy_process</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<p>関数に <code>@project.task</code> を付けるだけで、その関数および入出力は永続化され、同じ計算無駄に多重に繰り返すことを華麗に回避します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># プロジェクト定義（デフォルトで &quot;./my_experiment.db&quot; を作成）</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_process</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="c1"># 実行に時間がかかる処理や、課金されるAPIコール</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Processed: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># バッチ処理</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="c1"># 1. 初回の &quot;A&quot;, &quot;B&quot;, &quot;C&quot; は実行される</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="c1"># 2. 最後の &quot;A&quot; は、DBからキャッシュが即座に返る（実行時間0秒）</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="c1"># 3. 途中停止しても、次回は「未完了のタスク」だけが実行される</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">heavy_process</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
 </code></pre></div>
-<hr />
 <h2 id="key-features">💡 Key Features</h2>
 <h3 id="1-handle-any-data-size-and-securely">1. Handle Any Data Size (and Securely)</h3>
 <p><strong>"No more Pickle risks."</strong></p>
@@ -1190,42 +1280,42 @@
 Python標準の <code>pickle</code> と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。</p>
 <p>関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、<code>save_blob=True</code> を指定してください。
 <code>beautyspot</code> が自動的にデータを外部ストレージ（Local/S3）へ逃がし、DBには軽量な参照のみを残します。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Large Data -&gt; Blobに退避 (Msgpackで保存)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">download_image</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Large Data -&gt; Blobに退避 (Msgpackで保存)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">download_image</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">return</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span>
 </code></pre></div>
 <h3 id="2-custom-type-registration">2. Custom Type Registration</h3>
 <p>Numpy配列や自作クラスなど、デフォルトで対応していない型も、変換ロジックを登録することで安全に扱えます。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># カスタム型の変換ロジックを登録</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># code: 0-127 の一意なID</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">project</span><span class="o">.</span><span class="n">register_type</span><span class="p">(</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">type_</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">code</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_array</span><span class="p">():</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># カスタム型の変換ロジックを登録</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># code: 0-127 の一意なID</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">project</span><span class="o">.</span><span class="n">register_type</span><span class="p">(</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">type_</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">code</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_array</span><span class="p">():</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
 </code></pre></div>
 <h3 id="3-flexible-backend-with-dependency-injection">3. Flexible Backend with Dependency Injection</h3>
 <p><strong>"Start simple, scale later."</strong></p>
 <p>通常はパスを指定するだけで SQLite が使えますが、大規模な並列処理やテストのために、バックエンドを自由に差し替えることができます（Dependency Injection）。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLiteTaskDB</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># A. Standard Usage (Path string)</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 内部で SQLiteTaskDB(&quot;./data.db&quot;) が生成される</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;app&quot;</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="s2">&quot;./data.db&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># B. Advanced Usage (Injection)</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># 独自の設定を行ったDBインスタンスや、インメモリDB、</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># あるいは自作の PostgresTaskDB などを注入可能</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">db_instance</span> <span class="o">=</span> <span class="n">SQLiteTaskDB</span><span class="p">(</span><span class="s2">&quot;./data.db&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;app&quot;</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db_instance</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLiteTaskDB</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># A. Standard Usage (Path string)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># 内部で SQLiteTaskDB(&quot;./data.db&quot;) が生成される</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;app&quot;</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="s2">&quot;./data.db&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># B. Advanced Usage (Injection)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># 独自の設定を行ったDBインスタンスや、インメモリDB、</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1"># あるいは自作の PostgresTaskDB などを注入可能</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">db_instance</span> <span class="o">=</span> <span class="n">SQLiteTaskDB</span><span class="p">(</span><span class="s2">&quot;./data.db&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;app&quot;</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db_instance</span><span class="p">)</span>
 </code></pre></div>
 <blockquote>
 <p>📖 <strong>Guide:</strong> PostgreSQL や MySQL を使用するカスタムアダプタの作成方法は <a href="https://www.google.com/search?q=docs/advanced/custom_backend.md">docs/advanced/custom_backend.md</a> を参照してください。</p>
@@ -1233,16 +1323,16 @@ Python標準の <code>pickle</code> と異なり、信頼できないデータ�
 <h3 id="4-declarative-rate-limiting">4. Declarative Rate Limiting</h3>
 <p>APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
 <strong>GCRA (Generic Cell Rate Algorithm)</strong> ベースの高性能なリミッターが、バースト（集中アクセス）を防ぎながらスムーズに実行を制御します。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 1分間に 50,000 トークンまでに制限</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;openai_batch&quot;</span><span class="p">,</span> <span class="n">tpm</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">calc_cost</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nd">@project</span><span class="o">.</span><span class="n">limiter</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="n">calc_cost</span><span class="p">)</span>  <span class="c1"># リトライ時も含めて自動制御</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">call_api</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">return</span> <span class="n">api</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 1分間に 50,000 トークンまでに制限</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;openai_batch&quot;</span><span class="p">,</span> <span class="n">tpm</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">calc_cost</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="nd">@project</span><span class="o">.</span><span class="n">limiter</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="n">calc_cost</span><span class="p">)</span>  <span class="c1"># リトライ時も含めて自動制御</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">call_api</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">return</span> <span class="n">api</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="migration-guide-v0x-v100">⚠️ Migration Guide (v0.x -&gt; v1.0.0)</h2>
@@ -1253,8 +1343,8 @@ Python標準の <code>pickle</code> と異なり、信頼できないデータ�
 <p><strong>"Minimal viewer, not a full tracer."</strong></p>
 <p>ダッシュボードは、あくまで**「実行状況（戻り値）の確認」<strong>と</strong>「キャッシュDBが破綻していないかの確認」**に特化しています。
 Blobとして退避された巨大な戻り値も、ここから自動的に復元してプレビュー可能です（Mermaid, Graphviz, Image, JSON等）。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># プロジェクトのDBファイルを指定して起動</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>ui<span class="w"> </span>./my_experiment.db
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># プロジェクトのDBファイルを指定して起動</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>ui<span class="w"> </span>./my_experiment.db
 </code></pre></div>
 <blockquote>
 <p><strong>Note:</strong>
