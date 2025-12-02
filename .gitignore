@@ -16,3 +16,6 @@ wheels/
 blobs
 
 .pytest_cache
+
+# mkdocs
+site

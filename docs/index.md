@@ -1,6 +1,5 @@
 # 🌑 beautyspot
 
-- [https://neelbauman.github.io/beautyspot/](https://neelbauman.github.io/beautyspot/)
 - [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
 - [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
 

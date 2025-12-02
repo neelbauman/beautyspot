@@ -1,0 +1,3 @@
+# Project (Core)
+
+::: beautyspot.core

@@ -1,0 +1,79 @@
+site_name: beautyspot
+site_url: https://neelbauman.github.io/beautyspot/
+repo_url: https://github.com/neelbauman/beautyspot
+repo_name: neelbauman/beautyspot
+edit_uri: edit/main/docs/
+
+# テーマ設定: Material for MkDocs
+theme:
+  name: material
+  palette:
+    # ライトモード
+    - scheme: default
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # ダークモード（beautyspotの"moon"コンセプトに合わせて）
+    - scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.expand
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+# 拡張機能設定
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        # Mermaid記法のサポート
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+# プラグイン設定
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_root_heading: true
+            show_source: true
+
+# ナビゲーション構造
+nav:
+  - Home: index.md
+  - Philosophy: reference/philosophy.md
+  - Architecture: reference/architecture.md
+  - API Reference:
+      # ここに自動生成ドキュメントを配置します
+      # docs/reference/ 配下に実ファイルを作成する想定です
+      - Project (Core): reference/core.md
+      - Storage: reference/storage.md
+      - Types: reference/types.md
+      - Utils: reference/utils.md
+  - ADR (Decision Records):
+      # 既存のADRファイルをここにマッピング
+      - 0000 Example: adr/0000-adr-example.md
+      - 0001 Stable Hashing: adr/0001-stable-argument-hashing.md
+      - 0002 Rate Limiter: adr/0002-robust-rate-limiter.md
+      - 0003 Resilient Deserialization: adr/0003-resilient-deserializeation-and-versioning.md
+      - 0004 Executor Lifecycle: adr/0004-io-executor-lifecyle-management.md
+      - 0005 Dashboard Interaction: adr/0005-dashboard-interaction-model.md
+      - 0006 Content Type: adr/0006-semantic-content-type-support.md
+      - 0007 Serializaion: adr/0007-customizable-serialization-with-msgpack.md
+      - 0008 Dependency-Injection: adr/0008-database-dependency-injection.md
+
