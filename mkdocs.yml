@@ -65,6 +65,8 @@ nav:
       - Storage: reference/storage.md
       - Types: reference/types.md
       - Utils: reference/utils.md
+  - Advanced Usage Guides:
+      - Custom Backend (DI): advanced/custom_backend.md
   - ADR (Decision Records):
       # 既存のADRファイルをここにマッピング
       - 0000 Example: adr/0000-adr-example.md
