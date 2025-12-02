@@ -3,11 +3,11 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-import sqlite3
 import json
 import argparse
 import os
 from beautyspot.types import ContentType
+from beautyspot.db import TaskDB
 
 # CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
 def get_args():
@@ -56,16 +56,9 @@ st.caption(f"Database: `{DB_PATH}`")
 
 # --- Data Loading ---
 def load_data():
-    if not os.path.exists(DB_PATH):
-        st.error(f"DB file not found: {DB_PATH}")
-        return pd.DataFrame()
-    
     try:
-        conn = sqlite3.connect(DB_PATH)
-        query = "SELECT * FROM tasks ORDER BY updated_at DESC LIMIT 1000"
-        df = pd.read_sql_query(query, conn)
-        conn.close()
-        return df
+        db = TaskDB(DB_PATH)
+        return db.get_history(limit=1000)
     except Exception as e:
         st.error(f"Error reading DB: {e}")
         return pd.DataFrame()

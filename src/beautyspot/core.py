@@ -1,10 +1,8 @@
 # src/beautyspot/core.py
 
-import sqlite3
 import json
 import hashlib
 import logging
-import os
 import functools
 import inspect
 import asyncio
@@ -13,8 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, Executor
 from typing import Any, Callable, Optional, Union
 
 from .limiter import TokenBucket
-from .storage import LocalStorage, S3Storage, CacheCorruptedError, BlobStorageBase, create_storage
-from .types import ContentType
+from .storage import CacheCorruptedError, BlobStorageBase, create_storage
+from .db import TaskDB
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -34,6 +32,9 @@ class Project:
         self.name = name
         self.db_path = db_path or f"{name}.db"
         self.bucket = TokenBucket(tpm)
+
+        self.db = TaskDB(self.db_path)
+        self.db.init_schema()
         
         # Storage Selection
         if storage is not None:
@@ -41,8 +42,6 @@ class Project:
         else:
             self.storage = create_storage(storage_path, s3_opts)
             
-        self._init_db()
-
         # -- Executor Management ---
         if executor is not None:
             self.executor = executor
@@ -70,64 +69,29 @@ class Project:
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
 
-    def _init_db(self):
-        """
-        NOTE: Schema Evolution Strategy
-        We use "Auto-Migration on Startup" for UX simplicity.
-        Instead of requiring users to run manual upgrade commands, we check schema compatibility
-        every time the Project is initialized.
-        Since SQLite allows adding columns (ALTER TABLE ADD COLUMN) transactionally and cheaply,
-        this adds negligible overhead while ensuring backward compatibility.
-        """
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-
-            # 1. Create Table (if not exists)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS tasks (
-                    cache_key TEXT PRIMARY KEY,
-                    func_name TEXT,
-                    input_id  TEXT,
-                    result_type TEXT,
-                    result_value TEXT, 
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            # 2. Migration: Check and Add 'content_type' column
-            # PRAGMA table_info で現在のカラム一覧を取得
-            cursor = conn.execute("PRAGMA table_info(tasks)")
-            columns = [row[1] for row in cursor.fetchall()]
-            
-            if "content_type" not in columns:
-                # カラムがなければ追加 (既存レコードは NULL になる)
-                conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
-            if "version" not in columns:
-                # カラムがなければ追加 (既存レコードは NULL になる)
-                conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
-
     # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str) -> Any:
         """戻り値が None ならキャッシュミス"""
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute("SELECT result_type, result_value FROM tasks WHERE cache_key=?", (cache_key,)).fetchone()
-            if row:
-                r_type, r_val = row
-                if r_type == 'DIRECT':
-                    return json.loads(r_val)
-                elif r_type == 'FILE':
-                    try:
-                        return self.storage.load(r_val)
-                    except FileNotFoundError:
-                        logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
-                        return None
-                    except CacheCorruptedError as e:
-                        logger.warning(
-                            f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
-                            f"   Error: {e}\n"
-                            f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
-                        )
-                        return None
+        entry = self.db.get(cache_key)
+
+        if entry:
+            r_type = entry["result_type"]
+            r_val = entry["result_value"]
+            if r_type == 'DIRECT':
+                return json.loads(r_val)
+            elif r_type == 'FILE':
+                try:
+                    return self.storage.load(r_val)
+                except FileNotFoundError:
+                    logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
+                    return None
+                except CacheCorruptedError as e:
+                    logger.warning(
+                        f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
+                        f"   Error: {e}\n"
+                        f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
+                    )
+                    return None
         return None
 
     def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, version: str | None, result: Any, content_type: str | None, save_blob: bool):
@@ -138,11 +102,15 @@ class Project:
             r_type = 'DIRECT'
             r_val = json.dumps(result, default=str)
 
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO tasks (cache_key, func_name, input_id, version, result_type, content_type, result_value) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (cache_key, func_name, input_id, version,  r_type, content_type,  r_val)
-            )
+        self.db.save(
+            cache_key=cache_key,
+            func_name=func_name,
+            input_id=input_id,
+            version=version,
+            result_type=r_type,
+            content_type=content_type,
+            result_value=r_val,
+        )
 
     # --- Decorators ---
 
