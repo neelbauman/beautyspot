@@ -6,8 +6,9 @@ import pandas as pd
 import json
 import argparse
 import os
+import msgpack
 from beautyspot.types import ContentType
-from beautyspot.db import TaskDB
+from beautyspot.db import SQLiteTaskDB
 
 # CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
 def get_args():
@@ -57,7 +58,7 @@ st.caption(f"Database: `{DB_PATH}`")
 # --- Data Loading ---
 def load_data():
     try:
-        db = TaskDB(DB_PATH)
+        db = SQLiteTaskDB(DB_PATH)
         return db.get_history(limit=1000)
     except Exception as e:
         st.error(f"Error reading DB: {e}")

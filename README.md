@@ -1,5 +1,82 @@
 # 🌑 beautyspot
 
+- [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
+- [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
+
+## Concept
+
+**"You focus on the logic. We handle the rest."**
+
+生成AIのバッチ処理やスクレイピング、重い計算処理を行う際、本質的なロジック以外に以下のようなコードを書くのは大変ですよね。
+
+* API制限を守るための `time.sleep()` やトークン計算
+* 途中停止した際のリカバリ処理（ `try-except` と `continue` ）
+* 結果を保存・ロードするためのファイルI/O
+* 重複リクエストを防ぐためのID管理
+
+`beautyspot` は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
+
+軽量で少ない依存性で、ローカル開発にてこのようなインフラを手軽に利用できることを目指して開発されています。
+
+v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と **拡張性（Extensibility）** を強化しました。
+
+---
+
+## ⚡ Installation
+
+```bash
+pip install beautyspot
+````
+
+  * **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。
+  * **Options:**
+      * `pip install "beautyspot[s3]"`: S3ストレージを利用する場合
+      * `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
+      * `pip install "beautyspot[all]"`: 全部入り
+
+-----
+
+## 🚀 Quick Start
+
+関数に `@project.task` を付けるだけで、その関数および入出力は永続化され、同じ計算無駄に多重に繰り返すことを華麗に回避します。
+
+```python
+import time
+import beautyspot as bs
+
+# プロジェクト定義（デフォルトで "./my_experiment.db" を作成）
+project = bs.Project("my_experiment")
+
+@project.task
+def heavy_process(text):
+    # 実行に時間がかかる処理や、課金されるAPIコール
+    time.sleep(2)
+    return f"Processed: {text}"
+
+# バッチ処理
+inputs = ["A", "B", "C", "A"]
+
+for i in inputs:
+    # 1. 初回の "A", "B", "C" は実行される
+    # 2. 最後の "A" は、DBからキャッシュが即座に返る（実行時間0秒）
+    # 3. 途中停止しても、次回は「未完了のタスク」だけが実行される
+    print(heavy_process(i))
+```
+
+承知いたしました。
+これまでの一連の決定事項（Msgpackデフォルト化、DIサポート）と、先ほどの「ダッシュボードの制約」を明記した、v1.0.0 リリース用のドキュメントセットを提示します。
+
+これで、ユーザーは新機能を正しく理解し、制約事項にも納得した上でライブラリを利用できるようになります。
+
+-----
+
+### 1\. 📄 `README.md` (Final)
+
+ダッシュボードのセクションと、DIのセクションに注記を追加しました。
+
+````markdown
+# 🌑 beautyspot
+
 [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
 [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
 
@@ -7,7 +84,7 @@
 
 **"You focus on the logic. We handle the rest."**
 
-生成AIのバッチ処理やスクレイピングを行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
+生成AIのバッチ処理やスクレイピング、重い計算処理を行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
 
   * API制限を守るための `time.sleep()` やトークン計算
   * 途中停止した際のリカバリ処理（ `try-except` と `continue` ）
@@ -17,35 +94,20 @@
 `beautyspot` は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、
 これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
 
-デコレータ1行でこれらをすべて引き受け、あなたのコードを「純粋なロジック」の状態に保ちます。
+v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と **高度な拡張性（Dependency Injection）** を強化しました。
 
 -----
 
 ## ⚡ Installation
 
-最軽量版:
-
 ```bash
 pip install beautyspot
-```
+````
 
-S3 などのクラウドストレージを利用する場合:
-
-```bash
-pip install "beautyspot[s3]"
-```
-
-Dashboard機能を利用する場合:
-
-```bash
-pip install "beautyspot[dashboard]"
-```
-
-全部入り:
-
-```bash
-pip install "beautyspot[all]"
-```
+  * **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。
+  * **Options:**
+      * `pip install "beautyspot[s3]"`: S3ストレージを利用する場合
+      * `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
 
 -----
 
@@ -58,6 +120,7 @@ import time
 import beautyspot as bs
 
 # プロジェクト定義（DBや保存先を自動管理）
+# デフォルトで "./my_experiment.db" (SQLite) が作成されます
 project = bs.Project("my_experiment")
 
 @project.task
@@ -67,7 +130,7 @@ def heavy_process(text):
     return f"Processed: {text}"
 
 # バッチ処理
-inputs = ["A", "B", "C", "A"]  # "A" は2回ある
+inputs = ["A", "B", "C", "A"]
 
 for i in inputs:
     # 1. 初回の "A", "B", "C" は実行される
@@ -80,69 +143,70 @@ for i in inputs:
 
 ## 💡 Key Features
 
-### 1\. Handle Any Data Size
+### 1\. Handle Any Data Size (and Securely)
 
-**"Keep it clean, to be confortable."**
+**"No more Pickle risks."**
 
-関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、DBを圧迫しないよう `save_blob=True` を指定してください。`beautyspot` が自動的にデータを外部ストレージ（ファイルシステムやS3）へ逃がし、DBには軽量な参照のみを残します。
+v1.0.0 から、デフォルトのシリアライザに **Msgpack** を採用しました。
+Python標準の `pickle` と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。
+
+関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、`save_blob=True` を指定してください。
+`beautyspot` が自動的にデータを外部ストレージ（Local/S3）へ逃がし、DBには軽量な参照のみを残します。
 
 ```python
-# Small Data -> DBに直入れ (Default)
-# 数値、短いテキスト、メタデータなど
-@project.task
-def calc_score(text):
-    return 0.8
-
-# Large Data -> Blobに退避 (Explicit Choice)
-# 画像バイナリや巨大なJSONなど
+# Large Data -> Blobに退避 (Msgpackで保存)
 @project.task(save_blob=True)
 def download_image(url):
     return requests.get(url).content
 ```
 
-### 2\. Portability with Control
+### 2\. Custom Type Registration
 
-**"Write once, run anywhere with control."**
-
-レート制限やキャッシュのロジックは、呼び出し側のフレームワークではなく、**関数そのもの（デコレータ）** に内包されます。
-そのため、一度 `beautyspot` でラップした関数は、コードを一切書き換えることなく、あらゆる実行環境で「制御された状態」で再利用できます。
-
-**The Logic (共通ロジック):**
+Numpy配列や自作クラスなど、デフォルトで対応していない型も、変換ロジックを登録することで安全に扱えます。
 
 ```python
-# logic.py
-@project.task
-def generate_text(prompt):
-    # 冪等性が担保された関数
-    return api.call(prompt)
+import numpy as np
+
+# カスタム型の変換ロジックを登録
+# code: 0-127 の一意なID
+project.register_type(
+    type_=np.ndarray,
+    code=10,
+    encoder=lambda x: x.tobytes(),
+    decoder=lambda b: np.frombuffer(b)
+)
+
+@project.task(save_blob=True)
+def create_array():
+    return np.array([1, 2, 3])
 ```
 
-**Context A: CLI Batch Script**
+### 3\. Flexible Backend with Dependency Injection
+
+**"Start simple, scale later."**
+
+通常はパスを指定するだけで SQLite が使えますが、大規模な並列処理やテストのために、バックエンドを自由に差し替えることができます（Dependency Injection）。
 
 ```python
-# 単純なループで呼ぶだけ。
-# 中断しても、次回は「未完了のタスク」だけが実行されます。
-for prompt in large_list:
-    print(generate_text(prompt))
+from beautyspot.db import SQLiteTaskDB
+
+# A. Standard Usage (Path string)
+# 内部で SQLiteTaskDB("./data.db") が生成される
+project = bs.Project("app", db="./data.db")
+
+# B. Advanced Usage (Injection)
+# 独自の設定を行ったDBインスタンスや、インメモリDB、
+# あるいは自作の PostgresTaskDB などを注入可能
+db_instance = SQLiteTaskDB("./data.db")
+project = bs.Project("app", db=db_instance)
 ```
 
-**Context B: FastAPI Worker**
+> 📖 **Guide:** PostgreSQL や MySQL を使用するカスタムアダプタの作成方法は [docs/advanced/custom\_backend.md](https://www.google.com/search?q=docs/advanced/custom_backend.md) を参照してください。
 
-```python
-# Web APIのバックグラウンドタスクとして呼ぶ。
-# 既に誰かが同じ入力をしていれば、APIを叩かずに即座に完了します。
-@app.post("/generate")
-async def api_endpoint(prompt: str, tasks: BackgroundTasks):
-    tasks.add_task(generate_text, prompt)
-    return {"status": "accepted"}
-```
-
-### 3\. Declarative Rate Limiting
-
-**"Token Base, self managed rate control."**
+### 4\. Declarative Rate Limiting
 
 APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
-並行実行モデル（Thread, AsyncIO）に関わらず、`tpm` (Tokens Per Minute) を宣言するだけで、`beautyspot` がグローバルな交通整理を行います。
+**GCRA (Generic Cell Rate Algorithm)** ベースの高性能なリミッターが、バースト（集中アクセス）を防ぎながらスムーズに実行を制御します。
 
 ```python
 # 1分間に 50,000 トークンまでに制限
@@ -159,65 +223,29 @@ def call_api(text):
 
 -----
 
+## ⚠️ Migration Guide (v0.x -\> v1.0.0)
+
+v1.0.0 ではシリアライザが `pickle` から `msgpack` に変更されたため、**v0.x で作成されたキャッシュ（特に `save_blob=True` のデータ）とは互換性がありません。**
+
+アップデート時は、古い `.db` ファイルおよび `blobs/` ディレクトリを削除し、クリーンな状態で開始することを推奨します。
+
+-----
+
 ## 📊 Dashboard (Result Viewer)
 
 **"Minimal viewer, not a full tracer."**
 
-`beautyspot` は、すべての入出力を記録するトレーシングツール（MLflow, Langfuse等）とは異なります。
-実行制御という役割を軽量に実現することを重視し、**入力データ（引数）は保存せず、ハッシュ値のみを管理します。**
-
-そのため、入出力を対比して生成AIのプロンプトエンジニアリングを頑張るみたいな
-使い方には向いていません。
-
 ダッシュボードは、あくまで\*\*「実行状況（戻り値）の確認」**と**「キャッシュDBが破綻していないかの確認」\*\*に特化しています。
-
-一応、Blobとして退避された巨大な戻り値も、ここから自動的に復元してプレビュー可能です。
-
+Blobとして退避された巨大な戻り値も、ここから自動的に復元してプレビュー可能です（Mermaid, Graphviz, Image, JSON等）。
 
 ```bash
 # プロジェクトのDBファイルを指定して起動
 $ beautyspot ui ./my_experiment.db
 ```
 
------
-
-## ⚙️ Configuration
-
-### Storage Switching (Local \<-\> S3)
-
-S3互換のストレージを、blobの保存先として指定することができます。
-
-```python
-import os
-# 環境変数で切り替え
-# Dev: "./local_blobs"
-# Prod: "s3://my-bucket/v1/results"
-STORAGE = os.getenv("BS_STORAGE", "./local_blobs")
-
-project = bs.Project("my_app", storage_path=STORAGE)
-```
-
-### Async Support
-
-`beautyspot` は、デコレートされた関数が `async def` かどうかを自動判定します。
-`httpx` や `AsyncOpenAI` を使う場合も、特別な対応は不要です。
-
-```python
-@project.task
-async def async_fetch(url):
-    async with httpx.AsyncClient() as client:
-        return await client.get(url)
-```
-
------
-
-## 🛡 Architecture
-
-`beautyspot` は、あなたの環境を汚さないよう、以下の設計思想で作られています。
-
-  * **Non-Intrusive:** 既存のクラス設計やロジックを変更せず、デコレータのみで機能追加します。
-  * **Concurrency Safe:** SQLiteのWALモードとスレッドセーフなトークンバケットにより、マルチスレッド/非同期環境でも安全に動作します。
-  * **Portable:** 依存ライブラリは最小限。S3機能はオプショナルです。
+> **Note:**
+> 付属のダッシュボードは、デフォルトの **SQLite バックエンド専用** です。
+> カスタムバックエンド（PostgreSQL等）を使用している場合、このダッシュボードは利用できません。その場合は Metabase や SQL クライアント等の利用を推奨します。
 
 -----
 

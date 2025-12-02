@@ -12,7 +12,7 @@ from typing import Any, Callable, Optional, Union, Type
 
 from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
-from .db import TaskDB
+from .db import TaskDB, SQLiteTaskDB
 from .serializer import MsgpackSerializer, SerializationError
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class Project:
     def __init__(
         self,
         name: str,
-        db_path: str | None = None,
+        db: str | TaskDB | None = None,
         storage_path: str = "./blobs",
         s3_opts: dict | None = None,
         tpm: int = 10000,
@@ -31,15 +31,25 @@ class Project:
         storage: Optional[BlobStorageBase] = None,
     ):
         self.name = name
-        self.db_path = db_path or f"{name}.db"
-        self.bucket = TokenBucket(tpm)
 
-        self.db = TaskDB(self.db_path)
+        if db is None:
+            self.db = SQLiteTaskDB(f"{name}.db")
+        elif isinstance(db, str):
+            self.db = SQLiteTaskDB(db)
+        elif isinstance(db, TaskDB):
+            self.db = db
+        else:
+            raise TypeError("Argument 'db' must be a string (path) or a TaskDB instance.")
+
         self.db.init_schema()
 
+        # --- Rate Limiter ---
+        self.bucket = TokenBucket(tpm)
+
+        # --- Serializer Setup ---
         self.serializer = MsgpackSerializer()
         
-        # Storage Selection
+        # --- Storage Selection ---
         if storage is not None:
             self.storage = storage
         else:

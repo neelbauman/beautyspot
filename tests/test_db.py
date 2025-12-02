@@ -3,14 +3,14 @@
 import pytest
 import sqlite3
 import pandas as pd
-from beautyspot.db import TaskDB
+from beautyspot.db import SQLiteTaskDB
 
 @pytest.fixture
 def db(tmp_path):
     # 修正: :memory: ではなく、一時ファイルを使用する
     # これにより、接続を切ってもデータが維持される
     db_path = tmp_path / "test_tasks.db"
-    task_db = TaskDB(str(db_path))
+    task_db = SQLiteTaskDB(str(db_path))
     task_db.init_schema()
     return task_db
 

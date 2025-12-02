@@ -6,7 +6,7 @@ from beautyspot import Project
 
 @pytest.fixture
 def project(tmp_path):
-    return Project(name="feat_test", db_path=str(tmp_path/"test.db"))
+    return Project(name="feat_test", db=str(tmp_path/"test.db"))
 
 def test_versioning(project):
     """versionを変更するとキャッシュが無効化(再計算)されるか"""

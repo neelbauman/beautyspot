@@ -5,20 +5,12 @@ from beautyspot import Project
 from beautyspot.serializer import SerializationError
 
 
-class ComplexObj:
-    def __init__(self, name):
-        self.name = name
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-
 @pytest.fixture
 def project(tmp_path):
     # DBもBlobも一時ディレクトリに作成
     return Project(
         name="test_project",
-        db_path=str(tmp_path / "test.db"),
+        db=str(tmp_path / "test.db"),
         storage_path=str(tmp_path / "blobs")
     )
 
@@ -63,6 +55,15 @@ def test_task_with_blob(project):
     record = project.db.get_history(limit=1)
     # result_type が FILE になっているか確認
     assert record.iloc[0]["result_type"] == "FILE"
+
+
+class ComplexObj:
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        return self.name == other.name
+
 
 def test_custom_type_task(project):
     """

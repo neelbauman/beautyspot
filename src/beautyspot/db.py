@@ -3,6 +3,7 @@
 import sqlite3
 import os
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,10 +12,44 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-class TaskDB:
+class TaskDB(ABC):
     """
-    Data Access Object (DAO) for the tasks database (SQLite).
-    Encapsulates all SQL queries and schema management.
+    Abstract interface for task metadata storage.
+    Implement this class to support other databases (e.g., PostgreSQL, DuckDB).
+    """
+    @abstractmethod
+    def init_schema(self):
+        """Initialize database schema (create tables, migrations)."""
+        pass
+
+    @abstractmethod
+    def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a task result by cache key."""
+        pass
+
+    @abstractmethod
+    def save(
+        self, 
+        cache_key: str, 
+        func_name: str, 
+        input_id: str, 
+        version: Optional[str], 
+        result_type: str, 
+        content_type: Optional[str], 
+        result_value: str
+    ):
+        """Upsert a task result."""
+        pass
+
+    @abstractmethod
+    def get_history(self, limit: int = 1000) -> "pd.DataFrame":
+        """Fetch task history for analysis/dashboard."""
+        pass
+
+
+class SQLiteTaskDB(TaskDB):
+    """
+    Default implementation using SQLite.
     """
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -23,12 +58,9 @@ class TaskDB:
         return sqlite3.connect(self.db_path)
 
     def init_schema(self):
-        """
-        Ensures the DB table exists and performs auto-migration if columns are missing.
-        """
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL;")
-
+            
             # 1. Create Table (if not exists)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -36,12 +68,14 @@ class TaskDB:
                     func_name TEXT,
                     input_id  TEXT,
                     result_type TEXT,
-                    result_value TEXT, 
+                    result_value TEXT,
+                    content_type TEXT,
+                    version TEXT,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
-            # 2. Migration: Check and Add columns dynamically
+            
+            # 2. Migration: Check and Add columns dynamically (for compatibility with older DB files)
             cursor = conn.execute("PRAGMA table_info(tasks)")
             columns = [row[1] for row in cursor.fetchall()]
             
@@ -85,7 +119,6 @@ class TaskDB:
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
         """
         Fetch task history for analysis/dashboard.
-        Uses lazy import for pandas to keep the core library lightweight.
         """
         try:
             import pandas as pd
