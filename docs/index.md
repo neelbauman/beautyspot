@@ -1,4 +1,7 @@
 # 🌑 beautyspot
+```
+uv run mkdocs gh-deploy
+```
 
 - [https://neelbauman.github.io/beautyspot/](https://neelbauman.github.io/beautyspot/)
 - [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
