@@ -29,7 +29,13 @@ class LocalStorage(BlobStorageBase):
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)
 
+    def _validate_key(self, key: str):
+        # Prevent Path Traversal
+        if ".." in key or "/" in key or "\\" in key:
+            raise ValueError(f"Invalid key: '{key}'. Keys must not contain path separators.")
+
     def save(self, key: str, data: Any) -> str:
+        self._validate_key(key)
         filename = f"{key}.bin"
         filepath = os.path.join(self.base_dir, filename)
         temp_path = filepath + ".tmp"
@@ -43,6 +49,22 @@ class LocalStorage(BlobStorageBase):
     def load(self, location: str) -> bytes:
         if not os.path.exists(location):
             raise FileNotFoundError(f"Local blob lost: {location}")
+
+        # Security check: ensure location is within base_dir
+        # However, 'location' here is the full path returned by save().
+        # If the user passes a manipulated path to load(), it could be an issue.
+        # But load() takes 'location' which is supposed to be the return value of save().
+        # Let's check if we can validate it.
+        
+        # Actually, the interface says 'location' -> Any.
+        # In LocalStorage, save returns filepath.
+        # If we want to be strict, we should check if filepath is inside base_dir.
+        
+        abs_location = os.path.abspath(location)
+        abs_base = os.path.abspath(self.base_dir)
+        
+        if not abs_location.startswith(abs_base):
+             raise ValueError(f"Access denied: {location} is outside of storage directory.")
 
         with open(location, 'rb') as f:
             return f.read()

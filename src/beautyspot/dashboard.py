@@ -7,6 +7,7 @@ import json
 import argparse
 import os
 import msgpack
+import html
 from beautyspot.types import ContentType
 from beautyspot.db import SQLiteTaskDB
 
@@ -34,7 +35,7 @@ def render_mermaid(code: str, height: int = 500):
     """
     html_code = f"""
     <div class="mermaid" style="display: flex; justify-content: center;">
-        {code}
+        {html.escape(code)}
     </div>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -178,7 +179,8 @@ if selected_key:
                     st.image(data)
                 
                 elif c_type == ContentType.HTML:
-                    st.html(data)
+                    # Use components.html for sandboxed rendering to prevent XSS
+                    components.html(data, height=600, scrolling=True)
                 
                 elif c_type == ContentType.JSON:
                     st.json(data)

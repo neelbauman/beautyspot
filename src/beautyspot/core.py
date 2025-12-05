@@ -81,6 +81,12 @@ class Project:
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.shutdown()
+
     def register_type(self, type_: Type, code: int, encoder: Callable, decoder: Callable):
         """
         Register a custom type for serialization (Msgpack Extension Type).
@@ -110,11 +116,14 @@ class Project:
                 except FileNotFoundError:
                     logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
                     return None
-                except (ValueError, SerializationError, Exception) as e:
+                except (ValueError, SerializationError) as e:
                     logger.warning(
                         f"⚠️ Cache corrupted or incompatible for '{cache_key}'. Re-computing...\n"
                         f"   Error: {e}"
                     )
+                    return None
+                except Exception as e:
+                    logger.error(f"Unexpected error loading cache for '{cache_key}': {e}")
                     return None
                 # except CacheCorruptedError as e:
                 #     logger.warning(
