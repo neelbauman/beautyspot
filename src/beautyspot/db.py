@@ -38,7 +38,8 @@ class TaskDB(ABC):
         version: Optional[str],
         result_type: str,
         content_type: Optional[str],
-        result_value: str,
+        result_value: Optional[str] = None,
+        result_data: Optional[bytes] = None,
     ):
         """Upsert a task result."""
         pass
@@ -72,13 +73,14 @@ class SQLiteTaskDB(TaskDB):
                     input_id  TEXT,
                     result_type TEXT,
                     result_value TEXT,
+                    result_data BLOB,
                     content_type TEXT,
                     version TEXT,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
 
-            # 2. Migration: Check and Add columns dynamically (for compatibility with older DB files)
+            # 2. Migration: Check and Add columns dynamically
             cursor = conn.execute("PRAGMA table_info(tasks)")
             columns = [row[1] for row in cursor.fetchall()]
 
@@ -86,16 +88,22 @@ class SQLiteTaskDB(TaskDB):
                 conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
             if "version" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
+            if "result_data" not in columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
 
     def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Retrieve a task result by cache key."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT result_type, result_value FROM tasks WHERE cache_key=?",
+                "SELECT result_type, result_value, result_data FROM tasks WHERE cache_key=?",
                 (cache_key,),
             ).fetchone()
             if row:
-                return {"result_type": row[0], "result_value": row[1]}
+                return {
+                    "result_type": row[0],
+                    "result_value": row[1],
+                    "result_data": row[2],
+                }
         return None
 
     def save(
@@ -106,15 +114,16 @@ class SQLiteTaskDB(TaskDB):
         version: Optional[str],
         result_type: str,
         content_type: Optional[str],
-        result_value: str,
+        result_value: Optional[str] = None,
+        result_data: Optional[bytes] = None,
     ):
         """Upsert a task result."""
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO tasks 
-                (cache_key, func_name, input_id, version, result_type, content_type, result_value) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (cache_key, func_name, input_id, version, result_type, content_type, result_value, result_data) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     cache_key,
@@ -124,6 +133,7 @@ class SQLiteTaskDB(TaskDB):
                     result_type,
                     content_type,
                     result_value,
+                    result_data,
                 ),
             )
 
@@ -153,9 +163,11 @@ class SQLiteTaskDB(TaskDB):
                     result_type, 
                     content_type, 
                     result_value, 
+                    result_data,
                     updated_at 
                 FROM tasks 
                 ORDER BY updated_at DESC 
                 LIMIT ?
             """
             return pd.read_sql_query(query, conn, params=(limit,))
+

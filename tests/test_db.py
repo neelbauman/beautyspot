@@ -28,6 +28,7 @@ def test_init_schema(db):
         columns = [row[1] for row in cursor.fetchall()]
         assert "content_type" in columns
         assert "version" in columns
+        assert "result_data" in columns  # Added check for BLOB column
 
 
 def test_save_and_get(db):
@@ -65,3 +66,4 @@ def test_get_history(db):
     assert "cache_key" in df.columns
     # 新しい順に並んでいるか
     assert set(df["cache_key"]) == {"k1", "k2"}
+

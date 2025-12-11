@@ -30,15 +30,16 @@ def test_large_data_warning(tmp_path, caplog):
     assert "Large data detected" in caplog.text
     assert "save_blob=True" in caplog.text
 
-    # DBには DIRECT_B64 として保存されているはず
+    # DBには DIRECT_BLOB として保存されているはず
     hist = project.db.get_history()
-    assert hist.iloc[0]["result_type"] == "DIRECT_B64"
+    assert hist.iloc[0]["result_type"] == "DIRECT_BLOB"
 
 
 def test_msgpack_consistency(tmp_path):
     """
     save_blob=False でも Numpy などのカスタム型が
     (Base64経由で) 壊れずに保存・復元できるか検証する。
+    -> Base64ではなくNative BLOBになったため、それも含めて検証
     """
     project = Project(name="consistency_test", db=str(tmp_path / "test.db"))
 
@@ -63,3 +64,4 @@ def test_msgpack_consistency(tmp_path):
     res2 = numpy_task()
     assert isinstance(res2, np.ndarray)  # 文字列ではなくndarrayで戻るはず
     assert np.array_equal(res1, res2)
+

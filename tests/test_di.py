@@ -1,6 +1,7 @@
 # tests/test_di.py
 
 from concurrent.futures import ThreadPoolExecutor
+import msgpack  # 追加
 from beautyspot import Project
 from beautyspot.storage import BlobStorageBase
 from beautyspot.db import TaskDB
@@ -39,11 +40,13 @@ class MockDB(TaskDB):
         version,
         result_type,
         content_type,
-        result_value,
+        result_value=None,  # デフォルト引数
+        result_data=None,   # 新しい引数を追加
     ):
         self.store[cache_key] = {
             "func_name": func_name,
             "result_value": result_value,
+            "result_data": result_data,  # 保存
             "result_type": result_type,
         }
 
@@ -76,8 +79,7 @@ def test_custom_storage_injection(tmp_path):
 
 def test_custom_db_injection(tmp_path):
     """Test injecting a custom DB backend."""
-    import msgpack
-    import base64
+    # Base64インポートは不要になったため削除
 
     db = MockDB()
     project = Project(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
@@ -93,11 +95,12 @@ def test_custom_db_injection(tmp_path):
     assert len(db.store) == 1
     key = list(db.store.keys())[0]
 
-    assert db.store[key]["result_type"] == "DIRECT_B64"
+    # DIRECT_B64 ではなく DIRECT_BLOB を確認
+    assert db.store[key]["result_type"] == "DIRECT_BLOB"
 
-    stored_b64 = db.store[key]["result_value"]
-    packed_bytes = base64.b64decode(stored_b64)
-    assert msgpack.unpackb(packed_bytes) == 123
+    # result_value (Base64) ではなく result_data (Bytes) を確認
+    stored_bytes = db.store[key]["result_data"]
+    assert msgpack.unpackb(stored_bytes) == 123
 
 
 def test_custom_executor_injection(tmp_path):
@@ -129,3 +132,4 @@ def test_custom_executor_injection(tmp_path):
     assert f.result() == "still_alive"
 
     executor.shutdown()
+

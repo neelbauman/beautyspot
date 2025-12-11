@@ -108,6 +108,7 @@ event = st.dataframe(
             "result_type",
             "content_type",
             "result_value",
+            "result_data",
         ]
     ],
     width="stretch",
@@ -136,13 +137,22 @@ if selected_key:
 
     r_type = row["result_type"]
     r_val = row["result_value"]
+    
+    # Check if result_data exists (it might be NaN in pandas if not selected or null)
+    # The get_history query selects result_data, so it should be there.
+    # But pandas converts BLOB to bytes.
+    r_blob = row.get("result_data") if "result_data" in row else None
 
     c_type = row.get("content_type")
     col1, col2 = st.columns([1, 2])
 
     with col1:
         st.write("**Metadata**")
-        st.json(row.to_dict())
+        # Don't show raw blob in metadata view
+        display_row = row.to_dict().copy()
+        if "result_data" in display_row:
+            del display_row["result_data"]
+        st.json(display_row)
 
     with col2:
         st.write(f"**Content**: {c_type or 'Unknown Type'}")
@@ -152,8 +162,19 @@ if selected_key:
             if r_type == "DIRECT":
                 # Backward compatibility for JSON
                 data = json.loads(r_val)
+            
+            elif r_type == "DIRECT_BLOB":
+                # New Native BLOB
+                if r_blob is not None and not pd.isna(r_blob):
+                    try:
+                        data = msgpack.unpackb(r_blob, raw=False)
+                    except Exception as e:
+                        st.error(f"Failed to decode DIRECT_BLOB data: {e}")
+                else:
+                    st.warning("DIRECT_BLOB record found but data is empty.")
+
             elif r_type == "DIRECT_B64":
-                # New Msgpack + Base64
+                # Legacy Msgpack + Base64
                 try:
                     b_data = base64.b64decode(r_val)
                     data = msgpack.unpackb(b_data, raw=False)
@@ -225,3 +246,4 @@ if selected_key:
         except Exception as e:
             st.error(f"Restore Failed: {e}")
             st.exception(e)
+

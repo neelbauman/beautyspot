@@ -165,12 +165,26 @@ class Project:
         if entry:
             r_type = entry["result_type"]
             r_val = entry["result_value"]
+            r_data = entry.get("result_data")  # None if column missing (old DB)
 
             # Case 1: Legacy JSON (Backward Compatibility)
             if r_type == "DIRECT":
                 return json.loads(r_val)
 
-            # Case 2: New Msgpack+Base64 (Standard for small data)
+            # Case 2: Native SQLite BLOB (Standard for small data in v1.0.0+)
+            elif r_type == "DIRECT_BLOB":
+                if r_data is None:
+                    logger.warning(f"Cache corrupted: DIRECT_BLOB found but data is NULL for `{cache_key}`.")
+                    return None
+                try:
+                    return self.serializer.loads(r_data)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to deserialize DIRECT_BLOB for `{cache_key}`: {e}"
+                    )
+                    return None
+
+            # Case 2b: Legacy Base64 (Deprecated but safe to support if exists)
             elif r_type == "DIRECT_B64":
                 try:
                     data_bytes = base64.b64decode(r_val)
@@ -202,13 +216,6 @@ class Project:
                         f"Unexpected error loading cache for '{cache_key}': {e}"
                     )
                     return None
-                # except CacheCorruptedError as e:
-                #     logger.warning(
-                #         f"⚠️ Cache corrupted for '{cache_key}' (likely due to code changes). Re-computing...\n"
-                #         f"   Error: {e}\n"
-                #         f"   Hint: Consider updating 'version' in @task(version=...) to avoid unintended recalculation."
-                #     )
-                #     return None
         return None
 
     def _save_result_sync(
@@ -234,22 +241,24 @@ class Project:
             save_blob: Whether to save as a blob or directly in DB.
         """
         # 1. Always Serialize with Msgpack first (Consistency)
-        # This ensures custom types are checked and encoded correctly before storage decision.
         try:
             data_bytes = self.serializer.dumps(result)
         except SerializationError as e:
             # Fail fast if the type is not registered.
             raise e
 
+        r_val = None
+        r_blob = None
+
         if save_blob:
             # Explicit Blob Storage
             r_val = self.storage.save(cache_key, data_bytes)
             r_type = "FILE"
         else:
-            # SQLite Storage (Msgpack + Base64)
+            # SQLite BLOB Storage
             data_size = len(data_bytes)
 
-            # Cuardrail: Warning for uninteional large data
+            # Guardrail: Warning for unintentional large data
             if data_size > self.blob_warning_threshold:
                 logger.warning(
                     f"⚠️ Large data detected ({data_size / 1024:.1f} KB) for task '{func_name}'. "
@@ -257,9 +266,9 @@ class Project:
                     f"Consider adding `@project.task(save_blob=True)` to improve performance and file size."
                 )
 
-            # Encodde to Base64 for TEXT column Compatibility
-            r_val = base64.b64encode(data_bytes).decode("ascii")
-            r_type = "DIRECT_B64"
+            # Save raw bytes
+            r_blob = data_bytes
+            r_type = "DIRECT_BLOB"
 
         self.db.save(
             cache_key=cache_key,
@@ -269,6 +278,7 @@ class Project:
             result_type=r_type,
             content_type=content_type,
             result_value=r_val,
+            result_data=r_blob
         )
 
     # --- Decorators ---
@@ -395,3 +405,4 @@ class Project:
         # ケース2: @project.task(save_blob=True) として呼ばれた場合
         # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
+
