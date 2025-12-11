@@ -89,15 +89,16 @@ class Project:
             self._own_executor = True
 
             # 自動クリーンアップの登録
-            # selfへの強い参照を持たせないよう、executorオブジェクトだけを残す
+            # selfへの強い参照を持たせないよう、executorオブジェクトだけを残すこと
             self._finalizer = weakref.finalize(
-                self, self._shutdown_executor, self.executor
+                self, Project._shutdown_executor, self.executor,
             )
 
     @staticmethod
     def _shutdown_executor(executor: Executor):
         """
         Clean-up function for internal Executor.
+        ! This method must be a staticmethod to avoid circuler reference in weakrf.finalize() in self.__init__().
 
         Args:
             executor: The executor to be shut down.
