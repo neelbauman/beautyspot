@@ -1,6 +1,6 @@
 ---
 title: Customizable Serialization Strategy with Msgpack Default
-status: Proposed
+status: Accepted
 date: 2025-12-03
 context: v1.0.0 Release Preparation
 ---
@@ -100,4 +100,7 @@ class MsgpackSerializer:
   * **Negative:**
       * **依存関係:** 新たに `msgpack` パッケージへの依存が発生する（ただし軽量であるため許容範囲とする）。
       * **移行コスト:** 既存の `pickle` で保存されたキャッシュデータ (`.pkl`) との互換性がなくなるため、v1.0.0 アップデート時にキャッシュクリア（DBリセット）が必要になる。
+
+## Updates (2025-12-11)
+See [ADR-0009](0009-msgpack-everywhere-and-guardrails.md) for further refinements regarding `save_blob=False` behavior (Msgpack + Base64) and size guardrails.
 

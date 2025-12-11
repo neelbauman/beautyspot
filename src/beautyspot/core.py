@@ -1,5 +1,6 @@
 # src/beautyspot/core.py
 
+import base64
 import json
 import hashlib
 import logging
@@ -33,6 +34,7 @@ class Project:
         s3_opts: dict | None = None,
         tpm: int = 10000,
         io_workers: int = 4,
+        blob_warning_threshold: int = 1024 * 1024,
         executor: Optional[Executor] = None,
         storage: Optional[BlobStorageBase] = None,
     ):
@@ -46,10 +48,12 @@ class Project:
             s3_opts: Options for S3 storage.
             tpm: Tokens per minute for rate limiting.
             io_workers: Number of IO workers for executor.
+            blob_warning_threshold: Threshold size (bytes) to warn when saving large data to SQLite.
             executor: Optional pre-created executor.
             storage: Optional pre-created storage instance.
         """
         self.name = name
+        self.blob_warning_threshold = blob_warning_threshold
 
         if db is None:
             self.db = SQLiteTaskDB(f"{name}.db")
@@ -58,7 +62,9 @@ class Project:
         elif isinstance(db, TaskDB):
             self.db = db
         else:
-            raise TypeError("Argument 'db' must be a string (path) or a TaskDB instance.")
+            raise TypeError(
+                "Argument 'db' must be a string (path) or a TaskDB instance."
+            )
 
         self.db.init_schema()
 
@@ -67,13 +73,13 @@ class Project:
 
         # --- Serializer Setup ---
         self.serializer = MsgpackSerializer()
-        
+
         # --- Storage Selection ---
         if storage is not None:
             self.storage = storage
         else:
             self.storage = create_storage(storage_path, s3_opts)
-            
+
         # -- Executor Management ---
         if executor is not None:
             self.executor = executor
@@ -84,7 +90,9 @@ class Project:
 
             # 自動クリーンアップの登録
             # selfへの強い参照を持たせないよう、executorオブジェクトだけを残す
-            self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
+            self._finalizer = weakref.finalize(
+                self, self._shutdown_executor, self.executor
+            )
 
     @staticmethod
     def _shutdown_executor(executor: Executor):
@@ -126,10 +134,12 @@ class Project:
         """
         self.shutdown()
 
-    def register_type(self, type_: Type, code: int, encoder: Callable, decoder: Callable):
+    def register_type(
+        self, type_: Type, code: int, encoder: Callable, decoder: Callable
+    ):
         """
         Register a custom type for serialization (Msgpack Extension Type).
-        
+
         Args:
             type_: The class to handle (e.g. MyClass)
             code: Unique integer ID (0-127) for this type
@@ -154,14 +164,31 @@ class Project:
         if entry:
             r_type = entry["result_type"]
             r_val = entry["result_value"]
-            if r_type == 'DIRECT':
+
+            # Case 1: Legacy JSON (Backward Compatibility)
+            if r_type == "DIRECT":
                 return json.loads(r_val)
-            elif r_type == 'FILE':
+
+            # Case 2: New Msgpack+Base64 (Standard for small data)
+            elif r_type == "DIRECT_B64":
+                try:
+                    data_bytes = base64.b64decode(r_val)
+                    return self.serializer.loads(data_bytes)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to deserialize DIRECT_B64 for `{cache_key}`: {e}"
+                    )
+                    return None
+
+            # Case 3: External Blob (Standard for large data)
+            elif r_type == "FILE":
                 try:
                     data_bytes = self.storage.load(r_val)
                     return self.serializer.loads(data_bytes)
                 except FileNotFoundError:
-                    logger.warning(f"Cache blob missing for key {cache_key}. Re-computing.")
+                    logger.warning(
+                        f"Cache blob missing for key {cache_key}. Re-computing."
+                    )
                     return None
                 except (ValueError, SerializationError) as e:
                     logger.warning(
@@ -170,7 +197,9 @@ class Project:
                     )
                     return None
                 except Exception as e:
-                    logger.error(f"Unexpected error loading cache for '{cache_key}': {e}")
+                    logger.error(
+                        f"Unexpected error loading cache for '{cache_key}': {e}"
+                    )
                     return None
                 # except CacheCorruptedError as e:
                 #     logger.warning(
@@ -181,7 +210,16 @@ class Project:
                 #     return None
         return None
 
-    def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, version: str | None, result: Any, content_type: str | None, save_blob: bool):
+    def _save_result_sync(
+        self,
+        cache_key: str,
+        func_name: str,
+        input_id: str,
+        version: str | None,
+        result: Any,
+        content_type: str | None,
+        save_blob: bool,
+    ):
         """
         Save a result synchronously.
 
@@ -194,17 +232,33 @@ class Project:
             content_type: Type of content to be saved.
             save_blob: Whether to save as a blob or directly in DB.
         """
-        if save_blob:
+        # 1. Always Serialize with Msgpack first (Consistency)
+        # This ensures custom types are checked and encoded correctly before storage decision.
+        try:
             data_bytes = self.serializer.dumps(result)
+        except SerializationError as e:
+            # Fail fast if the type is not registered.
+            raise e
+
+        if save_blob:
+            # Explicit Blob Storage
             r_val = self.storage.save(cache_key, data_bytes)
-            r_type = 'FILE'
+            r_type = "FILE"
         else:
-            # Small data: Keep using JSON for now to maintain DB readability
-            # Note: This limits `save_blob=False` to JSON-serializable types only.
-            # If users want to use Custom Types, they should prefer `save_blob=True` 
-            # OR we can switch this to base64 encoded msgpack in the future.
-            r_type = 'DIRECT'
-            r_val = json.dumps(result, default=str)
+            # SQLite Storage (Msgpack + Base64)
+            data_size = len(data_bytes)
+
+            # Cuardrail: Warning for uninteional large data
+            if data_size > self.blob_warning_threshold:
+                logger.warning(
+                    f"⚠️ Large data detected ({data_size / 1024:.1f} KB) for task '{func_name}'. "
+                    f"This is saved to SQLite directly, which may bloat the database file. "
+                    f"Consider adding `@project.task(save_blob=True)` to improve performance and file size."
+                )
+
+            # Encodde to Base64 for TEXT column Compatibility
+            r_val = base64.b64encode(data_bytes).decode("ascii")
+            r_type = "DIRECT_B64"
 
         self.db.save(
             cache_key=cache_key,
@@ -225,6 +279,7 @@ class Project:
         Args:
             cost: Cost associated with the function, can be an int or a callable that returns an int.
         """
+
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
@@ -241,6 +296,7 @@ class Project:
                 return await func(*args, **kwargs)
 
             return async_wrapper if is_async else sync_wrapper
+
         return decorator
 
     def task(
@@ -254,20 +310,26 @@ class Project:
     ):
         """
         Resumable Task Decorator.
-        
+
         Args:
             save_blob: If True, saves result using Storage (pickle). If False, saves to DB directly (JSON).
             input_key_fn: Custom function to generate input ID from args/kwargs.
             version: Explicit version string. Change this to invalidate old cache entries.
         """
+
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
-            
+
             # Key Gen Helper
             def make_key(args, kwargs):
                 from .utils import KeyGen
-                iid = input_key_fn(*args, **kwargs) if input_key_fn else KeyGen.default(args, kwargs)
-                
+
+                iid = (
+                    input_key_fn(*args, **kwargs)
+                    if input_key_fn
+                    else KeyGen.default(args, kwargs)
+                )
+
                 key_source = f"{func.__name__}:{iid}"
                 if version:
                     key_source += f":{version}"
@@ -278,16 +340,19 @@ class Project:
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 iid, ck = make_key(args, kwargs)
-                
+
                 # 1. Check Cache
                 cached = self._check_cache_sync(ck)
-                if cached is not None: return cached
+                if cached is not None:
+                    return cached
 
                 # 2. Execute
                 res = func(*args, **kwargs)
 
                 # 3. Save
-                self._save_result_sync(ck, func.__name__, str(iid), version, res, content_type, save_blob)
+                self._save_result_sync(
+                    ck, func.__name__, str(iid), version, res, content_type, save_blob
+                )
                 return res
 
             @functools.wraps(func)
@@ -296,14 +361,27 @@ class Project:
                 loop = asyncio.get_running_loop()
 
                 # 1. Check Cache (Offload IO)
-                cached = await loop.run_in_executor(self.executor, self._check_cache_sync, ck)
-                if cached is not None: return cached
+                cached = await loop.run_in_executor(
+                    self.executor, self._check_cache_sync, ck
+                )
+                if cached is not None:
+                    return cached
 
                 # 2. Execute (Async)
                 res = await func(*args, **kwargs)
 
                 # 3. Save (Offload IO)
-                await loop.run_in_executor(self.executor, self._save_result_sync, ck, func.__name__, str(iid), version, res, content_type, save_blob)
+                await loop.run_in_executor(
+                    self.executor,
+                    self._save_result_sync,
+                    ck,
+                    func.__name__,
+                    str(iid),
+                    version,
+                    res,
+                    content_type,
+                    save_blob,
+                )
                 return res
 
             return async_wrapper if is_async else sync_wrapper
@@ -312,8 +390,7 @@ class Project:
         # _func にデコレート対象の関数が入ってくる
         if _func is not None and callable(_func):
             return decorator(_func)
-            
+
         # ケース2: @project.task(save_blob=True) として呼ばれた場合
         # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
-

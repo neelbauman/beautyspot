@@ -42,7 +42,7 @@ pip install beautyspot
 
 ## 🚀 Quick Start
 
-関数に `@project.task` を付けるだけで、その関数および入出力は永続化され、同じ計算無駄に多重に繰り返すことを華麗に回避します。
+関数に `@project.task` を付けるだけで、その関数および入出力は永続化され、同じ計算を無駄に多重に繰り返すことを華麗に回避します。
 
 ```python
 import time
@@ -76,8 +76,16 @@ for i in inputs:
 v1.0.0 から、デフォルトのシリアライザに **Msgpack** を採用しました。
 Python標準の `pickle` と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。
 
-関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、`save_blob=True` を指定してください。
-`beautyspot` が自動的にデータを外部ストレージ（Local/S3）へ逃がし、DBには軽量な参照のみを残します。
+データの保存方法は `save_blob` オプションで制御しますが、**どちらの場合も型の一貫性は保たれます。**
+
+* **Small Data (`save_blob=False`)**:
+    * デフォルト。SQLite内に直接保存されます。
+    * **目安: 100KB 未満** のデータ（数値、短いテキスト、小さなNumpy配列など）に最適で、高速です。
+* **Large Data (`save_blob=True`)**:
+    * データを外部ファイル（Local/S3）に退避し、DBには参照のみを残します。
+    * **目安: 100KB 以上** のデータ（画像、音声、巨大な埋め込みベクトルなど）で推奨されます。
+
+> **⚠️ Note:** `save_blob=False` のまま巨大なデータ（デフォルトで1MB以上）を保存しようとすると、実行時に警告ログが出力されます。
 
 ```python
 # Large Data -> Blobに退避 (Msgpackで保存)
@@ -89,6 +97,7 @@ def download_image(url):
 ### 2\. Custom Type Registration
 
 Numpy配列や自作クラスなど、デフォルトで対応していない型も、変換ロジックを登録することで安全に扱えます。
+この登録は、SQLite保存 / Blob保存 のどちらでも有効です。
 
 ```python
 import numpy as np

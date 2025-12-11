@@ -1,12 +1,13 @@
 # tests/test_utils.py
 
-import pytest
 import time
 from beautyspot.utils import KeyGen
+
 
 class SimpleObj:
     def __init__(self, x):
         self.x = x
+
 
 def test_stable_hash_types():
     """順序を持たない型(Set, Dict)が安定してハッシュ化されるか"""
@@ -23,6 +24,7 @@ def test_stable_hash_types():
     # Bytes
     assert KeyGen.default((b"hello",), {}) == KeyGen.default((b"hello",), {})
 
+
 def test_custom_object_hash():
     """カスタムオブジェクトの中身が同じなら同じハッシュになるか"""
     o1 = SimpleObj(10)
@@ -34,28 +36,29 @@ def test_custom_object_hash():
     o3 = SimpleObj(11)
     assert KeyGen.default((o1,), {}) != KeyGen.default((o3,), {})
 
+
 def test_file_hash(tmp_path):
     """ファイルパスと中身のハッシュ生成"""
     f = tmp_path / "test.txt"
     f.write_text("content_A")
-    
+
     # 1. Path Stat Hash
     h1 = KeyGen.from_path_stat(str(f))
-    
+
     # 2. Content Hash
     h2 = KeyGen.from_file_content(str(f))
-    
+
     # ファイル更新 (mtimeを変えるため少し待つか、os.utimeを使う手もあるが簡易的に)
     time.sleep(0.01)
     f.write_text("content_B")
-    
+
     # 内容が変わればハッシュも変わるべき
     assert KeyGen.from_path_stat(str(f)) != h1
     assert KeyGen.from_file_content(str(f)) != h2
+
 
 def test_missing_file():
     """存在しないファイルの扱い"""
     # エラーにならず、識別子(MISSING_...)が返ること
     assert "MISSING" in KeyGen.from_path_stat("nonexistent_file")
     assert "MISSING" in KeyGen.from_file_content("nonexistent_file")
-

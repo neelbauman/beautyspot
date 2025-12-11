@@ -1,5 +1,6 @@
 # src/beautyspot/dashboard.py
 
+import base64
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -10,6 +11,8 @@ import msgpack
 import html
 from beautyspot.types import ContentType
 from beautyspot.db import SQLiteTaskDB
+from beautyspot.storage import S3Storage
+
 
 # CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
 def get_args():
@@ -19,10 +22,11 @@ def get_args():
     args, _ = parser.parse_known_args()
     return args
 
+
 try:
     args = get_args()
     DB_PATH = args.db
-except:
+except Exception:
     st.error("Database path not provided. Run via `beautyspot ui <db>`")
     st.stop()
 
@@ -49,7 +53,6 @@ def render_mermaid(code: str, height: int = 500):
 # プロジェクトインスタンスの作成（DBを読むだけなのでStorage設定はDummyで可）
 # ただしLoad機能を使うなら正しいStorage設定が必要だが、
 # ここではDB内のパス情報を見て動的に判断する簡易版を実装
-from beautyspot.storage import LocalStorage, S3Storage
 
 st.set_page_config(page_title="beautyspot Dashboard", layout="wide", page_icon="🌑")
 st.title("🌑 beautyspot Dashboard")
@@ -65,6 +68,7 @@ def load_data():
         st.error(f"Error reading DB: {e}")
         return pd.DataFrame()
 
+
 if st.button("🔄 Refresh"):
     st.cache_data.clear()
 
@@ -79,19 +83,33 @@ st.sidebar.header("Filter")
 st.sidebar.metric("Total Records", len(df))
 
 funcs = st.sidebar.multiselect("Function", df["func_name"].unique())
-if funcs: df = df[df["func_name"].isin(funcs)]
+if funcs:
+    df = df[df["func_name"].isin(funcs)]
 
 result_types = st.sidebar.multiselect("Result Type", df["result_type"].unique())
-if result_types: df = df[df["result_type"].isin(result_types)]
+if result_types:
+    df = df[df["result_type"].isin(result_types)]
 
 search = st.sidebar.text_input("Search Input ID")
-if search: df = df[df["input_id"].str.contains(search, na=False)]
+if search:
+    df = df[df["input_id"].str.contains(search, na=False)]
 
 
 # --- Main Table ---
 st.subheader("📋 Tasks")
 event = st.dataframe(
-    df[["cache_key", "updated_at", "func_name", "input_id", "version", "result_type", "content_type", "result_value"]],
+    df[
+        [
+            "cache_key",
+            "updated_at",
+            "func_name",
+            "input_id",
+            "version",
+            "result_type",
+            "content_type",
+            "result_value",
+        ]
+    ],
     width="stretch",
     hide_index=True,
     on_select="rerun",
@@ -115,40 +133,50 @@ else:
 
 if selected_key:
     row = df[df["cache_key"] == selected_key].iloc[0]
-    
+
     r_type = row["result_type"]
     r_val = row["result_value"]
-    
+
     c_type = row.get("content_type")
-    col1, col2 = st.columns([1,2])
-    
+    col1, col2 = st.columns([1, 2])
+
     with col1:
         st.write("**Metadata**")
         st.json(row.to_dict())
-        
+
     with col2:
         st.write(f"**Content**: {c_type or 'Unknown Type'}")
-        
+
         try:
             data = None
             if r_type == "DIRECT":
+                # Backward compatibility for JSON
                 data = json.loads(r_val)
+            elif r_type == "DIRECT_B64":
+                # New Msgpack + Base64
+                try:
+                    b_data = base64.b64decode(r_val)
+                    data = msgpack.unpackb(b_data, raw=False)
+                except Exception as e:
+                    st.error(f"Failed to decode DIRECT_B64 data: {e}")
+
             elif r_type == "FILE":
                 # Auto Storage Detection
                 with st.spinner("Loading Blob..."):
                     if r_val.startswith("s3://"):
-                        storage = S3Storage(r_val) # 初期化時にバケット解析させる
+                        storage = S3Storage(r_val)  # 初期化時にバケット解析させる
                         data = storage.load(r_val)
                     else:
                         # ローカルパスの場合、実行場所との相対パス問題があるため
                         # 絶対パスか確認しつつ読み込む
                         if os.path.exists(r_val):
-                            with open(r_val, 'rb') as f:
+                            with open(r_val, "rb") as f:
                                 import msgpack
+
                                 data = msgpack.unpack(f, raw=False)
                         else:
                             st.error(f"File not found on this machine: {r_val}")
-            
+
             if data is not None:
                 """
                 Rendering Strategy :
@@ -161,41 +189,39 @@ if selected_key:
                 if c_type == ContentType.GRAPHVIZ:
                     try:
                         st.graphviz_chart(data)
-                    except Exception as e:
+                    except Exception:
                         st.error("Graphviz rendering failed.")
-                        st.warning("Hint: Is 'graphviz' installed on your OS? (e.g., `apt install graphviz`)")
-                        st.code(data) # フォールバックとしてソースを表示
+                        st.warning(
+                            "Hint: Is 'graphviz' installed on your OS? (e.g., `apt install graphviz`)"
+                        )
+                        st.code(data)  # フォールバックとしてソースを表示
 
                 # === Mermaid ===
                 elif c_type == ContentType.MERMAID:
                     render_mermaid(data)
-                    # ソースも見たい場合のためにExpanderに隠しておく
                     with st.expander("View Source"):
                         st.code(data, language="mermaid")
 
                 elif c_type == ContentType.PNG or c_type == ContentType.JPEG:
-                    # dataがバイト列かPIL画像かパスかによるが、
-                    # ここではpickleされたオブジェクト(PIL Imageなど)を想定
                     st.image(data)
-                
+
                 elif c_type == ContentType.HTML:
                     # Use components.html for sandboxed rendering to prevent XSS
                     components.html(data, height=600, scrolling=True)
-                
+
                 elif c_type == ContentType.JSON:
                     st.json(data)
-                
+
                 elif c_type == ContentType.MARKDOWN:
                     st.markdown(data)
-                
+
                 else:
                     # Fallback (Default Text Representation)
                     if isinstance(data, (dict, list)):
                         st.json(data)
                     else:
                         st.text(str(data))
-                    
+
         except Exception as e:
             st.error(f"Restore Failed: {e}")
             st.exception(e)
-

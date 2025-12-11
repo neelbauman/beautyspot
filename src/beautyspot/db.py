@@ -12,11 +12,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 class TaskDB(ABC):
     """
     Abstract interface for task metadata storage.
     Implement this class to support other databases (e.g., PostgreSQL, DuckDB).
     """
+
     @abstractmethod
     def init_schema(self):
         """Initialize database schema (create tables, migrations)."""
@@ -29,14 +31,14 @@ class TaskDB(ABC):
 
     @abstractmethod
     def save(
-        self, 
-        cache_key: str, 
-        func_name: str, 
-        input_id: str, 
-        version: Optional[str], 
-        result_type: str, 
-        content_type: Optional[str], 
-        result_value: str
+        self,
+        cache_key: str,
+        func_name: str,
+        input_id: str,
+        version: Optional[str],
+        result_type: str,
+        content_type: Optional[str],
+        result_value: str,
     ):
         """Upsert a task result."""
         pass
@@ -51,6 +53,7 @@ class SQLiteTaskDB(TaskDB):
     """
     Default implementation using SQLite.
     """
+
     def __init__(self, db_path: str):
         self.db_path = db_path
 
@@ -60,7 +63,7 @@ class SQLiteTaskDB(TaskDB):
     def init_schema(self):
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL;")
-            
+
             # 1. Create Table (if not exists)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -74,11 +77,11 @@ class SQLiteTaskDB(TaskDB):
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
+
             # 2. Migration: Check and Add columns dynamically (for compatibility with older DB files)
             cursor = conn.execute("PRAGMA table_info(tasks)")
             columns = [row[1] for row in cursor.fetchall()]
-            
+
             if "content_type" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
             if "version" not in columns:
@@ -88,22 +91,22 @@ class SQLiteTaskDB(TaskDB):
         """Retrieve a task result by cache key."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT result_type, result_value FROM tasks WHERE cache_key=?", 
-                (cache_key,)
+                "SELECT result_type, result_value FROM tasks WHERE cache_key=?",
+                (cache_key,),
             ).fetchone()
             if row:
                 return {"result_type": row[0], "result_value": row[1]}
         return None
 
     def save(
-        self, 
-        cache_key: str, 
-        func_name: str, 
-        input_id: str, 
-        version: Optional[str], 
-        result_type: str, 
-        content_type: Optional[str], 
-        result_value: str
+        self,
+        cache_key: str,
+        func_name: str,
+        input_id: str,
+        version: Optional[str],
+        result_type: str,
+        content_type: Optional[str],
+        result_value: str,
     ):
         """Upsert a task result."""
         with self._connect() as conn:
@@ -113,7 +116,15 @@ class SQLiteTaskDB(TaskDB):
                 (cache_key, func_name, input_id, version, result_type, content_type, result_value) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (cache_key, func_name, input_id, version, result_type, content_type, result_value)
+                (
+                    cache_key,
+                    func_name,
+                    input_id,
+                    version,
+                    result_type,
+                    content_type,
+                    result_value,
+                ),
             )
 
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
@@ -148,4 +159,3 @@ class SQLiteTaskDB(TaskDB):
                 LIMIT ?
             """
             return pd.read_sql_query(query, conn, params=(limit,))
-

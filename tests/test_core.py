@@ -11,12 +11,13 @@ def project(tmp_path):
     return Project(
         name="test_project",
         db=str(tmp_path / "test.db"),
-        storage_path=str(tmp_path / "blobs")
+        storage_path=str(tmp_path / "blobs"),
     )
+
 
 def test_task_execution(project):
     """タスクが実行され、結果が保存されるか"""
-    
+
     call_count = 0
 
     @project.task
@@ -40,16 +41,17 @@ def test_task_execution(project):
     assert res3 == 5
     assert call_count == 2
 
+
 def test_task_with_blob(project):
     """save_blob=True の動作確認"""
-    
+
     @project.task(save_blob=True)
     def large_data():
         return "x" * 1000
 
     res = large_data()
     assert len(res) == 1000
-    
+
     # DBにはパスが保存されているはず (中身ではなく)
     # Project経由では隠蔽されているので、内部DBを覗き見る
     record = project.db.get_history(limit=1)
@@ -70,7 +72,6 @@ def test_custom_type_task(project):
     Project.register_type を使用して、
     未知のオブジェクトを返すタスクが正常に動作するか確認
     """
-    import msgpack
 
     # 1. 未登録状態で実行 -> 失敗するはず
     @project.task(save_blob=True)
@@ -81,9 +82,12 @@ def test_custom_type_task(project):
         fail_task()
 
     # 2. 型を登録
-    def enc(o): return o.name.encode('utf-8')
-    def dec(b): return ComplexObj(b.decode('utf-8'))
-    
+    def enc(o):
+        return o.name.encode("utf-8")
+
+    def dec(b):
+        return ComplexObj(b.decode("utf-8"))
+
     project.register_type(ComplexObj, 20, enc, dec)
 
     # 3. 登録後に実行 -> 成功するはず
@@ -93,10 +97,9 @@ def test_custom_type_task(project):
 
     res1 = success_task()
     assert res1.name == "success"
-    
+
     # 4. キャッシュヒット時の復元確認
     # (内部DBのカウンタ等はモックしていないので、再度呼んでエラーが出ないことを確認)
     res2 = success_task()
     assert res2.name == "success"
     assert res2 == res1
-

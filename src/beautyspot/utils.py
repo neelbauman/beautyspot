@@ -5,12 +5,13 @@ import os
 import json
 from typing import Any
 
+
 def _stable_serialize_default(o: Any) -> Any:
     """
     JSON serialization fallback specifically designed for cache key generation.
-    
-    Unlike standard JSON serialization, this function prioritizes "stability" 
-    over "reversibility". It ensures that logically equivalent objects produce 
+
+    Unlike standard JSON serialization, this function prioritizes "stability"
+    over "reversibility". It ensures that logically equivalent objects produce
     the same JSON string, even across different process runs.
 
     Strategies:
@@ -25,7 +26,7 @@ def _stable_serialize_default(o: Any) -> Any:
         except TypeError:
             # If elements are not comparable, fall back to string repr sorted
             return sorted([str(x) for x in o])
-    
+
     # 2. Bytes -> Hex string
     if isinstance(o, bytes):
         return o.hex()
@@ -34,7 +35,7 @@ def _stable_serialize_default(o: Any) -> Any:
     # Pydantic models, Dataclasses, or normal classes
     if hasattr(o, "__dict__"):
         return o.__dict__
-    
+
     if hasattr(o, "__slots__"):
         return {k: getattr(o, k) for k in o.__slots__ if hasattr(o, k)}
 
@@ -43,11 +44,13 @@ def _stable_serialize_default(o: Any) -> Any:
     # Warning: If __str__ contains memory address (e.g. <Obj at 0x...>), hash will be unstable.
     return str(o)
 
+
 class KeyGen:
     @staticmethod
     def from_path_stat(filepath: str) -> str:
         """Fast: path + size + mtime"""
-        if not os.path.exists(filepath): return f"MISSING_{filepath}"
+        if not os.path.exists(filepath):
+            return f"MISSING_{filepath}"
         stat = os.stat(filepath)
         identifier = f"{filepath}_{stat.st_size}_{stat.st_mtime}"
         return hashlib.md5(identifier.encode()).hexdigest()
@@ -55,15 +58,17 @@ class KeyGen:
     @staticmethod
     def from_file_content(filepath: str) -> str:
         """Strict: file content hash"""
-        if not os.path.exists(filepath): return f"MISSING_{filepath}"
+        if not os.path.exists(filepath):
+            return f"MISSING_{filepath}"
         hasher = hashlib.md5()
         # Include extension to distinguish format changes
         hasher.update(os.path.splitext(filepath)[1].lower().encode())
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 while chunk := f.read(65536):
                     hasher.update(chunk)
-        except OSError: return f"ERROR_{filepath}"
+        except OSError:
+            return f"ERROR_{filepath}"
         return hasher.hexdigest()
 
     @staticmethod
@@ -75,14 +80,13 @@ class KeyGen:
         try:
             # Serialize with a smart default handler
             s = json.dumps(
-                {"a": args, "k": kwargs}, 
-                sort_keys=True, 
+                {"a": args, "k": kwargs},
+                sort_keys=True,
                 default=_stable_serialize_default,
-                ensure_ascii=False
+                ensure_ascii=False,
             )
             return hashlib.md5(s.encode()).hexdigest()
         except Exception:
             # Fallback for circular references or truly unserializable objects.
             # We might want to log a warning here in the future.
             return hashlib.md5(str((args, kwargs)).encode()).hexdigest()
-
