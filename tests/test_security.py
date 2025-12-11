@@ -3,16 +3,11 @@ import os
 import shutil
 from beautyspot.storage import LocalStorage
 
-BASE_DIR = "./test_blobs"
 
 @pytest.fixture
-def storage():
-    if os.path.exists(BASE_DIR):
-        shutil.rmtree(BASE_DIR)
-    s = LocalStorage(BASE_DIR)
-    yield s
-    if os.path.exists(BASE_DIR):
-        shutil.rmtree(BASE_DIR)
+def storage(tmp_path):
+    s = LocalStorage(str(tmp_path / "blobs"))
+    return s
 
 def test_path_traversal_save(storage):
     """Test that saving with a key containing path traversal characters fails."""
@@ -46,19 +41,18 @@ def test_valid_save_load(storage):
     loaded = storage.load(path)
     assert loaded == data
 
-def test_load_outside_base_dir(storage):
+def test_load_outside_base_dir(storage, tmp_path):
     """Test that loading a file outside the base dir fails."""
-    # Create a dummy file outside base dir
-    outside_file = "outside.txt"
-    with open(outside_file, "wb") as f:
-        f.write(b"outside")
+    # Create a dummy file outside base dir (in parent of tmp_path)
+    outside_file = tmp_path.parent / "outside.txt"
+    outside_file.write_bytes(b"outside")
         
     try:
-        abs_path = os.path.abspath(outside_file)
+        abs_path = str(outside_file.absolute())
         
         # Try to load it via LocalStorage
         with pytest.raises(ValueError, match="Access denied"):
             storage.load(abs_path)
     finally:
-        if os.path.exists(outside_file):
-            os.remove(outside_file)
+        if outside_file.exists():
+            outside_file.unlink()

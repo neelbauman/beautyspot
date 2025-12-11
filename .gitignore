@@ -14,6 +14,7 @@ wheels/
 
 # blobs
 blobs
+chat_logs/
 
 .pytest_cache
 

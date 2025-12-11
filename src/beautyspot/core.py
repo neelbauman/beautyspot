@@ -18,7 +18,13 @@ from .serializer import MsgpackSerializer, SerializationError
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+
 class Project:
+    """
+    Project class that handles task management, serialization, and
+    resource management for tasks including caching and storage.
+    """
+
     def __init__(
         self,
         name: str,
@@ -30,6 +36,19 @@ class Project:
         executor: Optional[Executor] = None,
         storage: Optional[BlobStorageBase] = None,
     ):
+        """
+        Initialize a Project instance.
+
+        Args:
+            name: Name of the project.
+            db: Database for tasks, can be a filepath or TaskDB instance.
+            storage_path: Path for storing blobs locally.
+            s3_opts: Options for S3 storage.
+            tpm: Tokens per minute for rate limiting.
+            io_workers: Number of IO workers for executor.
+            executor: Optional pre-created executor.
+            storage: Optional pre-created storage instance.
+        """
         self.name = name
 
         if db is None:
@@ -70,21 +89,41 @@ class Project:
     @staticmethod
     def _shutdown_executor(executor: Executor):
         """
-        内部Executor用のクリーンアップ関数
+        Clean-up function for internal Executor.
+
+        Args:
+            executor: The executor to be shut down.
         """
         executor.shutdown(wait=True)
 
     def shutdown(self, wait: bool = True):
         """
-        手動でリソースを解放する場合に使用
+        Manually release resources.
+
+        Args:
+            wait: Whether to wait for the executor to be shut down.
         """
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
 
     def __enter__(self):
+        """
+        Enter the runtime context related to this object.
+
+        Returns:
+            self: The project instance itself.
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Exit the runtime context and clean up resources.
+
+        Args:
+            exc_type: Exception type.
+            exc_value: Exception value.
+            traceback: Traceback object.
+        """
         self.shutdown()
 
     def register_type(self, type_: Type, code: int, encoder: Callable, decoder: Callable):
@@ -101,7 +140,15 @@ class Project:
 
     # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str) -> Any:
-        """戻り値が None ならキャッシュミス"""
+        """
+        Check the cache for a given key synchronously.
+
+        Args:
+            cache_key: The cache key to check.
+
+        Returns:
+            The cached result if available, otherwise None.
+        """
         entry = self.db.get(cache_key)
 
         if entry:
@@ -135,6 +182,18 @@ class Project:
         return None
 
     def _save_result_sync(self, cache_key: str, func_name: str, input_id: str, version: str | None, result: Any, content_type: str | None, save_blob: bool):
+        """
+        Save a result synchronously.
+
+        Args:
+            cache_key: The cache key to save.
+            func_name: The name of the function.
+            input_id: The input ID.
+            version: The version string for caching.
+            result: The result to save.
+            content_type: Type of content to be saved.
+            save_blob: Whether to save as a blob or directly in DB.
+        """
         if save_blob:
             data_bytes = self.serializer.dumps(result)
             r_val = self.storage.save(cache_key, data_bytes)
@@ -160,7 +219,12 @@ class Project:
     # --- Decorators ---
 
     def limiter(self, cost: Union[int, Callable] = 1):
-        """Rate Limiting Decorator"""
+        """
+        Rate Limiting Decorator.
+
+        Args:
+            cost: Cost associated with the function, can be an int or a callable that returns an int.
+        """
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
