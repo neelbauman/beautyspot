@@ -164,15 +164,11 @@ class Project:
 
         if entry:
             r_type = entry["result_type"]
-            r_val = entry["result_value"]
-            r_data = entry.get("result_data")  # None if column missing (old DB)
+            r_val = entry["result_value"] # Path (str)
+            r_data = entry.get("result_data")  # Content (bytes)
 
-            # Case 1: Legacy JSON (Backward Compatibility)
-            if r_type == "DIRECT":
-                return json.loads(r_val)
-
-            # Case 2: Native SQLite BLOB (Standard for small data in v1.0.0+)
-            elif r_type == "DIRECT_BLOB":
+            # Case 1: Native SQLite BLOB (Standard for small data)
+            if r_type == "DIRECT_BLOB":
                 if r_data is None:
                     logger.warning(f"Cache corrupted: DIRECT_BLOB found but data is NULL for `{cache_key}`.")
                     return None
@@ -184,20 +180,10 @@ class Project:
                     )
                     return None
 
-            # Case 2b: Legacy Base64 (Deprecated but safe to support if exists)
-            elif r_type == "DIRECT_B64":
-                try:
-                    data_bytes = base64.b64decode(r_val)
-                    return self.serializer.loads(data_bytes)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to deserialize DIRECT_B64 for `{cache_key}`: {e}"
-                    )
-                    return None
-
-            # Case 3: External Blob (Standard for large data)
+            # Case 2: External Blob (Standard for large data)
             elif r_type == "FILE":
                 try:
+                    # result_value is treated strictly as a Path/URI
                     data_bytes = self.storage.load(r_val)
                     return self.serializer.loads(data_bytes)
                 except FileNotFoundError:

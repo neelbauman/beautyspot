@@ -41,7 +41,19 @@ class TaskDB(ABC):
         result_value: Optional[str] = None,
         result_data: Optional[bytes] = None,
     ):
-        """Upsert a task result."""
+        """
+        Upsert a task result.
+        
+        Args:
+            cache_key: Unique hash key.
+            func_name: Function name.
+            input_id: Input identifier.
+            version: Task version.
+            result_type: 'DIRECT_BLOB' or 'FILE'.
+            content_type: MIME type of the result (e.g. 'image/png').
+            result_value: Path/URI string (Only used when result_type='FILE').
+            result_data: Serialized binary data (Only used when result_type='DIRECT_BLOB').
+        """
         pass
 
     @abstractmethod

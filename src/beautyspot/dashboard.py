@@ -159,11 +159,7 @@ if selected_key:
 
         try:
             data = None
-            if r_type == "DIRECT":
-                # Backward compatibility for JSON
-                data = json.loads(r_val)
-            
-            elif r_type == "DIRECT_BLOB":
+            if r_type == "DIRECT_BLOB":
                 # New Native BLOB
                 if r_blob is not None and not pd.isna(r_blob):
                     try:
@@ -172,14 +168,6 @@ if selected_key:
                         st.error(f"Failed to decode DIRECT_BLOB data: {e}")
                 else:
                     st.warning("DIRECT_BLOB record found but data is empty.")
-
-            elif r_type == "DIRECT_B64":
-                # Legacy Msgpack + Base64
-                try:
-                    b_data = base64.b64decode(r_val)
-                    data = msgpack.unpackb(b_data, raw=False)
-                except Exception as e:
-                    st.error(f"Failed to decode DIRECT_B64 data: {e}")
 
             elif r_type == "FILE":
                 # Auto Storage Detection
@@ -193,7 +181,6 @@ if selected_key:
                         if os.path.exists(r_val):
                             with open(r_val, "rb") as f:
                                 import msgpack
-
                                 data = msgpack.unpack(f, raw=False)
                         else:
                             st.error(f"File not found on this machine: {r_val}")
