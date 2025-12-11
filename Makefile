@@ -18,7 +18,7 @@ lint-fix:  ## リントチェック (--fixオプションで自動修正）
 format:  ## コードをフォーマット
 	uvx ruff format .
 
-build: test  ## パッケージをビルド（テスト後）
+build: clean test  ## パッケージをビルド（テスト後）
 	uv build
 
 docs-serve:  ## ドキュメントをローカルで確認
@@ -37,9 +37,11 @@ publish: test build  ## PyPIに公開
 	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
 	@export $$(cat .env | grep -v '^#' | xargs) && \
 	uv publish --token $$PYPI_TOKEN
+	@$(MAKE) clean
 
 publish-test: test build  ## TestPyPIに公開（テスト用）
 	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
 	@export $$(cat .env | grep -v '^#' | xargs) && \
 	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
+	@$(MAKE) clean
 
