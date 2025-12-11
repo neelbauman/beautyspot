@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, Type, Tuple
 
 class SerializationError(Exception):
     """Raised when an object cannot be serialized."""
-
     pass
 
 

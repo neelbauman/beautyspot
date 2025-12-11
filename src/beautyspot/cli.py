@@ -18,7 +18,6 @@ def main():
         print("Please install dashboard dependencies:")
         print("\n    pip install 'beautyspot[dashboard]'\n")
         sys.exit(1)
-    # ------------------------
 
     if len(args) < 2:
         print(
@@ -51,3 +50,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

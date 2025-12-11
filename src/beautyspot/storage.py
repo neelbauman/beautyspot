@@ -14,7 +14,6 @@ except ImportError:
 
 class CacheCorruptedError(Exception):
     """Raised when blob data cannot be deserialized (e.g. code changes)."""
-
     pass
 
 

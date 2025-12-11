@@ -90,3 +90,4 @@ class KeyGen:
             # Fallback for circular references or truly unserializable objects.
             # We might want to log a warning here in the future.
             return hashlib.md5(str((args, kwargs)).encode()).hexdigest()
+

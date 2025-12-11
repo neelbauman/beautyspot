@@ -317,7 +317,7 @@ class Project:
 
             # Key Gen Helper
             def make_key(args, kwargs):
-                from .utils import KeyGen
+                from .cachekey import KeyGen
 
                 iid = (
                     input_key_fn(*args, **kwargs)
