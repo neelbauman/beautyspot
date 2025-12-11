@@ -1,7 +1,5 @@
 # src/beautyspot/core.py
 
-import base64
-import json
 import hashlib
 import logging
 import functools

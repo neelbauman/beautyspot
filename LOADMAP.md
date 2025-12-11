@@ -73,11 +73,35 @@ Phase 1 の完了後は、原則として**大きな新機能の追加を行い�
 
 ---
 
-## 🚫 Anti-Goals (What we will NOT do)
+## 🚫 Strategic Anti-Goals & Rationale
 
-以下の機能は、プロジェクトの複雑性を増大させ、「手軽さ」を損なうため、**実装しません**。
+プロジェクトの哲学である「手軽さ」と「堅牢性」を守るため、以下の機能は **意図的に実装しません**。これらは技術的な制約ではなく、戦略的な選択です。
 
-* ❌ **Distributed Coordination:** Redis や Memcached を用いた分散ロック、分散レート制限。
-* ❌ **Job Queue / Workers:** タスクを別プロセスや別サーバーに配送する機能。
-* ❌ **Complex Workflow (DAGs):** タスク間の依存関係解決やスケジューリング機能。
+### 1. Distributed Coordination (分散協調)
+**What:** Redis, Memcached, Etcd 等を使用した、複数サーバー間での状態共有（分散ロック、分散レート制限）。
+
+**Why we won't do it:**
+* **DXの破壊:** 「`pip install` だけで動く」という `beautyspot` 最大の価値が損なわれる。ユーザーに Redis サーバーの構築・運用を強いることは、"Kuroko" の哲学に反する。
+* **複雑性の爆発:** 分散システム特有の問題（ネットワーク分断、競合状態、レイテンシ）への対処により、コードベースのメンテナンスコストが跳ね上がる。
+* **「卒業」の推奨:** 分散制御が必要なフェーズは、もはや「試行錯誤」ではない。その段階では Celery, Airflow, Kubernetes などの専用ツールへ移行（卒業）すべきである。
+
+**Alternative (代替案):**
+* **FastAPI / Gunicorn:** プロセス数でレート制限値を割る「計算による運用」を推奨する（ドキュメントでサポート）。
+* **Custom Interface:** どうしても必要なユーザーのために、独自のバックエンドを注入できる DI (Dependency Injection) 機構のみを提供する。
+
+### 2. Canonical Msgpack for Key Generation (ハッシュ生成のMsgpack化)
+**What:** キャッシュキー（引数のハッシュ）の生成ロジックを、現在の JSON から Msgpack へ統一する。
+
+**Why we won't do it:**
+* **安定性の欠如:** 標準の `msgpack` 実装は辞書キーの順序を保証しないため、同じ引数でもバイナリが変化し、キャッシュミスを誘発するリスクがある。
+* **実装コスト:** 再帰的な正規化処理自体は書けなくはないですが、 `beautyspot` が扱いたいデータは複雑で（カスタムクラスの中身、Set型、Numpy配列などの特殊型、etc...）。それらすべてに対してもれなく再帰的な正規化（Canonicalization）ロジックを自前で実装・維持するコストは、得られるメリット（わずかなパフォーマンス向上と統一感）に見合わない。
+
+**Decision:**
+* **Hybrid Strategy:** キー生成には「安定性」に優れた `json.dumps(sort_keys=True)` を継続利用し、データ保存には「効率」に優れた `msgpack` を利用するハイブリッド構成を維持する。
+
+### 3. Job Queue / Worker Management (ジョブキュー)
+**What:** タスクを非同期にバックグラウンドプロセスや別サーバーへ配送・実行する機能。
+
+**Why we won't do it:**
+* **Scope Creep:** これはライブラリではなく「フレームワーク」や「プラットフォーム」の領分である。`beautyspot` はあくまで「関数呼び出しをフックするデコレータ」という境界線を越えない。
 
