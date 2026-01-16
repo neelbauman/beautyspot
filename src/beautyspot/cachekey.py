@@ -3,7 +3,9 @@
 import hashlib
 import os
 import msgpack
-from typing import Any
+from typing import Any, Union
+
+ReadableBuffer = Union[bytes, bytearray, memoryview]
 
 def _safe_sort_key(obj: Any):
     """

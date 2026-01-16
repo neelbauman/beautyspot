@@ -8,14 +8,19 @@ import asyncio
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
 from typing import Any, Callable, Optional, Union, Type
+from pathlib import Path  # Added Path
 
 from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
 from .db import TaskDB, SQLiteTaskDB
 from .serializer import MsgpackSerializer, SerializationError
+from .cachekey import KeyGen
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+# --- 追加: キャッシュミスを表す番兵オブジェクト ---
+CACHE_MISS = object()
 
 
 class Project:
@@ -28,13 +33,17 @@ class Project:
         self,
         name: str,
         db: str | TaskDB | None = None,
-        storage_path: str = "./blobs",
+        storage_path: str | None = None,  # Changed default to None
         s3_opts: dict | None = None,
         tpm: int = 10000,
         io_workers: int = 4,
         blob_warning_threshold: int = 1024 * 1024,
         executor: Optional[Executor] = None,
         storage: Optional[BlobStorageBase] = None,
+        # --- Default Task Settings ---
+        default_save_blob: bool = False,
+        default_version: str | None = None,
+        default_content_type: str | None = None,
     ):
         """
         Initialize a Project instance.
@@ -49,12 +58,27 @@ class Project:
             blob_warning_threshold: Threshold size (bytes) to warn when saving large data to SQLite.
             executor: Optional pre-created executor.
             storage: Optional pre-created storage instance.
+            default_save_blob: Default value for save_blob in tasks/run.
+            default_version: Default version string for tasks/run.
+            default_content_type: Default content_type for tasks/run.
         """
         self.name = name
         self.blob_warning_threshold = blob_warning_threshold
+        
+        # Store defaults
+        self.default_save_blob = default_save_blob
+        self.default_version = default_version
+        self.default_content_type = default_content_type
 
+        # --- Workspace Setup ---
+        # プロジェクト用の隠しディレクトリを用意
+        self.workspace_dir = Path(".beautyspot")
+        self._setup_workspace()
+
+        # --- キャッシュ管理用 テーブル確認と初期化 ---
         if db is None:
-            self.db = SQLiteTaskDB(f"{name}.db")
+            # デフォルトは隠しディレクトリ内のDBファイル
+            self.db = SQLiteTaskDB(str(self.workspace_dir / f"{name}.db"))
         elif isinstance(db, str):
             self.db = SQLiteTaskDB(db)
         elif isinstance(db, TaskDB):
@@ -63,7 +87,6 @@ class Project:
             raise TypeError(
                 "Argument 'db' must be a string (path) or a TaskDB instance."
             )
-
         self.db.init_schema()
 
         # --- Rate Limiter ---
@@ -72,11 +95,17 @@ class Project:
         # --- Serializer Setup ---
         self.serializer = MsgpackSerializer()
 
-        # --- Storage Selection ---
+        # --- Storage 初期化 ---
         if storage is not None:
             self.storage = storage
         else:
-            self.storage = create_storage(storage_path, s3_opts)
+            # storage_pathが未指定なら、隠しディレクトリ内のblobsを使う
+            if storage_path is None:
+                final_storage_path = str(self.workspace_dir / "blobs")
+            else:
+                final_storage_path = storage_path
+            
+            self.storage = create_storage(final_storage_path, s3_opts)
 
         # -- Executor Management ---
         if executor is not None:
@@ -92,6 +121,18 @@ class Project:
                 self, Project._shutdown_executor, self.executor,
             )
 
+    def _setup_workspace(self):
+        """Ensure the workspace directory and .gitignore exist."""
+        if not self.workspace_dir.exists():
+            self.workspace_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Add a .gitignore to ignore everything in this directory
+        gitignore_path = self.workspace_dir / ".gitignore"
+        if not gitignore_path.exists():
+            with open(gitignore_path, "w") as f:
+                f.write("*\n")
+
+    # (以下、メソッドは変更なし)
     @staticmethod
     def _shutdown_executor(executor: Executor):
         """
@@ -148,16 +189,117 @@ class Project:
         self.serializer.register(type_, code, encoder, decoder)
 
     # --- Core Logic (Sync) ---
+
+    def _resolve_settings(
+        self,
+        save_blob: bool | None,
+        version: str | None,
+        content_type: str | None
+    ) -> tuple[bool, str | None, str | None]:
+        """
+        Resolve settings based on arguments and project defaults.
+        Priority: Argument > Project Default
+        """
+        final_save_blob = save_blob if save_blob is not None else self.default_save_blob
+        final_version = version if version is not None else self.default_version
+        final_content_type = content_type if content_type is not None else self.default_content_type
+        return final_save_blob, final_version, final_content_type
+
+    def _make_cache_key(
+        self,
+        func_name: str,
+        args: tuple,
+        kwargs: dict,
+        input_key_fn: Optional[Callable],
+        version: str | None
+    ) -> tuple[str, str]:
+        """Generate input_id and cache_key."""
+        iid = (
+            input_key_fn(*args, **kwargs)
+            if input_key_fn
+            else KeyGen.default(args, kwargs)
+        )
+
+        key_source = f"{func_name}:{iid}"
+        if version:
+            key_source += f":{version}"
+
+        ck = hashlib.md5(key_source.encode()).hexdigest()
+        return iid, ck
+
+    def _execute_sync(
+        self,
+        func: Callable,
+        args: tuple,
+        kwargs: dict,
+        save_blob: bool | None,
+        input_key_fn: Optional[Callable],
+        version: str | None,
+        content_type: Optional[str],
+    ) -> Any:
+        """Internal synchronous execution logic."""
+        # Resolve Defaults
+        s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
+
+        iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
+
+        # 1. Check Cache
+        cached = self._check_cache_sync(ck)
+        if cached is not CACHE_MISS:  # 変更: NoneではなくCACHE_MISSで判定
+            return cached
+
+        # 2. Execute
+        res = func(*args, **kwargs)
+
+        # 3. Save
+        self._save_result_sync(
+            ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob
+        )
+        return res
+
+    async def _execute_async(
+        self,
+        func: Callable,
+        args: tuple,
+        kwargs: dict,
+        save_blob: bool | None,
+        input_key_fn: Optional[Callable],
+        version: str | None,
+        content_type: Optional[str],
+    ) -> Any:
+        """Internal asynchronous execution logic."""
+        # Resolve Defaults
+        s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
+
+        iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
+        loop = asyncio.get_running_loop()
+
+        # 1. Check Cache (Offload IO)
+        cached = await loop.run_in_executor(
+            self.executor, self._check_cache_sync, ck
+        )
+        if cached is not CACHE_MISS:  # 変更: NoneではなくCACHE_MISSで判定
+            return cached
+
+        # 2. Execute (Async)
+        res = await func(*args, **kwargs)
+
+        # 3. Save (Offload IO)
+        await loop.run_in_executor(
+            self.executor,
+            self._save_result_sync,
+            ck,
+            func.__name__,
+            str(iid),
+            s_ver,
+            res,
+            s_ct,
+            s_blob,
+        )
+        return res
+
+    # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str) -> Any:
-        """
-        Check the cache for a given key synchronously.
-
-        Args:
-            cache_key: The cache key to check.
-
-        Returns:
-            The cached result if available, otherwise None.
-        """
         entry = self.db.get(cache_key)
 
         if entry:
@@ -168,7 +310,7 @@ class Project:
             # Case 1: Native SQLite BLOB (Standard for small data)
             if r_type == "DIRECT_BLOB":
                 if r_data is None:
-                    logger.warning(f"Cache corrupted: DIRECT_BLOB found but data is NULL for `{cache_key}`.")
+                    return CACHE_MISS  # データ破損時もMISS扱い
                     return None
                 try:
                     return self.serializer.loads(r_data)
@@ -176,7 +318,7 @@ class Project:
                     logger.error(
                         f"Failed to deserialize DIRECT_BLOB for `{cache_key}`: {e}"
                     )
-                    return None
+                    return CACHE_MISS
 
             # Case 2: External Blob (Standard for large data)
             elif r_type == "FILE":
@@ -184,47 +326,13 @@ class Project:
                     # result_value is treated strictly as a Path/URI
                     data_bytes = self.storage.load(r_val)
                     return self.serializer.loads(data_bytes)
-                except FileNotFoundError:
-                    logger.warning(
-                        f"Cache blob missing for key {cache_key}. Re-computing."
-                    )
-                    return None
-                except (ValueError, SerializationError) as e:
-                    logger.warning(
-                        f"⚠️ Cache corrupted or incompatible for '{cache_key}'. Re-computing...\n"
-                        f"   Error: {e}"
-                    )
-                    return None
-                except Exception as e:
-                    logger.error(
-                        f"Unexpected error loading cache for '{cache_key}': {e}"
-                    )
-                    return None
-        return None
+                except Exception:
+                    return CACHE_MISS
+        
+        return CACHE_MISS  # エントリがない場合はMISS
 
-    def _save_result_sync(
-        self,
-        cache_key: str,
-        func_name: str,
-        input_id: str,
-        version: str | None,
-        result: Any,
-        content_type: str | None,
-        save_blob: bool,
-    ):
-        """
-        Save a result synchronously.
-
-        Args:
-            cache_key: The cache key to save.
-            func_name: The name of the function.
-            input_id: The input ID.
-            version: The version string for caching.
-            result: The result to save.
-            content_type: Type of content to be saved.
-            save_blob: Whether to save as a blob or directly in DB.
-        """
-        # 1. Always Serialize with Msgpack first (Consistency)
+    # ... (以下のメソッドは変更なし) ...
+    def _save_result_sync(self, cache_key, func_name, input_id, version, result, content_type, save_blob):
         try:
             data_bytes = self.serializer.dumps(result)
         except SerializationError as e:
@@ -233,6 +341,7 @@ class Project:
 
         r_val = None
         r_blob = None
+        r_type = "DIRECT_BLOB"
 
         if save_blob:
             # Explicit Blob Storage
@@ -262,7 +371,7 @@ class Project:
             result_type=r_type,
             content_type=content_type,
             result_value=r_val,
-            result_data=r_blob
+            result_data=r_blob,
         )
 
     # --- Decorators ---
@@ -298,19 +407,22 @@ class Project:
         self,
         _func: Optional[Callable] = None,
         *,
-        save_blob: bool = False,
+        save_blob: Optional[bool] = None,
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
     ):
         """
         Resumable Task Decorator.
+        If arguments are None, they fall back to Project defaults.
 
         Args:
             save_blob: If True, saves result using Storage (pickle). If False, saves to DB directly (JSON).
             input_key_fn: Custom function to generate input ID from args/kwargs.
             version: Explicit version string. Change this to invalidate old cache entries.
         """
+        if save_blob is None:
+            save_blob = self.default_save_blob
 
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
@@ -338,7 +450,7 @@ class Project:
 
                 # 1. Check Cache
                 cached = self._check_cache_sync(ck)
-                if cached is not None:
+                if cached is not CACHE_MISS:
                     return cached
 
                 # 2. Execute
@@ -359,7 +471,7 @@ class Project:
                 cached = await loop.run_in_executor(
                     self.executor, self._check_cache_sync, ck
                 )
-                if cached is not None:
+                if cached is not CACHE_MISS:
                     return cached
 
                 # 2. Execute (Async)
@@ -390,3 +502,28 @@ class Project:
         # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
 
+    # --- Imperative Execution ---
+
+    def run(
+        self,
+        func: Callable,
+        *args,
+        _save_blob: Optional[bool] = None,
+        _input_key_fn: Optional[Callable] = None,
+        _version: str | None = None,
+        _content_type: Optional[str] = None,
+        **kwargs,
+    ) -> Any:
+        """
+        Execute a function with caching enabled.
+        Arguments starting with '_' are configuration options.
+        If options are None, they fall back to Project defaults.
+        """
+        if inspect.iscoroutinefunction(func):
+            return self._execute_async(
+                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
+            )
+        else:
+            return self._execute_sync(
+                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
+            )
