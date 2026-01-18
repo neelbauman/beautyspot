@@ -14,14 +14,14 @@
         <link rel="prev" href="../storage/">
       
       
-        <link rel="next" href="../utils/">
+        <link rel="next" href="../cachekey/">
       
       
         
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -549,14 +549,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../utils/" class="md-nav__link">
+      <a href="../cachekey/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Utils
+    CacheKey
   
 
     
@@ -979,7 +979,7 @@
     
   
   
-    <span class="md-status md-status--Proposed"></span>
+    <span class="md-status md-status--Accepted"></span>
   
 
   
@@ -1004,7 +1004,7 @@
   <span class="md-ellipsis">
     
   
-    0008 Dependency-Injection
+    0008 Dependency Injection
   
 
     
@@ -1017,6 +1017,132 @@
     <span class="md-status md-status--Accepted"></span>
   
 
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0009 Msgpack & Guardrails
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--Accepted"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0010 Input Serialization
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--Accepted"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0011 Workspace & Run
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0012 Rename to Spot
+  
+
+    
+  </span>
+  
   
 
       </a>
@@ -1130,7 +1256,7 @@
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -1167,8 +1293,7 @@ Used by the dashboard to determine the appropriate rendering widget.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
 <span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
 <span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
 <span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
@@ -1179,25 +1304,28 @@ Used by the dashboard to determine the appropriate rendering widget.</p>
 <span class="normal"><a href="#__codelineno-0-12">12</a></span>
 <span class="normal"><a href="#__codelineno-0-13">13</a></span>
 <span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">ContentType</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="sd">    Supported semantic content types for beautyspot tasks.</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Used by the dashboard to determine the appropriate rendering widget.</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">TEXT</span> <span class="o">=</span> <span class="s2">&quot;text/plain&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;application/json&quot;</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">MARKDOWN</span> <span class="o">=</span> <span class="s2">&quot;text/markdown&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">PNG</span> <span class="o">=</span> <span class="s2">&quot;image/png&quot;</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">JPEG</span> <span class="o">=</span> <span class="s2">&quot;image/jpeg&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">MERMAID</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.mermaid&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">GRAPHVIZ</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">HTML</span> <span class="o">=</span> <span class="s2">&quot;text/html&quot;</span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ContentType</span><span class="p">:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Supported semantic content types for beautyspot tasks.</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    Used by the dashboard to determine the appropriate rendering widget.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">TEXT</span> <span class="o">=</span> <span class="s2">&quot;text/plain&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;application/json&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">MARKDOWN</span> <span class="o">=</span> <span class="s2">&quot;text/markdown&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">PNG</span> <span class="o">=</span> <span class="s2">&quot;image/png&quot;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">JPEG</span> <span class="o">=</span> <span class="s2">&quot;image/jpeg&quot;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">MERMAID</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.mermaid&quot;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">GRAPHVIZ</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="n">HTML</span> <span class="o">=</span> <span class="s2">&quot;text/html&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -1273,10 +1401,10 @@ Used by the dashboard to determine the appropriate rendering widget.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.expand", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.expand", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

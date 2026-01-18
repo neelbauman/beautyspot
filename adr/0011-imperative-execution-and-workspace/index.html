@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/architecture/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0011-imperative-execution-and-workspace/">
       
       
-        <link rel="prev" href="../philosophy/">
+        <link rel="prev" href="../0010-canonical-input-serialization/">
       
       
-        <link rel="next" href="../core/">
+        <link rel="next" href="../0012-rename-project-to-spot-and-task-to-mark/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Architecture - beautyspot</title>
+        <title>0011 Workspace & Run - beautyspot</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecturemd" class="md-skip">
+        <a href="#11-imperative-execution-smart-defaults-and-workspace-management" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              0011 Workspace & Run
             
           </span>
         </div>
@@ -287,7 +287,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../philosophy/" class="md-nav__link">
+      <a href="../../reference/philosophy/" class="md-nav__link">
         
   
   
@@ -311,35 +311,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../reference/architecture/" class="md-nav__link">
         
   
   
@@ -355,174 +330,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecturemd" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📄 ARCHITECTURE.md
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Architecture &amp; Design
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Architecture &amp; Design">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🏗️ Architecture &amp; Design Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2. Blob Storage (Storage Strategy)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3. Rate Limiter (GCRA)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Class Diagram
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Database Schema (ER Diagram)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -583,7 +390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../core/" class="md-nav__link">
+      <a href="../../reference/core/" class="md-nav__link">
         
   
   
@@ -611,7 +418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../storage/" class="md-nav__link">
+      <a href="../../reference/storage/" class="md-nav__link">
         
   
   
@@ -639,7 +446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../types/" class="md-nav__link">
+      <a href="../../reference/types/" class="md-nav__link">
         
   
   
@@ -667,7 +474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cachekey/" class="md-nav__link">
+      <a href="../../reference/cachekey/" class="md-nav__link">
         
   
   
@@ -783,20 +590,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -817,7 +624,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -835,7 +642,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0000-adr-example/" class="md-nav__link">
+      <a href="../0000-adr-example/" class="md-nav__link">
         
   
   
@@ -870,7 +677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0001-stable-argument-hashing/" class="md-nav__link">
+      <a href="../0001-stable-argument-hashing/" class="md-nav__link">
         
   
   
@@ -905,7 +712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0002-robust-rate-limiter/" class="md-nav__link">
+      <a href="../0002-robust-rate-limiter/" class="md-nav__link">
         
   
   
@@ -940,7 +747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
+      <a href="../0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
         
   
   
@@ -975,7 +782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0004-io-executor-lifecyle-management/" class="md-nav__link">
+      <a href="../0004-io-executor-lifecyle-management/" class="md-nav__link">
         
   
   
@@ -1010,7 +817,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0005-dashboard-interaction-model/" class="md-nav__link">
+      <a href="../0005-dashboard-interaction-model/" class="md-nav__link">
         
   
   
@@ -1045,7 +852,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0006-semantic-content-type-support/" class="md-nav__link">
+      <a href="../0006-semantic-content-type-support/" class="md-nav__link">
         
   
   
@@ -1080,7 +887,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0007-customizable-serialization-with-msgpack/" class="md-nav__link">
+      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -1115,7 +922,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0008-database-dependency-injection/" class="md-nav__link">
+      <a href="../0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -1150,7 +957,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
+      <a href="../0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1185,7 +992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
+      <a href="../0010-canonical-input-serialization/" class="md-nav__link">
         
   
   
@@ -1217,10 +1024,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0011 Workspace & Run
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1236,6 +1070,159 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-projectrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 命令的実行メソッド (project.run) の導入
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. コンテキストマネージャとリソース管理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 設定の階層化とスマートデフォルト
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. ワークスペースディレクトリによる集約
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 番兵オブジェクトによるキャッシュ判定
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1248,7 +1235,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+      <a href="../0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
         
   
   
@@ -1293,6 +1280,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1301,10 +1290,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecturemd" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        📄 ARCHITECTURE.md
+        Status
       
     </span>
   </a>
@@ -1312,34 +1301,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-design" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture &amp; Design
+        Context
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Architecture &amp; Design">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        🏗️ Architecture &amp; Design Overview
+        Decision
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
+  <a href="#1-projectrun" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
+        1. 命令的実行メソッド (project.run) の導入
       
     </span>
   </a>
@@ -1347,22 +1335,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
+  <a href="#2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
+        2. コンテキストマネージャとリソース管理
       
     </span>
   </a>
@@ -1370,10 +1346,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
+  <a href="#3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2. Blob Storage (Storage Strategy)
+        3. 設定の階層化とスマートデフォルト
       
     </span>
   </a>
@@ -1381,10 +1357,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
+  <a href="#4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.3. Rate Limiter (GCRA)
+        4. ワークスペースディレクトリによる集約
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 番兵オブジェクトによるキャッシュ判定
       
     </span>
   </a>
@@ -1395,12 +1382,24 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Class Diagram
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
       
     </span>
   </a>
@@ -1408,40 +1407,13 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
+  <a href="#negative" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Database Schema (ER Diagram)
+        Negative
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1470,194 +1442,61 @@
   
 
 
-<h2 id="architecturemd">📄 ARCHITECTURE.md</h2>
-<h1 id="architecture-design">Architecture &amp; Design</h1>
-<h2 id="architecture-design-overview">🏗️ Architecture &amp; Design Overview</h2>
-<p><code>beautyspot</code> は、関数デコレータを通じて「実行制御（Caching, Rate Limiting, Persistence）」を既存のロジックに注入する、<strong>非侵入型（Non-intrusive）</strong> のミドルウェアライブラリです。</p>
-<h3 id="1-core-philosophy-the-kuroko-pattern">1. Core Philosophy: "The Kuroko (黒子) Pattern"</h3>
-<p>ユーザーのビジネスロジック（関数）を汚染せず、インフラストラクチャの複雑性を隠蔽することを設計の主眼としています。</p>
-<ul>
-<li><strong>No Inheritance:</strong> ユーザーは特定のクラスを継承する必要がない。</li>
-<li><strong>No Global State:</strong> <code>Spot</code> インスタンスごとに独立した状態（DB, TokenBucket）を持つ。</li>
-<li><strong>Fail-Safe:</strong> ライブラリ内部の整合性エラーが、ユーザーのアプリケーションをクラッシュさせてはならない。</li>
-</ul>
-<hr />
-<h3 id="2-system-components-code-mapping">2. System Components &amp; Code Mapping</h3>
-<p>各コンポーネントが、コードベース上のどのクラス・モジュールに対応するかを明記したシステム図です。</p>
-<pre class="mermaid"><code>graph TD
-    UserFunc[User Function] --&gt;|Decorated by| MarkWrapper
-
-    subgraph "Spot Context (src/beautyspot/core.py)"
-        MarkWrapper["Mark Wrapper&lt;br/&gt;&lt;code&gt;@Spot.mark&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Check/Save Cache| SQLite["Metadata Store&lt;br/&gt;&lt;code&gt;sqlite3 (tasks table)&lt;/code&gt;"]
-        MarkWrapper --&gt;|Rate Limit| Limiter["Rate Limiter&lt;br/&gt;&lt;code&gt;limiter.TokenBucket&lt;/code&gt;"]
-        MarkWrapper --&gt;|Execute| Executor["Async/Thread Executor&lt;br/&gt;&lt;code&gt;concurrent.futures.Executor&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Save Large Data| StorageInt["Storage Interface&lt;br/&gt;&lt;code&gt;storage.BlobStorageBase&lt;/code&gt;"]
-    end
-
-    subgraph "Storage Backends (src/beautyspot/storage.py)"
-        StorageInt -.-&gt;|Inheritance| LocalStore["&lt;code&gt;class LocalStorage&lt;/code&gt;"]
-        StorageInt -.-&gt;|Inheritance| S3Store["&lt;code&gt;class S3Storage&lt;/code&gt;"]
-    end
-
-    LocalStore --&gt;|File I/O| LocalDisk[("Local Disk")]
-    S3Store --&gt;|boto3| S3Bucket[("AWS S3 / MinIO")]
-</code></pre>
-<h4 id="21-metadata-store-sqlite">2.1. Metadata Store (SQLite)</h4>
-<p>タスクの実行履歴と「データの在り処（ポインタ）」を管理します。
-WAL (Write-Ahead Logging) モードを採用し、並行読み書き性能を確保しています。
-v2.0 以降も互換性維持のため、内部テーブル名は <code>tasks</code> のまま使用されています。</p>
-<h4 id="22-blob-storage-storage-strategy">2.2. Blob Storage (Storage Strategy)</h4>
-<p>画像、音声、長文テキストなどの巨大なデータをDBから分離する <strong>"Claim Check Pattern"</strong> を採用しています。
-抽象基底クラス <code>BlobStorageBase</code> により、バックエンドの差し替えが可能です。</p>
-<blockquote>
-<p><strong>Note on Multi-modal Support:</strong>
-現在は <code>LocalStorage</code> と <code>S3Storage</code> を提供しています。
-設計上はバイナリデータを透過的に扱うため、将来的な <strong>Audio (WAV/MP3)</strong> や <strong>Video (MP4)</strong> などのマルチメディアデータ、およびそれらに特化したストレージバックエンドの拡張を見据えています。</p>
-</blockquote>
-<h4 id="23-rate-limiter-gcra">2.3. Rate Limiter (GCRA)</h4>
-<p><strong>GCRA (Generic Cell Rate Algorithm)</strong> を採用しています。
-通常のトークンバケットと異なり、<strong>"Theoretical Arrival Time (TAT)"</strong> を管理することで、長時間アイドル後のバースト（集中アクセス）を物理的に防ぎます。</p>
-<hr />
-<h3 id="3-class-diagram">3. Class Diagram</h3>
-<p>主要クラスの依存関係と責務の構造です。<code>Spot</code> クラスが <code>Facade</code> として機能し、各コンポーネントを統括しています。</p>
-<pre class="mermaid"><code>classDiagram
-    class Spot {
-        +str name
-        +str db_path
-        +TokenBucket bucket
-        +BlobStorageBase storage
-        +Executor executor
-        -Finalizer _finalizer
-        __init__(...)
-        +mark(...)
-        +run(...)
-        +limiter(...)
-        +shutdown(wait)
-        -_init_db()
-        -_check_cache_sync(key)
-        -_save_result_sync(key, ...)
-        -_shutdown_executor(executor)$
-    }
-
-    class TokenBucket {
-        +float rate
-        +int max_cost
-        +float tat
-        +consume(cost)
-        +consume_async(cost)
-        -_consume_reservation(cost)
-    }
-
-    class BlobStorageBase {
-        &lt;&lt;Abstract&gt;&gt;
-        +save(key, data)
-        +load(location)
-    }
-
-    class LocalStorage {
-        +str base_dir
-        +save(...)
-        +load(...)
-    }
-
-    class S3Storage {
-        +str bucket_name
-        +str prefix
-        +save(...)
-        +load(...)
-    }
-
-    class KeyGen {
-        &lt;&lt;Utility&gt;&gt;
-        +default(args, kwargs)
-        +from_path_stat(path)
-        +from_file_content(path)
-        -_stable_serialize_default(obj)
-    }
-
-    Spot *-- TokenBucket : owns
-    Spot o-- BlobStorageBase : uses (DI)
-    Spot o-- concurrent.futures.Executor : uses / manages
-    BlobStorageBase &lt;|-- LocalStorage
-    BlobStorageBase &lt;|-- S3Storage
-    Spot ..&gt; KeyGen : uses internal
-</code></pre>
-<hr />
-<h3 id="4-database-schema-er-diagram">4. Database Schema (ER Diagram)</h3>
-<p>SQLite内部の <code>tasks</code> テーブルのスキーマ定義です。
-マイグレーションは <code>Spot</code> 初期化時に動的チェック（Auto-Migration）によって行われます。</p>
-<pre class="mermaid"><code>erDiagram
-    tasks {
-        TEXT cache_key PK "MD5 Hash of (func_name + input_args + version)"
-        TEXT func_name "Name of the decorated function"
-        TEXT input_id "User-defined ID or Argument Hash"
-        TEXT version "Schema version of the task logic"
-        TEXT result_type "Storage mode: 'DIRECT_BLOB' or 'FILE'"
-        TEXT content_type "MIME type for Dashboard rendering (e.g., 'image/png')"
-        TEXT result_value "Path/URI (only for FILE)"
-        BLOB result_data "Msgpack bytes (only for DIRECT_BLOB)"
-        TIMESTAMP updated_at "Last execution timestamp"
-    }
-</code></pre>
-<ul>
-<li><strong><code>result_type</code></strong>:</li>
-<li><code>DIRECT_BLOB</code>: 小さいデータ。<code>result_data</code> カラムに Msgpack バイナリとして直接格納。</li>
-<li>
-<p><code>FILE</code>: 大きいデータ (<code>save_blob=True</code>)。<code>result_value</code> にファイルパスまたは S3 URI を格納。</p>
-</li>
-<li>
-<p><strong><code>content_type</code></strong>:</p>
-</li>
-<li>ダッシュボードでの可視化に使用（例: <code>text/vnd.mermaid</code>, <code>image/png</code>）。</li>
-</ul>
-<hr />
-<h3 id="5-execution-flow-mark-decorator">5. Execution Flow (<code>@mark</code> Decorator)</h3>
+<h1 id="11-imperative-execution-smart-defaults-and-workspace-management">11. Imperative Execution, Smart Defaults, and Workspace Management</h1>
+<p>Date: 2026-01-18</p>
+<h2 id="status">Status</h2>
+<p>Accepted</p>
+<h2 id="context">Context</h2>
+<p>これまで <code>beautyspot</code> は、関数のキャッシュ化にデコレータ (<code>@project.task</code>) を使用する方法のみを提供していました。しかし、実際の利用シナリオにおいて以下の課題が浮き彫りになりました：</p>
 <ol>
-<li><strong>Hash Generation:</strong> 引数 (<code>args</code>, <code>kwargs</code>) と <code>version</code> から一意な <code>cache_key</code> を生成。</li>
-<li><strong>Cache Check:</strong> SQLiteを参照。</li>
-<li>Hit -&gt; <code>result_type</code> に応じてデータを復元（<code>msgpack.unpack</code>）して即座に return。</li>
-<li>
-<p>Miss -&gt; 次へ進む。</p>
-</li>
-<li>
-<p><strong>Execution:</strong> ユーザー関数を実行。</p>
-</li>
-<li>
-<p><strong>Exception:</strong> 例外が発生した場合、<strong>キャッシュは行わず</strong> そのまま例外を上位へ伝播させる（バグの永続化防止）。</p>
-</li>
-<li>
-<p><strong>Persistence:</strong></p>
-</li>
-<li>Small Data -&gt; <code>DIRECT_BLOB</code> モードでSQLiteにバイナリ保存。</li>
-<li>Large Data (<code>save_blob=True</code>) -&gt; <code>FILE</code> モードでStorageに保存し、パスのみをSQLiteに記録。</li>
+<li><strong>サードパーティライブラリの利用</strong>: ソースコードを変更できない関数（例: <code>pandas.read_csv</code>）や、外部APIクライアントのメソッドをキャッシュしたい場合、わざわざラッパー関数を定義する必要があり、記述が冗長になる。</li>
+<li><strong>アドホックな解析</strong>: ノートブック環境や一時的なスクリプトで試行錯誤する際、関数定義の手間がオーバーヘッドとなり、開発体験（DX）を損ねる。</li>
+<li><strong>リソース管理の曖昧さ</strong>: <code>Project</code> インスタンスが内部で保持する <code>ThreadPoolExecutor</code> が適切にシャットダウンされない場合、プロセスがハングするリスクがある。</li>
+<li><strong>ディレクトリの汚染</strong>: 生成されるデータベースファイル (<code>.db</code>) やBlobディレクトリ (<code>blobs/</code>) がプロジェクトルート直下に作成され、ディレクトリ構成が煩雑になる。</li>
+<li><strong>設定の重複</strong>: 複数のタスクで「常にBlob保存したい」「特定のバージョンを一律適用したい」といった場合、都度引数を指定するのは DRY (Don't Repeat Yourself) 原則に反する。</li>
+<li><strong><code>None</code> 結果のキャッシュ</strong>: <code>time.sleep</code> のように戻り値が <code>None</code> である関数をキャッシュしようとすると、キャッシュミスと誤認され再実行されてしまうバグが存在した。</li>
 </ol>
-<hr />
-<h3 id="6-key-technical-decisions-adr-summary">6. Key Technical Decisions (ADR Summary)</h3>
-<p>この設計に至った重要な意思決定の履歴です。</p>
+<h2 id="decision">Decision</h2>
+<p>これらの課題を解決するため、以下の包括的なアーキテクチャ変更を行います。</p>
+<h3 id="1-projectrun">1. 命令的実行メソッド (<code>project.run</code>) の導入</h3>
+<p>デコレータを使用せず、関数オブジェクトとその引数を渡すことで即座にキャッシュ付き実行を行う <code>run</code> メソッドを <code>Project</code> クラスに追加します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="n">_save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
 <ul>
-<li><strong>ADR-0001: Stable Hashing</strong></li>
+<li><strong>引数設計</strong>: キャッシュ制御用のオプション引数は、対象関数のキーワード引数 (<code>kwargs</code>) との衝突を避けるため、プレフィックス <code>_</code> を付与します（例: <code>_save_blob</code>, <code>_version</code>, <code>_content_type</code>）。</li>
+</ul>
+<h3 id="2">2. コンテキストマネージャとリソース管理</h3>
+<p><code>Project</code> クラスをコンテキストマネージャとして設計し、<code>with</code> ブロック内での利用を推奨パターンとします。これにより、ブロック終了時に確実に <code>shutdown()</code> が呼ばれ、スレッドプール等のリソースが解放されることを保証します。</p>
+<h3 id="3">3. 設定の階層化とスマートデフォルト</h3>
+<p><code>Project</code> 初期化時にデフォルト設定を受け入れ、個別の実行時にそれを継承・上書きできる仕組みを導入します。</p>
+<ul>
+<li><strong>優先順位</strong>:</li>
+<li>個別の指定 (<code>run</code> や <code>@task</code> の引数)</li>
+<li>プロジェクトのデフォルト (<code>Project</code> コンストラクタ引数)</li>
 <li>
-<p><code>json</code> ベースの正規化を採用し、異なる環境間でのキーの一致率を向上させた。</p>
+<p>システムのデフォルト</p>
 </li>
 <li>
-<p><strong>ADR-0002: GCRA Rate Limiter</strong></p>
+<p><strong>実装詳細</strong>: これを実現するため、<code>task</code> および <code>run</code> メソッドの引数デフォルト値を固定値（<code>False</code> 等）から <code>None</code> に変更し、未指定状態を検出可能にします。</p>
 </li>
-<li>
-<p>単純なトークンバケットの「バースト問題」を解決するために、TATベースのアルゴリズムを採用した。</p>
-</li>
-<li>
-<p><strong>ADR-0007: Msgpack Serialization (v2.0)</strong></p>
-</li>
-<li>
-<p><code>pickle</code> のセキュリティリスク（RCE）を排除するため、デフォルトのシリアライザを <code>msgpack</code> に変更した。</p>
-</li>
-<li>
-<p><strong>ADR-0011: Rename Project to Spot (v2.0)</strong></p>
-</li>
-<li>ライブラリ名および "Beauty Spot"（ほくろ）というコンセプトとの整合性を高めるため、管理クラスを <code>Spot</code>、デコレータを <code>mark</code> に変更した。</li>
+</ul>
+<h3 id="4">4. ワークスペースディレクトリによる集約</h3>
+<p>すべての生成アーティファクト（DB、Blob）を、デフォルトで隠しディレクトリ <code>.beautyspot/</code> 配下に集約します。
+また、初期化時にこのディレクトリ内に <code>.gitignore</code> （内容: <code>*</code>）を自動生成し、キャッシュファイルが誤ってバージョン管理に含まれるのを防ぎます。</p>
+<h3 id="5">5. 番兵オブジェクトによるキャッシュ判定</h3>
+<p>キャッシュヒットの判定ロジックにおいて、<code>None</code> を「データなし」と見なすのではなく、専用の番兵オブジェクト (<code>CACHE_MISS = object()</code>) を導入して判定を行います。これにより、<code>None</code> を返す関数も正しくキャッシュ可能とします。</p>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
+<ul>
+<li><strong>高い柔軟性</strong>: 既存のコードやライブラリ呼び出しに対して、ボイラープレートなしで即座にキャッシュを適用可能になった。</li>
+<li><strong>安全なリソース管理</strong>: <code>with</code> 文の使用により、プロセスハングのリスクが大幅に低減した。</li>
+<li><strong>クリーンな環境</strong>: プロジェクトルートが汚れず、Git管理からの除外も自動化されたため、ユーザーの負担が減った。</li>
+<li><strong>正確なキャッシュ</strong>: 副作用のみを目的とした関数（戻り値なし）も扱えるようになり、適用範囲が広がった。</li>
+</ul>
+<h3 id="negative">Negative</h3>
+<ul>
+<li><strong>APIの複雑化</strong>: <code>project.run</code> の引数に特殊なプレフィックスルール（<code>_</code>）が導入されたため、ドキュメントでの周知が必要。</li>
+<li><strong>後方互換性の注意</strong>: <code>Project</code> のコンストラクタや <code>task</code> デコレータの引数処理が変更されたため、内部実装レベルでは厳密なチェックが必要（ただし公開APIとしての破壊的変更は最小限に留めている）。</li>
 </ul>
 
 

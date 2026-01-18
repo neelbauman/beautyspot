@@ -8,13 +8,11 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/architecture/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0012-rename-project-to-spot-and-task-to-mark/">
       
       
-        <link rel="prev" href="../philosophy/">
+        <link rel="prev" href="../0011-imperative-execution-and-workspace/">
       
-      
-        <link rel="next" href="../core/">
       
       
         
@@ -25,7 +23,7 @@
     
     
       
-        <title>Architecture - beautyspot</title>
+        <title>0012 Rename to Spot - beautyspot</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecturemd" class="md-skip">
+        <a href="#12-rename-project-to-spot-and-task-to-mark" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              0012 Rename to Spot
             
           </span>
         </div>
@@ -287,7 +285,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../philosophy/" class="md-nav__link">
+      <a href="../../reference/philosophy/" class="md-nav__link">
         
   
   
@@ -311,35 +309,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../reference/architecture/" class="md-nav__link">
         
   
   
@@ -355,174 +328,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecturemd" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📄 ARCHITECTURE.md
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-design" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Architecture &amp; Design
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Architecture &amp; Design">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🏗️ Architecture &amp; Design Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2. Blob Storage (Storage Strategy)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3. Rate Limiter (GCRA)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Class Diagram
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Database Schema (ER Diagram)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -583,7 +388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../core/" class="md-nav__link">
+      <a href="../../reference/core/" class="md-nav__link">
         
   
   
@@ -611,7 +416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../storage/" class="md-nav__link">
+      <a href="../../reference/storage/" class="md-nav__link">
         
   
   
@@ -639,7 +444,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../types/" class="md-nav__link">
+      <a href="../../reference/types/" class="md-nav__link">
         
   
   
@@ -667,7 +472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cachekey/" class="md-nav__link">
+      <a href="../../reference/cachekey/" class="md-nav__link">
         
   
   
@@ -783,20 +588,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -817,7 +622,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -835,7 +640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0000-adr-example/" class="md-nav__link">
+      <a href="../0000-adr-example/" class="md-nav__link">
         
   
   
@@ -870,7 +675,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0001-stable-argument-hashing/" class="md-nav__link">
+      <a href="../0001-stable-argument-hashing/" class="md-nav__link">
         
   
   
@@ -905,7 +710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0002-robust-rate-limiter/" class="md-nav__link">
+      <a href="../0002-robust-rate-limiter/" class="md-nav__link">
         
   
   
@@ -940,7 +745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
+      <a href="../0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
         
   
   
@@ -975,7 +780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0004-io-executor-lifecyle-management/" class="md-nav__link">
+      <a href="../0004-io-executor-lifecyle-management/" class="md-nav__link">
         
   
   
@@ -1010,7 +815,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0005-dashboard-interaction-model/" class="md-nav__link">
+      <a href="../0005-dashboard-interaction-model/" class="md-nav__link">
         
   
   
@@ -1045,7 +850,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0006-semantic-content-type-support/" class="md-nav__link">
+      <a href="../0006-semantic-content-type-support/" class="md-nav__link">
         
   
   
@@ -1080,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0007-customizable-serialization-with-msgpack/" class="md-nav__link">
+      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -1115,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0008-database-dependency-injection/" class="md-nav__link">
+      <a href="../0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -1150,7 +955,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
+      <a href="../0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1185,7 +990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
+      <a href="../0010-canonical-input-serialization/" class="md-nav__link">
         
   
   
@@ -1220,7 +1025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
+      <a href="../0011-imperative-execution-and-workspace/" class="md-nav__link">
         
   
   
@@ -1245,10 +1050,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0012 Rename to Spot
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1264,6 +1096,193 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-rename-project-class-to-spot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Rename Project class to Spot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-rename-task-decorator-to-mark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Rename @task decorator to @mark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-keep-run-method-as-spotrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Keep run method as spot.run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detailed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Comparison
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Comparison">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-v1x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before (v1.x)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#after-v20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        After (v2.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1293,6 +1312,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1301,10 +1322,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecturemd" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        📄 ARCHITECTURE.md
+        Context
       
     </span>
   </a>
@@ -1312,34 +1333,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-design" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture &amp; Design
+        Decision
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Architecture &amp; Design">
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
+  <a href="#1-rename-project-class-to-spot" class="md-nav__link">
     <span class="md-ellipsis">
       
-        🏗️ Architecture &amp; Design Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
+        1. Rename Project class to Spot
       
     </span>
   </a>
@@ -1347,22 +1356,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
+  <a href="#2-rename-task-decorator-to-mark" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
+        2. Rename @task decorator to @mark
       
     </span>
   </a>
@@ -1370,21 +1367,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
+  <a href="#3-keep-run-method-as-spotrun" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2. Blob Storage (Storage Strategy)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3. Rate Limiter (GCRA)
+        3. Keep run method as spot.run
       
     </span>
   </a>
@@ -1395,12 +1381,36 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#detailed-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Class Diagram
+        Detailed Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Comparison
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Comparison">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#before-v1x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before (v1.x)
       
     </span>
   </a>
@@ -1408,32 +1418,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
+  <a href="#after-v20" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Database Schema (ER Diagram)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
+        After (v2.0)
       
     </span>
   </a>
@@ -1447,6 +1435,56 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Strategy
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1470,195 +1508,87 @@
   
 
 
-<h2 id="architecturemd">📄 ARCHITECTURE.md</h2>
-<h1 id="architecture-design">Architecture &amp; Design</h1>
-<h2 id="architecture-design-overview">🏗️ Architecture &amp; Design Overview</h2>
-<p><code>beautyspot</code> は、関数デコレータを通じて「実行制御（Caching, Rate Limiting, Persistence）」を既存のロジックに注入する、<strong>非侵入型（Non-intrusive）</strong> のミドルウェアライブラリです。</p>
-<h3 id="1-core-philosophy-the-kuroko-pattern">1. Core Philosophy: "The Kuroko (黒子) Pattern"</h3>
-<p>ユーザーのビジネスロジック（関数）を汚染せず、インフラストラクチャの複雑性を隠蔽することを設計の主眼としています。</p>
-<ul>
-<li><strong>No Inheritance:</strong> ユーザーは特定のクラスを継承する必要がない。</li>
-<li><strong>No Global State:</strong> <code>Spot</code> インスタンスごとに独立した状態（DB, TokenBucket）を持つ。</li>
-<li><strong>Fail-Safe:</strong> ライブラリ内部の整合性エラーが、ユーザーのアプリケーションをクラッシュさせてはならない。</li>
-</ul>
-<hr />
-<h3 id="2-system-components-code-mapping">2. System Components &amp; Code Mapping</h3>
-<p>各コンポーネントが、コードベース上のどのクラス・モジュールに対応するかを明記したシステム図です。</p>
-<pre class="mermaid"><code>graph TD
-    UserFunc[User Function] --&gt;|Decorated by| MarkWrapper
-
-    subgraph "Spot Context (src/beautyspot/core.py)"
-        MarkWrapper["Mark Wrapper&lt;br/&gt;&lt;code&gt;@Spot.mark&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Check/Save Cache| SQLite["Metadata Store&lt;br/&gt;&lt;code&gt;sqlite3 (tasks table)&lt;/code&gt;"]
-        MarkWrapper --&gt;|Rate Limit| Limiter["Rate Limiter&lt;br/&gt;&lt;code&gt;limiter.TokenBucket&lt;/code&gt;"]
-        MarkWrapper --&gt;|Execute| Executor["Async/Thread Executor&lt;br/&gt;&lt;code&gt;concurrent.futures.Executor&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Save Large Data| StorageInt["Storage Interface&lt;br/&gt;&lt;code&gt;storage.BlobStorageBase&lt;/code&gt;"]
-    end
-
-    subgraph "Storage Backends (src/beautyspot/storage.py)"
-        StorageInt -.-&gt;|Inheritance| LocalStore["&lt;code&gt;class LocalStorage&lt;/code&gt;"]
-        StorageInt -.-&gt;|Inheritance| S3Store["&lt;code&gt;class S3Storage&lt;/code&gt;"]
-    end
-
-    LocalStore --&gt;|File I/O| LocalDisk[("Local Disk")]
-    S3Store --&gt;|boto3| S3Bucket[("AWS S3 / MinIO")]
-</code></pre>
-<h4 id="21-metadata-store-sqlite">2.1. Metadata Store (SQLite)</h4>
-<p>タスクの実行履歴と「データの在り処（ポインタ）」を管理します。
-WAL (Write-Ahead Logging) モードを採用し、並行読み書き性能を確保しています。
-v2.0 以降も互換性維持のため、内部テーブル名は <code>tasks</code> のまま使用されています。</p>
-<h4 id="22-blob-storage-storage-strategy">2.2. Blob Storage (Storage Strategy)</h4>
-<p>画像、音声、長文テキストなどの巨大なデータをDBから分離する <strong>"Claim Check Pattern"</strong> を採用しています。
-抽象基底クラス <code>BlobStorageBase</code> により、バックエンドの差し替えが可能です。</p>
-<blockquote>
-<p><strong>Note on Multi-modal Support:</strong>
-現在は <code>LocalStorage</code> と <code>S3Storage</code> を提供しています。
-設計上はバイナリデータを透過的に扱うため、将来的な <strong>Audio (WAV/MP3)</strong> や <strong>Video (MP4)</strong> などのマルチメディアデータ、およびそれらに特化したストレージバックエンドの拡張を見据えています。</p>
-</blockquote>
-<h4 id="23-rate-limiter-gcra">2.3. Rate Limiter (GCRA)</h4>
-<p><strong>GCRA (Generic Cell Rate Algorithm)</strong> を採用しています。
-通常のトークンバケットと異なり、<strong>"Theoretical Arrival Time (TAT)"</strong> を管理することで、長時間アイドル後のバースト（集中アクセス）を物理的に防ぎます。</p>
-<hr />
-<h3 id="3-class-diagram">3. Class Diagram</h3>
-<p>主要クラスの依存関係と責務の構造です。<code>Spot</code> クラスが <code>Facade</code> として機能し、各コンポーネントを統括しています。</p>
-<pre class="mermaid"><code>classDiagram
-    class Spot {
-        +str name
-        +str db_path
-        +TokenBucket bucket
-        +BlobStorageBase storage
-        +Executor executor
-        -Finalizer _finalizer
-        __init__(...)
-        +mark(...)
-        +run(...)
-        +limiter(...)
-        +shutdown(wait)
-        -_init_db()
-        -_check_cache_sync(key)
-        -_save_result_sync(key, ...)
-        -_shutdown_executor(executor)$
-    }
-
-    class TokenBucket {
-        +float rate
-        +int max_cost
-        +float tat
-        +consume(cost)
-        +consume_async(cost)
-        -_consume_reservation(cost)
-    }
-
-    class BlobStorageBase {
-        &lt;&lt;Abstract&gt;&gt;
-        +save(key, data)
-        +load(location)
-    }
-
-    class LocalStorage {
-        +str base_dir
-        +save(...)
-        +load(...)
-    }
-
-    class S3Storage {
-        +str bucket_name
-        +str prefix
-        +save(...)
-        +load(...)
-    }
-
-    class KeyGen {
-        &lt;&lt;Utility&gt;&gt;
-        +default(args, kwargs)
-        +from_path_stat(path)
-        +from_file_content(path)
-        -_stable_serialize_default(obj)
-    }
-
-    Spot *-- TokenBucket : owns
-    Spot o-- BlobStorageBase : uses (DI)
-    Spot o-- concurrent.futures.Executor : uses / manages
-    BlobStorageBase &lt;|-- LocalStorage
-    BlobStorageBase &lt;|-- S3Storage
-    Spot ..&gt; KeyGen : uses internal
-</code></pre>
-<hr />
-<h3 id="4-database-schema-er-diagram">4. Database Schema (ER Diagram)</h3>
-<p>SQLite内部の <code>tasks</code> テーブルのスキーマ定義です。
-マイグレーションは <code>Spot</code> 初期化時に動的チェック（Auto-Migration）によって行われます。</p>
-<pre class="mermaid"><code>erDiagram
-    tasks {
-        TEXT cache_key PK "MD5 Hash of (func_name + input_args + version)"
-        TEXT func_name "Name of the decorated function"
-        TEXT input_id "User-defined ID or Argument Hash"
-        TEXT version "Schema version of the task logic"
-        TEXT result_type "Storage mode: 'DIRECT_BLOB' or 'FILE'"
-        TEXT content_type "MIME type for Dashboard rendering (e.g., 'image/png')"
-        TEXT result_value "Path/URI (only for FILE)"
-        BLOB result_data "Msgpack bytes (only for DIRECT_BLOB)"
-        TIMESTAMP updated_at "Last execution timestamp"
-    }
-</code></pre>
-<ul>
-<li><strong><code>result_type</code></strong>:</li>
-<li><code>DIRECT_BLOB</code>: 小さいデータ。<code>result_data</code> カラムに Msgpack バイナリとして直接格納。</li>
-<li>
-<p><code>FILE</code>: 大きいデータ (<code>save_blob=True</code>)。<code>result_value</code> にファイルパスまたは S3 URI を格納。</p>
-</li>
-<li>
-<p><strong><code>content_type</code></strong>:</p>
-</li>
-<li>ダッシュボードでの可視化に使用（例: <code>text/vnd.mermaid</code>, <code>image/png</code>）。</li>
-</ul>
-<hr />
-<h3 id="5-execution-flow-mark-decorator">5. Execution Flow (<code>@mark</code> Decorator)</h3>
+<h1 id="12-rename-project-to-spot-and-task-to-mark">12. Rename Project to Spot and Task to Mark</h1>
+<p>Date: 2026-01-18
+Status: Accepted</p>
+<h2 id="context">Context</h2>
+<p>現在、<code>beautyspot</code> のメインエントリーポイントとして <code>Project</code> クラスが、タスク定義のデコレータとして <code>@project.task</code> が使用されている。しかし、これらの名称には以下の課題がある。</p>
 <ol>
-<li><strong>Hash Generation:</strong> 引数 (<code>args</code>, <code>kwargs</code>) と <code>version</code> から一意な <code>cache_key</code> を生成。</li>
-<li><strong>Cache Check:</strong> SQLiteを参照。</li>
-<li>Hit -&gt; <code>result_type</code> に応じてデータを復元（<code>msgpack.unpack</code>）して即座に return。</li>
 <li>
-<p>Miss -&gt; 次へ進む。</p>
+<p><strong><code>Project</code> の曖昧さ:</strong>
+    ユーザーにとって "Project" は、自身のソースコード全体やリポジトリを指す言葉であることが多い。ライブラリの管理オブジェクトを <code>Project</code> と呼ぶことで、ユーザーのメンタルモデルとの衝突（「プロジェクトの中にプロジェクトがある？」）を招いている。また、<code>beautyspot</code> というライブラリ名との関連性が薄い。</p>
 </li>
 <li>
-<p><strong>Execution:</strong> ユーザー関数を実行。</p>
+<p><strong><code>task</code> の不一致:</strong>
+    <code>task</code> は「仕事・課題」を表す名詞だが、デコレータの役割は「関数を永続化対象として登録・設定する」という動的な作用である。名詞としての命名は、宣言的なデコレータの性質と完全に一致していない。</p>
 </li>
 <li>
-<p><strong>Exception:</strong> 例外が発生した場合、<strong>キャッシュは行わず</strong> そのまま例外を上位へ伝播させる（バグの永続化防止）。</p>
+<p><strong>ブランド・アイデンティティの欠如:</strong>
+    現在の API は汎用的すぎて、このライブラリ特有の「黒子（インフラ制御の隠蔽）」や「美点（Beauty Spot）」というコンセプトがコード上で表現されていない。</p>
 </li>
-<li>
-<p><strong>Persistence:</strong></p>
-</li>
-<li>Small Data -&gt; <code>DIRECT_BLOB</code> モードでSQLiteにバイナリ保存。</li>
-<li>Large Data (<code>save_blob=True</code>) -&gt; <code>FILE</code> モードでStorageに保存し、パスのみをSQLiteに記録。</li>
 </ol>
-<hr />
-<h3 id="6-key-technical-decisions-adr-summary">6. Key Technical Decisions (ADR Summary)</h3>
-<p>この設計に至った重要な意思決定の履歴です。</p>
+<h2 id="decision">Decision</h2>
+<p>私たちは、ライブラリのコアとなる用語を再定義し、以下のリネームを行うことを決定した。これに伴い、次期バージョンはメジャーアップデート（Breaking Change）となる。</p>
+<h3 id="1-rename-project-class-to-spot">1. Rename <code>Project</code> class to <code>Spot</code></h3>
+<p>管理クラスの名前を <code>Spot</code> に変更する。
+これにより、「コード上の特定の場所（Spot）を管理する」というニュアンスを持たせ、ライブラリ名 <code>beautyspot</code> との一貫性を持たせる。</p>
+<h3 id="2-rename-task-decorator-to-mark">2. Rename <code>@task</code> decorator to <code>@mark</code></h3>
+<p>デコレータ名を <code>@spot.mark</code> に変更する。
+これは "Marking a spot"（地点をマークする／印を付ける）というイディオムに基づいており、「この関数を管理対象としてマークする」という宣言的な意図を明確にする。</p>
+<h3 id="3-keep-run-method-as-spotrun">3. Keep <code>run</code> method as <code>spot.run</code></h3>
+<p>命令的な実行メソッドである <code>run</code> は、名前を変更せずそのまま維持する。
+これは、「<code>mark</code>（宣言・静的）」と「<code>run</code>（実行・動的）」という役割分担を明確にするためである。</p>
+<h2 id="detailed-design">Detailed Design</h2>
+<h3 id="api-comparison">API Comparison</h3>
+<h4 id="before-v1x">Before (v1.x)</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># &quot;Project&quot; は広義すぎる</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">project</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># &quot;task&quot; は名詞であり、動的な作用が伝わりにくい</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nd">@project</span><span class="o">.</span><span class="n">task</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_process</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="o">...</span>
+</code></pre></div>
+<h4 id="after-v20">After (v2.0)</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># &quot;Spot&quot; = ここが管理地点であることを示す</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># &quot;mark&quot; = この関数をスポットとして印付けする (Declarative)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_process</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="o">...</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># &quot;run&quot; = スポットの設定に基づいて実行する (Imperative)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1"># mark と対比され、動詞としての run がより自然に響く</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">spot</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">heavy_process</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
 <ul>
-<li><strong>ADR-0001: Stable Hashing</strong></li>
-<li>
-<p><code>json</code> ベースの正規化を採用し、異なる環境間でのキーの一致率を向上させた。</p>
-</li>
-<li>
-<p><strong>ADR-0002: GCRA Rate Limiter</strong></p>
-</li>
-<li>
-<p>単純なトークンバケットの「バースト問題」を解決するために、TATベースのアルゴリズムを採用した。</p>
-</li>
-<li>
-<p><strong>ADR-0007: Msgpack Serialization (v2.0)</strong></p>
-</li>
-<li>
-<p><code>pickle</code> のセキュリティリスク（RCE）を排除するため、デフォルトのシリアライザを <code>msgpack</code> に変更した。</p>
-</li>
-<li>
-<p><strong>ADR-0011: Rename Project to Spot (v2.0)</strong></p>
-</li>
-<li>ライブラリ名および "Beauty Spot"（ほくろ）というコンセプトとの整合性を高めるため、管理クラスを <code>Spot</code>、デコレータを <code>mark</code> に変更した。</li>
+<li><strong>直感的なメンタルモデル:</strong> <code>Spot</code> と <code>mark</code> の組み合わせにより、「コード上の重要な箇所に印を付けて管理する」というライブラリの設計思想が直感的に伝わるようになる。</li>
+<li><strong>名前空間の明確化:</strong> 変数名 <code>spot</code> を使用することで、それが <code>beautyspot</code> のインスタンスであることが一目で分かる（<code>project</code> 変数はユーザーのコードで既に使用されている可能性が高い）。</li>
+<li><strong>一貫性:</strong> ライブラリ名とクラス名が一致し、ブランドとしての統一感が生まれる。</li>
 </ul>
+<h3 id="negative">Negative</h3>
+<ul>
+<li><strong>破壊的変更:</strong> 既存の v1.x 系コードとは互換性がなくなる。</li>
+<li><strong>移行コスト:</strong> 既存ユーザーはコードの書き換えが必要となる。また、ドキュメント、サンプルコード、Docstring の全面的な更新が必要となる。</li>
+</ul>
+<h2 id="migration-strategy">Migration Strategy</h2>
+<p>既存ユーザー向けに、以下の移行ガイドを提供する。</p>
+<ol>
+<li>クラス名の置換: <code>Project</code> -&gt; <code>Spot</code></li>
+<li>デコレータの置換: <code>.task</code> -&gt; <code>.mark</code></li>
+<li>データベース互換性: DBスキーマ自体に変更はないため、既存の <code>.db</code> ファイルはそのまま利用可能（ただし、メタデータ上の整合性チェックは必要）。</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Example text replacement</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/Project/Spot/g&#39;</span><span class="w"> </span>**/*.py
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/@project.task/@spot.mark/g&#39;</span><span class="w"> </span>**/*.py
+</code></pre></div>
 
 
 
