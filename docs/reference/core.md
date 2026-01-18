@@ -1,3 +1,3 @@
-# Project (Core)
+# Spot (Core)
 
 ::: beautyspot.core
