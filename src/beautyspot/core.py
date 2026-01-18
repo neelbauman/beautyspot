@@ -165,7 +165,7 @@ class Spot:
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
 
-    def __enter__(self):
+    def __enter__(self) -> "Spot":
         """
         Enter the runtime context related to this object.
 

@@ -64,7 +64,7 @@ nav:
       - Project (Core): reference/core.md
       - Storage: reference/storage.md
       - Types: reference/types.md
-      - Utils: reference/utils.md
+      - CacheKey: reference/cachekey.md
   - Advanced Usage Guides:
       - Custom Backend (DI): advanced/custom_backend.md
   - ADR (Decision Records):
@@ -77,5 +77,8 @@ nav:
       - 0005 Dashboard Interaction: adr/0005-dashboard-interaction-model.md
       - 0006 Content Type: adr/0006-semantic-content-type-support.md
       - 0007 Serializaion: adr/0007-customizable-serialization-with-msgpack.md
-      - 0008 Dependency-Injection: adr/0008-database-dependency-injection.md
-
+      - 0008 Dependency Injection: adr/0008-database-dependency-injection.md
+      - 0009 Msgpack & Guardrails: adr/0009-msgpack-everywhere-and-guardrails.md
+      - 0010 Input Serialization: adr/0010-canonical-input-serialization.md
+      - 0011 Workspace & Run: adr/0011-imperative-execution-and-workspace.md
+      - 0012 Rename to Spot: adr/0012-rename-project-to-spot-and-task-to-mark.md

@@ -1,11 +1,8 @@
 # 🌑 beautyspot
-```
-uv run mkdocs gh-deploy
-```
 
-- [https://neelbauman.github.io/beautyspot/](https://neelbauman.github.io/beautyspot/)
-- [https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
-- [https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
+- [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
+- [PyPI](https://pypi.org/project/beautyspot/)
+- [ライセンス](https://opensource.org/licenses/MIT)
 
 ## Concept
 
