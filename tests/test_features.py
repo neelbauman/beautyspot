@@ -2,12 +2,12 @@
 
 import pytest
 import asyncio
-from beautyspot import Project
+from beautyspot import Spot
 
 
 @pytest.fixture
 def project(tmp_path):
-    return Project(name="feat_test", db=str(tmp_path / "test.db"))
+    return Spot(name="feat_test", db=str(tmp_path / "test.db"))
 
 
 def test_versioning(project):
@@ -15,7 +15,7 @@ def test_versioning(project):
     call_count = 0
 
     # バージョン "v1" で定義
-    @project.task(version="v1")
+    @project.mark(version="v1")
     def func_v1(x):
         nonlocal call_count
         call_count += 1
@@ -30,7 +30,7 @@ def test_versioning(project):
 
     # ロジックが変わったとして、バージョン "v2" に変更
     # (同じ関数名で定義しなおすことでシミュレーション)
-    @project.task(version="v2")
+    @project.mark(version="v2")
     def func_v2(x):  # func_v1 と同じ関数名(func_name)として登録される
         nonlocal call_count
         call_count += 1
@@ -45,7 +45,7 @@ def test_error_handling(project):
     """例外発生時はキャッシュされないことの確認"""
     call_count = 0
 
-    @project.task
+    @project.mark
     def flakey_task(x):
         nonlocal call_count
         call_count += 1
@@ -72,7 +72,7 @@ async def test_async_task(project):
     import msgpack
     # Base64インポートは不要になったため削除
 
-    @project.task
+    @project.mark
     async def async_add(a, b):
         await asyncio.sleep(0.01)
         return a + b

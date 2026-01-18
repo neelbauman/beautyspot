@@ -7,14 +7,25 @@ import inspect
 import asyncio
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
-from typing import Any, Callable, Optional, Union, Type
 from pathlib import Path  # Added Path
+from typing import Any, Callable, Optional, Union, Type, overload, TypeVar
+
+# Python 3.10+ では typing.ParamSpec が使えますが、
+# ライブラリの互換性を考慮して typing_extensions を使うか、バージョン分岐します
+try:
+    from typing import ParamSpec
+except ImportError:
+    from typing_extensions import ParamSpec
 
 from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
 from .db import TaskDB, SQLiteTaskDB
 from .serializer import MsgpackSerializer, SerializationError
 from .cachekey import KeyGen
+
+# ジェネリクスの定義
+P = ParamSpec("P")
+R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -23,10 +34,10 @@ logger.addHandler(logging.NullHandler())
 CACHE_MISS = object()
 
 
-class Project:
+class Spot:
     """
-    Project class that handles task management, serialization, and
-    resource management for tasks including caching and storage.
+    Spot class that handles task management, serialization, and
+    resource management for marked functions including caching and storage.
     """
 
     def __init__(
@@ -46,10 +57,10 @@ class Project:
         default_content_type: str | None = None,
     ):
         """
-        Initialize a Project instance.
+        Initialize a Spot instance.
 
         Args:
-            name: Name of the project.
+            name: Name of the spot/workspace.
             db: Database for tasks, can be a filepath or TaskDB instance.
             storage_path: Path for storing blobs locally.
             s3_opts: Options for S3 storage.
@@ -58,9 +69,9 @@ class Project:
             blob_warning_threshold: Threshold size (bytes) to warn when saving large data to SQLite.
             executor: Optional pre-created executor.
             storage: Optional pre-created storage instance.
-            default_save_blob: Default value for save_blob in tasks/run.
-            default_version: Default version string for tasks/run.
-            default_content_type: Default content_type for tasks/run.
+            default_save_blob: Default value for save_blob in mark/run.
+            default_version: Default version string for mark/run.
+            default_content_type: Default content_type for mark/run.
         """
         self.name = name
         self.blob_warning_threshold = blob_warning_threshold
@@ -118,7 +129,7 @@ class Project:
             # 自動クリーンアップの登録
             # selfへの強い参照を持たせないよう、executorオブジェクトだけを残すこと
             self._finalizer = weakref.finalize(
-                self, Project._shutdown_executor, self.executor,
+                self, Spot._shutdown_executor, self.executor,
             )
 
     def _setup_workspace(self):
@@ -245,7 +256,7 @@ class Project:
 
         # 1. Check Cache
         cached = self._check_cache_sync(ck)
-        if cached is not CACHE_MISS:  # 変更: NoneではなくCACHE_MISSで判定
+        if cached is not CACHE_MISS:
             return cached
 
         # 2. Execute
@@ -278,7 +289,7 @@ class Project:
         cached = await loop.run_in_executor(
             self.executor, self._check_cache_sync, ck
         )
-        if cached is not CACHE_MISS:  # 変更: NoneではなくCACHE_MISSで判定
+        if cached is not CACHE_MISS:
             return cached
 
         # 2. Execute (Async)
@@ -356,7 +367,7 @@ class Project:
                 logger.warning(
                     f"⚠️ Large data detected ({data_size / 1024:.1f} KB) for task '{func_name}'. "
                     f"This is saved to SQLite directly, which may bloat the database file. "
-                    f"Consider adding `@project.task(save_blob=True)` to improve performance and file size."
+                    f"Consider adding `@spot.mark(save_blob=True)` to improve performance and file size."
                 )
 
             # Save raw bytes
@@ -403,7 +414,31 @@ class Project:
 
         return decorator
 
-    def task(
+    # ----------------------------------------------------------------
+    # Overload 1: @spot.mark として直接使用する場合
+    # ----------------------------------------------------------------
+    @overload
+    def mark(self, _func: Callable[P, R]) -> Callable[P, R]:
+        ...
+
+    # ----------------------------------------------------------------
+    # Overload 2: @spot.mark(save_blob=True) として使用する場合
+    # ----------------------------------------------------------------
+    @overload
+    def mark(
+        self,
+        *,
+        save_blob: Optional[bool] = None,
+        input_key_fn: Optional[Callable] = None,
+        version: str | None = None,
+        content_type: Optional[str] = None,
+    ) -> Callable[[Callable[P, R]], Callable[P, R]]:
+        ...
+
+    # ----------------------------------------------------------------
+    # 実装 (Implementation)
+    # ----------------------------------------------------------------
+    def mark(
         self,
         _func: Optional[Callable] = None,
         *,
@@ -411,13 +446,13 @@ class Project:
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
-    ):
+    ) -> Any:
         """
-        Resumable Task Decorator.
-        If arguments are None, they fall back to Project defaults.
+        Mark a function as a managed spot (Resumable Task Decorator).
+        If arguments are None, they fall back to Spot defaults.
 
         Args:
-            save_blob: If True, saves result using Storage (pickle). If False, saves to DB directly (JSON).
+            save_blob: If True, saves result using Storage (msgpack). If False, saves to DB directly.
             input_key_fn: Custom function to generate input ID from args/kwargs.
             version: Explicit version string. Change this to invalidate old cache entries.
         """
@@ -493,12 +528,12 @@ class Project:
 
             return async_wrapper if is_async else sync_wrapper
 
-        # ケース1: @project.task として呼ばれた場合
+        # ケース1: @spot.mark として呼ばれた場合
         # _func にデコレート対象の関数が入ってくる
         if _func is not None and callable(_func):
             return decorator(_func)
 
-        # ケース2: @project.task(save_blob=True) として呼ばれた場合
+        # ケース2: @spot.mark(save_blob=True) として呼ばれた場合
         # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
 

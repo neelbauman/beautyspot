@@ -69,102 +69,244 @@ for i in inputs:
 
 ## 💡 Key Features
 
-### 1\. Handle Any Data Size (and Securely)
+`beautyspot` は、単なるキャッシュライブラリではありません。
+「実行コンテキスト（Spot）」という概念を通じて、データの永続化、セキュリティ、流量制御、そしてインフラの抽象化を一手に引き受ける「黒子（Kuroko）」です。
 
-**"No more Pickle risks."**
+このガイドでは、各機能の詳細な解説を行い、最後にそれら全てを組み合わせた **「究極のユースケース（The Ultimate Usage）」** を構築します。
 
-v1.0.0 から、デフォルトのシリアライザに **Msgpack** を採用しました。
-Python標準の `pickle` と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。
+---
 
-データの保存方法は `save_blob` オプションで制御しますが、**どちらの場合も型の一貫性は保たれます。**
+## 1. Core Concepts: Spot & Mark (v2.0)
 
-* **Small Data (`save_blob=False`)**:
-    * デフォルト。SQLite内に直接保存されます。
-    * **目安: 100KB 未満** のデータ（数値、短いテキスト、小さなNumpy配列など）に最適で、高速です。
-* **Large Data (`save_blob=True`)**:
-    * データを外部ファイル（Local/S3）に退避し、DBには参照のみを残します。
-    * **目安: 100KB 以上** のデータ（画像、音声、巨大な埋め込みベクトルなど）で推奨されます。
+v2.0 より、API はより直感的な `Spot` と `mark` という概念に刷新されました。
 
-> **⚠️ Note:** `save_blob=False` のまま巨大なデータ（デフォルトで1MB以上）を保存しようとすると、実行時に警告ログが出力されます。
+* **Spot (場所/現場):** データ保存先、DB接続、レート制限の設定などを管理する「実行コンテキスト」。
+* **Mark (印付け):** 「この関数は Spot の管理下に置く」という宣言。
 
 ```python
-# Large Data -> Blobに退避 (Msgpackで保存)
-@project.task(save_blob=True)
-def download_image(url):
-    return requests.get(url).content
+import beautyspot as bs
+
+# 1. Spot (現場) を定義
+spot = bs.Spot("my_analysis")
+
+# 2. Mark (印) を付ける
+@spot.mark
+def process(data):
+    return data * 2
+
 ```
 
-### 2\. Custom Type Registration
+---
 
-Numpy配列や自作クラスなど、デフォルトで対応していない型も、変換ロジックを登録することで安全に扱えます。
-この登録は、SQLite保存 / Blob保存 のどちらでも有効です。
+## 2. Feature Deep Dive
+
+### 🛡️ 1. Secure Serialization (Msgpack & Custom Types)
+
+**"No more Pickle."**
+`beautyspot` はデフォルトで安全かつ高速な **Msgpack** を採用しています。
+
+Msgpack が標準で対応していない型（例: 自作クラス）を扱う場合、`register_type` で変換ロジックを登録します。
 
 ```python
-import numpy as np
+class MyModel:
+    def __init__(self, name): self.name = name
 
-# カスタム型の変換ロジックを登録
-# code: 0-127 の一意なID
-project.register_type(
-    type_=np.ndarray,
+# 変換ロジックの登録 (Code: 0-127)
+spot.register_type(
+    type_=MyModel,
     code=10,
-    encoder=lambda x: x.tobytes(),
-    decoder=lambda b: np.frombuffer(b)
+    encoder=lambda obj: obj.name.encode('utf-8'),
+    decoder=lambda data: MyModel(data.decode('utf-8'))
 )
 
-@project.task(save_blob=True)
-def create_array():
-    return np.array([1, 2, 3])
 ```
 
-### 3\. Flexible Backend with Dependency Injection
+### 💾 2. Hybrid Storage Strategy
 
-**"Start simple, scale later."**
+データのサイズに応じて、最適な保存先を自動で使い分けます。
 
-通常はパスを指定するだけで SQLite が使えますが、大規模な並列処理やテストのために、バックエンドを自由に差し替えることができます（Dependency Injection）。
+* **Small Data:** SQLite (TaskDB) に直接 JSON/BLOB として保存。高速な検索が可能。
+* **Large Data (`save_blob=True`):** 画像や巨大な配列は Storage (File/S3) に逃がし、DBにはそのパスのみを記録。DBの肥大化を防ぎます。
 
 ```python
-from beautyspot.db import SQLiteTaskDB
+@spot.mark(save_blob=True)  # 巨大データはBlobへ
+def generate_image():
+    return b"..." * 1024 * 1024
 
-# A. Standard Usage (Path string)
-# 内部で SQLiteTaskDB("./data.db") が生成される
-project = bs.Project("app", db="./data.db")
-
-# B. Advanced Usage (Injection)
-# 独自の設定を行ったDBインスタンスや、インメモリDB、
-# あるいは自作の PostgresTaskDB などを注入可能
-db_instance = SQLiteTaskDB("./data.db")
-project = bs.Project("app", db=db_instance)
 ```
 
-> 📖 **Guide:** PostgreSQL や MySQL を使用するカスタムアダプタの作成方法は [docs/advanced/custom\_backend.md](https://www.google.com/search?q=docs/advanced/custom_backend.md) を参照してください。
+### 🚦 3. Rate Limiting (GCRA)
 
-### 4\. Declarative Rate Limiting
-
-APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
-**GCRA (Generic Cell Rate Algorithm)** ベースの高性能なリミッターが、バースト（集中アクセス）を防ぎながらスムーズに実行を制御します。
+API 制限（例: 1分間に100回まで）を守るために、**GCRA (Generic Cell Rate Algorithm)** ベースのリミッターを搭載しています。
+単純なスリープとは異なり、理論上の到達時刻（TAT）を計算することで、バースト（集中アクセス）を物理的に防ぎます。
 
 ```python
-# 1分間に 50,000 トークンまでに制限
-project = bs.Project("openai_batch", tpm=50000)
+# TPM (Tokens Per Minute) = 60 (1秒に1回)
+spot = bs.Spot("api_client", tpm=60)
 
-def calc_cost(text):
-    return len(text)
+@spot.mark
+@spot.limiter(cost=1)  # 1回の実行で1トークン消費
+def call_api():
+    ...
 
-@project.task
-@project.limiter(cost=calc_cost)  # リトライ時も含めて自動制御
-def call_api(text):
-    return api.generate(text)
 ```
 
------
+### 🧩 4. Dependency Injection (Custom Backend)
 
-## ⚠️ Migration Guide (v0.x -\> v1.0.0)
+`Spot` のバックエンド（DBとストレージ）は、インターフェースさえ満たせば何にでも差し替え可能です。
+これにより、「ローカル実験」から「クラウド本番環境」への移行が、コードの変更なし（設定の注入のみ）で実現します。
 
-v1.0.0 ではシリアライザが `pickle` から `msgpack` に変更されたため、**v0.x で作成されたキャッシュ（特に `save_blob=True` のデータ）とは互換性がありません。**
+* **TaskDB:** メタデータ管理 (SQLite, Postgres, Redis...)
+* **Storage:** 実データ保存 (Local, S3, GCS...)
 
-アップデート時は、古い `.db` ファイルおよび `blobs/` ディレクトリを削除し、クリーンな状態で開始することを推奨します。
+---
 
------
+## 3. 🚀 The Advanced Use Case: "All-in-One Pipeline"
+
+これら全ての機能を組み合わせた、高度なデータパイプラインの例を構築します。
+
+**シナリオ:**
+
+* **入力:** S3上の巨大なログファイル群。
+* **処理:** 外部APIを使ってデータを解析（レート制限が必要）。
+* **出力:** 解析結果のカスタムオブジェクト（Msgpack拡張）。
+* **インフラ:**
+* メタデータは **Redis** で高速に共有管理したい（Custom DB）。
+* 結果のオブジェクトは **GCS (Google Cloud Storage)** に保存したい（Custom Storage）。
+* ファイルの更新日時を見て、変更があった場合のみ再計算したい（Smart Caching）。
+
+
+
+### Implementation
+
+```python
+import os
+import json
+import time
+from typing import Any, Dict, Optional
+
+import redis
+from google.cloud import storage as gcs
+
+import beautyspot as bs
+from beautyspot.db import TaskDB
+from beautyspot.storage import BlobStorageBase
+from beautyspot.cachekey import KeyGen
+
+# --- 1. Custom Components Implementation ---
+
+class RedisTaskDB(TaskDB):
+    """メタデータをRedisで管理するカスタムDB"""
+    def __init__(self, host="localhost", port=6379):
+        self.r = redis.Redis(host=host, port=port, decode_responses=True)
+
+    def init_schema(self): pass  # Schema-less
+
+    def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        data = self.r.get(f"task:{cache_key}")
+        return json.loads(data) if data else None
+
+    def save(self, cache_key, func_name, input_id, version, result_type, 
+             content_type, result_value=None, result_data=None):
+        # 簡略化のため result_data (bytes) は無視する実装例
+        record = {
+            "func_name": func_name, "input_id": input_id, "version": version,
+            "result_type": result_type, "content_type": content_type,
+            "result_value": result_value
+        }
+        self.r.set(f"task:{cache_key}", json.dumps(record))
+    
+    def get_history(self, limit=1000): return [] # 省略
+
+class GCSStorage(BlobStorageBase):
+    """実データをGCSに保存するカスタムストレージ"""
+    def __init__(self, bucket_name, prefix="cache"):
+        self.bucket = gcs.Client().bucket(bucket_name)
+        self.prefix = prefix
+
+    def save(self, key: str, data: bytes) -> str:
+        blob = self.bucket.blob(f"{self.prefix}/{key}.bin")
+        blob.upload_from_string(data)
+        return f"gs://{self.bucket.name}/{blob.name}"
+
+    def load(self, location: str) -> bytes:
+        # gs://bucket/path... からデータをロード
+        blob_path = location.split("/", 3)[-1]
+        return self.bucket.blob(blob_path).download_as_bytes()
+
+# --- 2. Custom Data Type ---
+
+class AnalysisResult:
+    """API解析結果を保持するカスタムクラス"""
+    def __init__(self, score: float, summary: str):
+        self.score = score
+        self.summary = summary
+
+# --- 3. Constructing the "Spot" ---
+
+# 依存性の注入 (Dependency Injection)
+my_db = RedisTaskDB(host="redis-server")
+my_storage = GCSStorage(bucket_name="my-app-blobs")
+
+# Spotの初期化
+# tpm=60: API制限 (1分間に60回) を設定
+spot = bs.Spot(
+    name="production_pipeline",
+    db=my_db,
+    storage=my_storage,
+    tpm=60
+)
+
+# カスタム型の登録
+spot.register_type(
+    type_=AnalysisResult,
+    code=20,
+    encoder=lambda o: json.dumps({"s": o.score, "t": o.summary}).encode(),
+    decoder=lambda b: AnalysisResult(**{k:v for k,v in json.loads(b).items() if k in ["s","t"]}) # 簡易実装
+)
+
+# --- 4. The "Marked" Logic ---
+
+@spot.mark(
+    save_blob=True,                     # 1. 結果はGCSへ (Blob)
+    input_key_fn=KeyGen.from_path_stat, # 2. ファイルのタイムスタンプを見てキャッシュ判定
+    version="v2.0.1",                   # 3. ロジック変更時はここを変えてキャッシュ無効化
+    content_type="application/json"     # 4. ダッシュボード表示用ヒント
+)
+@spot.limiter(cost=1)                   # 5. レート制限を適用 (RedisDB使用時もBucketはメモリ上で動作)
+def analyze_log_file(file_path: str) -> AnalysisResult:
+    """
+    重い処理の実体。
+    - ファイルに変更がなければ、Redisへの問い合わせだけでGCSのパスが返る (実行時間ほぼ0)
+    - 変更があれば、API制限を守りながら実行し、結果をGCSに保存して返す
+    """
+    print(f"Processing {file_path}...")
+    
+    # Simulate API Call setup
+    time.sleep(0.5) 
+    
+    # Return custom object
+    return AnalysisResult(score=0.95, summary=f"Processed {os.path.basename(file_path)}")
+
+# --- 5. Execution ---
+
+if __name__ == "__main__":
+    files = ["/data/log1.txt", "/data/log2.txt"]
+    
+    for f in files:
+        # 初回: 実行される
+        # 2回目: Redisからキャッシュメタデータを取得 -> GCSから実体をダウンロードして復元
+        result = analyze_log_file(f)
+        print(f"Result: {result.summary}")
+
+```
+
+### この構成のメリット
+
+1. **スケーラビリティ:** Redis を使うことで、複数のワーカープロセス（あるいはサーバー）間でキャッシュ状況を共有できます（※注: TokenBucketの状態共有には別途Redis対応の実装が必要ですが、メタデータ共有はこれだけで可能です）。
+2. **安全性:** Msgpack を使っているため、GCS上のデータが改ざんされても RCE (Remote Code Execution) のリスクがありません。
+3. **コスト削減:** `save_blob=True` と `input_key_fn` により、ファイルに変更がない限り、高価な API コールと GCS への書き込みが発生しません。
+4. **コードの分離:** ビジネスロジック (`analyze_log_file`) には、DB接続やS3アップロードのコードが一切含まれていません。すべて `@spot` デコレータの裏側に隠蔽されています。
 
 ## 📊 Dashboard (Result Viewer)
 

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from beautyspot import Project
+from beautyspot import Spot
 from beautyspot.storage import LocalStorage
 
 
@@ -22,7 +22,7 @@ def test_storage_failure_handling(tmp_path):
     # In the current implementation, Project doesn't catch storage errors during save,
     # so we expect it to propagate. This test documents that behavior.
 
-    project = Project(
+    project = Spot(
         name="test_proj",
         db=str(tmp_path / "test.db"),
         storage_path=str(tmp_path / "blobs"),
@@ -31,7 +31,7 @@ def test_storage_failure_handling(tmp_path):
     # Mock storage.save to fail
     project.storage.save = MagicMock(side_effect=PermissionError("Disk full"))
 
-    @project.task(save_blob=True)
+    @project.mark(save_blob=True)
     def my_task():
         return "data"
 
@@ -41,12 +41,12 @@ def test_storage_failure_handling(tmp_path):
 
 def test_db_failure_handling(tmp_path):
     """Test behavior when DB fails."""
-    project = Project(name="test_proj", db=str(tmp_path / "test.db"))
+    project = Spot(name="test_proj", db=str(tmp_path / "test.db"))
 
     # Mock db.save to fail
     project.db.save = MagicMock(side_effect=Exception("DB Connection Lost"))
 
-    @project.task
+    @project.mark
     def my_task():
         return "data"
 
@@ -59,12 +59,12 @@ def test_invalid_json_serialization(tmp_path):
     """Test behavior when unserializable object is returned."""
     from beautyspot.serializer import SerializationError
 
-    project = Project(name="test_proj", db=str(tmp_path / "test.db"))
+    project = Spot(name="test_proj", db=str(tmp_path / "test.db"))
 
     class Unserializable:
         pass
 
-    @project.task(save_blob=False)
+    @project.mark(save_blob=False)
     def bad_task():
         return Unserializable()
 

@@ -1,14 +1,14 @@
 # tests/test_core_default.py
 
 import pytest
-from beautyspot import Project
+from beautyspot import Spot
 
 def test_project_defaults_run(tmp_path, inspect_db):
     """Test that project.run() inherits and overrides defaults."""
     db_path = str(tmp_path / "test_defaults.db")
     
     # Init with defaults: save_blob=True, version="v1"
-    with Project(
+    with Spot(
         name="test_defaults", 
         db=db_path, 
         default_save_blob=True, 
@@ -51,10 +51,10 @@ def test_project_defaults_decorator(tmp_path, inspect_db):
     db_path = str(tmp_path / "test_dec_defaults.db")
     
     # Default: save_blob=True
-    project = Project(name="test_dec", db=db_path, default_save_blob=True)
+    project = Spot(name="test_dec", db=db_path, default_save_blob=True)
 
     # Case 1: Inherit
-    @project.task
+    @project.mark
     def task_inherit(x):
         return x
 
@@ -68,7 +68,7 @@ def test_project_defaults_decorator(tmp_path, inspect_db):
     assert entries[0]["result_type"] == "FILE"
 
     # Case 2: Override
-    @project.task(save_blob=False)
+    @project.mark(save_blob=False)
     def task_override(x):
         return x
 

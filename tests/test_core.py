@@ -1,26 +1,26 @@
 # tests/test_core.py
 
 import pytest
-from beautyspot import Project
+from beautyspot import Spot
 from beautyspot.serializer import SerializationError
 
 
 @pytest.fixture
-def project(tmp_path):
+def spot(tmp_path):
     # DBもBlobも一時ディレクトリに作成
-    return Project(
-        name="test_project",
+    return Spot(
+        name="test_spot",
         db=str(tmp_path / "test.db"),
         storage_path=str(tmp_path / "blobs"),
     )
 
 
-def test_task_execution(project):
-    """タスクが実行され、結果が保存されるか"""
+def test_mark_execution(spot):
+    """タスク(@mark)が実行され、結果が保存されるか"""
 
     call_count = 0
 
-    @project.task
+    @spot.mark
     def add(a, b):
         nonlocal call_count
         call_count += 1
@@ -42,10 +42,10 @@ def test_task_execution(project):
     assert call_count == 2
 
 
-def test_task_with_blob(project):
+def test_mark_with_blob(spot):
     """save_blob=True の動作確認"""
 
-    @project.task(save_blob=True)
+    @spot.mark(save_blob=True)
     def large_data():
         return "x" * 1000
 
@@ -53,8 +53,7 @@ def test_task_with_blob(project):
     assert len(res) == 1000
 
     # DBにはパスが保存されているはず (中身ではなく)
-    # Project経由では隠蔽されているので、内部DBを覗き見る
-    record = project.db.get_history(limit=1)
+    record = spot.db.get_history(limit=1)
     # result_type が FILE になっているか確認
     assert record.iloc[0]["result_type"] == "FILE"
 
@@ -67,14 +66,14 @@ class ComplexObj:
         return self.name == other.name
 
 
-def test_custom_type_task(project):
+def test_custom_type_mark(spot):
     """
-    Project.register_type を使用して、
+    Spot.register_type を使用して、
     未知のオブジェクトを返すタスクが正常に動作するか確認
     """
 
     # 1. 未登録状態で実行 -> 失敗するはず
-    @project.task(save_blob=True)
+    @spot.mark(save_blob=True)
     def fail_task():
         return ComplexObj("test")
 
@@ -88,10 +87,10 @@ def test_custom_type_task(project):
     def dec(b):
         return ComplexObj(b.decode("utf-8"))
 
-    project.register_type(ComplexObj, 20, enc, dec)
+    spot.register_type(ComplexObj, 20, enc, dec)
 
     # 3. 登録後に実行 -> 成功するはず
-    @project.task(save_blob=True)
+    @spot.mark(save_blob=True)
     def success_task():
         return ComplexObj("success")
 
@@ -99,7 +98,6 @@ def test_custom_type_task(project):
     assert res1.name == "success"
 
     # 4. キャッシュヒット時の復元確認
-    # (内部DBのカウンタ等はモックしていないので、再度呼んでエラーが出ないことを確認)
     res2 = success_task()
     assert res2.name == "success"
     assert res2 == res1

@@ -1,52 +1,50 @@
-# 🌑 beautyspot
+# 🌑 beautyspot v2
 
-[https://pypi.org/project/beautyspot/](https://pypi.org/project/beautyspot/)
-[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
-
-## Concept
+- [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
+- [PyPI](https://pypi.org/project/beautyspot/)
+- [ライセンス](https://opensource.org/licenses/MIT)
 
 **"You focus on the logic. We handle the rest."**
 
-生成AIのバッチ処理やスクレイピング、重い計算処理を行う際、本質的なロジック以外に以下のようなコードを書いていませんか？
+`beautyspot` は、データ分析パイプラインやバッチ処理のための「黒子（Kuroko）」ライブラリです。
+たった1行のデコレータを追加するだけで、あなたの関数に「永続化キャッシュ」「レート制限」「リカバリ機能」「大規模データの退避」といったインフラ機能を与えます。
 
-  * API制限を守るための `time.sleep()` やトークン計算
-  * 途中停止した際のリカバリ処理（ `try-except` と `continue` ）
-  * 結果を保存・ロードするためのファイルI/O
-  * 重複リクエストを防ぐためのID管理
+**v2.0 Update:**
+クラス名を `Project` から **`Spot`** へ、デコレータを `@task` から **`@mark`** へ刷新しました。より直感的で、世界観に統一感のある API に生まれ変わりました。
 
-`beautyspot` は、あなたのコードに「黒子/ほくろ（デコレータ）」を一つ付けるだけで、
-これらの面倒なインフラ制御をすべて引き受ける「黒子/くろこ」です。
-
-v1.0.0 では、**デフォルトでの安全性（Secure by Default）** と **高度な拡張性（Dependency Injection）** を強化しました。
-
------
+---
 
 ## ⚡ Installation
 
 ```bash
 pip install beautyspot
+
 ```
 
-  * **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。
-  * **Options:**
-      * `pip install "beautyspot[s3]"`: S3ストレージを利用する場合
-      * `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
+* **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。ローカルでの基本的なキャッシュ機能のみ。
+* **Options:**
+* `pip install "beautyspot[all]"`: 全部入り
+* `pip install "beautyspot[s3]"`: S3互換ストレージを利用する場合
+* `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
 
------
+
+
+---
 
 ## 🚀 Quick Start
 
-関数に `@project.task` を付けるだけで、その関数は「永続化」され、二度と同じ計算を行わなくなります。
+関数に `@spot.mark` を付けるだけで、その場所（Spot）は管理下に置かれ、無駄なリクエストや計算が繰り返されることを華麗に回避します。
 
 ```python
 import time
 import beautyspot as bs
 
-# プロジェクト定義（DBや保存先を自動管理）
+# 1. Spot (現場/コンテキスト) を定義
 # デフォルトで "./my_experiment.db" (SQLite) が作成されます
-project = bs.Project("my_experiment")
+spot = bs.Spot("my_experiment")
 
-@project.task
+# 2. Mark (印) を付ける
+@spot.mark
 def heavy_process(text):
     # 実行に時間がかかる処理や、課金されるAPIコール
     time.sleep(2)
@@ -58,124 +56,112 @@ inputs = ["A", "B", "C", "A"]
 for i in inputs:
     # 1. 初回の "A", "B", "C" は実行される
     # 2. 最後の "A" は、DBからキャッシュが即座に返る（実行時間0秒）
-    # 3. もし途中でエラーで止まっても、再実行時は完了済みをスキップする
     print(heavy_process(i))
+
 ```
 
------
+---
 
 ## 💡 Key Features
 
-### 1\. Handle Any Data Size (and Securely)
+### 1. Spot & Mark Architecture (New in v2.0)
+
+v2.0 では、概念を再定義しました。
+
+* **Spot (`bs.Spot`):** データの保存先、DB接続、レート制限の設定などを管理する「実行コンテキスト」。
+* **Mark (`@spot.mark`):** 「この関数は Spot の管理下に置く」という宣言。
+
+### 2. Secure by Default (Msgpack)
 
 **"No more Pickle risks."**
-
-v1.0.0 から、デフォルトのシリアライザに **Msgpack** を採用しました。
+v1.0 以降、デフォルトのシリアライザに **Msgpack** を採用しています。
 Python標準の `pickle` と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。
 
-関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、`save_blob=True` を指定してください。
-`beautyspot` が自動的にデータを外部ストレージ（Local/S3）へ逃がし、DBには軽量な参照のみを残します。
-
 ```python
-# Large Data -> Blobに退避 (Msgpackで保存)
-@project.task(save_blob=True)
-def download_image(url):
-    return requests.get(url).content
-```
-
-### 2\. Custom Type Registration
-
-Numpy配列や自作クラスなど、デフォルトで対応していない型も、変換ロジックを登録することで安全に扱えます。
-
-```python
-import numpy as np
-
-# カスタム型の変換ロジックを登録
-# code: 0-127 の一意なID
-project.register_type(
-    type_=np.ndarray,
-    code=10,
-    encoder=lambda x: x.tobytes(),
-    decoder=lambda b: np.frombuffer(b)
+# Msgpack非対応のカスタム型も、安全に登録可能
+spot.register_type(
+    type_=MyClass,
+    code=10, 
+    encoder=lambda x: x.to_bytes(),
+    decoder=lambda b: MyClass.from_bytes(b)
 )
 
-@project.task(save_blob=True)
-def create_array():
-    return np.array([1, 2, 3])
 ```
 
-### 3\. Flexible Backend with Dependency Injection
+### 3. Hybrid Storage Strategy
+
+関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、`save_blob=True` を指定してください。
+`beautyspot` が自動的にデータを外部ストレージ（Local/S3/GCS）へ逃がし、DBには軽量な参照のみを残します。
+
+```python
+# Large Data -> Blobに退避
+@spot.mark(save_blob=True)
+def download_image(url):
+    return requests.get(url).content
+
+```
+
+### 4. Dependency Injection (Flexible Backend)
 
 **"Start simple, scale later."**
-
-通常はパスを指定するだけで SQLite が使えますが、大規模な並列処理やテストのために、バックエンドを自由に差し替えることができます（Dependency Injection）。
+プロトタイプ段階では SQLite とローカルファイルで。本番運用では Redis と S3 で。
+コード（ロジック）を一切書き換えることなく、`Spot` への注入（Injection）を変えるだけでインフラを移行できます。
 
 ```python
 from beautyspot.db import SQLiteTaskDB
+from beautyspot.storage import S3Storage
 
-# A. Standard Usage (Path string)
-# 内部で SQLiteTaskDB("./data.db") が生成される
-project = bs.Project("app", db="./data.db")
+# 本番構成: メタデータはSQLite、実データはS3へ
+spot = bs.Spot(
+    "production_app",
+    db=SQLiteTaskDB("./meta.db"),
+    storage=S3Storage("s3://my-bucket/cache")
+)
 
-# B. Advanced Usage (Injection)
-# 独自の設定を行ったDBインスタンスや、インメモリDB、
-# あるいは自作の PostgresTaskDB などを注入可能
-db_instance = SQLiteTaskDB("./data.db")
-project = bs.Project("app", db=db_instance)
 ```
 
-> 📖 **Guide:** PostgreSQL や MySQL を使用するカスタムアダプタの作成方法は [docs/advanced/custom\_backend.md](https://www.google.com/search?q=docs/advanced/custom_backend.md) を参照してください。
+### 5. Declarative Rate Limiting
 
-### 4\. Declarative Rate Limiting
-
-APIの制限（例：1分間に1万トークン）を守るために、複雑なスリープ処理を書く必要はありません。
-**GCRA (Generic Cell Rate Algorithm)** ベースの高性能なリミッターが、バースト（集中アクセス）を防ぎながらスムーズに実行を制御します。
+APIの制限（例：1分間に60リクエスト）を守るために、複雑なスリープ処理を書く必要はありません。
+**GCRA (Generic Cell Rate Algorithm)** ベースの高性能なリミッターが、バーストを防ぎながらスムーズに実行を制御します。
 
 ```python
-# 1分間に 50,000 トークンまでに制限
-project = bs.Project("openai_batch", tpm=50000)
+spot = bs.Spot("api_client", tpm=60)  # 60 Tokens Per Minute
 
-def calc_cost(text):
-    return len(text)
-
-@project.task
-@project.limiter(cost=calc_cost)  # リトライ時も含めて自動制御
+@spot.mark
+@spot.limiter(cost=1)  # 自動的にレート制限がかかる
 def call_api(text):
     return api.generate(text)
+
 ```
 
-> ⚠️ **Warning on Multi-processing:**
-> `beautyspot` のレートリミッターは、プロセス間で状態を共有しません。
-> `multiprocessing` や複数のターミナルで同時にスクリプトを実行する場合、それぞれのプロセスが独立してトークンを消費するため、合計のリクエスト数が API 制限を超える可能性があります。
-> 並列実行を行う場合は、プロセス数に応じて `tpm` 設定値を割る（例: 制限が1000TPMで4プロセスなら、各250TPMに設定する）などの調整を行ってください。
+---
 
------
+## ⚠️ Migration Guide (v1.x -> v2.0)
 
-## ⚠️ Migration Guide (v0.x -\> v1.0.0)
+v2.0 では API の破壊的変更が行われました。以下の通りにコードを修正してください。
 
-v1.0.0 ではシリアライザが `pickle` から `msgpack` に変更されたため、**v0.x で作成されたキャッシュ（特に `save_blob=True` のデータ）とは互換性がありません。**
+| Feature | v1.x (Old) | v2.0 (New) |
+| --- | --- | --- |
+| **Class** | `project = bs.Project("name")` | `spot = bs.Spot("name")` |
+| **Decorator** | `@project.task` | `@spot.mark` |
+| **Imperative** | `project.run(func, ...)` | `spot.run(func, ...)` |
 
-アップデート時は、古い `.db` ファイルおよび `blobs/` ディレクトリを削除し、クリーンな状態で開始することを推奨します。
+※ データベーススキーマやキャッシュファイルの構造には変更がないため、v1.x で作成した `.db` ファイルや Blob はそのまま読み込み可能です。
 
------
+---
 
-## 📊 Dashboard (Result Viewer)
+## 📊 Dashboard
 
-**"Minimal viewer, not a full tracer."**
-
-ダッシュボードは、あくまで\*\*「実行状況（戻り値）の確認」**と**「キャッシュDBが破綻していないかの確認」\*\*に特化しています。
-Blobとして退避された巨大な戻り値も、ここから自動的に復元してプレビュー可能です（Mermaid, Graphviz, Image, JSON等）。
+キャッシュされたデータや実行履歴を可視化する簡易ダッシュボードが付属しています。
 
 ```bash
-# プロジェクトのDBファイルを指定して起動
-$ beautyspot ui ./my_experiment.db
+# DBファイルを指定して起動
+$ beautyspot ui ./.beautyspot/my_experiment.db
+
 ```
 
-> **Note:**
-> 付属のダッシュボードは、デフォルトの **SQLite バックエンド専用** です。
-> カスタムバックエンド（PostgreSQL等）を使用している場合、このダッシュボードは利用できません。その場合は Metabase や SQL クライアント等の利用を推奨します。
-
------
+---
 
 ## 🤝 License
 

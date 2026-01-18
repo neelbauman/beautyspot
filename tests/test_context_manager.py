@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from beautyspot import Project
+from beautyspot import Spot
 
 
 def test_project_context_manager(tmp_path):
@@ -8,7 +8,7 @@ def test_project_context_manager(tmp_path):
     db_path = str(tmp_path / "test.db")
 
     # Create a project instance
-    project = Project(name="test_cm", db=db_path)
+    project = Spot(name="test_cm", db=db_path)
 
     # Mock the shutdown method
     project.shutdown = MagicMock()
@@ -26,7 +26,7 @@ def test_project_context_manager(tmp_path):
 def test_project_context_manager_exception(tmp_path):
     """Test that shutdown is called even if an exception occurs."""
     db_path = str(tmp_path / "test.db")
-    project = Project(name="test_cm_exc", db=db_path)
+    project = Spot(name="test_cm_exc", db=db_path)
     project.shutdown = MagicMock()
 
     with pytest.raises(ValueError):

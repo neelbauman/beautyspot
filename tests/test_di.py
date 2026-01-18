@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import msgpack  # 追加
-from beautyspot import Project
+from beautyspot import Spot
 from beautyspot.storage import BlobStorageBase
 from beautyspot.db import TaskDB
 
@@ -59,9 +59,9 @@ class MockDB(TaskDB):
 def test_custom_storage_injection(tmp_path):
     """Test injecting a custom storage backend."""
     storage = MockStorage()
-    project = Project(name="di_test", db=str(tmp_path / "test.db"), storage=storage)
+    project = Spot(name="di_test", db=str(tmp_path / "test.db"), storage=storage)
 
-    @project.task(save_blob=True)
+    @project.mark(save_blob=True)
     def blob_task():
         return "blob_data"
 
@@ -82,9 +82,9 @@ def test_custom_db_injection(tmp_path):
     # Base64インポートは不要になったため削除
 
     db = MockDB()
-    project = Project(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
+    project = Spot(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
 
-    @project.task
+    @project.mark
     def simple_task():
         return 123
 
@@ -107,14 +107,14 @@ def test_custom_executor_injection(tmp_path):
     """Test injecting a custom executor."""
     # Use a single worker to ensure sequential execution (though hard to prove without timing)
     executor = ThreadPoolExecutor(max_workers=1)
-    project = Project(
+    project = Spot(
         name="di_test",
         db=str(tmp_path / "test.db"),
         storage_path=str(tmp_path / "blobs"),
         executor=executor,
     )
 
-    @project.task
+    @project.mark
     def task_a():
         return "A"
 

@@ -2,12 +2,12 @@
 
 import pytest
 import asyncio
-from beautyspot import Project
+from beautyspot import Spot
 
 def test_project_run_sync_in_context(tmp_path):
     """Test explicit run within a context manager."""
     # workspace機能により .beautyspot/test_run.db が作られる想定
-    project = Project(name="test_run", db=str(tmp_path / "test_run.db"))
+    project = Spot(name="test_run", db=str(tmp_path / "test_run.db"))
 
     call_count = 0
 
@@ -35,7 +35,7 @@ def test_project_run_sync_in_context(tmp_path):
 
 def test_project_run_async_in_context(tmp_path):
     """Test explicit run with asynchronous function in context."""
-    project = Project(name="test_run_async", db=str(tmp_path / "test_run_async.db"))
+    project = Spot(name="test_run_async", db=str(tmp_path / "test_run_async.db"))
 
     call_count = 0
 
@@ -66,7 +66,7 @@ def test_project_run_with_options(tmp_path, inspect_db):
         return b"0" * size
 
     # Using with block ensures cleanup
-    with Project(name="test_opts", db=str(tmp_path / "test_opts.db")) as project:
+    with Spot(name="test_opts", db=str(tmp_path / "test_opts.db")) as project:
         # Run with save_blob=True
         # Note: args are passed as *args, options as named args starting with _
         data = project.run(heavy_data, 1024, _save_blob=True)

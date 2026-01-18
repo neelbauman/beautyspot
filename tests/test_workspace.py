@@ -1,7 +1,7 @@
 # tests/test_workspace.py
 import os
 from pathlib import Path
-from beautyspot import Project
+from beautyspot import Spot
 
 def test_workspace_creation(tmp_path):
     """Test that .beautyspot directory and .gitignore are created."""
@@ -12,7 +12,7 @@ def test_workspace_creation(tmp_path):
         project_name = "test_ws"
         # Init project without explicit db/storage paths
         # This should trigger default workspace creation
-        with Project(name=project_name):
+        with Spot(name=project_name):
             pass
         
         ws_dir = Path(".beautyspot")
@@ -43,7 +43,7 @@ def test_custom_paths_ignore_workspace(tmp_path):
     custom_blobs = tmp_path / "custom_blobs"
     
     # Explicitly providing paths should bypass default workspace locations
-    with Project(name="custom", db=str(custom_db), storage_path=str(custom_blobs)):
+    with Spot(name="custom", db=str(custom_db), storage_path=str(custom_blobs)):
         pass
         
     # Files should be at custom locations
