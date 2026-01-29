@@ -69,7 +69,6 @@ nav:
       - Custom Backend (DI): advanced/custom_backend.md
   - ADR (Decision Records):
       # 既存のADRファイルをここにマッピング
-      - 0000 Example: adr/0000-adr-example.md
       - 0001 Stable Hashing: adr/0001-stable-argument-hashing.md
       - 0002 Rate Limiter: adr/0002-robust-rate-limiter.md
       - 0003 Resilient Deserialization: adr/0003-resilient-deserializeation-and-versioning.md

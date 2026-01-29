@@ -185,6 +185,36 @@ class Spot:
         """
         self.shutdown()
 
+
+    def register(
+        self,
+        code: int,
+        encoder: Callable[[Any], bytes],
+        decoder: Optional[Callable[[bytes], Any]] = None,
+        decoder_factory: Optional[Callable[[Type], Callable[[bytes], Any]]] = None,
+    ) -> Callable[[Type], Type]:
+        """
+        Decorator to register a custom type for serialization.
+        """
+        if decoder is None and decoder_factory is None:
+            raise ValueError("Must provide either `decoder` or `decoder_factory`.")
+
+        def decorator(cls: Type) -> Type:
+            actual_decoder = decoder
+            # クラス生成後にファクトリを実行してデコーダを取得
+            if decoder_factory:
+                actual_decoder = decoder_factory(cls)
+            
+            # --- 以下のチェックがテスト通過に必須です ---
+            if actual_decoder is None:
+                 raise ValueError("Decoder resolution failed.")
+            # ----------------------------------------
+
+            self.register_type(cls, code, encoder, actual_decoder)
+            return cls
+        
+        return decorator
+
     def register_type(
         self, type_: Type, code: int, encoder: Callable, decoder: Callable
     ):
