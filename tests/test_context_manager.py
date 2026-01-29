@@ -3,34 +3,34 @@ from unittest.mock import MagicMock
 from beautyspot import Spot
 
 
-def test_project_context_manager(tmp_path):
-    """Test that Project works as a context manager and calls shutdown on exit."""
+def test_spot_context_manager(tmp_path):
+    """Test that spot works as a context manager and calls shutdown on exit."""
     db_path = str(tmp_path / "test.db")
 
-    # Create a project instance
-    project = Spot(name="test_cm", db=db_path)
+    # Create a spot instance
+    spot = Spot(name="test_cm", db=db_path)
 
     # Mock the shutdown method
-    project.shutdown = MagicMock()
+    spot.shutdown = MagicMock()
 
     # Use as context manager
-    with project as p:
-        assert p is project
+    with spot as p:
+        assert p is spot
         # Verify shutdown is NOT called yet
-        project.shutdown.assert_not_called()
+        spot.shutdown.assert_not_called()
 
     # Verify shutdown IS called after exit
-    project.shutdown.assert_called_once()
+    spot.shutdown.assert_called_once()
 
 
-def test_project_context_manager_exception(tmp_path):
+def test_spot_context_manager_exception(tmp_path):
     """Test that shutdown is called even if an exception occurs."""
     db_path = str(tmp_path / "test.db")
-    project = Spot(name="test_cm_exc", db=db_path)
-    project.shutdown = MagicMock()
+    spot = Spot(name="test_cm_exc", db=db_path)
+    spot.shutdown = MagicMock()
 
     with pytest.raises(ValueError):
-        with project:
+        with spot:
             raise ValueError("Test Exception")
 
-    project.shutdown.assert_called_once()
+    spot.shutdown.assert_called_once()

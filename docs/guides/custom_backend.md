@@ -15,8 +15,8 @@ v1.0.0 から導入された **Dependency Injection (DI)** 機構を利用する
 
 ### 実装の要件 (Contract)
 
-* **Thread Safety**: `Project` はマルチスレッドで動作する可能性があります。データベースアダプタはスレッドセーフである必要があります。
-* **Schema Initialization**: `init_schema()` は `Project` 初期化時に毎回呼ばれます。「テーブルがなければ作成する（IF NOT EXISTS）」ように実装してください。
+* **Thread Safety**: `Spot` はマルチスレッドで動作する可能性があります。データベースアダプタはスレッドセーフである必要があります。
+* **Schema Initialization**: `init_schema()` は `Spot` 初期化時に毎回呼ばれます。「テーブルがなければ作成する（IF NOT EXISTS）」ように実装してください。
 * **Idempotency**: `save()` は同じキーで何度も呼ばれる可能性があります。`INSERT OR REPLACE` (Upsert) の挙動を実装してください。
 
 ## 2. Implementation Example
@@ -73,11 +73,12 @@ class MemoryTaskDB(TaskDB):
         df = pd.DataFrame(list(self._storage.values()))
         df["cache_key"] = list(self._storage.keys())
         return df.sort_values("updated_at", ascending=False).head(limit)
+
 ```
 
-## 3\. Injection (How to use)
+## 3. Injection (How to use)
 
-作成したカスタムクラスのインスタンスを、`Project` の `db` 引数に渡すだけです。
+作成したカスタムクラスのインスタンスを、`Spot` の `db` 引数に渡すだけです。
 
 ```python
 import beautyspot as bs
@@ -85,24 +86,24 @@ import beautyspot as bs
 # 1. カスタムDBをインスタンス化
 my_memory_db = MemoryTaskDB()
 
-# 2. Projectに注入 (パス文字列ではなく、インスタンスを渡す)
-project = bs.Project("memory_app", db=my_memory_db)
+# 2. Spotに注入 (パス文字列ではなく、インスタンスを渡す)
+spot = bs.Spot("memory_app", db=my_memory_db)
 
-@project.task
+@spot.mark
 def calc(x):
     return x * 2
 
 # この結果は SQLite ファイルではなく、メモリ上に保存されます
 print(calc(10)) 
+
 ```
 
-## 4\. Advanced: Using PostgreSQL / MySQL
+## 4. Advanced: Using PostgreSQL / MySQL
 
 RDBMS を使用する場合は、`sqlalchemy` や `psycopg2` を使用して `TaskDB` を実装します。
 `src/beautyspot/db.py` 内の `SQLiteTaskDB` の実装が参考になります。
 
 特に以下の点に注意してください：
 
-  * **接続管理**: `save` や `get` のたびに接続を開くか、コネクションプールを使用するかを適切に設計してください。
-  * **JSONシリアライズ**: `beautyspot` は結果を JSON 文字列として渡します。DB側には `TEXT` 型または `JSONB` 型のカラムを用意してください。
-
+* **接続管理**: `save` や `get` のたびに接続を開くか、コネクションプールを使用するかを適切に設計してください。
+* **JSONシリアライズ**: `beautyspot` は結果を JSON 文字列として渡します。DB側には `TEXT` 型または `JSONB` 型のカラムを用意してください。

@@ -6,16 +6,16 @@ from beautyspot import Spot
 
 
 @pytest.fixture
-def project(tmp_path):
+def spot(tmp_path):
     return Spot(name="feat_test", db=str(tmp_path / "test.db"))
 
 
-def test_versioning(project):
+def test_versioning(spot):
     """versionを変更するとキャッシュが無効化(再計算)されるか"""
     call_count = 0
 
     # バージョン "v1" で定義
-    @project.mark(version="v1")
+    @spot.mark(version="v1")
     def func_v1(x):
         nonlocal call_count
         call_count += 1
@@ -30,7 +30,7 @@ def test_versioning(project):
 
     # ロジックが変わったとして、バージョン "v2" に変更
     # (同じ関数名で定義しなおすことでシミュレーション)
-    @project.mark(version="v2")
+    @spot.mark(version="v2")
     def func_v2(x):  # func_v1 と同じ関数名(func_name)として登録される
         nonlocal call_count
         call_count += 1
@@ -41,11 +41,11 @@ def test_versioning(project):
     assert call_count == 2
 
 
-def test_error_handling(project):
+def test_error_handling(spot):
     """例外発生時はキャッシュされないことの確認"""
     call_count = 0
 
-    @project.mark
+    @spot.mark
     def flakey_task(x):
         nonlocal call_count
         call_count += 1
@@ -67,12 +67,12 @@ def test_error_handling(project):
 
 
 @pytest.mark.asyncio
-async def test_async_task(project):
+async def test_async_task(spot):
     """非同期タスク(@task async def)のサポート確認"""
     import msgpack
     # Base64インポートは不要になったため削除
 
-    @project.mark
+    @spot.mark
     async def async_add(a, b):
         await asyncio.sleep(0.01)
         return a + b
@@ -82,7 +82,7 @@ async def test_async_task(project):
     assert res == 30
 
     # 結果が保存されていること
-    hist = project.db.get_history()
+    hist = spot.db.get_history()
     assert len(hist) == 1
 
     row = hist.iloc[0]

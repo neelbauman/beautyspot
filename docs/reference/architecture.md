@@ -1,4 +1,3 @@
-## 📄 ARCHITECTURE.md
 
 # Architecture & Design
 
@@ -81,7 +80,7 @@ classDiagram
         -Finalizer _finalizer
         __init__(...)
         +mark(...)
-        +run(...)
+        +cached_run(...)
         +limiter(...)
         +shutdown(wait)
         -_init_db()
@@ -156,6 +155,7 @@ erDiagram
         TIMESTAMP updated_at "Last execution timestamp"
     }
 
+
 ```
 
 * **`result_type`**:
@@ -165,6 +165,7 @@ erDiagram
 
 * **`content_type`**:
 * ダッシュボードでの可視化に使用（例: `text/vnd.mermaid`, `image/png`）。
+
 
 
 ---

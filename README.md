@@ -1,8 +1,8 @@
 # 🌑 beautyspot v2
 
-- [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
-- [PyPI](https://pypi.org/project/beautyspot/)
-- [ライセンス](https://opensource.org/licenses/MIT)
+* [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
+* [PyPI](https://pypi.org/project/beautyspot/)
+* [ライセンス](https://opensource.org/licenses/MIT)
 
 **"You focus on the logic. We handle the rest."**
 
@@ -11,6 +11,7 @@
 
 **v2.0 Update:**
 クラス名を `Project` から **`Spot`** へ、デコレータを `@task` から **`@mark`** へ刷新しました。より直感的で、世界観に統一感のある API に生まれ変わりました。
+また、実行時のキャッシュ制御を行う **`cached_run`** が導入されました。
 
 ---
 
@@ -62,6 +63,43 @@ for i in inputs:
 
 ---
 
+## 🛠️ Usage Patterns
+
+`beautyspot` は、利用シーンに合わせて2つのアプローチを提供します。
+
+### 1. Definition Time (`@spot.mark`)
+
+アプリケーションのコアロジックや、常にキャッシュしたい関数に使用します。
+
+```python
+@spot.mark
+def rigid_task(data):
+    # ...
+    return result
+
+```
+
+### 2. Execution Time (`with spot.cached_run`)
+
+既存のライブラリ関数や、特定のブロック内だけで設定を変えてキャッシュしたい場合に使用します。
+v2.0 から導入された推奨パターンです。
+
+```python
+from external_lib import simulation
+
+# このブロック内だけ、simulation関数はキャッシュ機能付きになります
+with spot.cached_run(simulation, version="v2") as sim:
+    result = sim(data)
+
+# 複数の関数もサポート
+with spot.cached_run(func_a, func_b) as (task_a, task_b):
+    task_a()
+    task_b()
+
+```
+
+---
+
 ## 💡 Key Features
 
 ### 1. Spot & Mark Architecture (New in v2.0)
@@ -75,12 +113,10 @@ v2.0 では、概念を再定義しました。
 
 **"Cache what matters."**
 
-
 関数の引数に応じて、どのようにキャッシュキーを生成するかを宣言的に定義できます。
-
 「ログ設定は無視する」「ファイルの中身を見て判定する」といった高度な制御が可能です。
 
-```
+```python
 from beautyspot.cachekey import KeyGen
 
 # verboseフラグは無視し、config_pathは中身を読んでハッシュ化
@@ -90,8 +126,8 @@ from beautyspot.cachekey import KeyGen
 ))
 def run_simulation(config_path, verbose=True):
     ...
-```
 
+```
 
 ### 3. Hybrid Storage Strategy
 
@@ -150,9 +186,9 @@ v2.0 では API の破壊的変更が行われました。以下の通りにコ�
 | --- | --- | --- |
 | **Class** | `project = bs.Project("name")` | `spot = bs.Spot("name")` |
 | **Decorator** | `@project.task` | `@spot.mark` |
-| **Imperative** | `project.run(func, ...)` | `spot.run(func, ...)` |
+| **Imperative** | `project.run(func, ...)` | `with spot.cached_run(func) as task: task(...)` |
 
-※ データベーススキーマやキャッシュファイルの構造には変更がないため、v1.x で作成した `.db` ファイルや Blob はそのまま読み込み可能です。
+※ `spot.run` は v2.0 で非推奨となりました。今後は `cached_run` を使用してください。
 
 ---
 
@@ -161,8 +197,11 @@ v2.0 では API の破壊的変更が行われました。以下の通りにコ�
 キャッシュされたデータや実行履歴を可視化する簡易ダッシュボードが付属しています。
 
 ```bash
+# この依存関係が必要
+uv add beautyspot[dashboard]
+
 # DBファイルを指定して起動
-$ beautyspot ui ./.beautyspot/my_experiment.db
+beautyspot ui ./.beautyspot/my_experiment.db
 
 ```
 

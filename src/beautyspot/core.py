@@ -5,6 +5,7 @@ import logging
 import functools
 import inspect
 import asyncio
+import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
 from pathlib import Path  # Added Path
@@ -21,7 +22,7 @@ from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
 from .db import TaskDB, SQLiteTaskDB
 from .serializer import MsgpackSerializer, SerializationError
-from .cachekey import KeyGen
+from .cachekey import KeyGen, KeyGenPolicy
 
 # ジェネリクスの定義
 P = ParamSpec("P")
@@ -32,6 +33,36 @@ logger.addHandler(logging.NullHandler())
 
 # --- 追加: キャッシュミスを表す番兵オブジェクト ---
 CACHE_MISS = object()
+
+class ScopedMark:
+    """
+    Helper context manager for 'with spot.cached_run(...):'.
+    Handles wrapping functions and managing the scope.
+    """
+    def __init__(self, spot: "Spot", funcs: tuple[Callable, ...], **options):
+        self.spot = spot
+        self.funcs = funcs
+        self.options = options
+
+    def __enter__(self):
+        # 1. Apply mark() to all functions with the given options
+        wrappers = [
+            self.spot.mark(f, **self.options) 
+            for f in self.funcs
+        ]
+        
+        # 2. Smart Return Policy:
+        # If single function, return it directly (no tuple unpacking needed).
+        # If multiple, return as tuple.
+        if len(wrappers) == 1:
+            return wrappers[0]
+        
+        return tuple(wrappers)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # We do NOT shutdown the spot here. 
+        # The spot's lifecycle is independent of this cached_run scope.
+        pass
 
 
 class Spot:
@@ -143,7 +174,6 @@ class Spot:
             with open(gitignore_path, "w") as f:
                 f.write("*\n")
 
-    # (以下、メソッドは変更なし)
     @staticmethod
     def _shutdown_executor(executor: Executor):
         """
@@ -170,7 +200,7 @@ class Spot:
         Enter the runtime context related to this object.
 
         Returns:
-            self: The project instance itself.
+            self: The Spot instance itself.
         """
         return self
 
@@ -238,8 +268,8 @@ class Spot:
         content_type: str | None
     ) -> tuple[bool, str | None, str | None]:
         """
-        Resolve settings based on arguments and project defaults.
-        Priority: Argument > Project Default
+        Resolve settings based on arguments and spot defaults.
+        Priority: Argument > Spot Default
         """
         final_save_blob = save_blob if save_blob is not None else self.default_save_blob
         final_version = version if version is not None else self.default_version
@@ -274,7 +304,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        input_key_fn: Optional[Callable],
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
     ) -> Any:
@@ -284,11 +314,16 @@ class Spot:
 
         # --- Policy Binding Check (ADDED) ---
         # If input_key_fn is a Policy object (has 'bind'), bind it to the function now.
-        if input_key_fn is not None and hasattr(input_key_fn, "bind"):
-            input_key_fn = input_key_fn.bind(func)
+        effective_key_fn: Optional[Callable] = None
+
+        if isinstance(input_key_fn, KeyGenPolicy):
+            effective_key_fn = input_key_fn.bind(func)
+        else:
+            effective_key_fn = input_key_fn
+
         # ------------------------------------
 
-        iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
+        iid, ck = self._make_cache_key(func.__name__, args, kwargs, effective_key_fn, s_ver)
 
         # 1. Check Cache
         cached = self._check_cache_sync(ck)
@@ -310,7 +345,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        input_key_fn: Optional[Callable],
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
     ) -> Any:
@@ -318,12 +353,14 @@ class Spot:
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
 
-        # --- Policy Binding Check (ADDED) ---
-        if input_key_fn is not None and hasattr(input_key_fn, "bind"):
-            input_key_fn = input_key_fn.bind(func)
-        # ------------------------------------
+        effective_key_fn: Optional[Callable] = None
 
-        iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
+        if isinstance(input_key_fn, KeyGenPolicy):
+            effective_key_fn = input_key_fn.bind(func)
+        else:
+            effective_key_fn = input_key_fn
+
+        iid, ck = self._make_cache_key(func.__name__, args, kwargs, effective_key_fn, s_ver)
         loop = asyncio.get_running_loop()
 
         # 1. Check Cache (Offload IO)
@@ -484,7 +521,7 @@ class Spot:
         _func: Optional[Callable] = None,
         *,
         save_blob: Optional[bool] = None,
-        input_key_fn: Optional[Callable] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
     ) -> Any:
@@ -499,10 +536,12 @@ class Spot:
 
             # --- Policy Binding Setup (ADDED) ---
             # If a Policy is provided, bind it to the decorated function immediately.
-            effective_key_fn = input_key_fn
-            if effective_key_fn is not None and hasattr(effective_key_fn, "bind"):
-                effective_key_fn = effective_key_fn.bind(func)
-            # ------------------------------------
+            effective_key_fn: Optional[Callable] = None
+
+            if isinstance(input_key_fn, KeyGenPolicy):
+                effective_key_fn = input_key_fn.bind(func)
+            else:
+                effective_key_fn = input_key_fn
 
             # Key Gen Helper
             def make_key(args, kwargs):
@@ -569,6 +608,49 @@ class Spot:
 
         return decorator
 
+    def cached_run(
+        self,
+        *funcs: Callable,
+        save_blob: Optional[bool] = None,
+        input_key_fn: Optional[Callable] = None,
+        version: str | None = None,
+        content_type: Optional[str] = None,
+    ):
+        """
+        Create a temporary context for executing function(s) with caching.
+        
+        This is the recommended way to use beautyspot for imperative execution,
+        replacing the deprecated `spot.run()`.
+
+        Args:
+            *funcs: One or more functions to wrap.
+            save_blob: Override save_blob setting.
+            input_key_fn: Custom key generator.
+            version: Cache version string.
+            content_type: Content type string.
+
+        Usage:
+            # Single function
+            with spot.cached_run(func) as task:
+                task(data)
+
+            # Multiple functions (unpacked)
+            with spot.cached_run(f1, f2, version="v2") as (t1, t2):
+                t1(data)
+                t2(data)
+        """
+        if not funcs:
+            raise ValueError("At least one function must be provided to cached_run.")
+
+        return ScopedMark(
+            self,
+            funcs,
+            save_blob=save_blob,
+            input_key_fn=input_key_fn,
+            version=version,
+            content_type=content_type
+        )
+
     # --- Imperative Execution ---
 
     def run(
@@ -583,9 +665,18 @@ class Spot:
     ) -> Any:
         """
         Execute a function with caching enabled.
-        Arguments starting with '_' are configuration options.
-        If options are None, they fall back to Project defaults.
+        
+        .. deprecated:: 2.0
+            Use `with spot.cached_run(func) as task: task(*args)` instead.
         """
+        warnings.warn(
+            "`spot.run()` is deprecated and will be removed in v3.0. "
+            "Please use `with spot.cached_run(func) as task: task(...)` instead "
+            "for better type safety and cleaner API.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         if inspect.iscoroutinefunction(func):
             return self._execute_async(
                 func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
@@ -594,3 +685,4 @@ class Spot:
             return self._execute_sync(
                 func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
             )
+
