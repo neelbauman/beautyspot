@@ -56,11 +56,13 @@ plugins:
 # ナビゲーション構造
 nav:
   - Home: index.md
+  - User Guides:
+      - Caching Strategy: guides/caching.md
+      - Data Serialization: guides/serialization.md
+      - Rate Limiting: guides/rate_limiting.md  # Future placeholder
   - Philosophy: reference/philosophy.md
   - Architecture: reference/architecture.md
   - API Reference:
-      # ここに自動生成ドキュメントを配置します
-      # docs/reference/ 配下に実ファイルを作成する想定です
       - Project (Core): reference/core.md
       - Storage: reference/storage.md
       - Types: reference/types.md
@@ -68,7 +70,6 @@ nav:
   - Advanced Usage Guides:
       - Custom Backend (DI): advanced/custom_backend.md
   - ADR (Decision Records):
-      # 既存のADRファイルをここにマッピング
       - 0001 Stable Hashing: adr/0001-stable-argument-hashing.md
       - 0002 Rate Limiter: adr/0002-robust-rate-limiter.md
       - 0003 Resilient Deserialization: adr/0003-resilient-deserializeation-and-versioning.md
@@ -81,3 +82,5 @@ nav:
       - 0010 Input Serialization: adr/0010-canonical-input-serialization.md
       - 0011 Workspace & Run: adr/0011-imperative-execution-and-workspace.md
       - 0012 Rename to Spot: adr/0012-rename-project-to-spot-and-task-to-mark.md
+      - 0013 Type Registration: adr/0013-decorator-based-type-registration.md
+

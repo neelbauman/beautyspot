@@ -71,22 +71,27 @@ v2.0 では、概念を再定義しました。
 * **Spot (`bs.Spot`):** データの保存先、DB接続、レート制限の設定などを管理する「実行コンテキスト」。
 * **Mark (`@spot.mark`):** 「この関数は Spot の管理下に置く」という宣言。
 
-### 2. Secure by Default (Msgpack)
+### 2. Declarative Caching Strategies (New in v2.0)
 
-**"No more Pickle risks."**
-v1.0 以降、デフォルトのシリアライザに **Msgpack** を採用しています。
-Python標準の `pickle` と異なり、信頼できないデータを読み込んでも任意のコード実行（RCE）のリスクがありません。
+**"Cache what matters."**
 
-```python
-# Msgpack非対応のカスタム型も、安全に登録可能
-spot.register_type(
-    type_=MyClass,
-    code=10, 
-    encoder=lambda x: x.to_bytes(),
-    decoder=lambda b: MyClass.from_bytes(b)
-)
+
+関数の引数に応じて、どのようにキャッシュキーを生成するかを宣言的に定義できます。
+
+「ログ設定は無視する」「ファイルの中身を見て判定する」といった高度な制御が可能です。
 
 ```
+from beautyspot.cachekey import KeyGen
+
+# verboseフラグは無視し、config_pathは中身を読んでハッシュ化
+@spot.mark(input_key_fn=KeyGen.map(
+    verbose=KeyGen.IGNORE,
+    config_path=KeyGen.FILE_CONTENT
+))
+def run_simulation(config_path, verbose=True):
+    ...
+```
+
 
 ### 3. Hybrid Storage Strategy
 

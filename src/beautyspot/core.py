@@ -282,6 +282,12 @@ class Spot:
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
 
+        # --- Policy Binding Check (ADDED) ---
+        # If input_key_fn is a Policy object (has 'bind'), bind it to the function now.
+        if input_key_fn is not None and hasattr(input_key_fn, "bind"):
+            input_key_fn = input_key_fn.bind(func)
+        # ------------------------------------
+
         iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
 
         # 1. Check Cache
@@ -311,6 +317,11 @@ class Spot:
         """Internal asynchronous execution logic."""
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
+
+        # --- Policy Binding Check (ADDED) ---
+        if input_key_fn is not None and hasattr(input_key_fn, "bind"):
+            input_key_fn = input_key_fn.bind(func)
+        # ------------------------------------
 
         iid, ck = self._make_cache_key(func.__name__, args, kwargs, input_key_fn, s_ver)
         loop = asyncio.get_running_loop()
@@ -479,12 +490,6 @@ class Spot:
     ) -> Any:
         """
         Mark a function as a managed spot (Resumable Task Decorator).
-        If arguments are None, they fall back to Spot defaults.
-
-        Args:
-            save_blob: If True, saves result using Storage (msgpack). If False, saves to DB directly.
-            input_key_fn: Custom function to generate input ID from args/kwargs.
-            version: Explicit version string. Change this to invalidate old cache entries.
         """
         if save_blob is None:
             save_blob = self.default_save_blob
@@ -492,13 +497,20 @@ class Spot:
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
+            # --- Policy Binding Setup (ADDED) ---
+            # If a Policy is provided, bind it to the decorated function immediately.
+            effective_key_fn = input_key_fn
+            if effective_key_fn is not None and hasattr(effective_key_fn, "bind"):
+                effective_key_fn = effective_key_fn.bind(func)
+            # ------------------------------------
+
             # Key Gen Helper
             def make_key(args, kwargs):
                 from .cachekey import KeyGen
 
                 iid = (
-                    input_key_fn(*args, **kwargs)
-                    if input_key_fn
+                    effective_key_fn(*args, **kwargs)
+                    if effective_key_fn
                     else KeyGen.default(args, kwargs)
                 )
 
@@ -513,15 +525,12 @@ class Spot:
             def sync_wrapper(*args, **kwargs):
                 iid, ck = make_key(args, kwargs)
 
-                # 1. Check Cache
                 cached = self._check_cache_sync(ck)
                 if cached is not CACHE_MISS:
                     return cached
 
-                # 2. Execute
                 res = func(*args, **kwargs)
 
-                # 3. Save
                 self._save_result_sync(
                     ck, func.__name__, str(iid), version, res, content_type, save_blob
                 )
@@ -532,17 +541,14 @@ class Spot:
                 iid, ck = make_key(args, kwargs)
                 loop = asyncio.get_running_loop()
 
-                # 1. Check Cache (Offload IO)
                 cached = await loop.run_in_executor(
                     self.executor, self._check_cache_sync, ck
                 )
                 if cached is not CACHE_MISS:
                     return cached
 
-                # 2. Execute (Async)
                 res = await func(*args, **kwargs)
 
-                # 3. Save (Offload IO)
                 await loop.run_in_executor(
                     self.executor,
                     self._save_result_sync,
@@ -558,13 +564,9 @@ class Spot:
 
             return async_wrapper if is_async else sync_wrapper
 
-        # ケース1: @spot.mark として呼ばれた場合
-        # _func にデコレート対象の関数が入ってくる
         if _func is not None and callable(_func):
             return decorator(_func)
 
-        # ケース2: @spot.mark(save_blob=True) として呼ばれた場合
-        # _func は None になり、decorator自体を返す（その後Pythonがfuncを入れて呼んでくれる）
         return decorator
 
     # --- Imperative Execution ---

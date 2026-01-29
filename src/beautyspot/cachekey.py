@@ -4,7 +4,8 @@ import hashlib
 import os
 import msgpack
 import inspect
-from typing import Any, Union
+from enum import Enum, auto
+from typing import Any, Union, Callable, Dict, Optional, List
 
 ReadableBuffer = Union[bytes, bytearray, memoryview]
 
@@ -50,26 +51,17 @@ def canonicalize(obj: Any) -> Any:
         return sorted(normalized_items, key=_safe_sort_key)
 
     # 5. Numpy Array Handling (Duck Typing)
-    # Check for numpy-like attributes to avoid importing numpy directly.
-    # We use 'tobytes()' to get the full raw data, avoiding the "..." truncation issue of str().
     if hasattr(obj, "shape") and hasattr(obj, "dtype") and hasattr(obj, "tobytes"):
         try:
-            # Format: ("__numpy__", shape, dtype, raw_bytes)
-            # This ensures distinct hashes for arrays with different contents.
             return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
         except Exception:
-            # Fallback if method call fails
             pass
 
     # 6. Type/Class Handling (Structure Awareness)
-    # This prevents using memory addresses for class objects (e.g. <class 'Foo'> at 0x...)
-    # and detects changes in the class definition (e.g. adding a field).
     if isinstance(obj, type):
         # Strategy A: Pydantic Model (Schema-based)
-        # Most robust for your use case. Detects field changes, type changes, etc.
         if hasattr(obj, "model_json_schema"): # Pydantic v2
              try:
-                 # Recursive call ensures the dict returned by schema is sorted/stabilized
                  return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
              except Exception:
                  pass
@@ -80,14 +72,11 @@ def canonicalize(obj: Any) -> Any:
                  pass
         
         # Strategy B: Generic Class (Structure-based)
-        # Use class name + relevant attributes (excluding methods which have varying addresses)
         class_attrs = {}
         try:
             for k, v in obj.__dict__.items():
-                # Ignore private internals and dunder methods usually
                 if k.startswith("__") and k != "__annotations__":
                     continue
-                # Ignore methods/functions as their memory address changes every run
                 if callable(v): 
                     continue
                 class_attrs[k] = v
@@ -108,14 +97,85 @@ def canonicalize(obj: Any) -> Any:
         ]
 
     # 8. Last Resort: String representation
-    # Warning: May contain memory addresses or be truncated.
     return str(obj)
+
+
+class Strategy(Enum):
+    """
+    Defines the strategy for hashing a specific argument.
+    """
+    DEFAULT = auto()      # Recursively canonicalize and hash (Default behavior)
+    IGNORE = auto()       # Exclude from hash calculation completely
+    FILE_CONTENT = auto() # Treat as file path and hash its content (Strict)
+    PATH_STAT = auto()    # Treat as file path and hash its metadata (Fast: path+size+mtime)
+
+
+class KeyGenPolicy:
+    """
+    A policy object that binds to a function signature to generate cache keys
+    based on argument-specific strategies.
+    
+    This acts as a bridge between the flexible `*args, **kwargs` interface of
+    the decorator and the structured `KeyGen` logic.
+    """
+    def __init__(self, strategies: Dict[str, Strategy], default_strategy: Strategy = Strategy.DEFAULT):
+        self.strategies = strategies
+        self.default_strategy = default_strategy
+
+    def bind(self, func: Callable) -> Callable[..., str]:
+        """
+        Creates a key generation function bound to the specific signature of `func`.
+        
+        This uses `inspect.signature` to map positional arguments to their names,
+        allowing strategies to be applied consistently regardless of how the function is called.
+        """
+        sig = inspect.signature(func)
+
+        def _bound_keygen(*args, **kwargs) -> str:
+            # Bind arguments to names, applying defaults
+            bound = sig.bind(*args, **kwargs)
+            bound.apply_defaults()
+            
+            items_to_hash = []
+            
+            # Iterate over arguments in definition order
+            for name, val in bound.arguments.items():
+                strategy = self.strategies.get(name, self.default_strategy)
+                
+                if strategy == Strategy.IGNORE:
+                    continue
+                
+                elif strategy == Strategy.FILE_CONTENT:
+                    # Expecting val to be a path-like string
+                    items_to_hash.append(KeyGen.from_file_content(str(val)))
+                    
+                elif strategy == Strategy.PATH_STAT:
+                    items_to_hash.append(KeyGen.from_path_stat(str(val)))
+                    
+                else: # DEFAULT
+                    items_to_hash.append(canonicalize(val))
+            
+            # Hash the accumulated list of canonical items
+            return KeyGen.hash_items(items_to_hash)
+
+        return _bound_keygen
 
 
 class KeyGen:
     """
-    Generates stable cache keys (SHA-256) for various inputs.
+    Generates stable cache keys (SHA-256) for function inputs (Identity Layer).
+    
+    Note on Separation of Concerns:
+      - This class focuses on 'Input Identity' (checking if inputs are effectively the same).
+      - It does NOT handle 'Output Serialization' (saving results to DB).
+        For custom output serialization, use `spot.register()`.
     """
+    
+    # Constants for convenience usage in KeyGen.map()
+    HASH = Strategy.DEFAULT
+    IGNORE = Strategy.IGNORE
+    FILE_CONTENT = Strategy.FILE_CONTENT
+    PATH_STAT = Strategy.PATH_STAT
 
     @staticmethod
     def from_path_stat(filepath: str) -> str:
@@ -148,22 +208,62 @@ class KeyGen:
     def default(args: tuple, kwargs: dict) -> str:
         """
         Generates a stable SHA-256 hash from function arguments using recursive canonicalization.
-        Uses Msgpack for efficient binary serialization.
+        This is the default legacy behavior sensitive to args/kwargs structure.
         """
         try:
-            # 1. Normalize structure (removes Dict/Set order ambiguity)
+            # 1. Normalize structure
             normalized = [
                 canonicalize(args),
                 canonicalize(kwargs)
             ]
             
-            # 2. Serialize to bytes (Deterministic because structure is fixed)
+            # 2. Serialize to bytes
             packed = msgpack.packb(normalized)
             
             # 3. Hash (SHA-256)
             return hashlib.sha256(packed).hexdigest()
             
         except Exception:
-            # Fallback for truly unserializable objects or recursion errors
+            # Fallback
             return hashlib.sha256(str((args, kwargs)).encode()).hexdigest()
+    
+    @staticmethod
+    def hash_items(items: list) -> str:
+        """Helper to hash a list of canonicalized items."""
+        packed = msgpack.packb(items)
+        return hashlib.sha256(packed).hexdigest()
+
+    # --- Factory Methods for Policies ---
+
+    @classmethod
+    def ignore(cls, *arg_names: str) -> KeyGenPolicy:
+        """
+        Creates a policy that ignores specific arguments (e.g., 'verbose', 'logger').
+        """
+        strategies = {name: Strategy.IGNORE for name in arg_names}
+        return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
+
+    @classmethod
+    def map(cls, **arg_strategies: Strategy) -> KeyGenPolicy:
+        """
+        Creates a policy with explicit strategies for specific arguments.
+        Example: KeyGen.map(data=KeyGen.HASH, config=KeyGen.FILE_CONTENT)
+        """
+        return KeyGenPolicy(arg_strategies, default_strategy=Strategy.DEFAULT)
+    
+    @classmethod
+    def file_content(cls, *arg_names: str) -> KeyGenPolicy:
+        """
+        Creates a policy that treats specified arguments as file paths and hashes their content.
+        """
+        strategies = {name: Strategy.FILE_CONTENT for name in arg_names}
+        return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
+
+    @classmethod
+    def path_stat(cls, *arg_names: str) -> KeyGenPolicy:
+        """
+        Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).
+        """
+        strategies = {name: Strategy.PATH_STAT for name in arg_names}
+        return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
 
