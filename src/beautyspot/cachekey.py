@@ -3,6 +3,7 @@
 import hashlib
 import os
 import msgpack
+import inspect
 from typing import Any, Union
 
 ReadableBuffer = Union[bytes, bytearray, memoryview]
@@ -25,7 +26,8 @@ def canonicalize(obj: Any) -> Any:
     1. Dict -> Sorted List of entries (fixes order).
     2. Set -> Sorted List (fixes order).
     3. Numpy-like -> Tuple with raw bytes (efficient & exact).
-    4. Object -> Dict via __dict__ or __slots__ (avoids memory address).
+    4. Type (Class) -> Schema hash (Pydantic) or Structure hash (Generic).
+    5. Object (Instance) -> Dict via __dict__ or __slots__ (avoids memory address).
     """
     # 1. Primitives (No change needed)
     if obj is None or isinstance(obj, (int, float, bool, str, bytes)):
@@ -59,7 +61,42 @@ def canonicalize(obj: Any) -> Any:
             # Fallback if method call fails
             pass
 
-    # 6. Custom Objects (Pydantic, Dataclasses, etc.)
+    # 6. Type/Class Handling (Structure Awareness)
+    # This prevents using memory addresses for class objects (e.g. <class 'Foo'> at 0x...)
+    # and detects changes in the class definition (e.g. adding a field).
+    if isinstance(obj, type):
+        # Strategy A: Pydantic Model (Schema-based)
+        # Most robust for your use case. Detects field changes, type changes, etc.
+        if hasattr(obj, "model_json_schema"): # Pydantic v2
+             try:
+                 # Recursive call ensures the dict returned by schema is sorted/stabilized
+                 return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
+             except Exception:
+                 pass
+        if hasattr(obj, "schema"): # Pydantic v1
+             try:
+                 return ("__pydantic_v1__", canonicalize(obj.schema()))
+             except Exception:
+                 pass
+        
+        # Strategy B: Generic Class (Structure-based)
+        # Use class name + relevant attributes (excluding methods which have varying addresses)
+        class_attrs = {}
+        try:
+            for k, v in obj.__dict__.items():
+                # Ignore private internals and dunder methods usually
+                if k.startswith("__") and k != "__annotations__":
+                    continue
+                # Ignore methods/functions as their memory address changes every run
+                if callable(v): 
+                    continue
+                class_attrs[k] = v
+        except AttributeError:
+            pass
+            
+        return ("__class__", obj.__module__, obj.__qualname__, canonicalize(class_attrs))
+
+    # 7. Custom Objects (Instance)
     if hasattr(obj, "__dict__"):
         return canonicalize(obj.__dict__)
     
@@ -70,7 +107,7 @@ def canonicalize(obj: Any) -> Any:
             if hasattr(obj, k)
         ]
 
-    # 7. Last Resort: String representation
+    # 8. Last Resort: String representation
     # Warning: May contain memory addresses or be truncated.
     return str(obj)
 
