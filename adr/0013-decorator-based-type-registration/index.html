@@ -8,13 +8,11 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0009-msgpack-everywhere-and-guardrails/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0013-decorator-based-type-registration/">
       
       
-        <link rel="prev" href="../0008-database-dependency-injection/">
+        <link rel="prev" href="../0012-rename-project-to-spot-and-task-to-mark/">
       
-      
-        <link rel="next" href="../0010-canonical-input-serialization/">
       
       
         
@@ -25,7 +23,7 @@
     
     
       
-        <title>Msgpack Everywhere with Native BLOB Support - beautyspot</title>
+        <title>Decorator-based Type Registration with Late Binding - beautyspot</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#msgpack-everywhere-with-native-blob-support" class="md-skip">
+        <a href="#decorator-based-type-registration-with-late-binding" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Msgpack Everywhere with Native BLOB Support
+              Decorator-based Type Registration with Late Binding
             
           </span>
         </div>
@@ -975,44 +973,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    0009 Msgpack & Guardrails
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--Accepted"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1035,109 +999,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-schema-change-add-blob-column" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Schema Change: Add BLOB Column
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-msgpack-everywhere-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Msgpack Everywhere Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-size-guardrails-unchanged" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Size Guardrails (Unchanged)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1238,10 +1099,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../0013-decorator-based-type-registration/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0013 Type Registration
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--Accepted"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1264,6 +1159,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context-and-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context and Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technical-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Details
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1337,32 +1313,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-schema-change-add-blob-column" class="md-nav__link">
+  <a href="#technical-details" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Schema Change: Add BLOB Column
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-msgpack-everywhere-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Msgpack Everywhere Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-size-guardrails-unchanged" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Size Guardrails (Unchanged)
+        Technical Details
       
     </span>
   </a>
@@ -1405,56 +1359,43 @@
   
 
 
-<h1 id="msgpack-everywhere-with-native-blob-support">Msgpack Everywhere with Native BLOB Support</h1>
+<h1 id="decorator-based-type-registration-with-late-binding">Decorator-based Type Registration with Late Binding</h1>
 <h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p>ADR-0007 で <code>MsgpackSerializer</code> を導入したが、SQLiteへの保存方式について以下の課題が残っていた。</p>
-<ol>
-<li><strong>JSONの限界:</strong> 従来の <code>TEXT</code> カラム（JSON）ではバイナリデータを扱えず、Numpy配列などが保存できない。</li>
-<li><strong>Base64の非効率性:</strong> <code>TEXT</code> カラムに保存するために Msgpack を Base64 エンコードする案（旧ADR-0009）があったが、データサイズが約33%増加し、CPUコストもかかる。</li>
-<li><strong>一貫性:</strong> 画像や動画などのバイナリデータも、可能な限り変換なしで「そのまま」扱いたい。</li>
-</ol>
+<p>これまでの <code>spot.register_type()</code> は命令的であり、クラス定義と登録ロジックが分離してしまうため、凝集度が低いという課題があった。
+また、Pydantic モデルのようなクラスメソッド（例: <code>cls.model_validate_json</code>）をデコーダとして登録したい場合、デコレータ評価時にはまだクラスが未定義（NameError）であるため、綺麗に記述できないという技術的な制約があった。</p>
 <h2 id="decision-drivers">Decision Drivers</h2>
 <ul>
-<li><strong>Performance:</strong> シリアライズ/デシリアライズのオーバーヘッド（Base64等）を最小化したい。</li>
-<li><strong>Efficiency:</strong> ストレージ容量を無駄に消費したくない。</li>
-<li><strong>Consistency:</strong> 小さいデータ（DB内）も大きいデータ（外部ファイル）も、同じ Msgpack フォーマットで統一したい。</li>
+<li><strong>Developer Experience (DX):</strong> クラス定義の直上にシリアライズ設定を記述したい（Co-location）。</li>
+<li><strong>Support for Modern Libraries:</strong> Pydantic など、クラスメソッドをファクトリとして使用するパターンを容易にサポートしたい。</li>
+<li><strong>Safety:</strong> 循環参照や未定義エラーを回避しつつ、型安全に登録を行いたい。</li>
 </ul>
 <h2 id="decision-outcome">Decision Outcome</h2>
-<h3 id="1-schema-change-add-blob-column">1. Schema Change: Add BLOB Column</h3>
-<p><code>tasks</code> テーブルに、バイナリデータをそのまま格納するための <strong><code>result_data</code> (BLOB)</strong> カラムを追加する。</p>
-<ul>
-<li>既存の <code>result_value</code> (TEXT) カラムは、ファイルパスやレガシーなJSONデータの保持用に継続利用する。</li>
-<li>マイグレーションは <code>Project</code> 初期化時に <code>ALTER TABLE</code> で自動的に行われる。</li>
-</ul>
-<h3 id="2-msgpack-everywhere-strategy">2. Msgpack Everywhere Strategy</h3>
-<p>データの保存先に関わらず、常に <code>MsgpackSerializer</code> を通過させる。</p>
-<ul>
-<li><strong><code>save_blob=False</code> (Direct Mode):</strong><ul>
-<li>Msgpackバイナリを <strong><code>result_data</code> (BLOB) カラム</strong> にそのまま保存する。</li>
-<li><code>result_type</code> は <strong><code>DIRECT_BLOB</code></strong> とする。</li>
-</ul>
-</li>
-<li><strong><code>save_blob=True</code> (Blob Mode):</strong><ul>
-<li>Msgpackバイナリを外部ファイル（<code>.bin</code>）として保存。</li>
-<li>ファイルパスを <strong><code>result_value</code> (TEXT) カラム</strong> に保存する。</li>
-<li><code>result_type</code> は <code>FILE</code> とする。</li>
-</ul>
-</li>
-</ul>
-<h3 id="3-size-guardrails-unchanged">3. Size Guardrails (Unchanged)</h3>
-<p><code>save_blob=False</code> であっても、閾値（デフォルト: 1MB）を超えるデータが渡された場合は、警告ログ (<code>WARNING</code>) を出力して <code>save_blob=True</code> の利用を促す。</p>
+<p><code>Spot</code> クラスに <code>register</code> デコレータメソッドを追加し、<strong><code>decoder_factory</code> による遅延バインディング</strong> を導入する。</p>
+<h3 id="technical-details">Technical Details</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">code</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">decoder_factory</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">cls</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">deserialize</span>  <span class="c1"># Class is passed here after definition</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyModel</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="o">...</span>
+</code></pre></div>
+<ol>
+<li><code>register</code> デコレータは、対象クラスの定義完了後（デコレート時）に実行される。</li>
+<li><code>decoder_factory</code> が指定されている場合、生成された <code>cls</code> オブジェクトを引数としてファクトリを実行し、実際の <code>decoder</code> 関数を取得する。</li>
+<li>取得した <code>decoder</code> を用いて、既存の <code>register_type</code> バックエンドに登録する。</li>
+</ol>
 <h2 id="consequences">Consequences</h2>
 <ul>
-<li><strong>Positive:</strong><ul>
-<li><strong>最高効率:</strong> Base64エンコードが不要になり、データサイズとCPU負荷が最小化される。</li>
-<li><strong>互換性:</strong> 既存の <code>result_value</code> カラムを維持するため、旧バージョンのキャッシュデータも読み込み可能。</li>
-</ul>
+<li><strong>Positive:</strong></li>
+<li>ユーザーはクラス定義と登録を1箇所にまとめられる。</li>
+<li>
+<p>自己参照を含むクラス（自分自身を返すクラスメソッドなど）の登録が容易になる。</p>
 </li>
-<li><strong>Negative:</strong><ul>
-<li>データベースのスキーマ変更（マイグレーション処理）が必要になる。</li>
-<li><code>sqlite3</code> コマンドラインツール等で <code>SELECT</code> した際、中身がバイナリのため視認できない（ダッシュボード等のツールが必要）。</li>
-</ul>
+<li>
+<p><strong>Negative:</strong></p>
 </li>
+<li><code>decoder</code> と <code>decoder_factory</code> という2つの引数が増え、APIが少し複雑になる（ドキュメントでの補完が必要）。</li>
 </ul>
 
 

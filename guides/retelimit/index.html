@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0009-msgpack-everywhere-and-guardrails/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/retelimit/">
       
       
-        <link rel="prev" href="../0008-database-dependency-injection/">
-      
-      
-        <link rel="next" href="../0010-canonical-input-serialization/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Msgpack Everywhere with Native BLOB Support - beautyspot</title>
+        <title>Retelimit - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#msgpack-everywhere-with-native-blob-support" class="md-skip">
+        <a href="#rate-limiting-gcra" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Msgpack Everywhere with Native BLOB Support
+              Retelimit
             
           </span>
         </div>
@@ -336,7 +332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/caching/" class="md-nav__link">
+      <a href="../caching/" class="md-nav__link">
         
   
   
@@ -364,7 +360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/serialization/" class="md-nav__link">
+      <a href="../serialization/" class="md-nav__link">
         
   
   
@@ -392,7 +388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/rate_limiting.md" class="md-nav__link">
+      <a href="../rate_limiting.md" class="md-nav__link">
         
   
   
@@ -646,20 +642,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -680,7 +676,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -698,7 +694,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0001-stable-argument-hashing/" class="md-nav__link">
+      <a href="../../adr/0001-stable-argument-hashing/" class="md-nav__link">
         
   
   
@@ -733,7 +729,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0002-robust-rate-limiter/" class="md-nav__link">
+      <a href="../../adr/0002-robust-rate-limiter/" class="md-nav__link">
         
   
   
@@ -768,7 +764,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
+      <a href="../../adr/0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
         
   
   
@@ -803,7 +799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0004-io-executor-lifecyle-management/" class="md-nav__link">
+      <a href="../../adr/0004-io-executor-lifecyle-management/" class="md-nav__link">
         
   
   
@@ -838,7 +834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0005-dashboard-interaction-model/" class="md-nav__link">
+      <a href="../../adr/0005-dashboard-interaction-model/" class="md-nav__link">
         
   
   
@@ -873,7 +869,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0006-semantic-content-type-support/" class="md-nav__link">
+      <a href="../../adr/0006-semantic-content-type-support/" class="md-nav__link">
         
   
   
@@ -908,7 +904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
+      <a href="../../adr/0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -943,7 +939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0008-database-dependency-injection/" class="md-nav__link">
+      <a href="../../adr/0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -975,44 +971,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    0009 Msgpack & Guardrails
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--Accepted"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1035,109 +997,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-schema-change-add-blob-column" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Schema Change: Add BLOB Column
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-msgpack-everywhere-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Msgpack Everywhere Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-size-guardrails-unchanged" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Size Guardrails (Unchanged)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1150,7 +1009,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0010-canonical-input-serialization/" class="md-nav__link">
+      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
         
   
   
@@ -1185,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0011-imperative-execution-and-workspace/" class="md-nav__link">
+      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
         
   
   
@@ -1213,7 +1072,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
         
   
   
@@ -1241,7 +1100,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../0013-decorator-based-type-registration/" class="md-nav__link">
+      <a href="../../adr/0013-decorator-based-type-registration/" class="md-nav__link">
         
   
   
@@ -1293,8 +1152,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1303,44 +1160,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
+  <a href="#rate-limiting-gcra" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Rate Limiting (GCRA)
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
+    <nav class="md-nav" aria-label="Rate Limiting (GCRA)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-schema-change-add-blob-column" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Schema Change: Add BLOB Column
+        基本的な使い方
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="基本的な使い方">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-spot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Spot でレートを定義する
       
     </span>
   </a>
@@ -1348,21 +1195,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-msgpack-everywhere-strategy" class="md-nav__link">
+  <a href="#2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Msgpack Everywhere Strategy
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-size-guardrails-unchanged" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Size Guardrails (Unchanged)
+        2. 関数にコストを設定する
       
     </span>
   </a>
@@ -1373,15 +1209,42 @@
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        動的なコスト設定
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        非同期処理 (Async)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        理論的背景: GCRA
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1405,56 +1268,57 @@
   
 
 
-<h1 id="msgpack-everywhere-with-native-blob-support">Msgpack Everywhere with Native BLOB Support</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p>ADR-0007 で <code>MsgpackSerializer</code> を導入したが、SQLiteへの保存方式について以下の課題が残っていた。</p>
-<ol>
-<li><strong>JSONの限界:</strong> 従来の <code>TEXT</code> カラム（JSON）ではバイナリデータを扱えず、Numpy配列などが保存できない。</li>
-<li><strong>Base64の非効率性:</strong> <code>TEXT</code> カラムに保存するために Msgpack を Base64 エンコードする案（旧ADR-0009）があったが、データサイズが約33%増加し、CPUコストもかかる。</li>
-<li><strong>一貫性:</strong> 画像や動画などのバイナリデータも、可能な限り変換なしで「そのまま」扱いたい。</li>
-</ol>
-<h2 id="decision-drivers">Decision Drivers</h2>
+  <h1>Retelimit</h1>
+
+<h2 id="rate-limiting-gcra">Rate Limiting (GCRA)</h2>
+<p><code>beautyspot</code> は、APIのレート制限（Rate Limit）を遵守するための高性能なリミッターを内蔵しています。</p>
+<p>単純な time.sleep とは異なり、GCRA (Generic Cell Rate Algorithm) を採用しているため、バースト（一時的な集中アクセス）を許容しつつ、長期的には指定されたレートを守るという、滑らかな制御が可能です。</p>
+<h3 id="_1">基本的な使い方</h3>
+<h4 id="1-spot">1. Spot でレートを定義する</h4>
+<p>Spot の初期化時に tpm (Tokens Per Minute) を設定します。
+これが「1分間に許可される最大コスト」になります。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a># 1分間に 60 トークンまで許可（≒ 1秒に1回）
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>spot = bs.Spot(&quot;api_client&quot;, tpm=60)
+</code></pre></div>
+<h4 id="2">2. 関数にコストを設定する</h4>
+<p><code>@spot.limiter</code>  デコレータを使用して、その関数を実行するのに必要な「コスト（トークン消費量）」を定義します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>@spot.mark
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>@spot.limiter(cost=1)  # 1回の実行で1トークン消費
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>def call_api_endpoint_a():
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    ...
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>@spot.mark
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>@spot.limiter(cost=5)  # 重いエンドポイントは5トークン消費
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>def call_heavy_endpoint():
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    ...
+</code></pre></div>
+<p>上記の例では、 <code>call_api_endpoint_a</code> なら毎分60回実行できますが、 <code>call_heavy_endpoint</code> は毎分12回しか実行できません。</p>
+<p>制限を超えた場合、関数は自動的にスリープ（ブロック）して、トークンが補充されるのを待ちます。</p>
+<h3 id="_2">動的なコスト設定</h3>
+<p>引数に応じて消費コストを変えたい場合、cost 引数に関数を渡すことができます。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>def calculate_cost(text_list):
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    # テキスト1つにつき1コスト消費
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    return len(text_list)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>@spot.mark
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>@spot.limiter(cost=calculate_cost)
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>def batch_process(text_list):
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    ...
+</code></pre></div>
+<h3 id="async">非同期処理 (Async)</h3>
+<p><code>async</code> 関数に対しても、同様に動作します。</p>
+<p>この場合、スレッドをブロックするのではなく、非同期に <code>await asyncio.sleep(...)</code> します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>@spot.mark
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>@spot.limiter(cost=1)
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>async def fetch_data():
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    # レート制限にかかった場合、ここで非同期に待機します
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    await client.get(...)
+</code></pre></div>
+<h3 id="gcra">理論的背景: GCRA</h3>
+<p><code>beautyspot</code> のリミッターは「リーキーバケツ（Leaky Bucket）」の一種である GCRA アルゴリズムを使用しています。</p>
 <ul>
-<li><strong>Performance:</strong> シリアライズ/デシリアライズのオーバーヘッド（Base64等）を最小化したい。</li>
-<li><strong>Efficiency:</strong> ストレージ容量を無駄に消費したくない。</li>
-<li><strong>Consistency:</strong> 小さいデータ（DB内）も大きいデータ（外部ファイル）も、同じ Msgpack フォーマットで統一したい。</li>
-</ul>
-<h2 id="decision-outcome">Decision Outcome</h2>
-<h3 id="1-schema-change-add-blob-column">1. Schema Change: Add BLOB Column</h3>
-<p><code>tasks</code> テーブルに、バイナリデータをそのまま格納するための <strong><code>result_data</code> (BLOB)</strong> カラムを追加する。</p>
-<ul>
-<li>既存の <code>result_value</code> (TEXT) カラムは、ファイルパスやレガシーなJSONデータの保持用に継続利用する。</li>
-<li>マイグレーションは <code>Project</code> 初期化時に <code>ALTER TABLE</code> で自動的に行われる。</li>
-</ul>
-<h3 id="2-msgpack-everywhere-strategy">2. Msgpack Everywhere Strategy</h3>
-<p>データの保存先に関わらず、常に <code>MsgpackSerializer</code> を通過させる。</p>
-<ul>
-<li><strong><code>save_blob=False</code> (Direct Mode):</strong><ul>
-<li>Msgpackバイナリを <strong><code>result_data</code> (BLOB) カラム</strong> にそのまま保存する。</li>
-<li><code>result_type</code> は <strong><code>DIRECT_BLOB</code></strong> とする。</li>
-</ul>
-</li>
-<li><strong><code>save_blob=True</code> (Blob Mode):</strong><ul>
-<li>Msgpackバイナリを外部ファイル（<code>.bin</code>）として保存。</li>
-<li>ファイルパスを <strong><code>result_value</code> (TEXT) カラム</strong> に保存する。</li>
-<li><code>result_type</code> は <code>FILE</code> とする。</li>
-</ul>
-</li>
-</ul>
-<h3 id="3-size-guardrails-unchanged">3. Size Guardrails (Unchanged)</h3>
-<p><code>save_blob=False</code> であっても、閾値（デフォルト: 1MB）を超えるデータが渡された場合は、警告ログ (<code>WARNING</code>) を出力して <code>save_blob=True</code> の利用を促す。</p>
-<h2 id="consequences">Consequences</h2>
-<ul>
-<li><strong>Positive:</strong><ul>
-<li><strong>最高効率:</strong> Base64エンコードが不要になり、データサイズとCPU負荷が最小化される。</li>
-<li><strong>互換性:</strong> 既存の <code>result_value</code> カラムを維持するため、旧バージョンのキャッシュデータも読み込み可能。</li>
-</ul>
-</li>
-<li><strong>Negative:</strong><ul>
-<li>データベースのスキーマ変更（マイグレーション処理）が必要になる。</li>
-<li><code>sqlite3</code> コマンドラインツール等で <code>SELECT</code> した際、中身がバイナリのため視認できない（ダッシュボード等のツールが必要）。</li>
-</ul>
-</li>
+<li><strong>メモリ効率</strong>: カウンタを保持する必要がなく、到着予定時刻（TAT）という単一のタイムスタンプのみで管理するため非常に軽量です。</li>
+<li><strong>公平性</strong>: 全てのリクエストに対して公平に遅延を分配します。</li>
 </ul>
 
 
@@ -1462,9 +1326,6 @@
 
 
 
-
-  
-  
 
 
 
