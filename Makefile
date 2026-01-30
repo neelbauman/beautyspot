@@ -33,18 +33,6 @@ clean:  ## 生成ファイルを削除
 
 .PHONY: publish publish-test
 
-publish: test build  ## PyPIに公開
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@export $$(cat .env | grep -v '^#' | xargs) && \
-	uv publish --token $$PYPI_TOKEN
-	@$(MAKE) clean
-
-publish-test: test build  ## TestPyPIに公開（テスト用）
-	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
-	@export $$(cat .env | grep -v '^#' | xargs) && \
-	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
-	@$(MAKE) clean
-
 release:  test build## リリース準備（テスト→ビルド→タグ作成）
 	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION required. Usage: make release VERSION=v1.0.0"; exit 1; fi
 	@echo "All checks passed! Creating tag..."
@@ -52,3 +40,16 @@ release:  test build## リリース準備（テスト→ビルド→タグ作成
 	git push origin $(VERSION)
 	@echo "✓ Tag pushed. GitHub Actions will publish to PyPI."
 	@$(MAKE) clean
+
+publish: release  ## PyPIに公開
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@export $$(cat .env | grep -v '^#' | xargs) && \
+	uv publish --token $$PYPI_TOKEN
+	@$(MAKE) clean
+
+publish-test: test build ## TestPyPIに公開（テスト用）
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@export $$(cat .env | grep -v '^#' | xargs) && \
+	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
+	@$(MAKE) clean
+
