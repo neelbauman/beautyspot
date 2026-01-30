@@ -52,7 +52,7 @@ wheels = [
 
 [[package]]
 name = "beautyspot"
-version = "2.2.5"
+version = "2.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "msgpack" },
