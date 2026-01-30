@@ -1,4 +1,4 @@
-.PHONY: help install test lint lint-fix format build docs-serve docs-deploy clean
+.PHONY: help install test lint lint-fix format build docs-serve docs-deploy clean release
 
 help:  ## このヘルプを表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
