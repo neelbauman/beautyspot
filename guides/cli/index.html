@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/caching/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/cli/">
       
       
-        <link rel="prev" href="../usage_patterns/">
+        <link rel="prev" href="../caching/">
       
       
-        <link rel="next" href="../cli/">
+        <link rel="next" href="../serialization/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Caching Strategy - beautyspot</title>
+        <title>CLI & Dashboard - beautyspot</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#caching-strategies" class="md-skip">
+        <a href="#cli-dashboard-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Caching Strategy
+              CLI & Dashboard
             
           </span>
         </div>
@@ -284,20 +284,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -318,7 +318,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -361,6 +361,90 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
     
   
   
@@ -380,7 +464,7 @@
   <span class="md-ellipsis">
     
   
-    Caching Strategy
+    CLI & Dashboard
   
 
     
@@ -398,7 +482,7 @@
   <span class="md-ellipsis">
     
   
-    Caching Strategy
+    CLI & Dashboard
   
 
     
@@ -424,33 +508,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#dashboard-ui" class="md-nav__link">
     <span class="md-ellipsis">
       
-        デフォルトの挙動
+        Dashboard (UI)
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#keygen-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        高度な制御: KeyGen Policy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="高度な制御: KeyGen Policy">
+    <nav class="md-nav" aria-label="Dashboard (UI)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-keygenignore" class="md-nav__link">
+  <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 特定の引数を無視する (KeyGen.ignore)
+        Basic Usage
       
     </span>
   </a>
@@ -458,21 +531,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. ファイルベースのキャッシュ
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-keygenmap" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 戦略の組み合わせ (KeyGen.map)
+        Features
       
     </span>
   </a>
@@ -485,13 +547,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#advanced" class="md-nav__link">
+  <a href="#maintenance-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        カスタムキー生成（Advanced）
+        Maintenance Tools
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Maintenance Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#clean-garbage-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        clean (Garbage Collection)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prune-delete-old-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prune (Delete Old Tasks)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -499,90 +589,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    User Guides
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    User Guides
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CLI & Dashboard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1483,33 +1489,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#dashboard-ui" class="md-nav__link">
     <span class="md-ellipsis">
       
-        デフォルトの挙動
+        Dashboard (UI)
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#keygen-policy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        高度な制御: KeyGen Policy
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="高度な制御: KeyGen Policy">
+    <nav class="md-nav" aria-label="Dashboard (UI)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-keygenignore" class="md-nav__link">
+  <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 特定の引数を無視する (KeyGen.ignore)
+        Basic Usage
       
     </span>
   </a>
@@ -1517,21 +1512,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
+  <a href="#features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. ファイルベースのキャッシュ
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-keygenmap" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 戦略の組み合わせ (KeyGen.map)
+        Features
       
     </span>
   </a>
@@ -1544,13 +1528,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#advanced" class="md-nav__link">
+  <a href="#maintenance-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        カスタムキー生成（Advanced）
+        Maintenance Tools
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Maintenance Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#clean-garbage-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        clean (Garbage Collection)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prune-delete-old-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prune (Delete Old Tasks)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1574,89 +1586,48 @@
   
 
 
-<h1 id="caching-strategies">Caching Strategies</h1>
-<p><code>beautyspot</code> の強力な機能の一つは、関数の引数に基づいて柔軟にキャッシュキーを生成できることです。
-デフォルトではすべての引数を安全にハッシュ化しますが、実世界のユースケースに合わせて、より宣言的かつ高度な制御が可能です。</p>
-<h2 id="_1">デフォルトの挙動</h2>
-<p><code>Spot.mark</code> でデコレートされた関数は、引数 (<code>args</code>, <code>kwargs</code>) の内容が少しでも変わると「別のタスク」として扱われます。
-<code>beautyspot</code> は引数の構造（辞書、リスト、Numpy配列、Pydanticモデルなど）を再帰的に <strong>正規化 (Canonicalize)</strong> し、順序に依存しない安定したハッシュを生成します。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="c1"># data の内容（dictの順序などが違っても中身が同じなら）に基づいて</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="c1"># 同一のキャッシュキーが生成されます。</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
+<h1 id="cli-dashboard-guide">CLI &amp; Dashboard Guide</h1>
+<p><code>beautyspot</code> は、キャッシュされたデータの閲覧や、ディスク容量を管理するためのコマンドラインツールを提供しています。</p>
+<h2 id="dashboard-ui">Dashboard (UI)</h2>
+<p>キャッシュされたタスクの実行履歴、結果、依存関係などをブラウザで視覚的に確認できます。</p>
+<h3 id="basic-usage">Basic Usage</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>beautyspot<span class="w"> </span>ui<span class="w"> </span>&lt;path_to_db&gt;
 </code></pre></div>
+<ul>
+<li><strong><code>&lt;path_to_db&gt;</code></strong>: Spotを作成した際に指定したデータベースファイルのパス（デフォルトでは <code>.beautyspot/project_name.db</code> など）。</li>
+</ul>
+<h3 id="features">Features</h3>
+<ul>
+<li><strong>Task History:</strong> 実行された関数の履歴を時系列で表示します。</li>
+<li><strong>Result Viewer:</strong> 戻り値をその <code>content_type</code> に応じて（JSON, 画像, Markdown, Mermaid図など）適切にレンダリングします。</li>
+<li><strong>Filtering:</strong> 関数名やResult Typeで履歴を絞り込むことができます。</li>
+</ul>
 <hr />
-<h2 id="keygen-policy">高度な制御: KeyGen Policy</h2>
-<p>v2.0 以降、<code>KeyGen</code> クラスを使用して、引数ごとのキャッシュ戦略を宣言的に定義できるようになりました。</p>
-<h3 id="1-keygenignore">1. 特定の引数を無視する (<code>KeyGen.ignore</code>)</h3>
-<p>ログ出力フラグ、デバッグ用のオプション、あるいはロガーインスタンスなど、<strong>計算結果（＝キャッシュすべき値）に影響を与えない引数</strong> は、ハッシュ計算から除外すべきです。これらが変わるたびにキャッシュミスが発生するのを防ぎます。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.cachekey</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyGen</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># verbose や logger が変わっても、data が同じならキャッシュはヒットします</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">input_key_fn</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">ignore</span><span class="p">(</span><span class="s2">&quot;verbose&quot;</span><span class="p">,</span> <span class="s2">&quot;logger&quot;</span><span class="p">))</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_task</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Processing...&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">return</span> <span class="n">data</span> <span class="o">*</span> <span class="mi">2</span>
+<h2 id="maintenance-tools">Maintenance Tools</h2>
+<p>長期間 <code>beautyspot</code> を使用していると、不要になったBlobファイル（画像や巨大なデータ）がディスクに残ることがあります。
+以下のコマンドを使用して、ディスク容量を解放できます。</p>
+<h3 id="clean-garbage-collection"><code>clean</code> (Garbage Collection)</h3>
+<p>データベース上に記録が存在しない「孤立したBlobファイル」を削除します。
+開発中にDBファイルを削除したが、<code>blobs/</code> ディレクトリ内のファイルだけ残ってしまった場合などに有効です。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Dry-run (削除対象を表示するだけ)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>beautyspot<span class="w"> </span>clean<span class="w"> </span>--storage-path<span class="w"> </span>.beautyspot/blobs<span class="w"> </span>--db-path<span class="w"> </span>.beautyspot/my_spot.db<span class="w"> </span>--dry-run
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Execute (実際に削除)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>beautyspot<span class="w"> </span>clean<span class="w"> </span>--storage-path<span class="w"> </span>.beautyspot/blobs<span class="w"> </span>--db-path<span class="w"> </span>.beautyspot/my_spot.db
 </code></pre></div>
-<h3 id="2">2. ファイルベースのキャッシュ</h3>
-<p>引数としてファイルパスを受け取る場合、デフォルトでは「パスの文字列」だけがハッシュ化されます。
-ファイル名が同じでも「ファイルの中身」が変わった時に再計算させたい（あるいはその逆）場合は、以下の戦略を使用します。</p>
-<table>
-<thead>
-<tr>
-<th>戦略</th>
-<th>メソッド</th>
-<th>説明</th>
-<th>ユースケース</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Strict</strong></td>
-<td><code>KeyGen.file_content</code></td>
-<td>ファイルの中身を全読み込みしてハッシュ化します。</td>
-<td>設定ファイル、小さなデータセット</td>
-</tr>
-<tr>
-<td><strong>Fast</strong></td>
-<td><code>KeyGen.path_stat</code></td>
-<td>サイズと更新日時(mtime)のみを確認します。高速です。</td>
-<td>巨大なログファイル、映像データ</td>
-</tr>
-</tbody>
-</table>
-<h3 id="3-keygenmap">3. 戦略の組み合わせ (<code>KeyGen.map</code>)</h3>
-<p><code>KeyGen.map</code> を使うと、引数ごとに異なる戦略を詳細に定義できます。これが最も柔軟な方法です。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">input_key_fn</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="c1"># data_path はメタデータ(サイズ+日付)でチェック（高速化）</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">data_path</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">PATH_STAT</span><span class="p">,</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="c1"># config_path は中身を厳密にチェック（確実性）</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">config_path</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">FILE_CONTENT</span><span class="p">,</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="c1"># debug_mode は計算結果に関係ないので無視</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">debug_mode</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">IGNORE</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">))</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="n">data_path</span><span class="p">,</span> <span class="n">config_path</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="c1"># ... 重い分析処理 ...</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="k">pass</span>
+<h3 id="prune-delete-old-tasks"><code>prune</code> (Delete Old Tasks)</h3>
+<p>指定した期間より古いタスクデータを、データベースとBlobストレージの両方から削除します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 30日以上前のデータを削除 (Dry-run)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>beautyspot<span class="w"> </span>prune<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span><span class="w"> </span>--db-path<span class="w"> </span>.beautyspot/my_spot.db<span class="w"> </span>--dry-run
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 実行 (確認プロンプトが表示されます)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>beautyspot<span class="w"> </span>prune<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span><span class="w"> </span>--db-path<span class="w"> </span>.beautyspot/my_spot.db
 </code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
+<div class="admonition warning">
+<p class="admonition-title">注意</p>
 </div>
-<p><code>KeyGen</code> ポリシーは、関数がどのように呼び出されたか（位置引数かキーワード引数か）に関わらず、引数名に基づいて正しく適用されます。</p>
-<h2 id="advanced">カスタムキー生成（Advanced）</h2>
-<p>上記のポリシーでカバーできない特殊なケースでは、独自の関数を <code>input_key_fn</code> に渡すことも可能です。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">custom_key_generator</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="c1"># 独自のロジックで文字列を返す</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;custom-</span><span class="si">{</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">input_key_fn</span><span class="o">=</span><span class="n">custom_key_generator</span><span class="p">)</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_func</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="o">...</span>
-</code></pre></div>
+<p><code>prune</code> はデータベースのレコードも削除するため、一度削除すると復元できません。
+本番環境のデータに対して実行する場合は十分注意してください。</p>
 
 
 
