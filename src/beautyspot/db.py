@@ -181,5 +181,5 @@ class SQLiteTaskDB(TaskDB):
                 ORDER BY updated_at DESC 
                 LIMIT ?
             """
-            return pd.read_sql_query(query, conn, params=(limit,))
+            return pd.read_sql_query(query, conn, params=[limit,])
 

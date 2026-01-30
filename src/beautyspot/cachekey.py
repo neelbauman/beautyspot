@@ -219,6 +219,9 @@ class KeyGen:
             
             # 2. Serialize to bytes
             packed = msgpack.packb(normalized)
+
+            if packed is None:
+                raise ValueError("msgpack.packb returned None")
             
             # 3. Hash (SHA-256)
             return hashlib.sha256(packed).hexdigest()
@@ -231,6 +234,8 @@ class KeyGen:
     def hash_items(items: list) -> str:
         """Helper to hash a list of canonicalized items."""
         packed = msgpack.packb(items)
+        if packed is None:
+            raise ValueError("msgpack.packb returned None")
         return hashlib.sha256(packed).hexdigest()
 
     # --- Factory Methods for Policies ---

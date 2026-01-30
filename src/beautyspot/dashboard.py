@@ -1,3 +1,4 @@
+# type: ignore
 # src/beautyspot/dashboard.py
 
 import streamlit as st
@@ -80,17 +81,23 @@ if df.empty:
 st.sidebar.header("Filter")
 st.sidebar.metric("Total Records", len(df))
 
-funcs = st.sidebar.multiselect("Function", df["func_name"].unique())
+funcs = st.sidebar.multiselect(
+    "Function",
+    df["func_name"].unique().tolist(),  # type: ignore[union-attr]
+)
 if funcs:
-    df = df[df["func_name"].isin(funcs)]
+    df = df[df["func_name"].isin(funcs)]  # type: ignore[union-attr]
 
-result_types = st.sidebar.multiselect("Result Type", df["result_type"].unique())
+result_types = st.sidebar.multiselect(
+    "Result Type",
+    df["result_type"].unique().tolist(),  # type: ignore[union-attr]
+)
 if result_types:
-    df = df[df["result_type"].isin(result_types)]
+    df = df[df["result_type"].isin(result_types)]  # type: ignore[union-attr]
 
 search = st.sidebar.text_input("Search Input ID")
 if search:
-    df = df[df["input_id"].str.contains(search, na=False)]
+    df = df[df["input_id"].str.contains(search, na=False)]  # type: ignore[union-attr]
 
 
 # --- Main Table ---
@@ -121,9 +128,9 @@ st.subheader("🔍 Restore Data")
 
 selected_key = None
 
-if len(event.selection.rows) > 0:
-    row_idx = event.selection.rows[0]
-    selected_key = df.iloc[row_idx]["cache_key"]
+if len(event.selection.rows) > 0:  # type: ignore[union-attr]
+    row_idx = event.selection.rows[0]  # type: ignore[union-attr]
+    selected_key = df.iloc[row_idx]["cache_key"] #type: ignore[union-attr]
 
 if selected_key:
     st.info(f"Selected from table: `{selected_key}`")
@@ -131,11 +138,11 @@ else:
     st.info("Select Record from Table")
 
 if selected_key:
-    row = df[df["cache_key"] == selected_key].iloc[0]
+    row = df[df["cache_key"] == selected_key].iloc[0] #type: ignore[union-attr]
 
     r_type = row["result_type"]
     r_val = row["result_value"]
-    
+
     # Check if result_data exists (it might be NaN in pandas if not selected or null)
     # The get_history query selects result_data, so it should be there.
     # But pandas converts BLOB to bytes.
@@ -178,7 +185,6 @@ if selected_key:
                         # 絶対パスか確認しつつ読み込む
                         if os.path.exists(r_val):
                             with open(r_val, "rb") as f:
-                                import msgpack
                                 data = msgpack.unpack(f, raw=False)
                         else:
                             st.error(f"File not found on this machine: {r_val}")

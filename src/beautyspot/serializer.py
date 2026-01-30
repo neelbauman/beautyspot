@@ -75,7 +75,9 @@ class MsgpackSerializer:
         return msgpack.ExtType(code, data)
 
     def dumps(self, obj: Any) -> bytes:
-        return msgpack.packb(obj, default=self._default_packer, use_bin_type=True)
+        result = msgpack.packb(obj, default=self._default_packer, use_bin_type=True)
+        assert result is not None
+        return result
 
     def loads(self, data: bytes) -> Any:
         return msgpack.unpackb(data, ext_hook=self._ext_hook, raw=False)

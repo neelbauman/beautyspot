@@ -10,6 +10,7 @@ try:
     from botocore.exceptions import ClientError
 except ImportError:
     boto3 = None
+    ClientError = Exception
 
 
 class CacheCorruptedError(Exception):
