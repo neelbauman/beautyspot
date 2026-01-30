@@ -1,6 +1,6 @@
 [project]
 name = "beautyspot"
-version = "2.2.3"
+version = "2.2.4"
 description = "Make your functions beautiful with beauty spots."
 readme = "README.md"
 authors = [
