@@ -31,7 +31,7 @@ jobs:
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          uv sync
+          uv sync 
           uv run pytest
           uv build
           uv publish --token $PYPI_TOKEN
