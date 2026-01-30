@@ -45,9 +45,3 @@ publish-test: test build  ## TestPyPIに公開（テスト用）
 	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
 	@$(MAKE) clean
 
-release:  ## タグを作成してpush（GitHub Actionsが自動でリリース作成）
-	@if [ -z "$(VERSION)" ]; then echo "Error: VERSION required. Usage: make release VERSION=v1.0.0"; exit 1; fi
-	git tag $(VERSION)
-	git push origin $(VERSION)
-	@echo "✓ Tag pushed. GitHub Actions will create the release."
-
