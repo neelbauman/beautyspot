@@ -56,12 +56,17 @@ plugins:
 # ナビゲーション構造
 nav:
   - Home: index.md
-  - User Guides:
+  - Getting Started:
+      - Core Concepts: guides/usage_patterns.md  # usage_patterns.md をここに配置
       - Caching Strategy: guides/caching.md
+  - User Guides:
+      - CLI & Dashboard: guides/cli.md           # 新規追加
       - Data Serialization: guides/serialization.md
-      - Rate Limiting: guides/rate_limiting.md  # Future placeholder
-  - Philosophy: reference/philosophy.md
-  - Architecture: reference/architecture.md
+      - Rate Limiting: guides/rate_limiting.md   # リネーム反映
+  - Advanced Topics:
+      - Custom Backends (DI): guides/custom_backend.md # 復活
+      - Architecture: reference/architecture.md
+      - Philosophy: reference/philosophy.md
   - API Reference:
       - Spot (Core): reference/core.md
       - Storage: reference/storage.md
