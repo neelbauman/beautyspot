@@ -20,25 +20,37 @@
 「生成AI / スクレイピングの試行錯誤」というユースケースにおいて、現状で不足している機能を実装しきります。
 
 ### 1.1. Multimodal Support (Audio/Video) 🎵 🎬
+* **Target:** v2.3.0
 * **Why:** 生成AIの出力はテキストや画像に留まらず、音声 (TTS) や動画 (Video Gen) に広がっている。これらをダッシュボードで確認できないのはボトルネックである。
 * **Deliverables:**
     * `ContentType.AUDIO_*` / `ContentType.VIDEO_*` の定義。
     * Dashboard (`dashboard.py`) への `st.audio`, `st.video` プレビュー機能の実装。
-    * 巨大ファイルに対するストリーミング再生（または直接パス参照）の最適化。
 
-### 1.2. CLI Maintenance Tools 🧹
-* **Why:** 長期間の試行錯誤により、ローカルディスクに「使われていないBlobファイル（ゴミ）」や「古いキャッシュ」が蓄積し、容量を圧迫する。手動削除は危険である。
+### 1.2. CLI Maintenance Tools 🧹 ✅ Done
+* **Status:** Implemented in v2.2.0
 * **Deliverables:**
-    * `beautyspot clean`: 孤立した（DBにレコードがない）Blobファイルのガベージコレクション。
-    * `beautyspot prune --days <N>`: 指定期間以上経過した古いタスクデータの安全な削除。
-    * CLI実装の `argparse` への移行と安全性（Dry-Run/確認プロンプト）の担保。
+    * `beautyspot clean`: 孤立したBlobファイルの削除。
+    * `beautyspot prune`: 古いタスクデータの削除。
 
 ### 1.3. Cloud Storage Expansion (GCS) ☁️
+* **Target:** v2.3.0
 * **Why:** AWS (S3) 以外のクラウド環境（特にデータ分析で人気のある Google Cloud Platform）を利用するユーザーに対応し、ポータビリティを高める。
 * **Deliverables:**
     * `GCSStorage` クラスの実装 (`google-cloud-storage` 利用)。
-    * `create_storage` ファクトリでの `gs://` プロトコルサポート。
-    * 認証情報の「環境依存（ADC）」設計の徹底。
+
+### 1.4. Dashboard Actions (Delete & Retry) 🎮
+* **Target:** v2.2.4
+* **Why:** 試行錯誤において「失敗した実験結果」はノイズである。UI上で結果を確認し、その場で「このキャッシュは削除してやり直す」という判断・操作ができると、サイクルが劇的に速くなる。
+* **Deliverables:**
+    * Dashboard: 行選択時に「Delete Record」ボタンを表示。
+    * Core: 特定のキャッシュキーを指定してレコードとBlobを安全に削除するAPI (`spot.delete(key)`) の整備。
+
+### 1.5. Schema Evolution Resilience 🧬
+* **Target:** v2.2.4
+* **Why:** 開発中はカスタムクラスの定義（フィールド）が頻繁に変更される。古い構造のキャッシュを読み込もうとしてアプリがクラッシュするのを防ぎ、データを可能な限り（辞書等として）救出して表示すべきである。
+* **Deliverables:**
+    * `SerializationError` 時のフォールバック機構（Raw Dictとして返す）。
+    * マイグレーションを支援するための `version` フィールドの活用ガイド整備。
 
 ---
 
