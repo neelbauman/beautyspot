@@ -1,17 +1,19 @@
 # src/beautyspot/cli.py
 
+import sqlite3
 import subprocess
 import sys
+import socket
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-import socket
 import typer
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.syntax import Syntax
-from rich import print as rprint
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from beautyspot.db import SQLiteTaskDB
 
@@ -24,6 +26,10 @@ app = typer.Typer(
 console = Console()
 
 
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
 def get_db(db_path: str) -> SQLiteTaskDB:
     """Validate and return a database instance."""
     path = Path(db_path)
@@ -31,9 +37,6 @@ def get_db(db_path: str) -> SQLiteTaskDB:
         console.print(f"[red]Error:[/red] Database not found: {db_path}")
         raise typer.Exit(1)
     return SQLiteTaskDB(db_path)
-
-
-import socket
 
 
 def _is_port_in_use(port: int) -> bool:
@@ -51,8 +54,59 @@ def _find_available_port(start_port: int, max_attempts: int = 10) -> int:
     raise RuntimeError(f"No available port found in range {start_port}-{start_port + max_attempts - 1}")
 
 
-@app.command()
-def ui(
+def _format_size(size_bytes: int | float) -> str:
+    """Format file size in human-readable format."""
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} TB"
+
+
+def _format_timestamp(timestamp: float) -> str:
+    """Format timestamp in human-readable format."""
+    dt = datetime.fromtimestamp(timestamp)
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def _get_task_count(db_path: Path) -> int:
+    """Get the number of tasks in a database."""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.execute("SELECT COUNT(*) FROM tasks")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception:
+        return -1
+
+
+def _infer_blob_dir(db_path: Path) -> Path | None:
+    """Infer blob directory from database path."""
+    # 一般的なパターン: .beautyspot/project.db -> .beautyspot/project/blobs/
+    # または: .beautyspot/tasks.db -> .beautyspot/blobs/
+    parent = db_path.parent
+    stem = db_path.stem
+    
+    # パターン1: .beautyspot/<name>/blobs/
+    candidate1 = parent / stem / "blobs"
+    if candidate1.exists():
+        return candidate1
+    
+    # パターン2: .beautyspot/blobs/
+    candidate2 = parent / "blobs"
+    if candidate2.exists():
+        return candidate2
+    
+    return None
+
+
+# =============================================================================
+# Commands
+# =============================================================================
+
+@app.command("ui")
+def ui_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
     port: int = typer.Option(8501, "--port", "-p", help="Streamlit server port"),
     auto_port: bool = typer.Option(True, "--auto-port/--no-auto-port", help="Auto-find available port"),
@@ -137,6 +191,7 @@ def ui(
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Error:[/red] Failed to start dashboard: {e}")
         raise typer.Exit(1)
+
 
 @app.command("list")
 def list_cmd(
@@ -280,38 +335,8 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
     console.print(table)
 
 
-def _format_size(size_bytes: int) -> str:
-    """Format file size in human-readable format."""
-    for unit in ["B", "KB", "MB", "GB"]:
-        if size_bytes < 1024:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024  # type: ignore[assignment]
-    return f"{size_bytes:.1f} TB"
-
-
-def _format_timestamp(timestamp: float) -> str:
-    """Format timestamp in human-readable format."""
-    from datetime import datetime
-
-    dt = datetime.fromtimestamp(timestamp)
-    return dt.strftime("%Y-%m-%d %H:%M")
-
-
-def _get_task_count(db_path: Path) -> int:
-    """Get the number of tasks in a database."""
-    import sqlite3
-
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.execute("SELECT COUNT(*) FROM tasks")
-        count = cursor.fetchone()[0]
-        conn.close()
-        return count
-    except Exception:
-        return -1
-
-@app.command()
-def show(
+@app.command("show")
+def show_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
     cache_key: str = typer.Argument(..., help="Cache key to inspect"),
 ):
@@ -367,8 +392,8 @@ def show(
             console.print(f"[yellow]Could not decode blob data: {e}[/yellow]")
 
 
-@app.command()
-def stats(
+@app.command("stats")
+def stats_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
 ):
     """
@@ -433,8 +458,8 @@ def stats(
         console.print(func_table)
 
 
-@app.command()
-def clear(
+@app.command("clear")
+def clear_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
     func: Optional[str] = typer.Option(None, "--func", "-f", help="Clear only specific function"),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
@@ -447,8 +472,6 @@ def clear(
         beautyspot clear ./cache/tasks.db --func my_function
         beautyspot clear ./cache/tasks.db --force
     """
-    import sqlite3
-
     db_path = Path(db)
     if not db_path.exists():
         console.print(f"[red]Error:[/red] Database not found: {db}")
@@ -483,8 +506,337 @@ def clear(
         conn.close()
 
 
-@app.command()
-def version():
+@app.command("clean")
+def clean_cmd(
+    db: str = typer.Argument(..., help="Path to SQLite database file"),
+    blob_dir: Optional[str] = typer.Option(None, "--blob-dir", "-b", help="Path to blob directory (auto-detected if not specified)"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"),
+    force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
+):
+    """
+    🧹 Clean orphaned blob files (garbage collection).
+    
+    Removes blob files that are not referenced in the database.
+    This can happen when tasks are deleted but their blob files remain.
+    
+    Example:
+        beautyspot clean ./cache/tasks.db                    # Auto-detect blob dir
+        beautyspot clean ./cache/tasks.db -b ./cache/blobs   # Specify blob dir
+        beautyspot clean ./cache/tasks.db --dry-run          # Preview only
+        beautyspot clean ./cache/tasks.db --force            # Skip confirmation
+    """
+    db_path = Path(db)
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found: {db}")
+        raise typer.Exit(1)
+
+    # Blob ディレクトリの決定
+    if blob_dir:
+        blobs_path = Path(blob_dir)
+    else:
+        blobs_path = _infer_blob_dir(db_path)
+    
+    if blobs_path is None or not blobs_path.exists():
+        console.print(
+            Panel(
+                "[yellow]No blob directory found.[/yellow]\n\n"
+                "[dim]Hint: Specify the blob directory manually:[/dim]\n"
+                f"  beautyspot clean {db} --blob-dir ./path/to/blobs",
+                title="🧹 Clean",
+                border_style="yellow",
+            )
+        )
+        raise typer.Exit(0)
+
+    console.print(f"[dim]Blob directory: {blobs_path}[/dim]\n")
+
+    # DB から参照されている blob ファイルのリストを取得
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.execute(
+            "SELECT result_value FROM tasks WHERE result_type = 'FILE' AND result_value IS NOT NULL"
+        )
+        referenced_files = {Path(row[0]).name for row in cursor.fetchall() if row[0]}
+    finally:
+        conn.close()
+
+    # Blob ディレクトリ内のファイルをスキャン
+    all_blob_files = list(blobs_path.glob("*.bin"))
+    
+    # 孤立ファイルを特定
+    orphaned_files: list[Path] = []
+    for blob_file in all_blob_files:
+        if blob_file.name not in referenced_files:
+            orphaned_files.append(blob_file)
+
+    if not orphaned_files:
+        console.print(
+            Panel(
+                "[green]✓ No orphaned files found.[/green]\n\n"
+                f"[dim]Scanned {len(all_blob_files)} blob files.[/dim]",
+                title="🧹 Clean",
+                border_style="green",
+            )
+        )
+        raise typer.Exit(0)
+
+    # 孤立ファイルの情報を表示
+    total_size = sum(f.stat().st_size for f in orphaned_files)
+    
+    table = Table(
+        title=f"🧹 Orphaned Files ({len(orphaned_files)} files, {_format_size(total_size)})",
+        show_header=True,
+        header_style="bold magenta",
+        border_style="yellow",
+    )
+    table.add_column("File", style="cyan")
+    table.add_column("Size", style="green", justify="right")
+    table.add_column("Modified", style="dim")
+
+    for f in orphaned_files[:20]:  # 最大20件表示
+        stat = f.stat()
+        table.add_row(
+            f.name,
+            _format_size(stat.st_size),
+            _format_timestamp(stat.st_mtime),
+        )
+    
+    if len(orphaned_files) > 20:
+        table.add_row(
+            f"[dim]... and {len(orphaned_files) - 20} more files[/dim]",
+            "",
+            "",
+        )
+
+    console.print(table)
+
+    if dry_run:
+        console.print(
+            f"\n[yellow]Dry run:[/yellow] Would delete {len(orphaned_files)} files "
+            f"({_format_size(total_size)})"
+        )
+        raise typer.Exit(0)
+
+    # 確認
+    if not force:
+        confirm = typer.confirm(
+            f"Delete {len(orphaned_files)} orphaned files ({_format_size(total_size)})?"
+        )
+        if not confirm:
+            console.print("[yellow]Aborted.[/yellow]")
+            raise typer.Exit(0)
+
+    # 削除実行
+    deleted_count = 0
+    deleted_size = 0
+    errors: list[str] = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Deleting orphaned files...", total=len(orphaned_files))
+        
+        for f in orphaned_files:
+            try:
+                size = f.stat().st_size
+                f.unlink()
+                deleted_count += 1
+                deleted_size += size
+            except Exception as e:
+                errors.append(f"{f.name}: {e}")
+            progress.advance(task)
+
+    # 結果表示
+    console.print(
+        f"\n[green]✓ Deleted {deleted_count} files ({_format_size(deleted_size)})[/green]"
+    )
+    
+    if errors:
+        console.print(f"\n[yellow]Warnings ({len(errors)} errors):[/yellow]")
+        for err in errors[:5]:
+            console.print(f"  [dim]{err}[/dim]")
+        if len(errors) > 5:
+            console.print(f"  [dim]... and {len(errors) - 5} more errors[/dim]")
+
+
+@app.command("prune")
+def prune_cmd(
+    db: str = typer.Argument(..., help="Path to SQLite database file"),
+    days: int = typer.Option(..., "--days", "-d", help="Delete tasks older than N days"),
+    func: Optional[str] = typer.Option(None, "--func", "-f", help="Prune only specific function"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"),
+    force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
+    clean_blobs: bool = typer.Option(True, "--clean-blobs/--no-clean-blobs", help="Also remove orphaned blob files after pruning"),
+):
+    """
+    🗓️  Prune old cached tasks.
+    
+    Deletes tasks that haven't been updated for more than N days.
+    Optionally cleans up orphaned blob files after pruning.
+    
+    Example:
+        beautyspot prune ./cache/tasks.db --days 30           # Delete tasks older than 30 days
+        beautyspot prune ./cache/tasks.db -d 7 -f my_func     # Prune specific function
+        beautyspot prune ./cache/tasks.db -d 90 --dry-run     # Preview only
+        beautyspot prune ./cache/tasks.db -d 30 --force       # Skip confirmation
+        beautyspot prune ./cache/tasks.db -d 30 --no-clean-blobs  # Don't clean blob files
+    """
+    db_path = Path(db)
+    if not db_path.exists():
+        console.print(f"[red]Error:[/red] Database not found: {db}")
+        raise typer.Exit(1)
+
+    if days < 1:
+        console.print("[red]Error:[/red] --days must be at least 1")
+        raise typer.Exit(1)
+
+    # カットオフ日時を計算
+    cutoff_date = datetime.now() - timedelta(days=days)
+    cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
+
+    console.print(f"[dim]Cutoff date: {cutoff_date.strftime('%Y-%m-%d %H:%M')} ({days} days ago)[/dim]\n")
+
+    # 削除対象のタスクを取得
+    conn = sqlite3.connect(db_path)
+    try:
+        if func:
+            cursor = conn.execute(
+                "SELECT cache_key, func_name, updated_at FROM tasks "
+                "WHERE updated_at < ? AND func_name = ? ORDER BY updated_at",
+                (cutoff_str, func),
+            )
+        else:
+            cursor = conn.execute(
+                "SELECT cache_key, func_name, updated_at FROM tasks "
+                "WHERE updated_at < ? ORDER BY updated_at",
+                (cutoff_str,),
+            )
+        
+        tasks_to_delete = cursor.fetchall()
+    finally:
+        conn.close()
+
+    if not tasks_to_delete:
+        target_msg = f" for function '{func}'" if func else ""
+        console.print(
+            Panel(
+                f"[green]✓ No tasks older than {days} days{target_msg}.[/green]",
+                title="🗓️ Prune",
+                border_style="green",
+            )
+        )
+        raise typer.Exit(0)
+
+    # 削除対象のサマリを表示
+    table = Table(
+        title=f"🗓️ Tasks to Prune ({len(tasks_to_delete)} tasks)",
+        show_header=True,
+        header_style="bold magenta",
+        border_style="yellow",
+    )
+    table.add_column("Function", style="cyan")
+    table.add_column("Cache Key", style="dim", max_width=20)
+    table.add_column("Updated", style="yellow")
+
+    for cache_key, func_name, updated_at in tasks_to_delete[:15]:
+        table.add_row(
+            str(func_name),
+            str(cache_key)[:20] + "..." if len(str(cache_key)) > 20 else str(cache_key),
+            str(updated_at),
+        )
+
+    if len(tasks_to_delete) > 15:
+        table.add_row(
+            f"[dim]... and {len(tasks_to_delete) - 15} more tasks[/dim]",
+            "",
+            "",
+        )
+
+    console.print(table)
+
+    if dry_run:
+        console.print(f"\n[yellow]Dry run:[/yellow] Would delete {len(tasks_to_delete)} tasks")
+        raise typer.Exit(0)
+
+    # 確認
+    if not force:
+        confirm = typer.confirm(f"Delete {len(tasks_to_delete)} tasks?")
+        if not confirm:
+            console.print("[yellow]Aborted.[/yellow]")
+            raise typer.Exit(0)
+
+    # 削除実行
+    conn = sqlite3.connect(db_path)
+    try:
+        if func:
+            cursor = conn.execute(
+                "DELETE FROM tasks WHERE updated_at < ? AND func_name = ?",
+                (cutoff_str, func),
+            )
+        else:
+            cursor = conn.execute(
+                "DELETE FROM tasks WHERE updated_at < ?",
+                (cutoff_str,),
+            )
+        deleted = cursor.rowcount
+        conn.commit()
+    finally:
+        conn.close()
+
+    console.print(f"\n[green]✓ Deleted {deleted} tasks.[/green]")
+
+    # Blob ファイルのクリーンアップ
+    if clean_blobs:
+        console.print("\n[dim]Running blob cleanup...[/dim]")
+        blob_dir = _infer_blob_dir(db_path)
+        if blob_dir and blob_dir.exists():
+            # clean コマンドの内部ロジックを再利用（force=True, dry_run=False）
+            _clean_orphaned_blobs(db_path, blob_dir, verbose=False)
+        else:
+            console.print("[dim]No blob directory found, skipping blob cleanup.[/dim]")
+
+
+def _clean_orphaned_blobs(db_path: Path, blobs_path: Path, verbose: bool = True) -> int:
+    """Internal helper to clean orphaned blob files."""
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.execute(
+            "SELECT result_value FROM tasks WHERE result_type = 'FILE' AND result_value IS NOT NULL"
+        )
+        referenced_files = {Path(row[0]).name for row in cursor.fetchall() if row[0]}
+    finally:
+        conn.close()
+
+    all_blob_files = list(blobs_path.glob("*.bin"))
+    orphaned_files = [f for f in all_blob_files if f.name not in referenced_files]
+
+    if not orphaned_files:
+        if verbose:
+            console.print("[green]✓ No orphaned blob files found.[/green]")
+        return 0
+
+    deleted_count = 0
+    deleted_size = 0
+
+    for f in orphaned_files:
+        try:
+            size = f.stat().st_size
+            f.unlink()
+            deleted_count += 1
+            deleted_size += size
+        except Exception:
+            pass
+
+    console.print(
+        f"[green]✓ Cleaned {deleted_count} orphaned blob files ({_format_size(deleted_size)})[/green]"
+    )
+    return deleted_count
+
+
+@app.command("version")
+def version_cmd():
     """
     ℹ️  Show version information.
     """
