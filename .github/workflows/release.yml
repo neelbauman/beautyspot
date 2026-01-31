@@ -18,21 +18,3 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
-          
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-          
-      - name: Install uv
-        run: pip install uv
-        
-      - name: Build and Publish to PyPI
-        env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          uv sync
-          uv run pytest
-          uv build
-          uv publish --token $PYPI_TOKEN
-
