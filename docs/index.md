@@ -1,4 +1,6 @@
-# 🌑 beautyspot
+# beautyspot
+
+![beautyspot_logo](statics/img/beautyspot_logo_with_typo.jpeg)
 
 - [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
 - [PyPI](https://pypi.org/project/beautyspot/)
