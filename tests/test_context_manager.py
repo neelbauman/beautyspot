@@ -1,3 +1,5 @@
+# tests/test_context_manager.py
+
 import pytest
 from unittest.mock import MagicMock
 from beautyspot import Spot

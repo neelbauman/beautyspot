@@ -1,3 +1,5 @@
+# tests/test_security.py
+
 import pytest
 import os
 from beautyspot.storage import LocalStorage

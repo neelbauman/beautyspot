@@ -1,3 +1,5 @@
+# tests/test_delete.py
+
 import os
 from beautyspot import Spot
 

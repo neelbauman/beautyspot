@@ -1,4 +1,5 @@
 # tests/test_workspace.py
+
 import os
 from pathlib import Path
 from beautyspot import Spot

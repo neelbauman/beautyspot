@@ -256,12 +256,15 @@ class Spot:
     def register(
         self,
         code: int,
-        encoder: Callable[[T], bytes],
-        decoder: Optional[Callable[[bytes], T]] = None,
-        decoder_factory: Optional[Callable[[Type[T]], Callable[[bytes], T]]] = None,
+        encoder: Callable[[T], Any],
+        decoder: Optional[Callable[[Any], T]] = None,
+        decoder_factory: Optional[Callable[[Type[T]], Callable[[Any], T]]] = None,
     ) -> Callable[[Type[T]], Type[T]]:
         """
         Decorator to register a custom type for serialization.
+
+        The encoder should return a serializable object (dict, list, int, etc.),
+        NOT raw bytes. The serializer handles packing/unpacking automatically.
         """
         if decoder is None and decoder_factory is None:
             raise ValueError("Must provide either `decoder` or `decoder_factory`.")
@@ -272,7 +275,6 @@ class Spot:
             if decoder_factory:
                 actual_decoder = decoder_factory(cls)
 
-            # --- 以下のチェックがテスト通過に必須です ---
             if actual_decoder is None:
                 raise ValueError("Decoder resolution failed.")
             # ----------------------------------------
@@ -291,8 +293,8 @@ class Spot:
         Args:
             type_: The class to handle (e.g. MyClass)
             code: Unique integer ID (0-127) for this type
-            encoder: Function that converts obj -> bytes
-            decoder: Function that converts bytes -> obj
+            encoder: Function that converts obj -> intermediate serializable object (e.g. dict)
+            decoder: Function that converts intermediate object -> obj
         """
         self.serializer.register(type_, code, encoder, decoder)
 

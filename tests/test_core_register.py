@@ -1,3 +1,5 @@
+# tests/test_core_register.py
+
 import pytest
 import msgpack
 from beautyspot import Spot, SerializationError
@@ -103,7 +105,7 @@ def test_register_pydantic_complex(spot):
         encoder=lambda obj: obj.model_dump_json().encode(),
         decoder_factory=lambda cls: cls.model_validate_json,
     )
-    class Config(BaseModel):
+    class ConfigModel(BaseModel):
         name: str
         params: dict[str, float]
         tags: list[str] = []
@@ -112,7 +114,7 @@ def test_register_pydantic_complex(spot):
             return self.model_dump() == other.model_dump()
 
     # 'lr': 0.01 is float, consistent with type definition
-    original = Config(
+    original = ConfigModel(
         name="experiment-1", params={"lr": 0.01, "epochs": 10.0}, tags=["v1", "beta"]
     )
 
