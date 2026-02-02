@@ -65,7 +65,15 @@
          <lastmod>2026-02-02</lastmod>
     </url>
     <url>
-         <loc>https://neelbauman.github.io/beautyspot/chat_logs/chat/</loc>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0015-interactive-deletion-and-cleanup/</loc>
+         <lastmod>2026-02-02</lastmod>
+    </url>
+    <url>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0016-nested-msgpack-protocol/</loc>
+         <lastmod>2026-02-02</lastmod>
+    </url>
+    <url>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0017-testing-strategy-expansion/</loc>
          <lastmod>2026-02-02</lastmod>
     </url>
     <url>

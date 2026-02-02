@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/chat_logs/chat/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0016-nested-msgpack-protocol/">
       
       
       
@@ -21,7 +21,7 @@
     
     
       
-        <title>Chat - beautyspot</title>
+        <title>docs/adr/0016-nested-msgpack-protocol.md - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#me" class="md-skip">
+        <a href="#docsadr0016-nested-msgpack-protocolmd" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Chat
+              docs/adr/0016-nested-msgpack-protocol.md
             
           </span>
         </div>
@@ -920,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0001-stable-argument-hashing/" class="md-nav__link">
+      <a href="../0001-stable-argument-hashing/" class="md-nav__link">
         
   
   
@@ -955,7 +955,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0002-robust-rate-limiter/" class="md-nav__link">
+      <a href="../0002-robust-rate-limiter/" class="md-nav__link">
         
   
   
@@ -990,7 +990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
+      <a href="../0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
         
   
   
@@ -1025,7 +1025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0004-io-executor-lifecyle-management/" class="md-nav__link">
+      <a href="../0004-io-executor-lifecyle-management/" class="md-nav__link">
         
   
   
@@ -1060,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0005-dashboard-interaction-model/" class="md-nav__link">
+      <a href="../0005-dashboard-interaction-model/" class="md-nav__link">
         
   
   
@@ -1095,7 +1095,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0006-semantic-content-type-support/" class="md-nav__link">
+      <a href="../0006-semantic-content-type-support/" class="md-nav__link">
         
   
   
@@ -1130,7 +1130,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0007-customizable-serialization-with-msgpack/" class="md-nav__link">
+      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -1165,7 +1165,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0008-database-dependency-injection/" class="md-nav__link">
+      <a href="../0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -1200,7 +1200,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
+      <a href="../0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1235,7 +1235,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
+      <a href="../0010-canonical-input-serialization/" class="md-nav__link">
         
   
   
@@ -1270,7 +1270,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
+      <a href="../0011-imperative-execution-and-workspace/" class="md-nav__link">
         
   
   
@@ -1298,7 +1298,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+      <a href="../0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
         
   
   
@@ -1326,7 +1326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0013-decorator-based-type-registration/" class="md-nav__link">
+      <a href="../0013-decorator-based-type-registration/" class="md-nav__link">
         
   
   
@@ -1378,75 +1378,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#me" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Me
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bufferdashboardpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        {buffer:dashboard.py}
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#bufferdbpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        {buffer:db.py}
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dashboardpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        dashboard.pyで、レコードの削除機能を実装したい。
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="dashboard.pyで、レコードの削除機能を実装したい。">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#codecompanion-openai" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CodeCompanion (OpenAI)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1466,129 +1399,41 @@
   
 
 
-<h2 id="me">Me</h2>
-<blockquote>
-<p>Context:
-- 󰂥 <buf>src/beautyspot/dashboard.py</buf>
-- 󰂥 <buf>src/beautyspot/db.py</buf></p>
-</blockquote>
-<h1 id="bufferdashboardpy">{buffer:dashboard.py}</h1>
-<h1 id="bufferdbpy">{buffer:db.py}</h1>
-<h1 id="dashboardpy">dashboard.pyで、レコードの削除機能を実装したい。</h1>
-<p>必要なのは、</p>
+<h1 id="docsadr0016-nested-msgpack-protocolmd">docs/adr/0016-nested-msgpack-protocol.md</h1>
+<hr />
+<p>title: Nested Msgpack Protocol via Serializer Wrapping
+status: Accepted
+date: 2026-02-02
+context: Improving DX for Custom Types</p>
+<hr />
+<h1 id="nested-msgpack-protocol-via-serializer-wrapping">Nested Msgpack Protocol via Serializer Wrapping</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
+<p>これまでは、カスタム型のエンコーダは <code>ExtType</code> の仕様に合わせて「生のバイト列」を返す必要があった。
+これにより、ユーザーは <code>msgpack</code> ライブラリを直接操作する必要があり、Pydantic モデルなどの扱いが煩雑になっていた。</p>
+<h2 id="decision-drivers">Decision Drivers</h2>
+<ul>
+<li><strong>Simplicity:</strong> ユーザー関数は、ただの型変換（Obj &lt;-&gt; Dict）のみに集中すべきである。</li>
+<li><strong>Encapsulation:</strong> バイナリ化（Pack/Unpack）の責務はライブラリ側が負うべきである。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome</h2>
+<p><strong>Serializer Wrapping (Nested Protocol)</strong> を採用する。</p>
 <ol>
-<li>手動で行を選択できる機能（実装済み）</li>
-<li>条件指定をして当てはまる行を選択する機能</li>
-<li>選択状態のレコードを削除する機能</li>
+<li><code>MsgpackSerializer</code> は、ユーザー定義のエンコーダ/デコーダに対する<strong>ラッパー（Wrapper）</strong>として機能する。</li>
+<li><strong>Encode時:</strong> エンコーダが返したオブジェクト（中間表現）を、ライブラリが自動的に <code>packb</code> して <code>ExtType</code> に格納する。</li>
+<li><strong>Decode時:</strong> <code>ExtType</code> のデータを、ライブラリが自動的に <code>unpackb</code> してからデコーダに渡す。</li>
+<li>これにより、ユーザーは <code>import msgpack</code> をする必要がなくなり、直感的な実装が可能になる。</li>
 </ol>
-<p>2の条件指定については、すでに一部、レコードの絞り込み機能がある。
-これに、時間指定して、この時間より過去、や、いつからいつの間、のような指定でレコードを絞った後、全件選択できるとも思っている。</p>
-<p>まずは設計を考えてください。</p>
-<h2 id="codecompanion-openai">CodeCompanion (OpenAI)</h2>
-<p>Here is a compact design for implementing record deletion in the dashboard.</p>
-<p>Goals
-- Keep manual row selection (already implemented).
-- Add condition-based selection (including time range).
-- Delete the currently selected set (either manually selected rows or the filtered set) with explicit confirmation and optional blob cleanup.</p>
-<p>Data layer (src/beautyspot/db.py)
-- Add focused, safe APIs that operate by cache_key. This avoids duplicating UI filter logic in SQL and sidesteps the current 1000-row limit pitfalls unless we explicitly support DB-side range deletion.</p>
+<h2 id="consequences">Consequences</h2>
 <ul>
-<li>
-<p>delete_by_keys(keys: list[str]) -&gt; int</p>
-<ul>
-<li>DELETE FROM tasks WHERE cache_key IN (...)</li>
-<li>Returns number of rows deleted.</li>
-<li>Use a single transaction and chunk the keys if the list is large.</li>
+<li>Pydantic v2 や Dataclasses のサポートが極めて容易になる。</li>
+<li>内部的に再帰呼び出しを行うため、カスタム型のネストも自動的に解決される。</li>
 </ul>
-</li>
-<li>
-<p>get_records(keys: list[str]) -&gt; list[dict]</p>
-<ul>
-<li>SELECT result_type, result_value, cache_key FROM tasks WHERE cache_key IN (...)</li>
-<li>Used to determine which rows are FILE and prepare optional blob deletion.</li>
-</ul>
-</li>
-</ul>
-<p>Optional (for power users deleting beyond the loaded limit):
-  - delete_by_time_range(start: Optional[datetime], end: Optional[datetime]) -&gt; int
-    - Executes SQL WHERE updated_at BETWEEN ... with proper bounds.
-    - Flag this as “dangerous” in UI and guard with a dedicated confirmation.</p>
-<p>UI/interaction (src/beautyspot/dashboard.py)
-- Filters
-  - Sidebar additions:
-    - Time filter toggle.
-    - Start datetime, End datetime (both optional).
-    - Quick presets (e.g., last 24h/7d) optional.
-  - Implementation detail:
-    - Convert df["updated_at"] = pd.to_datetime(df["updated_at"], utc=False, errors="coerce")
-    - Apply start/end filters if provided.</p>
-<ul>
-<li>Selection modes</li>
-<li>Change table to selection_mode="multi-row".</li>
-<li>Manual selection stays as-is; collect selected_keys from event.selection.rows mapped to the currently displayed (filtered, sorted) df.</li>
-<li>
-<p>Add a toggle/checkbox “Use filtered rows as selection”. When on, the “selection” equals all rows in the currently filtered df (no need to programmatically highlight the table).</p>
-</li>
-<li>
-<p>Deletion workflow</p>
-</li>
-<li>Show a “Delete selected” button with the count of selected items (manual or filtered).</li>
-<li>
-<p>On click:</p>
-<ul>
-<li>If no keys selected, show warning.</li>
-<li>Otherwise open a modal dialog:</li>
-<li>Show number of records to delete.</li>
-<li>Inspect selected records via get_records to compute how many are FILE and summarize local paths vs. s3://.</li>
-<li>Checkbox: “Also delete blobs (FILE)”.</li>
-<li>Secondary checkbox for “Force delete even if blobs cannot be removed” (so DB doesn’t get blocked by file errors).</li>
-<li>Require explicit confirmation (e.g., type DELETE).</li>
-<li>On confirm:</li>
-<li>If blob deletion checked:<ul>
-<li>Try removing local files (os.remove), skip missing, collect errors.</li>
-<li>For s3:// consider skipping initially or implement best-effort delete if S3Storage has delete; report skipped/not supported items.</li>
-</ul>
-</li>
-<li>Call delete_by_keys(keys) in a transaction.</li>
-<li>Clear cache and rerun (st.cache_data.clear(); st.rerun()).</li>
-</ul>
-</li>
-<li>
-<p>Visibility and limits</p>
-</li>
-<li>The current get_history(limit=1000) means you cannot delete items older than the fetched window via “filtered rows as selection”.</li>
-<li>Add a control to increase limit (e.g., 1000/5000/All) or provide a separate “Danger Zone: delete by time range (DB-side)” that does not rely on the loaded df.</li>
-</ul>
-<p>Safety and UX
-- Always show counts and a preview of what will be deleted.
-- Require explicit confirmation text to proceed.
-- Keep a log in the app (success/fail counts, file errors).
-- Do not auto-delete blobs in S3 by default; present as an advanced option.
-- Consider a dry-run mode (show counts only) before the actual deletion.</p>
-<p>Test plan
-- Unit-test delete_by_keys with:
-  - Empty key list, non-existent keys, mixed existing keys.
-- UI manual selection:
-  - Select single/multiple; delete; verify count decreases; refresh works.
-- Time filter selection:
-  - Filter to a narrow window; “Use filtered rows as selection”; delete; verify.
-- Blob deletion:
-  - Local files present/missing; ensure DB deletion proceeds depending on the chosen option and errors are reported, not crash.
-- Large selection:
-  - Ensure chunked IN clauses or use temporary table to avoid parameter limits.</p>
-<p>Open questions
-- Do you want DB-side delete_by_time_range now (for deletions beyond the loaded limit), or should we first implement key-based deletion only?
-- Should we support S3 blob deletion in the first iteration?</p>
-<p>If you want, I can draft the code changes next: first for db.delete_by_keys/get_records and then the dashboard UI (multi-row selection, time filter, confirmation modal, and deletion flow).</p>
 
 
 
 
 
 
-
-  
-  
 
 
 

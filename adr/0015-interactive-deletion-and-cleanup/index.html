@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/storage/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0015-interactive-deletion-and-cleanup/">
       
       
-        <link rel="prev" href="../core/">
-      
-      
-        <link rel="next" href="../types/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Storage - beautyspot</title>
+        <title>15. Interactive Deletion and Cleanup Policy - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#storage" class="md-skip">
+        <a href="#15-interactive-deletion-and-cleanup-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Storage
+              15. Interactive Deletion and Cleanup Policy
             
           </span>
         </div>
@@ -644,7 +640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../reference/architecture/" class="md-nav__link">
         
   
   
@@ -672,7 +668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../philosophy/" class="md-nav__link">
+      <a href="../../reference/philosophy/" class="md-nav__link">
         
   
   
@@ -704,20 +700,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
@@ -738,7 +734,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -756,7 +752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../core/" class="md-nav__link">
+      <a href="../../reference/core/" class="md-nav__link">
         
   
   
@@ -781,37 +777,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Storage
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../reference/storage/" class="md-nav__link">
         
   
   
@@ -827,93 +796,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#beautyspot.storage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        storage
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="storage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.BlobStorageBase" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        BlobStorageBase
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="BlobStorageBase">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.BlobStorageBase.delete" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        delete
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.CacheCorruptedError" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CacheCorruptedError
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.create_storage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        create_storage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -926,7 +808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../types/" class="md-nav__link">
+      <a href="../../reference/types/" class="md-nav__link">
         
   
   
@@ -954,7 +836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cachekey/" class="md-nav__link">
+      <a href="../../reference/cachekey/" class="md-nav__link">
         
   
   
@@ -1038,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0001-stable-argument-hashing/" class="md-nav__link">
+      <a href="../0001-stable-argument-hashing/" class="md-nav__link">
         
   
   
@@ -1073,7 +955,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0002-robust-rate-limiter/" class="md-nav__link">
+      <a href="../0002-robust-rate-limiter/" class="md-nav__link">
         
   
   
@@ -1108,7 +990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
+      <a href="../0003-resilient-deserializeation-and-versioning/" class="md-nav__link">
         
   
   
@@ -1143,7 +1025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0004-io-executor-lifecyle-management/" class="md-nav__link">
+      <a href="../0004-io-executor-lifecyle-management/" class="md-nav__link">
         
   
   
@@ -1178,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0005-dashboard-interaction-model/" class="md-nav__link">
+      <a href="../0005-dashboard-interaction-model/" class="md-nav__link">
         
   
   
@@ -1213,7 +1095,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0006-semantic-content-type-support/" class="md-nav__link">
+      <a href="../0006-semantic-content-type-support/" class="md-nav__link">
         
   
   
@@ -1248,7 +1130,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0007-customizable-serialization-with-msgpack/" class="md-nav__link">
+      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -1283,7 +1165,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0008-database-dependency-injection/" class="md-nav__link">
+      <a href="../0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -1318,7 +1200,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
+      <a href="../0009-msgpack-everywhere-and-guardrails/" class="md-nav__link">
         
   
   
@@ -1353,7 +1235,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0010-canonical-input-serialization/" class="md-nav__link">
+      <a href="../0010-canonical-input-serialization/" class="md-nav__link">
         
   
   
@@ -1388,7 +1270,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0011-imperative-execution-and-workspace/" class="md-nav__link">
+      <a href="../0011-imperative-execution-and-workspace/" class="md-nav__link">
         
   
   
@@ -1416,7 +1298,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
+      <a href="../0012-rename-project-to-spot-and-task-to-mark/" class="md-nav__link">
         
   
   
@@ -1444,7 +1326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../adr/0013-decorator-based-type-registration/" class="md-nav__link">
+      <a href="../0013-decorator-based-type-registration/" class="md-nav__link">
         
   
   
@@ -1506,50 +1388,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#beautyspot.storage" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        storage
+        Context and Problem Statement
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="storage">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#beautyspot.storage.BlobStorageBase" class="md-nav__link">
+  <a href="#positive" class="md-nav__link">
     <span class="md-ellipsis">
       
-        BlobStorageBase
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="BlobStorageBase">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.BlobStorageBase.delete" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        delete
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.storage.CacheCorruptedError" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CacheCorruptedError
+        Positive
       
     </span>
   </a>
@@ -1557,10 +1444,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#beautyspot.storage.create_storage" class="md-nav__link">
+  <a href="#negative" class="md-nav__link">
     <span class="md-ellipsis">
       
-        create_storage
+        Negative
       
     </span>
   </a>
@@ -1592,311 +1479,52 @@
   
 
 
-<h1 id="storage">Storage</h1>
-
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="beautyspot.storage" class="doc doc-heading">
-            <code>beautyspot.storage</code>
-
-
-</h2>
-
-    <div class="doc doc-contents first">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="beautyspot.storage.BlobStorageBase" class="doc doc-heading">
-            <code>BlobStorageBase</code>
-
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="abc.ABC">ABC</span></code></p>
-
-
-
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/storage.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="k">class</span><span class="w"> </span><span class="nc">BlobStorageBase</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="nd">@abstractmethod</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25"></a>        <span class="k">pass</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="nd">@abstractmethod</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29"></a>        <span class="k">pass</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="nd">@abstractmethod</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">        Delete the blob at the specified location.</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        If the file does not exist, it should fail silently or log a warning, but not raise generic errors.</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a>        <span class="k">pass</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="beautyspot.storage.BlobStorageBase.delete" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">delete</span><span class="p">(</span><span class="n">location</span><span class="p">)</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
-  </span>
-
-</h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Delete the blob at the specified location.
-If the file does not exist, it should fail silently or log a warning, but not raise generic errors.</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/beautyspot/storage.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="nd">@abstractmethod</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    Delete the blob at the specified location.</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    If the file does not exist, it should fail silently or log a warning, but not raise generic errors.</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="k">pass</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="beautyspot.storage.CacheCorruptedError" class="doc doc-heading">
-            <code>CacheCorruptedError</code>
-
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="Exception">Exception</span></code></p>
-
-
-
-        <p>Raised when blob data cannot be deserialized (e.g. code changes).</p>
-
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/storage.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="k">class</span><span class="w"> </span><span class="nc">CacheCorruptedError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when blob data cannot be deserialized (e.g. code changes).&quot;&quot;&quot;</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18"></a>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="k">pass</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-    </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="beautyspot.storage.create_storage" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">create_storage</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Factory function to create a storage backend based on the path protocol.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Storage path or URI (e.g., "./data", "s3://my-bucket/prefix").</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>options</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Extra options passed to the backend (e.g., boto3 client args).</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/beautyspot/storage.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-147">147</a></span>
-<span class="normal"><a href="#__codelineno-0-148">148</a></span>
-<span class="normal"><a href="#__codelineno-0-149">149</a></span>
-<span class="normal"><a href="#__codelineno-0-150">150</a></span>
-<span class="normal"><a href="#__codelineno-0-151">151</a></span>
-<span class="normal"><a href="#__codelineno-0-152">152</a></span>
-<span class="normal"><a href="#__codelineno-0-153">153</a></span>
-<span class="normal"><a href="#__codelineno-0-154">154</a></span>
-<span class="normal"><a href="#__codelineno-0-155">155</a></span>
-<span class="normal"><a href="#__codelineno-0-156">156</a></span>
-<span class="normal"><a href="#__codelineno-0-157">157</a></span>
-<span class="normal"><a href="#__codelineno-0-158">158</a></span>
-<span class="normal"><a href="#__codelineno-0-159">159</a></span>
-<span class="normal"><a href="#__codelineno-0-160">160</a></span>
-<span class="normal"><a href="#__codelineno-0-161">161</a></span>
-<span class="normal"><a href="#__codelineno-0-162">162</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="k">def</span><span class="w"> </span><span class="nf">create_storage</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlobStorageBase</span><span class="p">:</span>
-<a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">    Factory function to create a storage backend based on the path protocol.</span>
-<a id="__codelineno-0-150" name="__codelineno-0-150"></a>
-<a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">        path: Storage path or URI (e.g., &quot;./data&quot;, &quot;s3://my-bucket/prefix&quot;).</span>
-<a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">        options: Extra options passed to the backend (e.g., boto3 client args).</span>
-<a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-155" name="__codelineno-0-155"></a>    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
-<a id="__codelineno-0-156" name="__codelineno-0-156"></a>        <span class="k">return</span> <span class="n">S3Storage</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
-<a id="__codelineno-0-157" name="__codelineno-0-157"></a>
-<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="c1"># 将来的な拡張ポイント (例: gs://, azure://)</span>
-<a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="c1"># if path.startswith(&quot;gs://&quot;):</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="c1">#     return GCSStorage(path, options)</span>
-<a id="__codelineno-0-161" name="__codelineno-0-161"></a>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="k">return</span> <span class="n">LocalStorage</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
+<h1 id="15-interactive-deletion-and-cleanup-policy">15. Interactive Deletion and Cleanup Policy</h1>
+<ul>
+<li>Status: Accepted</li>
+<li>Date: 2026-02-02</li>
+<li>Context: v2.2.6</li>
+</ul>
+<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
+<p><code>beautyspot</code> は「試行錯誤の高速化」を掲げているが、ユーザーが失敗した実験結果（キャッシュ）を即座に破棄する手段が Dashboard 上に存在しなかった。
+また、キャッシュ削除のロジックが <code>cli.py</code> に直接実装されており、Core API (<code>Spot</code> クラス) として提供されていないため、プログラムからの制御やテストが困難な状態だった。</p>
+<p>加えて、削除機能を実現するには <code>BlobStorageBase</code> (Storage backend) に物理ファイルを削除するインターフェースが必要だが、これまでの定義には <code>save</code> と <code>load</code> しか存在しなかった。</p>
+<h2 id="decision-drivers">Decision Drivers</h2>
+<ul>
+<li><strong>User Experience:</strong> Dashboard 上で「結果を見て、即座に消して、やり直す」というループを実現したい。</li>
+<li><strong>Consistency:</strong> CLI, Dashboard, Python Script すべてで同一の削除ロジックを利用したい。</li>
+<li><strong>Cleanliness:</strong> DBレコードを消した際に、対応する Blob ファイルも確実に消去したい。</li>
+</ul>
+<h2 id="decision">Decision</h2>
+<ol>
+<li>
+<p><strong>Core API への <code>delete</code> メソッドの追加</strong>
+   <code>Spot.delete(cache_key)</code> を正式な API として追加する。このメソッドは、「DBレコードの削除」と「Blobファイルの削除」をアトミック（ベストエフォート）に行う責任を持つ。</p>
+</li>
+<li>
+<p><strong>Storage Interface への破壊的変更</strong>
+   <code>BlobStorageBase</code> 抽象基底クラスに <code>delete(location)</code> メソッドを追加する。</p>
+</li>
+<li><strong>Breaking Change:</strong> ユーザーが独自の Storage Backend を実装している場合、<code>delete</code> メソッドの実装が必須となる。</li>
+<li>
+<p><strong>Idempotency:</strong> ファイルが既に存在しない場合でもエラーを送出せず、静かに終了する（Idempotentな挙動）ことを推奨実装とする。</p>
+</li>
+<li>
+<p><strong>Dashboard への削除機能の露出</strong>
+   Dashboard に削除ボタンを配置する。誤操作を防ぐため、確認ダイアログ（Popover）を経由する UI とし、<code>Spot.delete</code> (相当のロジック) を呼び出す。</p>
+</li>
+</ol>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
+<ul>
+<li>ユーザーは Dashboard から離れることなく、不要なキャッシュを整理できる。</li>
+<li>キャッシュ削除ロジックが一元化され、メンテナンス性が向上する。</li>
+<li>将来的に「古いキャッシュの自動ローテーション」などの機能を実装する際の基盤となる。</li>
+</ul>
+<h3 id="negative">Negative</h3>
+<ul>
+<li><code>BlobStorageBase</code> を継承したカスタムクラスを持つ既存ユーザーコードは、<code>delete</code> メソッド未実装により <code>TypeError</code> となる可能性がある（v2.x のパッチバージョンでの変更としては大きいため、リリースノートでの周知が必須）。</li>
+</ul>
 
 
 
