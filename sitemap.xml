@@ -2,114 +2,122 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://neelbauman.github.io/beautyspot/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0000-adr-example/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0001-stable-argument-hashing/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0002-robust-rate-limiter/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0003-resilient-deserializeation-and-versioning/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0004-io-executor-lifecyle-management/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0005-dashboard-interaction-model/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0006-semantic-content-type-support/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0007-customizable-serialization-with-msgpack/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0008-database-dependency-injection/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0009-msgpack-everywhere-and-guardrails/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0010-canonical-input-serialization/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0011-imperative-execution-and-workspace/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0012-rename-project-to-spot-and-task-to-mark/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/adr/0013-decorator-based-type-registration/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
+    </url>
+    <url>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0014-strict-scoping-for-cached-run/</loc>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/chat_logs/chat/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/caching/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/cli/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
+    </url>
+    <url>
+         <loc>https://neelbauman.github.io/beautyspot/guides/cookbook/</loc>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/custom_backend/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
-         <loc>https://neelbauman.github.io/beautyspot/guides/rete_limiting/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <loc>https://neelbauman.github.io/beautyspot/guides/rate_limiting/</loc>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/serialization/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/usage_patterns/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/architecture/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/cachekey/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/core/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/philosophy/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/storage/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/types/</loc>
-         <lastmod>2026-01-30</lastmod>
+         <lastmod>2026-02-02</lastmod>
     </url>
 </urlset>

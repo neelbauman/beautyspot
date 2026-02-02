@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0008-database-dependency-injection/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0014-strict-scoping-for-cached-run/">
       
       
-        <link rel="prev" href="../0007-customizable-serialization-with-msgpack/">
-      
-      
-        <link rel="next" href="../0009-msgpack-everywhere-and-guardrails/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Database Dependency Injection and Abstraction - beautyspot</title>
+        <title>14. Strict Scoping for Imperative Execution (Runtime Guard) - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#database-dependency-injection-and-abstraction" class="md-skip">
+        <a href="#14-strict-scoping-for-imperative-execution-runtime-guard" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Database Dependency Injection and Abstraction
+              14. Strict Scoping for Imperative Execution (Runtime Guard)
             
           </span>
         </div>
@@ -872,20 +868,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -906,7 +902,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1166,44 +1162,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    0008 Dependency Injection
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--Accepted"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../0008-database-dependency-injection/" class="md-nav__link">
         
   
   
@@ -1226,70 +1188,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement / コンテキスト
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers / 要求
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome / 決定
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences / 結果
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1490,10 +1388,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement / コンテキスト
+        Context
       
     </span>
   </a>
@@ -1501,21 +1399,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers / 要求
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome / 決定
+        Decision
       
     </span>
   </a>
@@ -1526,10 +1413,38 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences / 結果
+        Consequences
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#positive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1553,46 +1468,31 @@
   
 
 
-<h1 id="database-dependency-injection-and-abstraction">Database Dependency Injection and Abstraction</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
-<p>これまでの <code>beautyspot</code> (<code>v0.x</code>) は、<code>Project</code> クラス内部で <code>TaskDB</code> (SQLite実装) をハードコードしてインスタンス化していた。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># v0.x implementation</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">TaskDB</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db_path</span><span class="p">)</span>
-</code></pre></div>
-<p>この設計には以下の課題がある：</p>
+<h1 id="14-strict-scoping-for-imperative-execution-runtime-guard">14. Strict Scoping for Imperative Execution (Runtime Guard)</h1>
+<p>Date: 2026-02-01
+Status: Accepted</p>
+<h2 id="context">Context</h2>
+<p>The <code>spot.cached_run()</code> context manager allows users to temporarily apply caching behavior to functions. 
+However, due to Python's scoping rules for <code>with</code> statements, variables bound within the block (e.g., <code>with ... as task:</code>) remain accessible after the block exits.</p>
+<p>This creates a risk where users might inadvertently reuse a function wrapper that has specific context-bound configurations (like <code>version="v1"</code> or temporary storage settings) outside of that intended context, leading to subtle bugs or resource leaks.</p>
+<h2 id="decision">Decision</h2>
+<p>We will implement a <strong>Runtime Guard</strong> pattern for the <code>ScopedMark</code> context manager.</p>
 <ol>
-<li><strong>拡張性の欠如:</strong> SQLite 以外のデータベース（PostgreSQL, DuckDB, In-Memory DB等）を使いたくても、ライブラリのコードを書き換えない限り不可能である。</li>
-<li><strong>テストの制約:</strong> ユニットテスト時に、ファイルシステムに依存しないモックDBやオンメモリDBへの差し替えが困難である。</li>
+<li><strong>State Tracking</strong>: The context manager will maintain an active state flag.</li>
+<li><strong>Wrapper Guard</strong>: The functions returned by <code>cached_run</code> will be wrapped in a guard that checks this flag before execution.</li>
+<li><strong>Fail Fast</strong>: If a wrapped function is called outside the <code>with</code> block, it will immediately raise a <code>RuntimeError</code>.</li>
 </ol>
-<p>v1.0.0 では、ユーザー体験（DX）としての「手軽さ（パスを指定するだけ）」を維持しつつ、アーキテクチャレベルでの柔軟性を確保する必要がある。</p>
-<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
 <ul>
-<li><strong>Extensibility:</strong> ユーザーが独自の <code>TaskDB</code> 実装を注入 (Inject) できるようにする。</li>
-<li><strong>Backward Compatibility / DX:</strong> 従来通りファイルパス（文字列）を渡すだけの初期化もサポートし、ライトユーザーの負担を増やさない。</li>
-<li><strong>Testability:</strong> データベース層のモック化を容易にする。</li>
+<li><strong>Safety</strong>: Eliminates the risk of using "stale" or "context-specific" wrappers outside their intended scope.</li>
+<li><strong>Clarity</strong>: Enforces the mental model that the "caching magic" is strictly temporary.</li>
+<li><strong>Resource Management</strong>: Makes it safer to use <code>spot</code> instances that might be short-lived or injected, as the function references become invalid immediately after use.</li>
 </ul>
-<h2 id="decision-outcome">Decision Outcome / 決定</h2>
-<p>Chosen option: <strong>Dependency Injection with Abstract Base Class</strong>.</p>
-<ol>
-<li><strong>抽象化:</strong> <code>src/beautyspot/db.py</code> に抽象基底クラス <code>TaskDB</code> を定義し、インターフェース（<code>save</code>, <code>get</code>, <code>init_schema</code> 等）を強制する。</li>
-<li><strong>具象化:</strong> 従来のSQLite実装を <code>SQLiteTaskDB</code> として再定義する。</li>
-<li><strong>注入 (DI):</strong> <code>Project</code> クラスのコンストラクタ引数を <code>db_path: str</code> から <code>db: Union[str, TaskDB]</code> に変更する。<ul>
-<li><code>str</code> が渡された場合: 内部で <code>SQLiteTaskDB(path)</code> を生成する（Convenience）。</li>
-<li><code>TaskDB</code> が渡された場合: そのインスタンスをそのまま使用する（Injection）。</li>
-</ul>
-</li>
-</ol>
-<h2 id="consequences">Consequences / 結果</h2>
+<h3 id="negative">Negative</h3>
 <ul>
-<li><strong>Positive:</strong><ul>
-<li>PostgreSQL や MySQL などのアダプタをユーザー側で実装し、<code>Project(..., db=PostgresDB(...))</code> のように利用可能になる。</li>
-<li>テスト時に <code>MemoryTaskDB</code> などを差し込むことで、高速かつクリーンなテストが可能になる。</li>
-</ul>
-</li>
-<li><strong>Negative:</strong><ul>
-<li><code>db_path</code> 引数が廃止（または <code>db</code> に統合）されるため、既存コードの引数名変更が必要になる（v1.0.0 での破壊的変更）。</li>
-</ul>
-</li>
+<li><strong>Runtime Overhead</strong>: Adds a negligible check (boolean flag access) to every function call within the block.</li>
+<li><strong>Complexity</strong>: The <code>ScopedMark</code> implementation becomes slightly more complex due to the additional wrapper layer.</li>
 </ul>
 
 
@@ -1600,9 +1500,6 @@
 
 
 
-
-  
-  
 
 
 
