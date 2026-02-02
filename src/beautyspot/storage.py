@@ -15,6 +15,7 @@ except ImportError:
 
 class CacheCorruptedError(Exception):
     """Raised when blob data cannot be deserialized (e.g. code changes)."""
+
     pass
 
 
@@ -141,6 +142,7 @@ class S3Storage(BlobStorageBase):
         except ClientError:
             # S3のdelete_objectは存在しなくてもエラーにならないが、権限エラー等はキャッチ
             pass
+
 
 def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
     """

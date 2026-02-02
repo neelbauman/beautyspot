@@ -86,11 +86,10 @@ async def test_async_task(spot):
     assert len(hist) == 1
 
     row = hist.iloc[0]
-    
+
     # 修正: DIRECT_B64 -> DIRECT_BLOB
     assert row["result_type"] == "DIRECT_BLOB"
 
     # 修正: Base64デコードではなく、result_data(bytes)を直接unpack
     packed = row["result_data"]
     assert msgpack.unpackb(packed) == 30
-

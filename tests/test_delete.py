@@ -1,13 +1,14 @@
 import os
 from beautyspot import Spot
 
+
 def test_delete_hit(tmp_path):
     """
     正常系: DBレコードとBlobファイルの両方が削除されることを確認
     """
     db_path = tmp_path / "test.db"
     storage_path = tmp_path / "blobs"
-    
+
     spot = Spot("test_spot", db=str(db_path), storage_path=str(storage_path))
 
     # 1. データを作成 (Blob保存あり)
@@ -16,26 +17,27 @@ def test_delete_hit(tmp_path):
         return {"data": "x" * 100}
 
     heavy_func(1)
-    
+
     # DBとファイルが作成されたか確認
     df = spot.db.get_history()
     assert len(df) == 1
     cache_key = df.iloc[0]["cache_key"]
     blob_path = df.iloc[0]["result_value"]
-    
+
     assert os.path.exists(blob_path)
 
     # 2. 削除実行
     deleted = spot.delete(cache_key)
-    
+
     # 3. 検証
     assert deleted is True
-    
+
     # DBから消えているか
     assert spot.db.get(cache_key) is None
-    
+
     # ファイルが消えているか
     assert not os.path.exists(blob_path)
+
 
 def test_delete_miss(tmp_path):
     """
@@ -43,8 +45,9 @@ def test_delete_miss(tmp_path):
     """
     db_path = tmp_path / "test.db"
     spot = Spot("test_spot", db=str(db_path))
-    
+
     assert spot.delete("non_existent_key") is False
+
 
 def test_delete_db_only(tmp_path):
     """
@@ -58,15 +61,16 @@ def test_delete_db_only(tmp_path):
         return x * 2
 
     light_func(10)
-    
+
     df = spot.db.get_history()
     cache_key = df.iloc[0]["cache_key"]
-    
+
     # 削除実行
     deleted = spot.delete(cache_key)
-    
+
     assert deleted is True
     assert spot.db.get(cache_key) is None
+
 
 def test_delete_orphaned_blob_record(tmp_path):
     """
@@ -82,7 +86,7 @@ def test_delete_orphaned_blob_record(tmp_path):
         return x
 
     func(1)
-    
+
     df = spot.db.get_history()
     cache_key = df.iloc[0]["cache_key"]
     blob_path = df.iloc[0]["result_value"]
@@ -93,7 +97,6 @@ def test_delete_orphaned_blob_record(tmp_path):
 
     # 削除実行 (エラーにならないこと)
     deleted = spot.delete(cache_key)
-    
+
     assert deleted is True
     assert spot.db.get(cache_key) is None
-

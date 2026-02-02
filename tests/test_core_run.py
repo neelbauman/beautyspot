@@ -1,8 +1,8 @@
 # tests/test_core_run.py
 
-import pytest
 import asyncio
 from beautyspot import Spot
+
 
 def test_project_run_sync_in_context(tmp_path):
     """Test explicit run within a context manager."""
@@ -33,6 +33,7 @@ def test_project_run_sync_in_context(tmp_path):
         assert res3 == 5
         assert call_count == 2
 
+
 def test_project_run_async_in_context(tmp_path):
     """Test explicit run with asynchronous function in context."""
     project = Spot(name="test_run_async", db=str(tmp_path / "test_run_async.db"))
@@ -56,12 +57,13 @@ def test_project_run_async_in_context(tmp_path):
             res2 = await project.run(async_mul, 3, 4)
             assert res2 == 12
             assert call_count == 1
-    
+
     asyncio.run(main())
+
 
 def test_project_run_with_options(tmp_path, inspect_db):
     """Test project.run with configuration options (_save_blob, etc)."""
-    
+
     def heavy_data(size):
         return b"0" * size
 
@@ -71,9 +73,8 @@ def test_project_run_with_options(tmp_path, inspect_db):
         # Note: args are passed as *args, options as named args starting with _
         data = project.run(heavy_data, 1024, _save_blob=True)
         assert len(data) == 1024
-        
+
         # Verify it was saved as FILE (blob) in DB
         entries = inspect_db(tmp_path / "test_opts.db")
         assert len(entries) == 1
         assert entries[0]["result_type"] == "FILE"
-        

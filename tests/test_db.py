@@ -66,4 +66,3 @@ def test_get_history(db):
     assert "cache_key" in df.columns
     # 新しい順に並んでいるか
     assert set(df["cache_key"]) == {"k1", "k2"}
-

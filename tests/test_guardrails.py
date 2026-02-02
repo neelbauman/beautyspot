@@ -64,4 +64,3 @@ def test_msgpack_consistency(tmp_path):
     res2 = numpy_task()
     assert isinstance(res2, np.ndarray)  # 文字列ではなくndarrayで戻るはず
     assert np.array_equal(res1, res2)
-

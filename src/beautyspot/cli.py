@@ -30,6 +30,7 @@ console = Console()
 # Helper Functions
 # =============================================================================
 
+
 def get_db(db_path: str) -> SQLiteTaskDB:
     """Validate and return a database instance."""
     path = Path(db_path)
@@ -51,7 +52,9 @@ def _find_available_port(start_port: int, max_attempts: int = 10) -> int:
         port = start_port + i
         if not _is_port_in_use(port):
             return port
-    raise RuntimeError(f"No available port found in range {start_port}-{start_port + max_attempts - 1}")
+    raise RuntimeError(
+        f"No available port found in range {start_port}-{start_port + max_attempts - 1}"
+    )
 
 
 def _format_size(size_bytes: int | float) -> str:
@@ -87,17 +90,17 @@ def _infer_blob_dir(db_path: Path) -> Path | None:
     # または: .beautyspot/tasks.db -> .beautyspot/blobs/
     parent = db_path.parent
     stem = db_path.stem
-    
+
     # パターン1: .beautyspot/<name>/blobs/
     candidate1 = parent / stem / "blobs"
     if candidate1.exists():
         return candidate1
-    
+
     # パターン2: .beautyspot/blobs/
     candidate2 = parent / "blobs"
     if candidate2.exists():
         return candidate2
-    
+
     return None
 
 
@@ -105,15 +108,18 @@ def _infer_blob_dir(db_path: Path) -> Path | None:
 # Commands
 # =============================================================================
 
+
 @app.command("ui")
 def ui_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
     port: int = typer.Option(8501, "--port", "-p", help="Streamlit server port"),
-    auto_port: bool = typer.Option(True, "--auto-port/--no-auto-port", help="Auto-find available port"),
+    auto_port: bool = typer.Option(
+        True, "--auto-port/--no-auto-port", help="Auto-find available port"
+    ),
 ):
     """
     🚀 Launch the interactive dashboard.
-    
+
     Example:
         beautyspot ui ./cache/tasks.db
         beautyspot ui ./cache/tasks.db --port 8080
@@ -197,13 +203,15 @@ def ui_cmd(
 def list_cmd(
     db: Optional[str] = typer.Argument(None, help="Path to SQLite database file"),
     limit: int = typer.Option(20, "--limit", "-n", help="Number of records to show"),
-    func: Optional[str] = typer.Option(None, "--func", "-f", help="Filter by function name"),
+    func: Optional[str] = typer.Option(
+        None, "--func", "-f", help="Filter by function name"
+    ),
 ):
     """
     📋 List cached tasks or available databases.
-    
+
     If no database is specified, lists SQLite files in .beautyspot/ directory.
-    
+
     Example:
         beautyspot list                           # List available databases
         beautyspot list ./cache/tasks.db          # List tasks in database
@@ -236,7 +244,9 @@ def _list_databases():
         raise typer.Exit(0)
 
     # SQLite ファイルを検索
-    db_files = list(beautyspot_dir.glob("**/*.db")) + list(beautyspot_dir.glob("**/*.sqlite"))
+    db_files = list(beautyspot_dir.glob("**/*.db")) + list(
+        beautyspot_dir.glob("**/*.sqlite")
+    )
 
     if not db_files:
         console.print(
@@ -287,12 +297,6 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
     """List tasks in a specific database."""
     task_db = get_db(db)
 
-    try:
-        import pandas as pd
-    except ImportError:
-        console.print("[red]Error:[/red] pandas is required. Install with: pip install pandas")
-        raise typer.Exit(1)
-
     df = task_db.get_history(limit=limit)
 
     if df.empty:
@@ -322,7 +326,11 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
     table.add_column("Updated", style="dim")
 
     for _, row in df.iterrows():
-        input_id = str(row["input_id"])[:20] + "..." if len(str(row["input_id"])) > 20 else str(row["input_id"])
+        input_id = (
+            str(row["input_id"])[:20] + "..."
+            if len(str(row["input_id"])) > 20
+            else str(row["input_id"])
+        )
         table.add_row(
             str(row["func_name"]),
             input_id,
@@ -342,7 +350,7 @@ def show_cmd(
 ):
     """
     🔍 Show details of a specific cached task.
-    
+
     Example:
         beautyspot show ./cache/tasks.db abc123def456
     """
@@ -381,11 +389,17 @@ def show_cmd(
 
                 json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
                 syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
-                console.print(Panel(syntax, title="📦 Data Preview (JSON)", border_style="blue"))
+                console.print(
+                    Panel(syntax, title="📦 Data Preview (JSON)", border_style="blue")
+                )
             elif isinstance(data, str):
                 # Truncate long strings
                 preview = data[:1000] + "..." if len(data) > 1000 else data
-                console.print(Panel(preview, title="📦 Data Preview (String)", border_style="blue"))
+                console.print(
+                    Panel(
+                        preview, title="📦 Data Preview (String)", border_style="blue"
+                    )
+                )
             else:
                 console.print(f"[dim]Data type: {type(data).__name__}[/dim]")
         except Exception as e:
@@ -398,7 +412,7 @@ def stats_cmd(
 ):
     """
     📊 Show cache statistics.
-    
+
     Example:
         beautyspot stats ./cache/tasks.db
     """
@@ -407,7 +421,9 @@ def stats_cmd(
     try:
         import pandas as pd
     except ImportError:
-        console.print("[red]Error:[/red] pandas is required. Install with: pip install pandas")
+        console.print(
+            "[red]Error:[/red] pandas is required. Install with: pip install pandas"
+        )
         raise typer.Exit(1)
 
     df = task_db.get_history(limit=10000)
@@ -461,12 +477,14 @@ def stats_cmd(
 @app.command("clear")
 def clear_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
-    func: Optional[str] = typer.Option(None, "--func", "-f", help="Clear only specific function"),
+    func: Optional[str] = typer.Option(
+        None, "--func", "-f", help="Clear only specific function"
+    ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
 ):
     """
     🗑️  Clear cached tasks.
-    
+
     Example:
         beautyspot clear ./cache/tasks.db
         beautyspot clear ./cache/tasks.db --func my_function
@@ -509,16 +527,26 @@ def clear_cmd(
 @app.command("clean")
 def clean_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
-    blob_dir: Optional[str] = typer.Option(None, "--blob-dir", "-b", help="Path to blob directory (auto-detected if not specified)"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"),
+    blob_dir: Optional[str] = typer.Option(
+        None,
+        "--blob-dir",
+        "-b",
+        help="Path to blob directory (auto-detected if not specified)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be deleted without actually deleting",
+    ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
 ):
     """
     🧹 Clean orphaned blob files (garbage collection).
-    
+
     Removes blob files that are not referenced in the database.
     This can happen when tasks are deleted but their blob files remain.
-    
+
     Example:
         beautyspot clean ./cache/tasks.db                    # Auto-detect blob dir
         beautyspot clean ./cache/tasks.db -b ./cache/blobs   # Specify blob dir
@@ -535,7 +563,7 @@ def clean_cmd(
         blobs_path = Path(blob_dir)
     else:
         blobs_path = _infer_blob_dir(db_path)
-    
+
     if blobs_path is None or not blobs_path.exists():
         console.print(
             Panel(
@@ -562,7 +590,7 @@ def clean_cmd(
 
     # Blob ディレクトリ内のファイルをスキャン
     all_blob_files = list(blobs_path.glob("*.bin"))
-    
+
     # 孤立ファイルを特定
     orphaned_files: list[Path] = []
     for blob_file in all_blob_files:
@@ -582,7 +610,7 @@ def clean_cmd(
 
     # 孤立ファイルの情報を表示
     total_size = sum(f.stat().st_size for f in orphaned_files)
-    
+
     table = Table(
         title=f"🧹 Orphaned Files ({len(orphaned_files)} files, {_format_size(total_size)})",
         show_header=True,
@@ -600,7 +628,7 @@ def clean_cmd(
             _format_size(stat.st_size),
             _format_timestamp(stat.st_mtime),
         )
-    
+
     if len(orphaned_files) > 20:
         table.add_row(
             f"[dim]... and {len(orphaned_files) - 20} more files[/dim]",
@@ -636,8 +664,10 @@ def clean_cmd(
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Deleting orphaned files...", total=len(orphaned_files))
-        
+        task = progress.add_task(
+            "Deleting orphaned files...", total=len(orphaned_files)
+        )
+
         for f in orphaned_files:
             try:
                 size = f.stat().st_size
@@ -652,7 +682,7 @@ def clean_cmd(
     console.print(
         f"\n[green]✓ Deleted {deleted_count} files ({_format_size(deleted_size)})[/green]"
     )
-    
+
     if errors:
         console.print(f"\n[yellow]Warnings ({len(errors)} errors):[/yellow]")
         for err in errors[:5]:
@@ -664,18 +694,31 @@ def clean_cmd(
 @app.command("prune")
 def prune_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
-    days: int = typer.Option(..., "--days", "-d", help="Delete tasks older than N days"),
-    func: Optional[str] = typer.Option(None, "--func", "-f", help="Prune only specific function"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"),
+    days: int = typer.Option(
+        ..., "--days", "-d", help="Delete tasks older than N days"
+    ),
+    func: Optional[str] = typer.Option(
+        None, "--func", "-f", help="Prune only specific function"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be deleted without actually deleting",
+    ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
-    clean_blobs: bool = typer.Option(True, "--clean-blobs/--no-clean-blobs", help="Also remove orphaned blob files after pruning"),
+    clean_blobs: bool = typer.Option(
+        True,
+        "--clean-blobs/--no-clean-blobs",
+        help="Also remove orphaned blob files after pruning",
+    ),
 ):
     """
     🗓️  Prune old cached tasks.
-    
+
     Deletes tasks that haven't been updated for more than N days.
     Optionally cleans up orphaned blob files after pruning.
-    
+
     Example:
         beautyspot prune ./cache/tasks.db --days 30           # Delete tasks older than 30 days
         beautyspot prune ./cache/tasks.db -d 7 -f my_func     # Prune specific function
@@ -696,7 +739,9 @@ def prune_cmd(
     cutoff_date = datetime.now() - timedelta(days=days)
     cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
 
-    console.print(f"[dim]Cutoff date: {cutoff_date.strftime('%Y-%m-%d %H:%M')} ({days} days ago)[/dim]\n")
+    console.print(
+        f"[dim]Cutoff date: {cutoff_date.strftime('%Y-%m-%d %H:%M')} ({days} days ago)[/dim]\n"
+    )
 
     # 削除対象のタスクを取得
     conn = sqlite3.connect(db_path)
@@ -713,7 +758,7 @@ def prune_cmd(
                 "WHERE updated_at < ? ORDER BY updated_at",
                 (cutoff_str,),
             )
-        
+
         tasks_to_delete = cursor.fetchall()
     finally:
         conn.close()
@@ -757,7 +802,9 @@ def prune_cmd(
     console.print(table)
 
     if dry_run:
-        console.print(f"\n[yellow]Dry run:[/yellow] Would delete {len(tasks_to_delete)} tasks")
+        console.print(
+            f"\n[yellow]Dry run:[/yellow] Would delete {len(tasks_to_delete)} tasks"
+        )
         raise typer.Exit(0)
 
     # 確認
@@ -862,4 +909,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

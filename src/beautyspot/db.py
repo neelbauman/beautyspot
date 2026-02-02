@@ -43,7 +43,7 @@ class TaskDB(ABC):
     ):
         """
         Upsert a task result.
-        
+
         Args:
             cache_key: Unique hash key.
             func_name: Function name.
@@ -189,13 +189,15 @@ class SQLiteTaskDB(TaskDB):
                 ORDER BY updated_at DESC 
                 LIMIT ?
             """
-            return pd.read_sql_query(query, conn, params=[limit,])
+            return pd.read_sql_query(
+                query,
+                conn,
+                params=[
+                    limit,
+                ],
+            )
 
     def delete(self, cache_key: str) -> bool:
         with self._connect() as conn:
-            cursor = conn.execute(
-                "DELETE FROM tasks WHERE cache_key=?",
-                (cache_key,)
-            )
+            cursor = conn.execute("DELETE FROM tasks WHERE cache_key=?", (cache_key,))
             return cursor.rowcount > 0
-

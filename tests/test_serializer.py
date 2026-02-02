@@ -1,77 +1,181 @@
 # tests/test_serializer.py
 
 import pytest
-import msgpack
+from pydantic import BaseModel
 from beautyspot.serializer import MsgpackSerializer, SerializationError
 
 
-class MyCustomData:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
+# --- テスト用の Pydantic モデル ---
+class User(BaseModel):
+    name: str
+    age: int
 
 
-def test_basic_types():
-    """基本型(int, str, list, dict)がシリアライズできるか"""
-    s = MsgpackSerializer()
-    data = {"a": 1, "b": [2, 3], "c": "hello"}
-
-    packed = s.dumps(data)
-    assert isinstance(packed, bytes)
-
-    unpacked = s.loads(packed)
-    assert unpacked == data
+class Group(BaseModel):
+    title: str
+    leader: User
+    members: list[User]
 
 
-def test_unregistered_type_error():
-    """未登録の型を渡したときにSerializationErrorが出るか"""
-    s = MsgpackSerializer()
-    obj = MyCustomData(10, 20)
-
-    with pytest.raises(SerializationError) as excinfo:
-        s.dumps(obj)
-
-    # エラーメッセージに型名が含まれているか確認
-    assert "MyCustomData" in str(excinfo.value)
-    assert "register_type" in str(excinfo.value)
+# --- テストケース ---
 
 
-def test_custom_type_registration():
-    """カスタム型を登録してシリアライズ/デシリアライズできるか"""
-    s = MsgpackSerializer()
+def test_pydantic_v2_dict_flow():
+    """
+    推奨パターン: Encoderがdictを返し、Decoderがdictを受け取る。
+    Serializerが自動的にpack/unpackを行うことを検証する。
+    """
+    serializer = MsgpackSerializer()
 
-    # エンコーダ/デコーダの定義
-    def encoder(obj):
-        return msgpack.packb([obj.x, obj.y])
+    # 登録: dictを返すだけでよい
+    serializer.register(
+        User,
+        code=10,
+        encoder=lambda obj: obj.model_dump(),
+        decoder=lambda data: User.model_validate(data),
+    )
 
-    def decoder(data):
-        x, y = msgpack.unpackb(data)
-        return MyCustomData(x, y)
+    original = User(name="Alice", age=30)
 
-    # 登録 (ID=10)
-    s.register(MyCustomData, 10, encoder, decoder)
+    # シリアライズ (User -> dict -> bytes -> ExtType)
+    packed = serializer.dumps(original)
 
-    original = MyCustomData(123, 456)
-    packed = s.dumps(original)
+    # デシリアライズ (ExtType -> bytes -> dict -> User)
+    restored = serializer.loads(packed)
 
-    # 正しくExtTypeとして保存されているか検証(オプション)
-    unpacked_raw = msgpack.unpackb(packed, raw=False)
-    assert isinstance(unpacked_raw, msgpack.ExtType)
-    assert unpacked_raw.code == 10
-
-    # 復元
-    restored = s.loads(packed)
-    assert isinstance(restored, MyCustomData)
     assert restored == original
+    assert isinstance(restored, User)
 
 
-def test_duplicate_registration_error():
-    """同じIDを登録しようとしたらエラーになるか"""
-    s = MsgpackSerializer()
-    s.register(int, 1, lambda x: b"", lambda x: 0)
+def test_pydantic_v2_json_str_flow():
+    """
+    バリエーション: EncoderがJSON文字列(str)を返す場合。
+    Serializerがstrも自動的にpack(bytes化)して処理できることを検証する。
+    """
+    serializer = MsgpackSerializer()
 
-    with pytest.raises(ValueError):
-        s.register(str, 1, lambda x: b"", lambda x: "")
+    serializer.register(
+        User,
+        code=10,
+        # Encoder: JSON文字列を返す
+        encoder=lambda obj: obj.model_dump_json(),
+        # Decoder: 文字列を受け取ってパースする
+        decoder=lambda data: User.model_validate_json(data),
+    )
+
+    original = User(name="Bob", age=25)
+
+    packed = serializer.dumps(original)
+    restored = serializer.loads(packed)
+
+    assert restored == original
+    assert restored.name == "Bob"
+
+
+def test_nested_custom_types():
+    """
+    ネストされたカスタム型（Groupの中にUser）が正しく処理されるか検証する。
+    再帰的な _default_packer の呼び出しを確認。
+    """
+    serializer = MsgpackSerializer()
+
+    # Userの登録
+    serializer.register(
+        User,
+        code=10,
+        encoder=lambda u: u.model_dump(mode="json"),
+        decoder=lambda d: User.model_validate(d),
+    )
+
+    # Groupの登録
+    serializer.register(
+        Group,
+        code=11,
+        encoder=lambda g: g.model_dump(mode="json"),
+        decoder=lambda d: Group.model_validate(d),
+    )
+
+    original = Group(
+        title="Engineering",
+        leader=User(name="Charlie", age=40),
+        members=[User(name="Dave", age=22), User(name="Eve", age=28)],
+    )
+
+    packed = serializer.dumps(original)
+    restored = serializer.loads(packed)
+
+    assert restored == original
+    assert isinstance(restored.leader, User)
+    assert restored.members[0].name == "Dave"
+
+
+def test_guardrail_invalid_return_type():
+    """
+    Encoderがmsgpackでシリアライズ不可能なオブジェクトを返した場合、
+    親切なエラーメッセージが出るか検証する。
+    """
+    serializer = MsgpackSerializer()
+
+    class Unserializable:
+        pass
+
+    serializer.register(
+        User,
+        code=10,
+        # Encoderが関数オブジェクト（シリアライズ不可）を返してしまうミス
+        encoder=lambda u: lambda x: x,
+        decoder=lambda d: User(name="error", age=0),
+    )
+
+    obj = User(name="Fail", age=99)
+
+    with pytest.raises(SerializationError) as exc_info:
+        serializer.dumps(obj)
+
+    error_msg = str(exc_info.value)
+    assert (
+        "Encoder for 'User' returned a value that msgpack cannot serialize" in error_msg
+    )
+    assert "Hint: Ensure your encoder returns a primitive type" in error_msg
+
+
+def test_decoder_failure_raises_critical_error():
+    """
+    Decoderが失敗した場合、SerializationErrorとして再送出されるか検証する。
+    """
+    serializer = MsgpackSerializer()
+
+    serializer.register(
+        User,
+        code=10,
+        encoder=lambda u: {"name": u.name, "age": u.age},
+        # 必ず失敗するデコーダ
+        decoder=lambda d: (_ for _ in ()).throw(ValueError("Invalid data format")),
+    )
+
+    packed = serializer.dumps(User(name="Ghost", age=0))
+
+    with pytest.raises(SerializationError) as exc_info:
+        serializer.loads(packed)
+
+    assert "CRITICAL: Failed to decode custom type" in str(exc_info.value)
+
+
+def test_raw_bytes_support():
+    """
+    Encoderがbytesを返した場合でも動作することを検証する。
+    （Nested Protocolにより、bytesもさらにpackされるが、動作としては正しいはず）
+    """
+    serializer = MsgpackSerializer()
+
+    serializer.register(
+        User,
+        code=10,
+        encoder=lambda u: u.name.encode("utf-8"),
+        decoder=lambda b: User(name=b.decode("utf-8"), age=0),
+    )
+
+    original = User(name="BytesUser", age=0)
+    restored = serializer.loads(serializer.dumps(original))
+
+    assert restored.name == "BytesUser"

@@ -90,7 +90,7 @@ def test_custom_storage_injection(tmp_path):
 
 def test_custom_db_injection(tmp_path):
     """Test injecting a custom DB backend."""
-    
+
     db = MockDB()
     project = Spot(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
 
@@ -142,4 +142,3 @@ def test_custom_executor_injection(tmp_path):
     assert f.result() == "still_alive"
 
     executor.shutdown()
-

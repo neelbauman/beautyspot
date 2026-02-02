@@ -1,12 +1,15 @@
+# tests/cached_run.py
+
 import pytest
-import warnings
 from beautyspot import Spot
+
 
 @pytest.fixture
 def spot(tmp_path):
     """Temporary Spot instance for testing."""
     db_path = str(tmp_path / "test_cached_run.db")
     return Spot(name="test_runner", db=db_path)
+
 
 def test_cached_run_single_function(spot):
     """
@@ -25,7 +28,7 @@ def test_cached_run_single_function(spot):
         # 1st run: Execution
         assert task(10, 20) == 30
         assert call_count == 1
-        
+
         # 2nd run: Cache Hit
         assert task(10, 20) == 30
         assert call_count == 1  # Count should not increase
@@ -33,6 +36,7 @@ def test_cached_run_single_function(spot):
     # Verify context exit doesn't kill the spot
     # (Checking if spot is still usable)
     assert spot.db is not None
+
 
 def test_cached_run_multiple_functions(spot):
     """
@@ -55,11 +59,12 @@ def test_cached_run_multiple_functions(spot):
     with spot.cached_run(func_a, func_b) as (task_a, task_b):
         assert task_a(5) == 10
         assert task_b(5) == 105
-        
+
         # Check caching individually
         assert task_a(5) == 10
         assert calls_a == 1
         assert calls_b == 1
+
 
 def test_cached_run_options_applied(spot):
     """
@@ -75,28 +80,31 @@ def test_cached_run_options_applied(spot):
     # Apply version="v2"
     with spot.cached_run(sensitive_task, version="v2") as task:
         task("test")
-    
+
     assert call_count == 1
-    
+
     # Verify in DB that version is recorded
     # (Assuming internal DB structure, or checking cache miss with different version)
-    
+
     # Same input, different version -> Should be a cache miss (call_count increases)
     with spot.cached_run(sensitive_task, version="v3") as task_v3:
         task_v3("test")
-    
+
     assert call_count == 2
+
 
 def test_run_deprecation_warning(spot):
     """
     Ensure spot.run() raises a DeprecationWarning.
     """
+
     def old_style_func(x):
         return x
 
     with pytest.warns(DeprecationWarning, match="cached_run"):
         res = spot.run(old_style_func, 10)
         assert res == 10
+
 
 def test_cached_run_input_validation(spot):
     """
@@ -123,8 +131,11 @@ def test_cached_run_strict_scoping(spot):
 
     # 2. Outside block: Should raise RuntimeError
     # The variable 'task' still exists, but the guard should prevent execution.
-    with pytest.raises(RuntimeError, match="called outside of its 'cached_run' context"):
+    with pytest.raises(
+        RuntimeError, match="called outside of its 'cached_run' context"
+    ):
         captured_task(10)
+
 
 @pytest.mark.asyncio
 async def test_cached_run_strict_scoping_async(spot):
@@ -143,6 +154,7 @@ async def test_cached_run_strict_scoping_async(spot):
         assert res == 10
 
     # 2. Outside block
-    with pytest.raises(RuntimeError, match="called outside of its 'cached_run' context"):
+    with pytest.raises(
+        RuntimeError, match="called outside of its 'cached_run' context"
+    ):
         await captured_task(5)
-
