@@ -27,6 +27,14 @@ class BlobStorageBase(ABC):
     def load(self, location: str) -> Any:
         pass
 
+    @abstractmethod
+    def delete(self, location: str) -> None:
+        """
+        Delete the blob at the specified location.
+        If the file does not exist, it should fail silently or log a warning, but not raise generic errors.
+        """
+        pass
+
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str):
@@ -84,6 +92,19 @@ class LocalStorage(BlobStorageBase):
         #     # クラス定義変更やファイル破損時
         #     raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
 
+    def delete(self, location: str) -> None:
+        # location は save() が返したフルパスであることを期待
+        if os.path.exists(location):
+            # 安全のため、base_dir 内かチェックしても良いが、
+            # load() 同様、一旦は信頼して削除する
+            try:
+                os.remove(location)
+            except OSError as e:
+                # 権限エラーなどは呼び出し元に伝えるべきかもしれないが、
+                # キャッシュ削除の文脈では「消そうとしたが消せなかった」はWarningで済ますことが多い
+                print(e)
+                pass
+
 
 class S3Storage(BlobStorageBase):
     def __init__(self, s3_uri: str, s3_opts: dict | None = None):
@@ -113,6 +134,13 @@ class S3Storage(BlobStorageBase):
         # except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
         #     raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
 
+    def delete(self, location: str) -> None:
+        parts = location.replace("s3://", "").split("/", 1)
+        try:
+            self.s3.delete_object(Bucket=parts[0], Key=parts[1])
+        except ClientError:
+            # S3のdelete_objectは存在しなくてもエラーにならないが、権限エラー等はキャッチ
+            pass
 
 def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
     """

@@ -740,3 +740,29 @@ class Spot:
                 func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
             )
 
+    def delete(self, cache_key: str) -> bool:
+        """
+        Delete a cached task record and its associated blob data (if any).
+        
+        Args:
+            cache_key: The cache key of the task to delete.
+            
+        Returns:
+            bool: True if the task was found and deleted, False otherwise.
+        """
+        # 1. DBからレコード情報を取得 (Blobの場所を知るため)
+        record = self.db.get(cache_key)
+        if not record:
+            return False
+
+        # 2. Blobがあれば削除
+        if record["result_type"] == "FILE" and record["result_value"]:
+            try:
+                # storage.delete は location (パス/URI) を受け取る
+                self.storage.delete(record["result_value"])
+            except Exception as e:
+                logger.warning(f"Failed to delete blob for key '{cache_key}': {e}")
+
+        # 3. DBレコードを削除
+        return self.db.delete(cache_key)
+

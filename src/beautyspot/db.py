@@ -61,6 +61,14 @@ class TaskDB(ABC):
         """Fetch task history for analysis/dashboard."""
         pass
 
+    @abstractmethod
+    def delete(self, cache_key: str) -> bool:
+        """
+        Delete a task record by cache_key.
+        Returns True if a record was deleted, False otherwise.
+        """
+        pass
+
 
 class SQLiteTaskDB(TaskDB):
     """
@@ -182,4 +190,12 @@ class SQLiteTaskDB(TaskDB):
                 LIMIT ?
             """
             return pd.read_sql_query(query, conn, params=[limit,])
+
+    def delete(self, cache_key: str) -> bool:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "DELETE FROM tasks WHERE cache_key=?",
+                (cache_key,)
+            )
+            return cursor.rowcount > 0
 

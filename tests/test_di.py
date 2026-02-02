@@ -1,7 +1,7 @@
 # tests/test_di.py
 
 from concurrent.futures import ThreadPoolExecutor
-import msgpack  # 追加
+import msgpack
 from beautyspot import Spot
 from beautyspot.storage import BlobStorageBase
 from beautyspot.db import TaskDB
@@ -20,6 +20,11 @@ class MockStorage(BlobStorageBase):
         if key not in self.data:
             raise FileNotFoundError(key)
         return self.data[key]
+
+    def delete(self, location: str) -> None:
+        key = location.replace("mock://", "")
+        if key in self.data:
+            del self.data[key]
 
 
 class MockDB(TaskDB):
@@ -40,15 +45,21 @@ class MockDB(TaskDB):
         version,
         result_type,
         content_type,
-        result_value=None,  # デフォルト引数
-        result_data=None,   # 新しい引数を追加
+        result_value=None,
+        result_data=None,
     ):
         self.store[cache_key] = {
             "func_name": func_name,
             "result_value": result_value,
-            "result_data": result_data,  # 保存
+            "result_data": result_data,
             "result_type": result_type,
         }
+
+    def delete(self, cache_key: str) -> bool:
+        if cache_key in self.store:
+            del self.store[cache_key]
+            return True
+        return False
 
     def get_history(self, limit=1000):
         import pandas as pd
@@ -79,8 +90,7 @@ def test_custom_storage_injection(tmp_path):
 
 def test_custom_db_injection(tmp_path):
     """Test injecting a custom DB backend."""
-    # Base64インポートは不要になったため削除
-
+    
     db = MockDB()
     project = Spot(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
 

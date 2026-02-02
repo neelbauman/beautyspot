@@ -238,3 +238,48 @@ if selected_key:
             st.error(f"Restore Failed: {e}")
             st.exception(e)
 
+st.markdown("---")
+st.subheader("🗑️ Danger Zone")
+
+if selected_key:
+    # 削除ボタンを Popover (確認ダイアログ的な挙動) でラップ
+    with st.popover("Delete Record", use_container_width=True):
+        st.markdown(f"Are you sure you want to delete **`{selected_key}`**?")
+        st.warning("This action cannot be undone. The database record and associated blob file will be removed.")
+        
+        if st.button("Confirm Delete", type="primary"):
+            try:
+                # 1. DB接続
+                db = SQLiteTaskDB(DB_PATH)
+                
+                # 2. Blob削除のための情報取得
+                # (load_data() の df から情報を取れるが、念のためDBから最新を引く)
+                record = db.get(selected_key)
+                
+                if record:
+                    # Blob削除
+                    if record["result_type"] == "FILE" and record["result_value"]:
+                        r_val = record["result_value"]
+                        if r_val.startswith("s3://"):
+                            storage = S3Storage(r_val)
+                            storage.delete(r_val)
+                        else:
+                            # Local file
+                            if os.path.exists(r_val):
+                                os.remove(r_val)
+                    
+                    # レコード削除
+                    db.delete(selected_key)
+                    
+                    st.success(f"Deleted `{selected_key}`")
+                    # データをリフレッシュして再描画
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.error("Record not found in DB.")
+                    
+            except Exception as e:
+                st.error(f"Failed to delete: {e}")
+else:
+    st.info("Select a record to enable deletion.")
+
