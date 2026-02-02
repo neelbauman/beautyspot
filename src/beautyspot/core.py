@@ -9,14 +9,7 @@ import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
 from pathlib import Path  # Added Path
-from typing import Any, Callable, Optional, Union, Type, overload, TypeVar
-
-# Python 3.10+ では typing.ParamSpec が使えますが、
-# ライブラリの互換性を考慮して typing_extensions を使うか、バージョン分岐します
-try:
-    from typing import ParamSpec
-except ImportError:
-    from typing_extensions import ParamSpec
+from typing import Any, Callable, Optional, Union, Type, overload, TypeVar, Generic, TypeVarTuple, Unpack, ParamSpec
 
 from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
@@ -27,6 +20,8 @@ from .cachekey import KeyGen, KeyGenPolicy
 # ジェネリクスの定義
 P = ParamSpec("P")
 R = TypeVar("R")
+T = TypeVar("T")
+Ts = TypeVarTuple("Ts")
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -35,7 +30,7 @@ logger.addHandler(logging.NullHandler())
 CACHE_MISS = object()
 
 
-class ScopedMark:
+class ScopedMark(Generic[R]):
     """
     Helper context manager for 'with spot.cached_run(...):'.
     Enforces that the cached function can only be called within the block.
@@ -46,7 +41,7 @@ class ScopedMark:
         self.options = options
         self._is_active = False  # コンテキストの状態管理フラグ
 
-    def __enter__(self):
+    def __enter__(self) -> R:
         self._is_active = True
 
         def make_scoped_guard(func):
@@ -79,9 +74,10 @@ class ScopedMark:
         # 全ての関数にガードを適用
         wrappers = [make_scoped_guard(f) for f in self.funcs]
         
+        # 実行時の戻り値制御（型定義と実装の辻褄合わせ）
         if len(wrappers) == 1:
-            return wrappers[0]
-        return tuple(wrappers)
+            return wrappers[0] # type: ignore
+        return tuple(wrappers) # type: ignore
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # コンテキスト終了時にフラグを下ろす
@@ -242,10 +238,10 @@ class Spot:
     def register(
         self,
         code: int,
-        encoder: Callable[[Any], bytes],
-        decoder: Optional[Callable[[bytes], Any]] = None,
-        decoder_factory: Optional[Callable[[Type], Callable[[bytes], Any]]] = None,
-    ) -> Callable[[Type], Type]:
+        encoder: Callable[[T], bytes],
+        decoder: Optional[Callable[[bytes], T]] = None,
+        decoder_factory: Optional[Callable[[Type[T]], Callable[[bytes], T]]] = None,
+    ) -> Callable[[Type[T]], Type[T]]:
         """
         Decorator to register a custom type for serialization.
         """
@@ -631,9 +627,39 @@ class Spot:
 
         return decorator
 
+    # ----------------------------------------------------------------
+    # cached_run: TypeVarTuple Powered Overloads
+    # ----------------------------------------------------------------
+    
+    # Case 1: 単一の関数 -> 単体のラッパーを返す
+    @overload
     def cached_run(
         self,
-        *funcs: Callable,
+        func: T,
+        /,
+        *,
+        save_blob: Optional[bool] = None,
+        input_key_fn: Optional[Callable] = None,
+        version: str | None = None,
+        content_type: Optional[str] = None,
+    ) -> ScopedMark[T]:
+        ...
+
+    # Case 2: 複数の関数 -> タプルで返す (型情報を維持)
+    @overload
+    def cached_run(
+        self,
+        *funcs: Unpack[Ts],
+        save_blob: Optional[bool] = None,
+        input_key_fn: Optional[Callable] = None,
+        version: str | None = None,
+        content_type: Optional[str] = None,
+    ) -> ScopedMark[tuple[Unpack[Ts]]]:
+        ...
+
+    def cached_run(
+        self,
+        *funcs: Any,
         save_blob: Optional[bool] = None,
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
@@ -664,6 +690,11 @@ class Spot:
         """
         if not funcs:
             raise ValueError("At least one function must be provided to cached_run.")
+
+        # Runtime Check (for safety)
+        for f in funcs:
+            if not callable(f):
+                raise TypeError(f"All arguments to cached_run must be callable. Got: {type(f)}")
 
         return ScopedMark(
             self,

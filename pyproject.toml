@@ -7,7 +7,7 @@ authors = [
     { name = "Neel Bauman", email = "neel.bauman@example.com" }
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
     "msgpack>=1.1.2",
