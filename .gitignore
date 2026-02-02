@@ -20,3 +20,6 @@ chat_logs/
 
 # mkdocs
 site
+
+# Generated version file
+src/beautyspot/_version.py
