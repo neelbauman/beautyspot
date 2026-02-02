@@ -63,6 +63,7 @@ nav:
       - CLI & Dashboard: guides/cli.md           # 新規追加
       - Data Serialization: guides/serialization.md
       - Rate Limiting: guides/rate_limiting.md   # リネーム反映
+      - Cookbook: guides/cookbook.md   # リネーム反映
   - Advanced Topics:
       - Custom Backends (DI): guides/custom_backend.md # 復活
       - Architecture: reference/architecture.md
