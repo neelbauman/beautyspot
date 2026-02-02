@@ -106,3 +106,43 @@ def test_cached_run_input_validation(spot):
         with spot.cached_run():
             pass
 
+
+def test_cached_run_strict_scoping(spot):
+    """
+    Verify that the cached function raises RuntimeError when called outside the 'with' block.
+    """
+    captured_task = None
+
+    def simple_task(x):
+        return x + 1
+
+    # 1. Inside block: Should work normally
+    with spot.cached_run(simple_task) as task:
+        captured_task = task
+        assert task(10) == 11
+
+    # 2. Outside block: Should raise RuntimeError
+    # The variable 'task' still exists, but the guard should prevent execution.
+    with pytest.raises(RuntimeError, match="called outside of its 'cached_run' context"):
+        captured_task(10)
+
+@pytest.mark.asyncio
+async def test_cached_run_strict_scoping_async(spot):
+    """
+    Verify strict scoping for async functions.
+    """
+    captured_task = None
+
+    async def async_task(x):
+        return x * 2
+
+    # 1. Inside block
+    with spot.cached_run(async_task) as task:
+        captured_task = task
+        res = await task(5)
+        assert res == 10
+
+    # 2. Outside block
+    with pytest.raises(RuntimeError, match="called outside of its 'cached_run' context"):
+        await captured_task(5)
+
