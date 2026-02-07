@@ -76,3 +76,44 @@ def test_project_defaults_decorator(tmp_path, inspect_db):
     # Check the entry for task_override
     entry = next(e for e in entries if e["func_name"] == "task_override")
     assert entry["result_type"] == "DIRECT_BLOB"
+
+
+def test_default_version_applied(tmp_path):
+    """Spot初期化時のdefault_versionがタスクに適用されるか確認"""
+    # 1. default_version を指定して初期化
+    spot = Spot(
+        name="version_test",
+        db=str(tmp_path / "v_test.db"),
+        default_version="v1.0"
+    )
+
+    @spot.mark
+    def my_task(x):
+        return x * 2
+
+    # 実行
+    my_task(10)
+
+    # 2. 保存されたレコードを確認
+    df = spot.db.get_history()
+    assert len(df) == 1
+    # バグがある場合、ここは None になりアサーションエラーになるはず
+    assert df.iloc[0]["version"] == "v1.0" 
+
+def test_override_default_version(tmp_path):
+    """default_versionがあっても、個別に指定したversionが優先されるか"""
+    spot = Spot(
+        name="version_override",
+        db=str(tmp_path / "vo_test.db"),
+        default_version="v1.0"
+    )
+
+    @spot.mark(version="v2.0-beta")
+    def my_task_v2(x):
+        return x * 2
+
+    my_task_v2(10)
+
+    df = spot.db.get_history()
+    assert df.iloc[0]["version"] == "v2.0-beta"
+

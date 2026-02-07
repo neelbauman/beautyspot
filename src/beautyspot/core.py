@@ -569,6 +569,13 @@ class Spot:
         if save_blob is None:
             save_blob = self.default_save_blob
 
+        # 追加: デフォルト値の解決
+        if version is None:
+            version = self.default_version
+        
+        if content_type is None:
+            content_type = self.default_content_type
+
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
