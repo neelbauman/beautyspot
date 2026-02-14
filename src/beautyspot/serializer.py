@@ -1,5 +1,17 @@
 import msgpack
-from typing import Any, Callable, Dict, Type, Tuple
+from typing import Any, Callable, Dict, Type, Tuple, Protocol, runtime_checkable
+
+@runtime_checkable
+class SerializerProtocol(Protocol):
+    """
+    Protocol for custom serializers.
+    Any object implementing these methods can be used as a serializer.
+    """
+    def dumps(self, obj: Any) -> bytes:
+        ...
+
+    def loads(self, data: bytes) -> Any:
+        ...
 
 
 class SerializationError(Exception):

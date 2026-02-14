@@ -26,7 +26,7 @@ from typing import (
 from .limiter import TokenBucket
 from .storage import BlobStorageBase, create_storage
 from .db import TaskDB, SQLiteTaskDB
-from .serializer import MsgpackSerializer, SerializationError
+from .serializer import MsgpackSerializer, SerializationError, SerializerProtocol
 from .cachekey import KeyGen, KeyGenPolicy
 
 # ジェネリクスの定義
@@ -171,7 +171,7 @@ class Spot:
         self.bucket = TokenBucket(tpm)
 
         # --- Serializer Setup ---
-        self.serializer = MsgpackSerializer()
+        self.serializer: SerializerProtocol = MsgpackSerializer()
 
         # --- Storage 初期化 ---
         if storage is not None:
@@ -347,7 +347,14 @@ class Spot:
             encoder: Function that converts obj -> intermediate serializable object (e.g. dict)
             decoder: Function that converts intermediate object -> obj
         """
-        self.serializer.register(type_, code, encoder, decoder)
+        if isinstance(self.serializer, MsgpackSerializer):
+            self.serializer.register(type_, code, encoder, decoder)
+        else:
+            # Msgpack以外 (Pickle等) が使われている場合、登録機能は使えない旨を通知
+            raise NotImplementedError(
+                f"The current serializer '{type(self.serializer).__name__}' does not support type registration.\n"
+                "The `@spot.register` decorator is only compatible with the default MsgpackSerializer."
+            )
 
     # --- Core Logic (Sync) ---
 
@@ -396,7 +403,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
-        serializer: Any,
+        serializer: Optional[SerializerProtocol],
     ) -> Any:
         """Internal synchronous execution logic."""
         # Resolve Defaults
@@ -433,7 +440,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
-        serializer: Any,
+        serializer: Optional[SerializerProtocol],
     ) -> Any:
         """Internal asynchronous execution logic."""
         # Resolve Defaults
@@ -471,7 +478,7 @@ class Spot:
         return res
 
     # --- Core Logic (Sync) ---
-    def _check_cache_sync(self, cache_key: str, serializer: Any) -> Any:
+    def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol]) -> Any:
         use_serializer = serializer or self.serializer
 
         entry = self.db.get(cache_key)
@@ -506,7 +513,15 @@ class Spot:
         return CACHE_MISS  # エントリがない場合はMISS
 
     def _save_result_sync(
-            self, cache_key, func_name, input_id, version, result, content_type, save_blob, serializer: Any,
+        self,
+        cache_key,
+        func_name,
+        input_id,
+        version,
+        result,
+        content_type,
+        save_blob,
+        serializer: Optional[SerializerProtocol],
     ):
         use_serializer = serializer or self.serializer
 
@@ -598,7 +613,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
-        serializer: Optional[Any] = None,
+        serializer: Optional[SerializerProtocol] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     # ----------------------------------------------------------------
@@ -613,7 +628,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
-        serializer: Optional[Any] = None,
+        serializer: Optional[SerializerProtocol] = None,
     ) -> Any:
         """
         Mark a function as a managed spot (Resumable Task Decorator).
@@ -753,7 +768,7 @@ class Spot:
 
         version: str | None = None,
         content_type: Optional[str] = None,
-        serializer: Optional[Any] = None,
+        serializer: Optional[SerializerProtocol] = None,
     ) -> ScopedMark[T]: ...
 
     # Case 2: 複数の関数 -> タプルで返す (型情報を維持)
@@ -766,7 +781,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
-        serializer: Optional[Any] = None,
+        serializer: Optional[SerializerProtocol] = None,
     ) -> ScopedMark[tuple[Unpack[Ts]]]: ...
 
     def cached_run(
@@ -777,7 +792,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,  # Deprecated
         version: str | None = None,
         content_type: Optional[str] = None,
-        serializer: Optional[Any] = None,
+        serializer: Optional[SerializerProtocol] = None,
     ):
         """
         Create a temporary context for executing function(s) with caching.
@@ -850,7 +865,7 @@ class Spot:
         _input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         _version: str | None = None,
         _content_type: Optional[str] = None,
-        _serializer: Optional[Any] = None,
+        _serializer: Optional[SerializerProtocol] = None,
         **kwargs,
     ) -> Any:
         """
