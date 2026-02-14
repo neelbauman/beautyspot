@@ -589,7 +589,7 @@ class Spot:
         *,
         save_blob: Optional[bool] = None,
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Callable] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
@@ -740,7 +740,8 @@ class Spot:
         *,
         save_blob: Optional[bool] = None,
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Callable] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
+
         version: str | None = None,
         content_type: Optional[str] = None,
     ) -> ScopedMark[T]: ...
@@ -752,7 +753,7 @@ class Spot:
         *funcs: Unpack[Ts],
         save_blob: Optional[bool] = None,
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Callable] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
     ) -> ScopedMark[tuple[Unpack[Ts]]]: ...
@@ -832,7 +833,7 @@ class Spot:
         func: Callable,
         *args,
         _save_blob: Optional[bool] = None,
-        _input_key_fn: Optional[Callable] = None,
+        _input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         _version: str | None = None,
         _content_type: Optional[str] = None,
         **kwargs,
