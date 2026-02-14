@@ -478,7 +478,7 @@ class Spot:
         return res
 
     # --- Core Logic (Sync) ---
-    def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol]) -> Any:
+    def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol] = None) -> Any:
         use_serializer = serializer or self.serializer
 
         entry = self.db.get(cache_key)
@@ -514,14 +514,14 @@ class Spot:
 
     def _save_result_sync(
         self,
-        cache_key,
-        func_name,
-        input_id,
-        version,
-        result,
-        content_type,
-        save_blob,
-        serializer: Optional[SerializerProtocol],
+        cache_key: str,
+        func_name: str,
+        input_id: str,
+        version: str | None,
+        result: Any,
+        content_type: str | None,
+        save_blob: bool,
+        serializer: Optional[SerializerProtocol] = None,
     ):
         use_serializer = serializer or self.serializer
 
@@ -765,7 +765,6 @@ class Spot:
         save_blob: Optional[bool] = None,
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
