@@ -2,18 +2,25 @@
 
 import pytest
 import msgpack
+import io  # 追加
 from beautyspot import Spot, SerializationError
 
 # --- Pydantic Availability Check ---
 try:
     from pydantic import BaseModel
-
     HAS_PYDANTIC = True
 except ImportError:
     HAS_PYDANTIC = False
 
-    class BaseModel:
-        pass
+# --- NumPy Availability Check ---
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
+
+# ... (既存のテストクラス・関数)
 
 
 @pytest.fixture
@@ -187,3 +194,59 @@ def test_unregistered_object_error(spot):
     assert "Object of type 'Stranger' is not serializable" in str(excinfo.value)
     # [FIXED] Updated hint message to match current implementation
     assert "Use `spot.register(...)`" in str(excinfo.value)
+
+
+# ----------------------------------------------------------------
+# 4. Binary/NumPy Integration Tests
+# ----------------------------------------------------------------
+
+
+@pytest.mark.skipif(not HAS_NUMPY, reason="NumPy not installed")
+def test_register_numpy_binary(spot):
+    """
+    Case 5: NumPy array serialization via strict binary format (.npy).
+    Verifies that 'bytes' returned by encoder are correctly handled as Msgpack bin type.
+    """
+
+    # Helper functions for npy format
+    def npy_encoder(arr):
+        with io.BytesIO() as f:
+            np.save(f, arr, allow_pickle=False)
+            return f.getvalue()
+
+    def npy_decoder(data):
+        with io.BytesIO(data) as f:
+            return np.load(f, allow_pickle=False)
+
+    # Register directly to the type (mimicking spot.register_type usage)
+    spot.register_type(
+        type_=np.ndarray,
+        code=50,
+        encoder=npy_encoder,
+        decoder=npy_decoder
+    )
+
+    # Create a random array
+    original_arr = np.random.rand(3, 3).astype(np.float32)
+
+    # 1. Serialize
+    packed = spot.serializer.dumps(original_arr)
+
+    # 2. Verify Internal Structure (Msgpack Bin Type check)
+    # unpackb -> ExtType(code=50, data=bytes)
+    unpacked_ext = msgpack.unpackb(packed)
+    assert unpacked_ext.code == 50
+
+    actual_binary_payload = msgpack.unpackb(unpacked_ext.data)
+
+    # The payload should be the raw bytes from .npy, NOT a string
+    assert isinstance(actual_binary_payload, bytes)
+    assert actual_binary_payload.startswith(b"\x93NUMPY")  # .npy header signature
+
+    # 3. Deserialize & Compare
+    restored_arr = spot.serializer.loads(packed)
+    
+    assert isinstance(restored_arr, np.ndarray)
+    assert restored_arr.shape == (3, 3)
+    assert restored_arr.dtype == np.float32
+    assert np.array_equal(restored_arr, original_arr)

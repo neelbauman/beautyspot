@@ -13,7 +13,7 @@ def test_cache_key_changes_on_model_update():
     class UserConfig_1(BaseModel):
         name: str
 
-    key_v1 = KeyGen.default((UserConfig_1,), {})
+    key_v1 = KeyGen._default((UserConfig_1,), {})
 
     # Define Model Version 2 (Same name, different fields)
     # Python allows redefining classes, which creates a new type object.
@@ -21,7 +21,7 @@ def test_cache_key_changes_on_model_update():
         name: str
         age: int  # Added field
 
-    key_v2 = KeyGen.default((UserConfig_2,), {})
+    key_v2 = KeyGen._default((UserConfig_2,), {})
 
     assert key_v1 != key_v2, (
         "Cache key must change when Pydantic model definition changes"

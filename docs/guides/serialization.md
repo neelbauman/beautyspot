@@ -37,35 +37,36 @@ graph LR
 * Python プリミティブ (`int`, `float`, `str`, `bool`, `bytes`, `None`)
 * コレクション (`dict`, `list`, `tuple`)
 
+
 ## カスタム型の登録 (`spot.register`)
 
-独自のクラスや、標準でサポートされていない型（例: Pandas DataFrame, PyTorch Tensorなど）を関数の **戻り値** として返したい場合、`register` デコレータを使ってシリアライズ方法を教える必要があります。
+独自のクラスや、標準でサポートされていない型を戻り値として返したい場合、`register` デコレータを使います。
+
+**Point:** `dict` や `list` など、Msgpackで扱える基本的な型を返せば、`beautyspot` が自動的にバイナリへ変換（パック）します。
 
 ### 基本的な使い方
 
 クラス定義にデコレータを添えるだけです。
 
 ```python
-import msgpack
-
 @spot.register(
     code=10,  # 0-127 の間でユニークなIDを指定
-    encoder=lambda obj: obj.to_bytes(),        # Object -> bytes
-    decoder=lambda data: MyClass.from_bytes(data) # bytes -> Object
+    encoder=lambda obj: obj.to_dict(),          # Object -> Dict (or any serializable)
+    decoder=lambda data: MyClass.from_dict(data) # Dict -> Object
 )
 class MyClass:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-    def to_bytes(self):
-        return msgpack.packb([self.x, self.y])
+    def to_dict(self):
+        # 単に辞書を返すだけ！
+        return {"x": self.x, "y": self.y}
 
     @staticmethod
-    def from_bytes(data):
-        x, y = msgpack.unpackb(data)
-        return MyClass(x, y)
-
+    def from_dict(data):
+        # data は自動的に unpack された状態で渡されます
+        return MyClass(data["x"], data["y"])
 ```
 
 ### 既存のライブラリ型を登録する

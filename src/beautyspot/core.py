@@ -295,6 +295,8 @@ class Spot:
     ) -> Callable[[Type[T]], Type[T]]:
         """
         Decorator to register a custom type for serialization.
+        The `encoder` should return a msgpack-serializable object (dict, list, str, int, bytes, etc.).
+        The `decoder` will receive the unpacked object (mirroring what the encoder returned).
 
         The encoder should return a serializable object (dict, list, int, etc.),
         NOT raw bytes. The serializer handles packing/unpacking automatically.
@@ -318,10 +320,16 @@ class Spot:
         return decorator
 
     def register_type(
-        self, type_: Type, code: int, encoder: Callable, decoder: Callable
+        self,
+        type_: Type[T],
+        code: int,
+        encoder: Callable[[T], Any],
+        decoder: Callable[[Any], T],
     ):
         """
         Register a custom type for serialization (Msgpack Extension Type).
+        The encoder can return any msgpack-serializable object (dict, list, str, bytes, etc.).
+    The decoder will receive the unpacked object (mirroring what the encoder returned).
 
         Args:
             type_: The class to handle (e.g. MyClass)
@@ -359,7 +367,7 @@ class Spot:
         iid = (
             input_key_fn(*args, **kwargs)
             if input_key_fn
-            else KeyGen.default(args, kwargs)
+            else KeyGen._default(args, kwargs)
         )
 
         key_source = f"{func_name}:{iid}"
@@ -615,7 +623,7 @@ class Spot:
                 iid = (
                     effective_key_fn(*args, **kwargs)
                     if effective_key_fn
-                    else KeyGen.default(args, kwargs)
+                    else KeyGen._default(args, kwargs)
                 )
 
                 key_source = f"{func.__name__}:{iid}"

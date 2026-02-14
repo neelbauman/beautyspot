@@ -118,8 +118,8 @@ class MyModel:
 spot.register_type(
     type_=MyModel,
     code=10,
-    encoder=lambda obj: obj.name.encode('utf-8'),
-    decoder=lambda data: MyModel(data.decode('utf-8'))
+    encoder=lambda obj: obj.name,
+    decoder=lambda data: MyModel(data),
 )
 
 ```
@@ -226,7 +226,7 @@ spot = bs.Spot(
 spot.register_type(
     type_=AnalysisResult,
     code=20,
-    encoder=lambda o: json.dumps({"s": o.score, "t": o.summary}).encode(),
+    encoder=lambda o: json.dumps({"s": o.score, "t": o.summary}),
     decoder=lambda b: AnalysisResult(**{k:v for k,v in json.loads(b).items() if k in ["s","t"]})
 )
 

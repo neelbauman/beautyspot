@@ -46,14 +46,14 @@ def test_stable_hash_dict_order():
     # 正規化構造の一致確認
     assert canonicalize(d1) == canonicalize(d2)
     # ハッシュの一致確認
-    assert KeyGen.default((d1,), {}) == KeyGen.default((d2,), {})
+    assert KeyGen._default((d1,), {}) == KeyGen._default((d2,), {})
 
 
 def test_stable_hash_set_order():
     """集合の順序が異なっても同じハッシュになるか"""
     s1 = {3, 1, 2}
     s2 = {1, 2, 3}
-    assert KeyGen.default((s1,), {}) == KeyGen.default((s2,), {})
+    assert KeyGen._default((s1,), {}) == KeyGen._default((s2,), {})
 
 
 def test_custom_object_stability():
@@ -67,11 +67,11 @@ def test_custom_object_stability():
     o2.x = 10
 
     # メモリアドレスが異なり、内部辞書の順序が違っても、内容は同じ
-    assert KeyGen.default((o1,), {}) == KeyGen.default((o2,), {})
+    assert KeyGen._default((o1,), {}) == KeyGen._default((o2,), {})
 
     # 値が違えば別ハッシュ
     o3 = SimpleObj(10, 21)
-    assert KeyGen.default((o1,), {}) != KeyGen.default((o3,), {})
+    assert KeyGen._default((o1,), {}) != KeyGen._default((o3,), {})
 
 
 def test_slots_object_stability():
@@ -80,17 +80,17 @@ def test_slots_object_stability():
     s2 = SlotsObj(1, 2)
 
     # Slotsは__dict__を持たないが、正しく値を拾えるか
-    assert KeyGen.default((s1,), {}) == KeyGen.default((s2,), {})
+    assert KeyGen._default((s1,), {}) == KeyGen._default((s2,), {})
 
     s3 = SlotsObj(1, 99)
-    assert KeyGen.default((s1,), {}) != KeyGen.default((s3,), {})
+    assert KeyGen._default((s1,), {}) != KeyGen._default((s3,), {})
 
 
 def test_dataclass_stability():
     """Dataclassが正しく正規化されるか"""
     d1 = DataClassObj("test", 100)
     d2 = DataClassObj("test", 100)
-    assert KeyGen.default((d1,), {}) == KeyGen.default((d2,), {})
+    assert KeyGen._default((d1,), {}) == KeyGen._default((d2,), {})
 
 
 def test_nested_complex_structure():
@@ -107,7 +107,7 @@ def test_nested_complex_structure():
         np.array([1, 2, 3]),
     ]
 
-    assert KeyGen.default((complex1,), {}) == KeyGen.default((complex2,), {})
+    assert KeyGen._default((complex1,), {}) == KeyGen._default((complex2,), {})
 
 
 def test_numpy_collision_avoidance():
@@ -124,8 +124,8 @@ def test_numpy_collision_avoidance():
     if str(arr1) == str(arr2):
         pass  # Expected behavior for large arrays
 
-    hash1 = KeyGen.default((arr1,), {})
-    hash2 = KeyGen.default((arr2,), {})
+    hash1 = KeyGen._default((arr1,), {})
+    hash2 = KeyGen._default((arr2,), {})
 
     assert hash1 != hash2, "Collision! Large numpy arrays must not hash to same key."
 
@@ -149,7 +149,7 @@ def test_mixed_types_sorting():
 
     # エラーにならず実行できること
     try:
-        key = KeyGen.default((d,), {})
+        key = KeyGen._default((d,), {})
         assert isinstance(key, str)
     except TypeError:
         pytest.fail("KeyGen raised TypeError on mixed type sorting.")
@@ -162,6 +162,6 @@ def test_circular_reference_fallback():
 
     # RecursionErrorにならずにハッシュが返ること
     # (実装上は str(d) にフォールバックするはず)
-    key = KeyGen.default((d,), {})
+    key = KeyGen._default((d,), {})
     assert isinstance(key, str)
     assert len(key) == 64  # SHA-256 hex digest length

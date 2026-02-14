@@ -220,7 +220,7 @@ class KeyGen:
         return hasher.hexdigest()
 
     @staticmethod
-    def default(args: tuple, kwargs: dict) -> str:
+    def _default(args: tuple, kwargs: dict) -> str:
         """
         Generates a stable SHA-256 hash from function arguments using recursive canonicalization.
         This is the default legacy behavior sensitive to args/kwargs structure.
