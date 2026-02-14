@@ -396,6 +396,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
+        serializer: Any,
     ) -> Any:
         """Internal synchronous execution logic."""
         # Resolve Defaults
@@ -412,7 +413,7 @@ class Spot:
         )
 
         # 1. Check Cache
-        cached = self._check_cache_sync(ck)
+        cached = self._check_cache_sync(ck, serializer)
         if cached is not CACHE_MISS:
             return cached
 
@@ -420,7 +421,7 @@ class Spot:
         res = func(*args, **kwargs)
 
         # 3. Save
-        self._save_result_sync(ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob)
+        self._save_result_sync(ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
         return res
 
     async def _execute_async(
@@ -432,6 +433,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
+        serializer: Any,
     ) -> Any:
         """Internal asynchronous execution logic."""
         # Resolve Defaults
@@ -446,7 +448,7 @@ class Spot:
         loop = asyncio.get_running_loop()
 
         # 1. Check Cache (Offload IO)
-        cached = await loop.run_in_executor(self.executor, self._check_cache_sync, ck)
+        cached = await loop.run_in_executor(self.executor, self._check_cache_sync, ck, serializer)
         if cached is not CACHE_MISS:
             return cached
 
@@ -464,11 +466,14 @@ class Spot:
             res,
             s_ct,
             s_blob,
+            serializer,
         )
         return res
 
     # --- Core Logic (Sync) ---
-    def _check_cache_sync(self, cache_key: str) -> Any:
+    def _check_cache_sync(self, cache_key: str, serializer: Any) -> Any:
+        use_serializer = serializer or self.serializer
+
         entry = self.db.get(cache_key)
 
         if entry:
@@ -482,7 +487,7 @@ class Spot:
                     return CACHE_MISS  # データ破損時もMISS扱い
                     return None
                 try:
-                    return self.serializer.loads(r_data)
+                    return use_serializer.loads(r_data)
                 except Exception as e:
                     logger.error(
                         f"Failed to deserialize DIRECT_BLOB for `{cache_key}`: {e}"
@@ -494,18 +499,19 @@ class Spot:
                 try:
                     # result_value is treated strictly as a Path/URI
                     data_bytes = self.storage.load(r_val)
-                    return self.serializer.loads(data_bytes)
+                    return use_serializer.loads(data_bytes)
                 except Exception:
                     return CACHE_MISS
 
         return CACHE_MISS  # エントリがない場合はMISS
 
-    # ... (以下のメソッドは変更なし) ...
     def _save_result_sync(
-        self, cache_key, func_name, input_id, version, result, content_type, save_blob
+            self, cache_key, func_name, input_id, version, result, content_type, save_blob, serializer: Any,
     ):
+        use_serializer = serializer or self.serializer
+
         try:
-            data_bytes = self.serializer.dumps(result)
+            data_bytes = use_serializer.dumps(result)
         except SerializationError as e:
             # Fail fast if the type is not registered.
             raise e
@@ -592,6 +598,7 @@ class Spot:
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
+        serializer: Optional[Any] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     # ----------------------------------------------------------------
@@ -606,6 +613,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
+        serializer: Optional[Any] = None,
     ) -> Any:
         """
         Mark a function as a managed spot (Resumable Task Decorator).
@@ -683,14 +691,14 @@ class Spot:
             def sync_wrapper(*args, **kwargs):
                 iid, ck = make_key(args, kwargs)
 
-                cached = self._check_cache_sync(ck)
+                cached = self._check_cache_sync(ck, serializer)
                 if cached is not CACHE_MISS:
                     return cached
 
                 res = func(*args, **kwargs)
 
                 self._save_result_sync(
-                    ck, func.__name__, str(iid), version, res, content_type, save_blob
+                    ck, func.__name__, str(iid), version, res, content_type, save_blob, serializer
                 )
                 return res
 
@@ -700,7 +708,7 @@ class Spot:
                 loop = asyncio.get_running_loop()
 
                 cached = await loop.run_in_executor(
-                    self.executor, self._check_cache_sync, ck
+                    self.executor, self._check_cache_sync, ck, serializer
                 )
                 if cached is not CACHE_MISS:
                     return cached
@@ -717,6 +725,7 @@ class Spot:
                     res,
                     content_type,
                     save_blob,
+                    serializer,
                 )
                 return res
 
@@ -743,6 +752,7 @@ class Spot:
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
+        serializer: Optional[Any] = None,
     ) -> ScopedMark[T]: ...
 
     # Case 2: 複数の関数 -> タプルで返す (型情報を維持)
@@ -755,6 +765,7 @@ class Spot:
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
+        serializer: Optional[Any] = None,
     ) -> ScopedMark[tuple[Unpack[Ts]]]: ...
 
     def cached_run(
@@ -765,6 +776,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,  # Deprecated
         version: str | None = None,
         content_type: Optional[str] = None,
+        serializer: Optional[Any] = None,
     ):
         """
         Create a temporary context for executing function(s) with caching.
@@ -786,6 +798,7 @@ class Spot:
                 Cache version string. Useful for invalidating cache without changing code.
             content_type (str, optional):
                 Metadata content type for the stored result.
+            serializer: Custom serializer object (e.g. pickle) for this context.
 
         Returns:
             ScopedMark: A context manager.
@@ -823,6 +836,7 @@ class Spot:
             input_key_fn=input_key_fn,
             version=version,
             content_type=content_type,
+            serializer=serializer,
         )
 
     # --- Imperative Execution ---
@@ -835,6 +849,7 @@ class Spot:
         _input_key_fn: Optional[Callable] = None,
         _version: str | None = None,
         _content_type: Optional[str] = None,
+        _serializer: Optional[Any] = None,
         **kwargs,
     ) -> Any:
         """
@@ -853,11 +868,11 @@ class Spot:
 
         if inspect.iscoroutinefunction(func):
             return self._execute_async(
-                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
+                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type, _serializer,
             )
         else:
             return self._execute_sync(
-                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type
+                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type, _serializer,
             )
 
     def delete(self, cache_key: str) -> bool:
