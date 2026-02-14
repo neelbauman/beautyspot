@@ -58,7 +58,24 @@ class TaskDB(ABC):
 
     @abstractmethod
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
-        """Fetch task history for analysis/dashboard."""
+        """
+        Fetch task execution history for analysis or dashboard visualization.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the most recent tasks.
+                
+                **Schema:**
+                - `cache_key` (str): Unique hash of the task.
+                - `func_name` (str): Name of the executed function.
+                - `input_id` (str): Canonical hash of the arguments.
+                - `version` (str): Version tag provided at execution.
+                - `result_type` (str): Storage type ('DIRECT_BLOB' or 'FILE').
+                - `content_type` (str): MIME type of the result.
+                - `updated_at` (datetime): Timestamp of the last execution/cache hit.
+
+        Raises:
+            ImportError: If 'pandas' is not installed.
+        """
         pass
 
     @abstractmethod

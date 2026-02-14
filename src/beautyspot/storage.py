@@ -20,19 +20,52 @@ class CacheCorruptedError(Exception):
 
 
 class BlobStorageBase(ABC):
+    """
+    Abstract base class for large object storage (BLOBs).
+    
+    Implementations must handle serialization of the location identifier
+    returned by save(), which will be stored in the TaskDB.
+    """
+
     @abstractmethod
     def save(self, key: str, data: Any) -> str:
+        """
+        Persist the data associated with the given key.
+
+        Args:
+            key (str): A unique identifier for the content (e.g. hash).
+            data (bytes): The binary data to store.
+
+        Returns:
+            str: A location identifier (e.g. file path, S3 URI).
+                 This string MUST be retrievable by self.load(location).
+        """
         pass
 
     @abstractmethod
     def load(self, location: str) -> Any:
+        """
+        Retrieve data from the specified location.
+
+        Args:
+            location (str): The location identifier returned by save().
+
+        Returns:
+            bytes: The retrieved binary data.
+
+        Raises:
+            FileNotFoundError: If the data no longer exists.
+        """
         pass
 
     @abstractmethod
     def delete(self, location: str) -> None:
         """
         Delete the blob at the specified location.
-        If the file does not exist, it should fail silently or log a warning, but not raise generic errors.
+
+        Implementations should attempt to delete the resource.
+        If the file does not exist, it SHOULD fail silently or log a warning,
+        but MUST NOT raise an error (idempotency).
         """
         pass
 

@@ -32,8 +32,19 @@ class MsgpackSerializer:
         """
         Register a custom serializer for a specific type.
 
-        The encoder must return a msgpack-serializable object (dict, list, str, int, etc.).
-        The serializer will automatically pack it into bytes.
+        The encoder should return a Python object that is natively serializable by MessagePack
+        (e.g., dict, list, str, int, bytes). The serializer will then pack this intermediate
+        representation into bytes.
+
+        Args:
+            type_ (Type): The Python class to register (e.g., `pd.DataFrame`).
+            code (int): A unique integer ID for the MessagePack ExtType tag.
+                        Must be between 0 and 127 (inclusive).
+            encoder (Callable): Function converting `type_` -> serializable object.
+            decoder (Callable): Function converting serializable object -> `type_`.
+
+        Raises:
+            ValueError: If the `code` is already registered.
         """
         if code in self._decoders:
             raise ValueError(f"ExtCode {code} is already registered.")
@@ -119,6 +130,17 @@ class MsgpackSerializer:
         return msgpack.ExtType(code, data)
 
     def dumps(self, obj: Any) -> bytes:
+        """
+        Serialize a Python object into MessagePack bytes.
+
+        Recursively handles custom types registered via `register()`.
+
+        Returns:
+            bytes: The packed binary data.
+
+        Raises:
+            SerializationError: If the object contains types that cannot be serialized.
+        """
         try:
             result = msgpack.packb(obj, default=self._default_packer, use_bin_type=True)
             assert result is not None
@@ -129,6 +151,20 @@ class MsgpackSerializer:
             raise SerializationError("Failed to serialize object tree.") from e
 
     def loads(self, data: bytes) -> Any:
+        """
+        Deserialize MessagePack bytes back into a Python object.
+
+        Automatically detects and decodes custom types using registered decoders.
+
+        Args:
+            data (bytes): The packed binary data.
+
+        Returns:
+            Any: The reconstructed Python object.
+
+        Raises:
+            SerializationError: If the data is corrupted or a custom type decoder fails.
+        """
         try:
             return msgpack.unpackb(data, ext_hook=self._ext_hook, raw=False)
         except Exception as e:

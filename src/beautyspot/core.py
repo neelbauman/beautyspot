@@ -300,6 +300,16 @@ class Spot:
 
         The encoder should return a serializable object (dict, list, int, etc.),
         NOT raw bytes. The serializer handles packing/unpacking automatically.
+
+        Args:
+            code (int): Unique ExtType ID (0-127).
+            encoder (Callable): Function to convert the object to a serializable dict/list/etc.
+            decoder (Callable, optional): Function to reconstruct the object.
+            decoder_factory (Callable, optional): Factory to create a decoder (for generics).
+
+        Example:
+            >>> @spot.register(code=1, encoder=lambda x: x.to_dict(), decoder=MyClass.from_dict)
+            ... class MyClass: ...
         """
         if decoder is None and decoder_factory is None:
             raise ValueError("Must provide either `decoder` or `decoder_factory`.")
@@ -578,6 +588,7 @@ class Spot:
         self,
         *,
         save_blob: Optional[bool] = None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
@@ -598,6 +609,41 @@ class Spot:
     ) -> Any:
         """
         Mark a function as a managed spot (Resumable Task Decorator).
+
+        This decorator enables caching, rate-limiting, and storage management for the decorated function.
+        It calculates a unique cache key based on the function arguments and retrieves the result
+        from the database if available.
+
+        Args:
+            save_blob (bool, optional):
+                If True, the return value is saved as a separate blob file (useful for large data).
+                If False, it is saved directly in the SQLite database (faster for small data).
+                Defaults to the Spot instance's `default_save_blob`.
+            keygen (Callable | KeyGenPolicy, optional):
+                A custom strategy to generate cache keys from function arguments.
+                Use `KeyGen.map(...)` or `KeyGen.ignore(...)` to customize behavior.
+                Recommended over `input_key_fn`.
+            input_key_fn (Callable, optional):
+                .. deprecated:: 2.0
+                Use `keygen` instead.
+            version (str, optional):
+                A semantic version string (e.g., "v1.0"). Changing this invalidates existing caches
+                for this function. Defaults to the Spot instance's `default_version`.
+            content_type (str, optional):
+                MIME type or semantic type string (e.g., "application/json", "text/csv").
+                Used for metadata and potentially for custom serialization logic.
+
+        Returns:
+            Callable: A wrapper function that handles caching and execution logic.
+
+        Example:
+            >>> @spot.mark(save_blob=True, version="v2")
+            ... def heavy_computation(data):
+            ...     return process(data)
+
+            >>> @spot.mark(keygen=KeyGen.map(db_conn=KeyGen.IGNORE))
+            ... def fetch_data(query, db_conn):
+            ...     return db_conn.execute(query)
         """
         if save_blob is None:
             save_blob = self.default_save_blob
@@ -693,6 +739,7 @@ class Spot:
         /,
         *,
         save_blob: Optional[bool] = None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
@@ -704,6 +751,7 @@ class Spot:
         self,
         *funcs: Unpack[Ts],
         save_blob: Optional[bool] = None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Callable] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
@@ -721,25 +769,41 @@ class Spot:
         """
         Create a temporary context for executing function(s) with caching.
 
-        This is the recommended way to use beautyspot for imperative execution,
-        replacing the deprecated `spot.run()`.
+        This is the recommended imperative API replacing the deprecated `spot.run()`.
+        It returns a context manager that provides a "cached version" of the function(s)
+        that is only valid within the `with` block.
 
         Args:
-            *funcs: One or more functions to wrap.
-            save_blob: Override save_blob setting.
-            input_key_fn: Custom key generator.
-            version: Cache version string.
-            content_type: Content type string.
+            *funcs: One or more functions to wrap with caching logic.
+            save_blob (bool, optional):
+                Override the default storage strategy. True for file storage, False for DB.
+            keygen (Callable | KeyGenPolicy, optional):
+                Custom key generation policy. Applies to ALL functions passed to this call.
+            input_key_fn (Callable, optional):
+                .. deprecated:: 2.0
+                Use `keygen` instead.
+            version (str, optional):
+                Cache version string. Useful for invalidating cache without changing code.
+            content_type (str, optional):
+                Metadata content type for the stored result.
 
-        Usage:
-            # Single function
-            with spot.cached_run(func) as task:
-                task(data)
+        Returns:
+            ScopedMark: A context manager.
+                - If one function is passed, yields a single cached wrapper.
+                - If multiple functions are passed, yields a tuple of cached wrappers.
 
-            # Multiple functions (unpacked)
-            with spot.cached_run(f1, f2, version="v2") as (t1, t2):
-                t1(data)
-                t2(data)
+        Raises:
+            RuntimeError: If the yielded function is called outside the `with` block.
+
+        Example:
+            # Single function usage
+            >>> with spot.cached_run(process_data, version="v1.1") as task:
+            ...     result = task(input_data)
+
+            # Multiple functions usage (useful for sharing config like version)
+            >>> with spot.cached_run(func_a, func_b, save_blob=True) as (task_a, task_b):
+            ...     res_a = task_a(data)
+            ...     res_b = task_b(res_a)
         """
         if not funcs:
             raise ValueError("At least one function must be provided to cached_run.")

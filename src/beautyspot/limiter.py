@@ -64,13 +64,37 @@ class TokenBucket:
             return wait_time
 
     def consume(self, cost: int):
-        """Sync version: blocks thread until rate limit allows"""
+        """
+        Acquire tokens from the bucket, blocking if necessary.
+
+        If the bucket does not have enough tokens, this method sleeps (blocks the thread)
+        until the tokens become available based on the refill rate.
+
+        Args:
+            cost (int): Number of tokens to consume.
+
+        Raises:
+            ValueError: If `cost` exceeds the bucket's total capacity (`tpm`).
+                        (i.e., the request is too expensive to ever be processed)
+        """
         wait_time = self._consume_reservation(cost)
         if wait_time > 0:
             time.sleep(wait_time)
 
     async def consume_async(self, cost: int):
-        """Async version: non-blocking await"""
+        """
+        Acquire tokens asynchronously.
+
+        If the bucket does not have enough tokens, this method awaits (non-blocking sleep)
+        until the tokens become available.
+
+        Args:
+            cost (int): Number of tokens to consume.
+
+        Raises:
+            ValueError: If `cost` exceeds the bucket's total capacity.
+        """
         wait_time = self._consume_reservation(cost)
         if wait_time > 0:
             await asyncio.sleep(wait_time)
+

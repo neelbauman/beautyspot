@@ -256,6 +256,10 @@ class KeyGen:
     def ignore(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that ignores specific arguments (e.g., 'verbose', 'logger').
+
+        Example:
+            >>> @spot.mark(keygen=KeyGen.ignore("logger", "verbose"))
+            ... def process(data, logger, verbose=False): ...
         """
         strategies = {name: Strategy.IGNORE for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
@@ -264,7 +268,13 @@ class KeyGen:
     def map(cls, **arg_strategies: Strategy) -> KeyGenPolicy:
         """
         Creates a policy with explicit strategies for specific arguments.
-        Example: KeyGen.map(data=KeyGen.HASH, config=KeyGen.FILE_CONTENT)
+        Example:
+            >>> @spot.mark(keygen=KeyGen.map(
+            ...     data=KeyGen.HASH, 
+            ...     config_file=KeyGen.FILE_CONTENT,
+            ...     client=KeyGen.IGNORE
+            ... ))
+            ... def run(data, config_file, client): ...
         """
         return KeyGenPolicy(arg_strategies, default_strategy=Strategy.DEFAULT)
 
@@ -272,6 +282,10 @@ class KeyGen:
     def file_content(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that treats specified arguments as file paths and hashes their content.
+
+        Example:
+            >>> @spot.mark(keygen=KeyGen.file_content("config_path"))
+            ... def train_model(config_path): ...
         """
         strategies = {name: Strategy.FILE_CONTENT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
@@ -280,6 +294,11 @@ class KeyGen:
     def path_stat(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).
+        Faster than file_content, but less strict.
+        
+        Example:
+            >>> @spot.mark(keygen=KeyGen.path_stat("dataset_path"))
+            ... def quick_check(dataset_path): ...
         """
         strategies = {name: Strategy.PATH_STAT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
