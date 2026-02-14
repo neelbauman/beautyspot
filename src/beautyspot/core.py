@@ -253,6 +253,39 @@ class Spot:
         """
         self.shutdown()
 
+    def _resolve_key_fn(
+        self,
+        func: Callable,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
+    ) -> Optional[Callable]:
+        """
+        Resolve key generation strategy, handling backward compatibility and policy binding.
+        """
+        # 両方指定された場合はエラー (Ambiguity check)
+        if keygen is not None and input_key_fn is not None:
+            raise ValueError(
+                "Cannot specify both 'keygen' and 'input_key_fn'. Please use 'keygen'."
+            )
+
+        target = keygen
+
+        # 旧パラメータの移行措置 (Deprecation Warning)
+        if input_key_fn is not None:
+            warnings.warn(
+                "The 'input_key_fn' argument is deprecated and will be removed in v3.0. "
+                "Please use 'keygen' instead.",
+                DeprecationWarning,
+                stacklevel=3,  # 呼び出し元のコンテキストを表示
+            )
+            target = input_key_fn
+
+        # Policyのバインド処理 (DRY解消: ここに集約)
+        if isinstance(target, KeyGenPolicy):
+            return target.bind(func)
+        
+        return target
+
     def register(
         self,
         code: int,
@@ -352,12 +385,7 @@ class Spot:
 
         # --- Policy Binding Check (ADDED) ---
         # If input_key_fn is a Policy object (has 'bind'), bind it to the function now.
-        effective_key_fn: Optional[Callable] = None
-
-        if isinstance(input_key_fn, KeyGenPolicy):
-            effective_key_fn = input_key_fn.bind(func)
-        else:
-            effective_key_fn = input_key_fn
+        effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
 
         # ------------------------------------
 
@@ -391,12 +419,8 @@ class Spot:
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
 
-        effective_key_fn: Optional[Callable] = None
-
-        if isinstance(input_key_fn, KeyGenPolicy):
-            effective_key_fn = input_key_fn.bind(func)
-        else:
-            effective_key_fn = input_key_fn
+        # Policy Binding Check (Refactored)
+        effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
 
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
@@ -559,6 +583,7 @@ class Spot:
         _func: Optional[Callable] = None,
         *,
         save_blob: Optional[bool] = None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
@@ -581,12 +606,7 @@ class Spot:
 
             # --- Policy Binding Setup (ADDED) ---
             # If a Policy is provided, bind it to the decorated function immediately.
-            effective_key_fn: Optional[Callable] = None
-
-            if isinstance(input_key_fn, KeyGenPolicy):
-                effective_key_fn = input_key_fn.bind(func)
-            else:
-                effective_key_fn = input_key_fn
+            effective_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
 
             # Key Gen Helper
             def make_key(args, kwargs):
@@ -685,7 +705,8 @@ class Spot:
         self,
         *funcs: Any,
         save_blob: Optional[bool] = None,
-        input_key_fn: Optional[Callable] = None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,  # Deprecated
         version: str | None = None,
         content_type: Optional[str] = None,
     ):
@@ -726,6 +747,7 @@ class Spot:
             self,
             funcs,
             save_blob=save_blob,
+            keygen=keygen,
             input_key_fn=input_key_fn,
             version=version,
             content_type=content_type,
