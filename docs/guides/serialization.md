@@ -97,6 +97,32 @@ spot.register_type(
 
 ```
 
+## タスク単位でのシリアライザの上書き (Advanced)
+
+通常、`@spot.register` で登録した設定はワークスペース全体で共有されますが、特定のタスクでのみ異なるシリアライズ挙動をさせたい場合があります。
+`mark` や `cached_run` の `serializer` 引数に、`SerializerProtocol` を満たすオブジェクト（`MsgpackSerializer` のインスタンスなど）を渡すことで、その実行コンテキストのシリアライザを上書きできます。
+
+これを利用すると、以下のようなケースに対応できます。
+
+1.  **一時的な型登録:** グローバル環境を汚さずに、特定のタスク専用のカスタム型を登録する。
+2.  **Pickleの利用:** Msgpackではどうしても扱えないオブジェクトに対し、標準の `pickle` を使用する（※セキュリティリスクと互換性に注意）。
+
+```python
+import pickle
+
+class PickleSerializer:
+    def dumps(self, obj) -> bytes:
+        return pickle.dumps(obj)
+    
+    def loads(self, data) -> Any:
+        return pickle.loads(data)
+
+# このタスクだけ Pickle を使用して保存・復元される
+@spot.mark(serializer=PickleSerializer())
+def complex_task():
+    ...
+```
+
 ## よくある間違い
 
 !!! warning "引数にカスタム型を渡す場合"
