@@ -13,10 +13,7 @@ install:  ## 依存関係をインストール
 	uv sync --all-groups
 
 test:  ## テストを実行
-	uv run pytest;
-	echo "=========== START pyright typing test ==============";
-	uv run pyright tests/typing;
-	echo "=========== FINISH pyright typing test ==============";
+	uv run pytest; echo "=========== START pyright typing test =============="; uv run pyright tests/typing; echo "=========== FINISH pyright typing test ==============";
 
 lint:  ## リントチェック
 	uvx ruff check .
