@@ -150,28 +150,40 @@ async def test_cache_consistency_verification(strict_env):
     """
     [Robustness] 入力が全く同じなら、キャッシュキーも一意になり、
     DBへの重複書き込みが発生しないことを検証する。
+    
+    修正: 時間計測(Flaky)をやめ、実行回数カウンタでキャッシュヒットを証明する。
     """
     spot, db_path = strict_env
     
+    # 実行回数を追跡するカウンタ
+    execution_count = 0
+
     @spot.mark
     async def deterministic_task(x: int):
+        nonlocal execution_count
+        execution_count += 1
+        # 処理時間をシミュレート（テストの成否には影響しない）
         await asyncio.sleep(0.01)
         return x * 2
 
-    # 1回目の実行
-    await deterministic_task(42)
+    # --- 1回目の実行 ---
+    val1 = await deterministic_task(42)
+    
+    assert val1 == 84
+    assert execution_count == 1, "First run should execute the function body"
     
     # DBの状態を確認
     counts_1 = inspect_db_counts(str(db_path))
     assert counts_1["total_records"] == 1
     
-    # 2回目の実行 (キャッシュヒットするはず)
-    start = time.monotonic()
-    val = await deterministic_task(42)
-    elapsed = time.monotonic() - start
+    # --- 2回目の実行 (キャッシュヒットするはず) ---
+    val2 = await deterministic_task(42)
     
-    assert val == 84
-    assert elapsed < 0.01, "Cache hit should be instant"
+    assert val2 == 84
+    
+    # 【重要】キャッシュヒットの証明
+    # 関数本体が実行されていなければ、カウントは 1 のままであるはず
+    assert execution_count == 1, "Cache hit failed! Function body was executed again."
     
     # DBのレコード数が増えていないことを確認 (重複insertされていないか)
     counts_2 = inspect_db_counts(str(db_path))

@@ -8,7 +8,7 @@ import asyncio
 import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor
-from pathlib import Path  # Added Path
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -38,7 +38,8 @@ Ts = TypeVarTuple("Ts")
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-# --- 追加: キャッシュミスを表す番兵オブジェクト ---
+
+# --- キャッシュミスを表す番兵オブジェクト ---
 CACHE_MISS = object()
 
 

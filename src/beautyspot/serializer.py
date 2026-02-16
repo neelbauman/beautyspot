@@ -7,10 +7,10 @@ class SerializerProtocol(Protocol):
     Protocol for custom serializers.
     Any object implementing these methods can be used as a serializer.
     """
-    def dumps(self, obj: Any) -> bytes:
+    def dumps(self, obj: Any, /) -> bytes:
         ...
 
-    def loads(self, data: bytes) -> Any:
+    def loads(self, data: bytes, /) -> Any:
         ...
 
 

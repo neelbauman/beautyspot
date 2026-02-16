@@ -63,10 +63,10 @@ def test_fallback_on_serializer_mismatch(tmp_path):
 
     # 1. Save data using Pickle
     @spot.mark(serializer=pickle)
-    def my_task(x):
+    def my_task_1(x):
         return f"value-{x}"
 
-    val1 = my_task("A")
+    val1 = my_task_1("A")
     assert val1 == "value-A"
 
     # 2. Define SAME task but without override (defaults to Msgpack)
@@ -74,13 +74,13 @@ def test_fallback_on_serializer_mismatch(tmp_path):
     spot2 = bs.Spot("test_mismatch", db=db_path)
     
     @spot2.mark
-    def my_task(x):
+    def my_task_2(x):
         return f"value-{x}-recomputed"
 
     # 3. Run with Msgpack serializer
     # The existing cache is a pickled blob. Msgpack.unpack will likely fail (or produce garbage).
     # BeautySpot should catch the error and re-execute.
-    val2 = my_task("A")
+    val2 = my_task_2("A")
     
     assert val2 == "value-A-recomputed"
 
