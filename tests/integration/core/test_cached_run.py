@@ -94,19 +94,6 @@ def test_cached_run_options_applied(spot):
     assert call_count == 2
 
 
-def test_run_deprecation_warning(spot):
-    """
-    Ensure spot.run() raises a DeprecationWarning.
-    """
-
-    def old_style_func(x):
-        return x
-
-    with pytest.warns(DeprecationWarning, match="cached_run"):
-        res = spot.run(old_style_func, 10)
-        assert res == 10
-
-
 def test_cached_run_input_validation(spot):
     """
     Should raise ValueError if no functions are provided.

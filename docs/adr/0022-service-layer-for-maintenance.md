@@ -1,6 +1,6 @@
 # 22. Service Layer for Maintenance Operations
 
-* Status: Proposed
+* Status: Accepted
 * Date: 2026-02-16
 
 ## Context
@@ -16,19 +16,23 @@ This logic directly accesses the `sqlite3` driver and manipulates file paths, by
 
 ## Decision
 
-We will move the maintenance logic from `cli.py` to `core.py` (specifically the `Spot` class), transforming `Spot` into a unified Service Facade.
+We will extract the maintenance logic from `cli.py` into a dedicated service layer, **`MaintenanceService`** (`src/beautyspot/maintenance.py`).
 
-To support this, we will extend the lower-level interfaces:
-* **`TaskDB`**: Add `prune(older_than)` and `get_blob_refs()` methods.
-* **`BlobStorageBase`**: Add `list_keys()` method to allow iterating over stored objects.
+Instead of adding these responsibilities to the `Spot` class (which focuses on runtime execution context and caching), we separate the concerns:
+
+* **`MaintenanceService`**: Handles administrative tasks such as pruning records, cleaning orphaned blobs, and querying history. It orchestrates `TaskDB` and `BlobStorageBase`.
+* **`Spot`**: Remains focused on `mark` (registration) and `cached_run` (execution) for the application runtime.
+
+Both classes will share the underlying `TaskDB` and `BlobStorageBase` abstractions.
 
 ## Consequences
 
 ### Positive
-* **Testability**: Core logic can be unit-tested without invoking the CLI.
-* **Reusability**: Pruning/Cleaning can be triggered programmatically.
+* **Separation of Concerns**: The runtime logic (`Spot`) is kept lightweight and focused, while administrative logic resides in its own service.
+* **Testability**: Core maintenance logic can be unit-tested without invoking the CLI.
+* **Reusability**: Pruning/Cleaning can be triggered programmatically from other scripts or the dashboard.
 * **Abstraction**: S3 and other storage backends will automatically support garbage collection if they implement `list_keys`.
 
 ### Negative
-* **Interface Change**: `TaskDB` and `BlobStorageBase` interfaces expand, requiring updates to all implementations.
+* **Interface Expansion**: `TaskDB` and `BlobStorageBase` interfaces need to expand to support maintenance operations (e.g., `list_keys`, `get_blob_refs`), affecting all backend implementations.
 

@@ -1,39 +1,41 @@
 # tests/integration/core/test_context.py
 
 import pytest
-from unittest.mock import MagicMock
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB
 
-
-def test_spot_context_manager(tmp_path):
-    """Test that spot works as a context manager and calls shutdown on exit."""
+def test_spot_context_manager_reusability(tmp_path):
+    """
+    Spotがコンテキストマネージャとして動作し、
+    終了後もExecutorが有効（再利用可能）であることを確認する。
+    """
     db_path = str(tmp_path / "test.db")
-
-    # Create a spot instance
     spot = Spot(name="test_cm", db=SQLiteTaskDB(db_path))
 
-    # Mock the shutdown method
-    spot.shutdown = MagicMock()
-
-    # Use as context manager
+    # 1回目のコンテキスト
     with spot as p:
         assert p is spot
-        # Verify shutdown is NOT called yet
-        spot.shutdown.assert_not_called()
+        @spot.mark
+        def task1(x): return x
+        task1(1)
 
-    # Verify shutdown IS called after exit
-    spot.shutdown.assert_called_once()
-
-
-def test_spot_context_manager_exception(tmp_path):
-    """Test that shutdown is called even if an exception occurs."""
-    db_path = str(tmp_path / "test.db")
-    spot = Spot(name="test_cm_exc", db=SQLiteTaskDB(db_path))
-    spot.shutdown = MagicMock()
-
-    with pytest.raises(ValueError):
+    # 仕様変更: __exit__ で shutdown されないため、2回目もエラーなく実行できるはず
+    try:
         with spot:
-            raise ValueError("Test Exception")
+            task1(2)
+    except RuntimeError:
+        pytest.fail("Spot should be reusable after exiting a context block.")
 
-    spot.shutdown.assert_called_once()
+def test_spot_explicit_shutdown(tmp_path):
+    """明示的に shutdown を呼んだ後は、Executorが停止することを確認する。"""
+    db_path = str(tmp_path / "test.db")
+    spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path))
+    
+    spot.shutdown(wait=True)
+    
+    # シャットダウン後はタスクを投げると RuntimeError になるのが正しい挙動
+    with pytest.raises(RuntimeError):
+        @spot.mark(wait=False)
+        def task(x): return x
+        task(1)
+

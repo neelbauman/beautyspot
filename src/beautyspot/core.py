@@ -1,13 +1,13 @@
 # src/beautyspot/core.py
 
+import asyncio
 import hashlib
 import logging
 import functools
 import inspect
-import asyncio
 import warnings
 import weakref
-from concurrent.futures import ThreadPoolExecutor, Executor
+from concurrent.futures import ThreadPoolExecutor, Executor, wait
 from pathlib import Path
 from typing import (
     Any,
@@ -114,6 +114,7 @@ class SpotOptions(TypedDict, total=False):
     tpm: int
     io_workers: int
     executor: Executor | None
+    defalut_wait: bool
 
 
 class Spot:
@@ -139,6 +140,7 @@ class Spot:
         default_save_blob: bool = False,
         default_version: Optional[str] = None,
         default_content_type: Optional[str] = None,
+        default_wait: bool = True,
         
         **kwargs: Any,
     ) -> None:
@@ -154,6 +156,7 @@ class Spot:
         self.default_save_blob = default_save_blob
         self.default_version = default_version
         self.default_content_type = default_content_type
+        self.default_wait = default_wait
 
         # --- ワークスペースとDBの初期化 ---
         self.workspace_dir = Path(".beautyspot")
@@ -172,6 +175,14 @@ class Spot:
             self._own_executor = True
             # GC時の安全なシャットダウン
             self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
+
+        # 実行中のタスクを管理するセット
+        self._active_futures = set()
+
+    def _track_future(self, future: Any):
+        """Futureを追跡セットに加え、完了したら削除する"""
+        self._active_futures.add(future)
+        future.add_done_callback(self._active_futures.discard)
 
     def _setup_workspace(self):
         """Ensure the workspace directory and .gitignore exist."""
@@ -195,7 +206,15 @@ class Spot:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.shutdown()
+        """
+        コンテキストを抜ける際の処理。
+        Executorは停止させず、現在実行中のバックグラウンドタスクの完了だけを待つ。
+        これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
+        """
+        if self._active_futures:
+            # アクティブなFutureのリストを作成して完了を待機
+            # concurrent.futures.wait を使用
+            wait(list(self._active_futures))
 
     def _resolve_key_fn(
         self,
@@ -305,6 +324,7 @@ class Spot:
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
+        wait: bool,
     ) -> Any:
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
@@ -323,7 +343,12 @@ class Spot:
         res = func(*args, **kwargs)
 
         # 3. Save
-        self._save_result_sync(ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
+        save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
+        if wait:
+            self._save_result_sync(*save_args)
+        else:
+            self.executor.submit(self._save_result_safe, *save_args)
+
         return res
 
     async def _execute_async(
@@ -336,6 +361,7 @@ class Spot:
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
+        wait: bool,
     ) -> Any:
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
@@ -355,18 +381,17 @@ class Spot:
         res = await func(*args, **kwargs)
 
         # 3. Save (Offload IO)
-        await loop.run_in_executor(
-            self.executor,
-            self._save_result_sync,
-            ck,
-            func.__name__,
-            str(iid),
-            s_ver,
-            res,
-            s_ct,
-            s_blob,
-            serializer,
-        )
+        save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
+
+        if wait:
+            # 完了を待つ (awaitする)
+            await loop.run_in_executor(self.executor, self._save_result_sync, *save_args)
+        else:
+            # 完了を待たない (awaitしない)
+            # run_in_executor は Future を返すが、それを無視することでバックグラウンド実行となる
+            # ただし例外ハンドリングのため _save_result_safe を使う
+            loop.run_in_executor(self.executor, self._save_result_safe, *save_args)
+
         return res
 
     def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol] = None) -> Any:
@@ -403,6 +428,21 @@ class Spot:
                     return CACHE_MISS
 
         return CACHE_MISS
+
+    # --- 安全なバックグラウンド実行用ラッパー ---
+    def _save_result_safe(self, *args, **kwargs):
+        """
+        Wrapper for _save_result_sync to handle exceptions in background threads.
+        """
+        try:
+            self._save_result_sync(*args, **kwargs)
+        except Exception as e:
+            # バックグラウンドでの失敗はメイン処理を止めないようログ出力に留める
+            func_name = args[1] if len(args) > 1 else "unknown"
+            logger.error(
+                f"Background save failed for task '{func_name}': {e}", 
+                exc_info=True
+            )
 
     def _save_result_sync(
         self,
@@ -484,6 +524,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        wait: Optional[bool] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     def mark(
@@ -496,6 +537,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        wait: Optional[bool] = None,
     ) -> Any:
         if save_blob is None:
             save_blob = self.default_save_blob
@@ -503,6 +545,8 @@ class Spot:
             version = self.default_version
         if content_type is None:
             content_type = self.default_content_type
+        if wait is None:
+            wait = self.default_wait
 
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
@@ -528,9 +572,21 @@ class Spot:
                 if cached is not CACHE_MISS:
                     return cached
                 res = func(*args, **kwargs)
-                self._save_result_sync(
-                    ck, func.__name__, str(iid), version, res, content_type, save_blob, serializer
+                save_args = (
+                    ck,
+                    func.__name__,
+                    str(iid),
+                    version,
+                    res,
+                    content_type,
+                    save_blob,
+                    serializer,
                 )
+                if wait:
+                    self._save_result_sync(*save_args)
+                else:
+                    future = self.executor.submit(self._save_result_safe, *save_args)
+                    self._track_future(future)
                 return res
 
             @functools.wraps(func)
@@ -543,9 +599,7 @@ class Spot:
                 if cached is not CACHE_MISS:
                     return cached
                 res = await func(*args, **kwargs)
-                await loop.run_in_executor(
-                    self.executor,
-                    self._save_result_sync,
+                save_args = (
                     ck,
                     func.__name__,
                     str(iid),
@@ -555,6 +609,12 @@ class Spot:
                     save_blob,
                     serializer,
                 )
+                if wait:
+                    await loop.run_in_executor(self.executor, self._save_result_sync, *save_args)
+                else:
+                    future = self.executor.submit(self._save_result_safe, *save_args)
+                    self._track_future(future)
+
                 return res
 
             return async_wrapper if is_async else sync_wrapper
@@ -618,47 +678,4 @@ class Spot:
             content_type=content_type,
             serializer=serializer,
         )
-
-    def run(
-        self,
-        func: Callable,
-        *args,
-        _save_blob: Optional[bool] = None,
-        _input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-        _version: str | None = None,
-        _content_type: Optional[str] = None,
-        _serializer: Optional[SerializerProtocol] = None,
-        **kwargs,
-    ) -> Any:
-        warnings.warn(
-            "`spot.run()` is deprecated and will be removed in v3.0. "
-            "Please use `with spot.cached_run(func) as task: task(...)` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        if inspect.iscoroutinefunction(func):
-            return self._execute_async(
-                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type, _serializer,
-            )
-        else:
-            return self._execute_sync(
-                func, args, kwargs, _save_blob, _input_key_fn, _version, _content_type, _serializer,
-            )
-
-    def delete(self, cache_key: str) -> bool:
-        """
-        Delete a cached task record and its associated blob data (if any).
-        """
-        record = self.db.get(cache_key)
-        if not record:
-            return False
-
-        if record["result_type"] == "FILE" and record["result_value"]:
-            try:
-                self.storage.delete(record["result_value"])
-            except Exception as e:
-                logger.warning(f"Failed to delete blob for key '{cache_key}': {e}")
-
-        return self.db.delete(cache_key)
 

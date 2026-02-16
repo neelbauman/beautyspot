@@ -24,6 +24,15 @@ class TaskRecord(TypedDict):
 class TaskDB(ABC):
     """
     Abstract interface for task metadata storage.
+
+    Implementation Note:
+        The methods of this class (save, get, delete) may be called concurrently
+        from multiple threads if `Spot` is initialized with `io_workers > 1`.
+
+        Therefore, implementations must be thread-safe. The recommended pattern
+        is to create a new database connection within each method call
+        (or use a thread-safe connection pool), rather than sharing a single
+        connection attribute across threads.
     """
 
     @abstractmethod
@@ -82,11 +91,19 @@ class SQLiteTaskDB(TaskDB):
     Default implementation using SQLite.
     """
 
-    def __init__(self, db_path: str | Path):
+    def __init__(self, db_path: str | Path, timeout: float = 30.0):
+        """
+        Args:
+            db_path: Path to the SQLite database file.
+            timeout: How many seconds the connection should wait for the lock
+                     to go away before raising an error. Default is 30.0s.
+        """
         self.db_path = db_path
+        self.timeout = timeout
+
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.db_path)
+        return sqlite3.connect(self.db_path, timeout=self.timeout)
 
     def init_schema(self):
         with self._connect() as conn:
