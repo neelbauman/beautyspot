@@ -282,16 +282,22 @@ class Spot:
             )
 
     # --- Core Logic (Sync) ---
-
     def _resolve_settings(
-        self, save_blob: bool | None, version: str | None, content_type: str | None
-    ) -> tuple[bool, str | None, str | None]:
+        self,
+        save_blob: bool | None,
+        version: str | None,
+        content_type: str | None,
+        wait: bool | None,  # 追加
+    ) -> tuple[bool, str | None, str | None, bool]:
         final_save_blob = save_blob if save_blob is not None else self.default_save_blob
         final_version = version if version is not None else self.default_version
         final_content_type = (
             content_type if content_type is not None else self.default_content_type
         )
-        return final_save_blob, final_version, final_content_type
+        final_wait = wait if wait is not None else self.default_wait  # 追加
+        
+        return final_save_blob, final_version, final_content_type, final_wait
+
 
     def _make_cache_key(
         self,
@@ -320,16 +326,19 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]],
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
-        wait: bool,
+        wait: bool | None,
     ) -> Any:
-        # Resolve Defaults
-        s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
-        effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
-
+        # Resolve Defaults (wait もここで解決)
+        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
+            save_blob, version, content_type, wait
+        )
+        
+        effective_key_fn = self._resolve_key_fn(func, keygen=keygen, input_key_fn=input_key_fn)
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
@@ -344,10 +353,13 @@ class Spot:
 
         # 3. Save
         save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
-        if wait:
+        
+        # 解決済みの s_wait を使用
+        if s_wait:
             self._save_result_sync(*save_args)
         else:
-            self.executor.submit(self._save_result_safe, *save_args)
+            future = self.executor.submit(self._save_result_safe, *save_args)
+            self._track_future(future)
 
         return res
 
@@ -357,15 +369,16 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
+        keygen: Optional[Union[Callable, KeyGenPolicy]],
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
-        wait: bool,
+        wait: bool | None,
     ) -> Any:
         # Resolve Defaults
-        s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
-        effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
+        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(save_blob, version, content_type, wait)
+        effective_key_fn = self._resolve_key_fn(func, keygen=keygen, input_key_fn=input_key_fn)
 
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
@@ -383,14 +396,14 @@ class Spot:
         # 3. Save (Offload IO)
         save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
 
-        if wait:
+        if s_wait:
             # 完了を待つ (awaitする)
             await loop.run_in_executor(self.executor, self._save_result_sync, *save_args)
         else:
-            # 完了を待たない (awaitしない)
-            # run_in_executor は Future を返すが、それを無視することでバックグラウンド実行となる
-            # ただし例外ハンドリングのため _save_result_safe を使う
-            loop.run_in_executor(self.executor, self._save_result_safe, *save_args)
+            # markの実装に合わせて executor.submit を使い、確実に追跡する
+            # (run_in_executor だと asyncio.Future が返るが、ここでは concurrent.Future で統一管理するため)
+            future = self.executor.submit(self._save_result_safe, *save_args)
+            self._track_future(future)
 
         return res
 
@@ -539,83 +552,48 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
     ) -> Any:
-        if save_blob is None:
-            save_blob = self.default_save_blob
-        if version is None:
-            version = self.default_version
-        if content_type is None:
-            content_type = self.default_content_type
-        if wait is None:
-            wait = self.default_wait
-
+        """
+        Decorator to mark a function for caching and persistence.
+        All logic is delegated to _execute_sync or _execute_async.
+        """
         def decorator(func):
+            # --- 1. Eager Validation (定義時チェック) ---
+            # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
+            # 非推奨パラメータの使用に対して、定義時に即座にエラー/警告を出します。
+            # これにより既存のテスト (test_params_migration.py) が通るようになります。
+            self._resolve_key_fn(func, keygen, input_key_fn)
+
             is_async = inspect.iscoroutinefunction(func)
-            effective_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
-
-            def make_key(args, kwargs):
-                from .cachekey import KeyGen
-                iid = (
-                    effective_key_fn(*args, **kwargs)
-                    if effective_key_fn
-                    else KeyGen._default(args, kwargs)
-                )
-                key_source = f"{func.__name__}:{iid}"
-                if version:
-                    key_source += f":{version}"
-                ck = hashlib.md5(key_source.encode()).hexdigest()
-                return iid, ck
-
+            
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
-                iid, ck = make_key(args, kwargs)
-                cached = self._check_cache_sync(ck, serializer)
-                if cached is not CACHE_MISS:
-                    return cached
-                res = func(*args, **kwargs)
-                save_args = (
-                    ck,
-                    func.__name__,
-                    str(iid),
-                    version,
-                    res,
-                    content_type,
-                    save_blob,
-                    serializer,
+                return self._execute_sync(
+                    func=func,
+                    args=args,
+                    kwargs=kwargs,
+                    save_blob=save_blob,
+                    keygen=keygen,
+                    input_key_fn=input_key_fn,
+                    version=version,
+                    content_type=content_type,
+                    serializer=serializer,
+                    wait=wait, # None のまま渡す
                 )
-                if wait:
-                    self._save_result_sync(*save_args)
-                else:
-                    future = self.executor.submit(self._save_result_safe, *save_args)
-                    self._track_future(future)
-                return res
 
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
-                iid, ck = make_key(args, kwargs)
-                loop = asyncio.get_running_loop()
-                cached = await loop.run_in_executor(
-                    self.executor, self._check_cache_sync, ck, serializer
+                return await self._execute_async(
+                    func=func,
+                    args=args,
+                    kwargs=kwargs,
+                    save_blob=save_blob,
+                    keygen=keygen,
+                    input_key_fn=input_key_fn,
+                    version=version,
+                    content_type=content_type,
+                    serializer=serializer,
+                    wait=wait, # None のまま渡す
                 )
-                if cached is not CACHE_MISS:
-                    return cached
-                res = await func(*args, **kwargs)
-                save_args = (
-                    ck,
-                    func.__name__,
-                    str(iid),
-                    version,
-                    res,
-                    content_type,
-                    save_blob,
-                    serializer,
-                )
-                if wait:
-                    await loop.run_in_executor(self.executor, self._save_result_sync, *save_args)
-                else:
-                    future = self.executor.submit(self._save_result_safe, *save_args)
-                    self._track_future(future)
-
-                return res
 
             return async_wrapper if is_async else sync_wrapper
 
