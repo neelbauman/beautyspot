@@ -3,7 +3,7 @@
 import os
 import io
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TypeAlias
 
 try:
     import boto3
@@ -11,6 +11,9 @@ try:
 except ImportError:
     boto3 = None
     ClientError = Exception
+
+
+ReadableBuffer: TypeAlias = bytes | bytearray | memoryview
 
 
 class CacheCorruptedError(Exception):
@@ -28,7 +31,7 @@ class BlobStorageBase(ABC):
     """
 
     @abstractmethod
-    def save(self, key: str, data: Any) -> str:
+    def save(self, key: str, data: ReadableBuffer) -> str:
         """
         Persist the data associated with the given key.
 
@@ -43,7 +46,7 @@ class BlobStorageBase(ABC):
         pass
 
     @abstractmethod
-    def load(self, location: str) -> Any:
+    def load(self, location: str) -> bytes:
         """
         Retrieve data from the specified location.
 
@@ -82,7 +85,7 @@ class LocalStorage(BlobStorageBase):
                 f"Invalid key: '{key}'. Keys must not contain path separators."
             )
 
-    def save(self, key: str, data: Any) -> str:
+    def save(self, key: str, data: ReadableBuffer) -> str:
         self._validate_key(key)
         filename = f"{key}.bin"
         filepath = os.path.join(self.base_dir, filename)
@@ -119,12 +122,6 @@ class LocalStorage(BlobStorageBase):
         with open(location, "rb") as f:
             return f.read()
 
-        # try:
-        #     with open(location, 'rb') as f:
-        #         return pickle.load(f)
-        # except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
-        #     # クラス定義変更やファイル破損時
-        #     raise CacheCorruptedError(f"Failed to unpickle {location}: {e}") from e
 
     def delete(self, location: str) -> None:
         # location は save() が返したフルパスであることを期待
@@ -141,7 +138,7 @@ class LocalStorage(BlobStorageBase):
 
 
 class S3Storage(BlobStorageBase):
-    def __init__(self, s3_uri: str, s3_opts: dict | None = None):
+    def __init__(self, s3_uri: str, s3_opts: dict[str, Any] | None = None):
         if not boto3:
             raise ImportError("Run `pip install beautyspot[s3]` to use S3 storage.")
 
@@ -152,7 +149,7 @@ class S3Storage(BlobStorageBase):
         opts = s3_opts or {}
         self.s3 = boto3.client("s3", **opts)
 
-    def save(self, key: str, data: Any) -> str:
+    def save(self, key: str, data: ReadableBuffer) -> str:
         s3_key = f"{self.prefix}/{key}.bin"
         buffer = io.BytesIO(data)
         self.s3.put_object(Bucket=self.bucket_name, Key=s3_key, Body=buffer)

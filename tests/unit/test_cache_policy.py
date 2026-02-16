@@ -1,4 +1,4 @@
-# tests/test_cachekey_policy.py
+# tests/unit/test_cachekey_policy.py
 
 from beautyspot.cachekey import KeyGen
 

@@ -1,4 +1,4 @@
-# tests/test_cli.py
+# tests/integration/cli/test_cli.py
 
 import sqlite3
 from datetime import datetime

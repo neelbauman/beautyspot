@@ -1,4 +1,4 @@
-# tests/test_limiter.py
+# tests/unit/test_limiter.py
 
 import pytest
 import time

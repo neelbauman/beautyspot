@@ -1,4 +1,4 @@
-# tests/test_serializer.py
+# tests/unit/test_serializer.py
 
 import pytest
 from pydantic import BaseModel

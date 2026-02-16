@@ -1,4 +1,4 @@
-# tests/test_edge_cases.py
+# tests/senarios/test_edge_cases.py
 
 import pytest
 from unittest.mock import MagicMock

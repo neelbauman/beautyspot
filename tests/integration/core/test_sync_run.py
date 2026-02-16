@@ -1,4 +1,4 @@
-# tests/test_core_run.py
+# tests/integration/core/test_sync_run.py
 
 import asyncio
 from beautyspot import Spot

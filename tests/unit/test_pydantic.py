@@ -1,3 +1,5 @@
+# tests/unit/test_pydantic.py
+
 import pytest
 from pydantic import BaseModel
 from beautyspot import Spot

@@ -1,4 +1,4 @@
-# tests/test_core_register.py
+# tests/unit/test_type_registry.py
 
 import pytest
 import msgpack
@@ -7,10 +7,23 @@ from beautyspot import Spot, SerializationError
 
 # --- Pydantic Availability Check ---
 try:
-    from pydantic import BaseModel
+    from pydantic import BaseModel # type: ignore
     HAS_PYDANTIC = True
 except ImportError:
     HAS_PYDANTIC = False
+    class BaseModel:
+        def __init__(self, **kwargs):
+            pass
+            
+        def model_dump(self):
+            return {}
+
+        def model_dump_json(self):
+            return ""
+
+        @classmethod
+        def model_validate_json(cls, json_data):
+            return cls()
 
 # --- NumPy Availability Check ---
 try:
@@ -18,9 +31,7 @@ try:
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
-
-
-# ... (既存のテストクラス・関数)
+    np = None
 
 
 @pytest.fixture
@@ -32,7 +43,6 @@ def spot():
 # ----------------------------------------------------------------
 # 1. Normal Registration Tests (Happy Path)
 # ----------------------------------------------------------------
-
 
 def test_register_decorator_basic(spot):
     """
@@ -207,14 +217,17 @@ def test_register_numpy_binary(spot):
     Case 5: NumPy array serialization via strict binary format (.npy).
     Verifies that 'bytes' returned by encoder are correctly handled as Msgpack bin type.
     """
+    assert np is not None
 
     # Helper functions for npy format
     def npy_encoder(arr):
+        assert np is not None
         with io.BytesIO() as f:
             np.save(f, arr, allow_pickle=False)
             return f.getvalue()
 
     def npy_decoder(data):
+        assert np is not None
         with io.BytesIO(data) as f:
             return np.load(f, allow_pickle=False)
 

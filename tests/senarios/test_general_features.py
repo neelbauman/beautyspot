@@ -1,4 +1,4 @@
-# tests/test_features.py
+# tests/senarios/test_general_features.py
 
 import pytest
 import asyncio

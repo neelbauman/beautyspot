@@ -1,4 +1,4 @@
-# tests/test_security.py
+# tests/senarios/test_security.py
 
 import pytest
 import os

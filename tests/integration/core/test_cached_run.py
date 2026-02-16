@@ -1,4 +1,4 @@
-# tests/cached_run.py
+# tests/integration/core/cached_run.py
 
 import pytest
 from beautyspot import Spot

@@ -1,3 +1,5 @@
+# tests/typing/test_inference.py
+
 """
 Tests for type inference using static analysis.
 Run this file with pyright, not pytest.

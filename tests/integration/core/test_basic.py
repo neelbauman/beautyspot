@@ -1,4 +1,4 @@
-# tests/test_core.py
+# tests/integration/coer/test_basic.py
 
 import pytest
 from beautyspot import Spot

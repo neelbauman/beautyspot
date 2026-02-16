@@ -1,9 +1,9 @@
-# tests/test_di.py
+# tests/integration/core/test_dependency_injection.py
 
 from concurrent.futures import ThreadPoolExecutor
 import msgpack
 from beautyspot import Spot
-from beautyspot.storage import BlobStorageBase
+from beautyspot.storage import BlobStorageBase, ReadableBuffer
 from beautyspot.db import TaskDB
 
 
@@ -11,8 +11,8 @@ class MockStorage(BlobStorageBase):
     def __init__(self):
         self.data = {}
 
-    def save(self, key: str, data: bytes) -> str:
-        self.data[key] = data
+    def save(self, key: str, data: ReadableBuffer) -> str:
+        self.data[key] = bytes(data)
         return f"mock://{key}"
 
     def load(self, location: str) -> bytes:

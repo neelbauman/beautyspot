@@ -1,4 +1,4 @@
-# tests/test_context_manager.py
+# tests/integration/core/test_context.py
 
 import pytest
 from unittest.mock import MagicMock

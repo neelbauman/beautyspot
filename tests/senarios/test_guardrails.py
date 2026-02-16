@@ -1,4 +1,4 @@
-# tests/test_guardrails.py
+# tests/senarios/test_guardrails.py
 
 import logging
 import numpy as np
