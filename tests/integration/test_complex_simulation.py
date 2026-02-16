@@ -5,6 +5,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 # --- Custom Data Structure ---
 @dataclass
@@ -36,7 +37,7 @@ def chaos_env(tmp_path):
     """
     # TPM=600 (10 tokens/sec)
     # 並行でバーストするとすぐに待機が発生する設定
-    spot = Spot(name="chaos_test", tpm=600)
+    spot = Spot(name="chaos_test", db=SQLiteTaskDB(tmp_path / "test.db"), tpm=600)
     
     # カスタム型の登録
     spot.register_type(Complexity, code=10, encoder=encode_complexity, decoder=decode_complexity)

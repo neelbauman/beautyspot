@@ -5,7 +5,9 @@ import pytest
 
 
 from pathlib import Path
-from beautyspot import Spot, SQLiteTaskDB, LocalStorage
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
+from beautyspot.storage import LocalStorage
 
 @pytest.fixture
 def spot(tmp_path: Path):

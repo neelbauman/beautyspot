@@ -5,7 +5,8 @@ import asyncio
 import time
 import sqlite3
 from dataclasses import dataclass
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 # --- 1. Custom Data Structure ---
 @dataclass

@@ -2,7 +2,8 @@
 
 import pytest
 import asyncio
-from beautyspot import Spot, SQLiteTaskDB 
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB 
 
 
 @pytest.fixture

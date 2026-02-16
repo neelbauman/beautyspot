@@ -1,5 +1,4 @@
-# src/beautyspot/__init__.py
-
+# src/beautyspot/__init__.py 
 from importlib.metadata import version, PackageNotFoundError
 from .core import Spot as _Spot, SpotOptions
 from .cachekey import KeyGen
@@ -8,7 +7,6 @@ from .serializer import SerializationError
 from .types import ContentType
 
 from typing import Optional, Any
-
 from .db import TaskDB
 from .storage import BlobStorageBase
 from .serializer import SerializerProtocol

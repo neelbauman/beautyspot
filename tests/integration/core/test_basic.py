@@ -1,7 +1,9 @@
 # tests/integration/coer/test_basic.py
 
 import pytest
-from beautyspot import Spot, LocalStorage, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.storage import LocalStorage
+from beautyspot.db import SQLiteTaskDB
 from beautyspot.serializer import SerializationError
 
 

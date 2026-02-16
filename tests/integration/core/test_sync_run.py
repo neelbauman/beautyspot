@@ -1,7 +1,8 @@
 # tests/integration/core/test_sync_run.py
 
 import asyncio
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 
 def test_project_run_sync_in_context(tmp_path):

@@ -2,7 +2,8 @@
 
 import pytest
 from unittest.mock import MagicMock
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 from beautyspot.storage import LocalStorage
 
 

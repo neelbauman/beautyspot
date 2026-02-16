@@ -2,7 +2,8 @@
 
 import pytest
 from typer.testing import CliRunner
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 from beautyspot.cli import app
 
 runner = CliRunner()

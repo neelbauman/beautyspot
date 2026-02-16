@@ -2,8 +2,9 @@
 
 import os
 from pathlib import Path
-from beautyspot import Spot, SQLiteTaskDB
-from beautyspot import LocalStorage
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
+from beautyspot.storage import LocalStorage
 
 
 def test_workspace_creation(tmp_path):

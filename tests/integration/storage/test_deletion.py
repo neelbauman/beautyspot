@@ -2,8 +2,8 @@
 
 import os
 from beautyspot import Spot
-from beautyspot import LocalStorage
-from beautyspot import SQLiteTaskDB
+from beautyspot.storage import LocalStorage
+from beautyspot.db import SQLiteTaskDB
 
 
 def test_delete_hit(tmp_path):

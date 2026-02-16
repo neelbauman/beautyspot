@@ -2,7 +2,8 @@
 
 import logging
 import numpy as np
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 
 def test_large_data_warning(tmp_path, caplog):

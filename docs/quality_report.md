@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-16 18:48:36
+**最終更新:** 2026-02-16 19:42:37
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -19,12 +19,12 @@ _version        | 0   | 0   | 0.00
 dashboard       | 0   | 3   | 1.00
 limiter         | 1   | 0   | 0.00
 cachekey        | 1   | 0   | 0.00
-serializer      | 1   | 0   | 0.00
 cli             | 0   | 1   | 1.00
+core            | 0   | 5   | 1.00
 db              | 3   | 0   | 0.00
+serializer      | 1   | 0   | 0.00
 storage         | 2   | 0   | 0.00
 types           | 1   | 0   | 0.00
-core            | 0   | 5   | 1.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -76,18 +76,6 @@ src/beautyspot/cachekey.py
     M 133:4 KeyGenPolicy.__init__ - A
     M 141:4 KeyGenPolicy.bind - A
     M 269:4 KeyGen.map - A
-src/beautyspot/serializer.py
-    M 69:4 MsgpackSerializer._default_packer - B
-    C 25:0 MsgpackSerializer - A
-    M 146:4 MsgpackSerializer.dumps - A
-    M 123:4 MsgpackSerializer._ext_hook - A
-    M 167:4 MsgpackSerializer.loads - A
-    C 7:0 SerializerProtocol - A
-    M 39:4 MsgpackSerializer.register - A
-    M 12:4 SerializerProtocol.dumps - A
-    M 15:4 SerializerProtocol.loads - A
-    C 19:0 SerializationError - A
-    M 33:4 MsgpackSerializer.__init__ - A
 src/beautyspot/cli.py
     F 528:0 clean_cmd - D
     F 695:0 prune_cmd - C
@@ -108,6 +96,37 @@ src/beautyspot/cli.py
     F 43:0 _is_port_in_use - A
     F 69:0 _format_timestamp - A
     F 905:0 main - A
+src/beautyspot/core.py
+    M 472:4 Spot._check_cache_sync - B
+    M 615:4 Spot.mark - B
+    M 247:4 Spot._resolve_key_fn - A
+    M 508:4 Spot._save_result_sync - A
+    M 885:4 Spot.delete - A
+    M 352:4 Spot._resolve_settings - A
+    M 778:4 Spot.cached_run - A
+    C 47:0 ScopedMark - A
+    M 59:4 ScopedMark.__enter__ - A
+    C 120:0 Spot - A
+    M 195:4 Spot._setup_workspace - A
+    M 217:4 Spot.shutdown - A
+    M 280:4 Spot.register - A
+    M 366:4 Spot._make_cache_key - A
+    M 125:4 Spot.__init__ - A
+    M 323:4 Spot.register_type - A
+    M 388:4 Spot._execute_sync - A
+    M 425:4 Spot._execute_async - A
+    M 851:4 Spot.run - A
+    M 53:4 ScopedMark.__init__ - A
+    M 101:4 ScopedMark.__exit__ - A
+    C 106:0 SpotOptions - A
+    M 207:4 Spot._shutdown_executor - A
+    M 227:4 Spot.__enter__ - A
+    M 236:4 Spot.__exit__ - A
+    M 564:4 Spot.limiter - A
+    M 595:4 Spot.mark - A
+    M 601:4 Spot.mark - A
+    M 752:4 Spot.cached_run - A
+    M 767:4 Spot.cached_run - A
 src/beautyspot/db.py
     M 108:4 SQLiteTaskDB.init_schema - A
     C 97:0 SQLiteTaskDB - A
@@ -124,6 +143,18 @@ src/beautyspot/db.py
     M 105:4 SQLiteTaskDB._connect - A
     M 153:4 SQLiteTaskDB.save - A
     M 224:4 SQLiteTaskDB.delete - A
+src/beautyspot/serializer.py
+    M 69:4 MsgpackSerializer._default_packer - B
+    C 25:0 MsgpackSerializer - A
+    M 146:4 MsgpackSerializer.dumps - A
+    M 123:4 MsgpackSerializer._ext_hook - A
+    M 167:4 MsgpackSerializer.loads - A
+    C 7:0 SerializerProtocol - A
+    M 39:4 MsgpackSerializer.register - A
+    M 12:4 SerializerProtocol.dumps - A
+    M 15:4 SerializerProtocol.loads - A
+    C 19:0 SerializationError - A
+    M 33:4 MsgpackSerializer.__init__ - A
 src/beautyspot/storage.py
     M 82:4 LocalStorage._validate_key - A
     M 142:4 S3Storage.__init__ - A
@@ -131,56 +162,25 @@ src/beautyspot/storage.py
     M 101:4 LocalStorage.load - A
     M 127:4 LocalStorage.delete - A
     C 141:0 S3Storage - A
-    F 178:0 create_storage - A
+    F 181:0 create_storage - A
     C 26:0 BlobStorageBase - A
-    M 159:4 S3Storage.load - A
-    M 169:4 S3Storage.delete - A
+    M 162:4 S3Storage.load - A
+    M 172:4 S3Storage.delete - A
     C 20:0 CacheCorruptedError - A
     M 35:4 BlobStorageBase.save - A
     M 50:4 BlobStorageBase.load - A
     M 66:4 BlobStorageBase.delete - A
     M 78:4 LocalStorage.__init__ - A
     M 89:4 LocalStorage.save - A
-    M 153:4 S3Storage.save - A
+    M 156:4 S3Storage.save - A
 src/beautyspot/types.py
     C 3:0 ContentType - A
-src/beautyspot/core.py
-    M 493:4 Spot._check_cache_sync - B
-    M 636:4 Spot.mark - B
-    M 142:4 Spot.__init__ - A
-    M 268:4 Spot._resolve_key_fn - A
-    M 529:4 Spot._save_result_sync - A
-    M 907:4 Spot.delete - A
-    C 123:0 Spot - A
-    M 373:4 Spot._resolve_settings - A
-    M 800:4 Spot.cached_run - A
-    C 47:0 ScopedMark - A
-    M 59:4 ScopedMark.__enter__ - A
-    M 216:4 Spot._setup_workspace - A
-    M 238:4 Spot.shutdown - A
-    M 301:4 Spot.register - A
-    M 387:4 Spot._make_cache_key - A
-    M 344:4 Spot.register_type - A
-    M 409:4 Spot._execute_sync - A
-    M 446:4 Spot._execute_async - A
-    M 873:4 Spot.run - A
-    M 53:4 ScopedMark.__init__ - A
-    M 101:4 ScopedMark.__exit__ - A
-    C 106:0 SpotParameters - A
-    M 228:4 Spot._shutdown_executor - A
-    M 248:4 Spot.__enter__ - A
-    M 257:4 Spot.__exit__ - A
-    M 585:4 Spot.limiter - A
-    M 616:4 Spot.mark - A
-    M 622:4 Spot.mark - A
-    M 774:4 Spot.cached_run - A
-    M 789:4 Spot.cached_run - A
 src/beautyspot/__init__.py
-    C 20:0 Spot - A
-    M 25:4 Spot.__init__ - A
+    C 22:0 Spot - A
+    M 26:4 Spot.__init__ - A
 
 118 blocks (classes, functions, methods) analyzed.
-Average complexity: A (3.1271186440677967)
+Average complexity: A (3.093220338983051)
 ```
 </details>
 
@@ -200,12 +200,12 @@ src/beautyspot/_version.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/limiter.py - A
 src/beautyspot/cachekey.py - A
-src/beautyspot/serializer.py - A
 src/beautyspot/cli.py - A
+src/beautyspot/core.py - A
 src/beautyspot/db.py - A
+src/beautyspot/serializer.py - A
 src/beautyspot/storage.py - A
 src/beautyspot/types.py - A
-src/beautyspot/core.py - A
 src/beautyspot/__init__.py - A
 ```
 </details>

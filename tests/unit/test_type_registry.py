@@ -3,7 +3,9 @@
 import pytest
 import msgpack
 import io
-from beautyspot import Spot, SQLiteTaskDB, SerializationError
+from beautyspot import Spot
+from beautyspot.serializer import SerializationError
+from beautyspot.db import SQLiteTaskDB
 
 @pytest.fixture
 def spot():

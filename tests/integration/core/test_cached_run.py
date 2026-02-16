@@ -1,7 +1,8 @@
 # tests/integration/core/cached_run.py
 
 import pytest
-from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 
 @pytest.fixture
