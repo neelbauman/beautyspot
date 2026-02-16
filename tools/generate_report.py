@@ -97,10 +97,25 @@ def generate_report():
         ""
     ])
 
+    # --- デザイン・インテント分析 ---
+    print("Analyzing Design Intents...")
+    design_mermaid = run_command(["uv", "run", "python", "tools/analyze_design.py"])
+    
+    report.extend([
+        "## 4. デザイン・インテント分析 (Design Intent Map)",
+        "クラス図には現れない、生成関係、静的利用、および Protocol への暗黙的な準拠を可視化します。",
+        "",
+        "```mermaid",
+        design_mermaid,
+        "```",
+        ""
+    ])
+
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(report))
     
     print(f"✅ レポートを生成しました: {REPORT_FILE}")
+
 
 if __name__ == "__main__":
     generate_report()

@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-16 20:51:29
+**最終更新:** 2026-02-16 21:42:20
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -75,9 +75,6 @@ src/beautyspot/serializer.py
     M 33:4 MsgpackSerializer.__init__ - A
 src/beautyspot/types.py
     C 3:0 ContentType - A
-src/beautyspot/__init__.py
-    C 22:0 Spot - A
-    M 26:4 Spot.__init__ - A
 src/beautyspot/cachekey.py
     F 27:0 canonicalize - C
     F 92:0 _ - B
@@ -199,9 +196,11 @@ src/beautyspot/cli.py
     F 48:0 _is_port_in_use - A
     F 71:0 _format_timestamp - A
     F 652:0 main - A
+src/beautyspot/__init__.py
+    F 24:0 Spot - A
 
-137 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.708029197080292)
+136 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.6911764705882355)
 ```
 </details>
 
@@ -222,12 +221,48 @@ src/beautyspot/dashboard.py - A
 src/beautyspot/limiter.py - A
 src/beautyspot/serializer.py - A
 src/beautyspot/types.py - A
-src/beautyspot/__init__.py - A
 src/beautyspot/cachekey.py - A
 src/beautyspot/storage.py - A
 src/beautyspot/db.py - A
 src/beautyspot/core.py - A
 src/beautyspot/maintenance.py - A
 src/beautyspot/cli.py - A
+src/beautyspot/__init__.py - A
 ```
 </details>
+
+## 4. デザイン・インテント分析 (Design Intent Map)
+クラス図には現れない、生成関係、静的利用、および Protocol への暗黙的な準拠を可視化します。
+
+```mermaid
+graph LR
+    classDef protocol fill:#f9f,stroke:#333,stroke-width:2px;
+    class SerializerProtocol protocol;
+    KeyGen -- "creates" --> KeyGenPolicy
+    KeyGen -- "creates" --> ValueError
+    KeyGenPolicy -. "uses" .-> KeyGen.from_file_content
+    KeyGenPolicy -. "uses" .-> KeyGen.from_path_stat
+    KeyGenPolicy -. "uses" .-> KeyGen.hash_items
+    LocalStorage -- "creates" --> FileNotFoundError
+    LocalStorage -- "creates" --> Path
+    LocalStorage -- "creates" --> ValueError
+    MsgpackSerializer -- "creates" --> SerializationError
+    MsgpackSerializer -. "implements" .-> SerializerProtocol
+    MsgpackSerializer -- "creates" --> ValueError
+    S3Storage -- "creates" --> FileNotFoundError
+    S3Storage -- "creates" --> ImportError
+    SQLiteTaskDB -- "creates" --> ImportError
+    SQLiteTaskDB -- "creates" --> Path
+    ScopedMark -- "creates" --> RuntimeError
+    Spot -. "uses" .-> KeyGen._default
+    Spot -- "creates" --> MsgpackSerializer
+    Spot -- "creates" --> NotImplementedError
+    Spot -- "creates" --> Path
+    Spot -- "creates" --> SQLiteTaskDB
+    Spot -- "creates" --> ScopedMark
+    Spot -- "creates" --> ThreadPoolExecutor
+    Spot -- "creates" --> TokenBucket
+    Spot -- "creates" --> TypeError
+    Spot -- "creates" --> ValueError
+    TokenBucket -- "creates" --> ValueError
+```

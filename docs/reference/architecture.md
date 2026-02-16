@@ -69,7 +69,7 @@ v2.0 以降も互換性維持のため、内部テーブル名は `tasks` のま
 
 主要クラスの依存関係と責務の構造です。`Spot` クラスが `Facade` として機能し、各コンポーネントを統括しています。
 
-![Class Diagram](statics/img/generated/classes_beautyspot.png)
+![Class Diagram](../statics/img/generated/classes_beautyspot.png)
 
 ---
 
