@@ -71,21 +71,31 @@ release: pypi-publish  ## 完全リリース（PyPI公開→GitHubタグPush）
 
 .PHONY: audit visualize
 
-# Makefile (抜粋)
-
-# ... (既存のcleanやtestなどはそのまま)
-
 audit:  ## [Console] コードの複雑度と保守性をコンソール出力
 	@echo "=== Cyclomatic Complexity (Rank C+) ==="
 	-uv run radon cc src -a -n C
 	@echo "\n=== Maintainability Index (Rank B-) ==="
 	-uv run radon mi src -n B
 
-visualize:  ## [Image] 依存関係グラフのみ生成 (レポートなし)
+visualize: ## [Image] 依存関係グラフのみ生成
 	@mkdir -p docs/statics/img/generated
-	uv run pydeps src/beautyspot --noshow --max-bacon=2 --cluster -o docs/statics/img/generated/dependency_graph.svg
+	# 1. pydeps で DOT 形式を出力
+	uv run pydeps src/beautyspot \
+		--noshow \
+		--max-bacon=2 \
+		--cluster \
+		--show-dot > docs/statics/img/generated/dependency_graph.dot
+	
+	# 2. 明示的に PNG レンダリング
+	dot -Tpng docs/statics/img/generated/dependency_graph.dot -o docs/statics/img/generated/dependency_graph.png
+	
+	# (任意) 確認用: 成功したらファイルサイズを表示
+	@ls -lh docs/statics/img/generated/dependency_graph.png
+	@rm docs/statics/img/generated/dependency_graph.dot
+	@rm beautyspot.svg
+	
 	uv run python tools/analyze_structure.py
 
-report:  ## [Report] 全解析を実行し、docs/quality_report.md を生成
+report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
 

@@ -4,7 +4,7 @@ import os
 import io
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, Iterator
 
 try:
     import boto3
@@ -26,23 +26,13 @@ class CacheCorruptedError(Exception):
 class BlobStorageBase(ABC):
     """
     Abstract base class for large object storage (BLOBs).
-    
-    Implementations must handle serialization of the location identifier
-    returned by save(), which will be stored in the TaskDB.
     """
 
     @abstractmethod
     def save(self, key: str, data: ReadableBuffer) -> str:
         """
         Persist the data associated with the given key.
-
-        Args:
-            key (str): A unique identifier for the content (e.g. hash).
-            data (bytes): The binary data to store.
-
-        Returns:
-            str: A location identifier (e.g. file path, S3 URI).
-                 This string MUST be retrievable by self.load(location).
+        Returns a location identifier.
         """
         pass
 
@@ -50,15 +40,6 @@ class BlobStorageBase(ABC):
     def load(self, location: str) -> bytes:
         """
         Retrieve data from the specified location.
-
-        Args:
-            location (str): The location identifier returned by save().
-
-        Returns:
-            bytes: The retrieved binary data.
-
-        Raises:
-            FileNotFoundError: If the data no longer exists.
         """
         pass
 
@@ -66,18 +47,24 @@ class BlobStorageBase(ABC):
     def delete(self, location: str) -> None:
         """
         Delete the blob at the specified location.
+        Should be idempotent (no error if file missing).
+        """
+        pass
 
-        Implementations should attempt to delete the resource.
-        If the file does not exist, it SHOULD fail silently or log a warning,
-        but MUST NOT raise an error (idempotency).
+    @abstractmethod
+    def list_keys(self) -> Iterator[str]:
+        """
+        Yields location identifiers for all stored blobs.
+        Used for Garbage Collection.
+        MUST yield the same format (path/URI) that is accepted by `delete`.
         """
         pass
 
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str | Path):
-        self.base_dir = base_dir
-        os.makedirs(base_dir, exist_ok=True)
+        self.base_dir = Path(base_dir)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_key(self, key: str):
         # Prevent Path Traversal
@@ -89,29 +76,20 @@ class LocalStorage(BlobStorageBase):
     def save(self, key: str, data: ReadableBuffer) -> str:
         self._validate_key(key)
         filename = f"{key}.bin"
-        filepath = os.path.join(self.base_dir, filename)
-        temp_path = filepath + ".tmp"
+        filepath = self.base_dir / filename
+        temp_path = self.base_dir / f"{filename}.tmp"
 
         with open(temp_path, "wb") as f:
             f.write(data)
 
-        os.replace(temp_path, filepath)
-        return filepath
+        temp_path.replace(filepath)
+        return str(filepath.absolute())
 
     def load(self, location: str) -> bytes:
         if not os.path.exists(location):
             raise FileNotFoundError(f"Local blob lost: {location}")
 
-        # Security check: ensure location is within base_dir
-        # However, 'location' here is the full path returned by save().
-        # If the user passes a manipulated path to load(), it could be an issue.
-        # But load() takes 'location' which is supposed to be the return value of save().
-        # Let's check if we can validate it.
-
-        # Actually, the interface says 'location' -> Any.
-        # In LocalStorage, save returns filepath.
-        # If we want to be strict, we should check if filepath is inside base_dir.
-
+        # Security check
         abs_location = os.path.abspath(location)
         abs_base = os.path.abspath(self.base_dir)
 
@@ -123,24 +101,25 @@ class LocalStorage(BlobStorageBase):
         with open(location, "rb") as f:
             return f.read()
 
-
     def delete(self, location: str) -> None:
-        # location は save() が返したフルパスであることを期待
-        if os.path.exists(location):
-            # 安全のため、base_dir 内かチェックしても良いが、
-            # load() 同様、一旦は信頼して削除する
-            try:
-                os.remove(location)
-            except OSError as e:
-                # 権限エラーなどは呼び出し元に伝えるべきかもしれないが、
-                # キャッシュ削除の文脈では「消そうとしたが消せなかった」はWarningで済ますことが多い
-                print(e)
-                pass
+        try:
+            os.remove(location)
+        except OSError:
+            pass
+
+    def list_keys(self) -> Iterator[str]:
+        """Yields absolute paths of all .bin files in the directory."""
+        if not self.base_dir.exists():
+            return
+        for entry in self.base_dir.glob("*.bin"):
+            # delete() relies on full path to find the file
+            yield str(entry.absolute())
 
 
 class S3Storage(BlobStorageBase):
     def __init__(
-        self, s3_uri: str,
+        self,
+        s3_uri: str,
         s3_opts: dict[str, Any] | None = None,
     ):
         if not boto3:
@@ -166,31 +145,25 @@ class S3Storage(BlobStorageBase):
             return resp["Body"].read()
         except ClientError as e:
             raise FileNotFoundError(f"S3 blob lost: {location}") from e
-        # except (pickle.UnpicklingError, AttributeError, EOFError, ImportError, IndexError) as e:
-        #     raise CacheCorruptedError(f"Failed to unpickle S3 object {location}: {e}") from e
 
     def delete(self, location: str) -> None:
         parts = location.replace("s3://", "").split("/", 1)
         try:
             self.s3.delete_object(Bucket=parts[0], Key=parts[1])
         except ClientError:
-            # S3のdelete_objectは存在しなくてもエラーにならないが、権限エラー等はキャッチ
             pass
+
+    def list_keys(self) -> Iterator[str]:
+        """Yields s3:// URIs for all objects in the prefix."""
+        paginator = self.s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket_name, Prefix=self.prefix):
+            for obj in page.get("Contents", []):
+                yield f"s3://{self.bucket_name}/{obj['Key']}"
 
 
 def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
-    """
-    Factory function to create a storage backend based on the path protocol.
-
-    Args:
-        path: Storage path or URI (e.g., "./data", "s3://my-bucket/prefix").
-        options: Extra options passed to the backend (e.g., boto3 client args).
-    """
     if path.startswith("s3://"):
         return S3Storage(path, options)
 
-    # 将来的な拡張ポイント (例: gs://, azure://)
-    # if path.startswith("gs://"):
-    #     return GCSStorage(path, options)
-
     return LocalStorage(path)
+

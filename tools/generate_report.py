@@ -27,7 +27,7 @@ def generate_report():
         "",
         "## 1. アーキテクチャ可視化",
         "### 1.1 依存関係図 (Pydeps)",
-        "![Dependency Graph](statics/img/generated/dependency_graph.svg)",
+        "![Dependency Graph](statics/img/generated/dependency_graph.png)",
         "",
         "### 1.2 安定度分析 (Instability Analysis)",
         "青: 安定(Core系) / 赤: 不安定(高依存系)。矢印は依存の方向を示します。",

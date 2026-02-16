@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import msgpack
+from typing import Iterator
 from beautyspot import Spot
 from beautyspot.storage import BlobStorageBase, LocalStorage, ReadableBuffer
 from beautyspot.db import TaskDB, SQLiteTaskDB
@@ -25,6 +26,14 @@ class MockStorage(BlobStorageBase):
         key = location.replace("mock://", "")
         if key in self.data:
             del self.data[key]
+
+    def list_keys(self) -> Iterator[str]:
+        """
+        Yields location identifiers (mock://...) for all stored data.
+        Required by BlobStorageBase interface.
+        """
+        for key in self.data:
+            yield f"mock://{key}"
 
 
 class MockDB(TaskDB):

@@ -5,6 +5,7 @@ import os
 import msgpack
 import inspect
 from enum import Enum, auto
+from functools import singledispatch
 from typing import Any, Union, Callable, Dict, ParamSpec
 
 ReadableBuffer = Union[bytes, bytearray, memoryview]
@@ -22,78 +23,33 @@ def _safe_sort_key(obj: Any):
     return (1, str(type(obj)), str(obj))
 
 
+@singledispatch
 def canonicalize(obj: Any) -> Any:
     """
     Recursively converts an object into a canonical form suitable for stable Msgpack serialization.
 
+    This function acts as the default handler for primitives and types not explicitly registered.
+    It also handles duck-typing cases like Numpy arrays and custom objects.
+
     Strategies:
-    1. Dict -> Sorted List of entries (fixes order).
-    2. Set -> Sorted List (fixes order).
-    3. Numpy-like -> Tuple with raw bytes (efficient & exact).
-    4. Type (Class) -> Schema hash (Pydantic) or Structure hash (Generic).
-    5. Object (Instance) -> Dict via __dict__ or __slots__ (avoids memory address).
+    1. Primitives -> Return as-is.
+    2. Numpy-like -> Tuple with raw bytes (efficient & exact).
+    3. Custom Object (Instance) -> Dict via __dict__ or __slots__.
+    4. Fallback -> String representation.
     """
     # 1. Primitives (No change needed)
     if obj is None or isinstance(obj, (int, float, bool, str, bytes)):
         return obj
 
-    # 2. Dict -> List of [k, v], sorted by key
-    if isinstance(obj, dict):
-        return [
-            [canonicalize(k), canonicalize(v)]
-            for k, v in sorted(obj.items(), key=lambda i: _safe_sort_key(i[0]))
-        ]
-
-    # 3. List/Tuple -> Recursive canonicalization
-    if isinstance(obj, (list, tuple)):
-        return [canonicalize(x) for x in obj]
-
-    # 4. Set -> Sorted List
-    if isinstance(obj, (set, frozenset)):
-        normalized_items = [canonicalize(x) for x in obj]
-        return sorted(normalized_items, key=_safe_sort_key)
-
-    # 5. Numpy Array Handling (Duck Typing)
+    # 2. Numpy Array Handling (Duck Typing)
+    # We check attributes to avoid hard dependency on numpy
     if hasattr(obj, "shape") and hasattr(obj, "dtype") and hasattr(obj, "tobytes"):
         try:
             return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
         except Exception:
             pass
 
-    # 6. Type/Class Handling (Structure Awareness)
-    if isinstance(obj, type):
-        # Strategy A: Pydantic Model (Schema-based)
-        if hasattr(obj, "model_json_schema"):  # Pydantic v2
-            try:
-                return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
-            except Exception:
-                pass
-        if hasattr(obj, "schema"):  # Pydantic v1
-            try:
-                return ("__pydantic_v1__", canonicalize(obj.schema()))
-            except Exception:
-                pass
-
-        # Strategy B: Generic Class (Structure-based)
-        class_attrs = {}
-        try:
-            for k, v in obj.__dict__.items():
-                if k.startswith("__") and k != "__annotations__":
-                    continue
-                if callable(v):
-                    continue
-                class_attrs[k] = v
-        except AttributeError:
-            pass
-
-        return (
-            "__class__",
-            obj.__module__,
-            obj.__qualname__,
-            canonicalize(class_attrs),
-        )
-
-    # 7. Custom Objects (Instance)
+    # 3. Custom Objects (Instance)
     if hasattr(obj, "__dict__"):
         return canonicalize(obj.__dict__)
 
@@ -104,8 +60,67 @@ def canonicalize(obj: Any) -> Any:
             if hasattr(obj, k)
         ]
 
-    # 8. Last Resort: String representation
+    # 4. Last Resort: String representation
     return str(obj)
+
+
+@canonicalize.register(dict)
+def _(obj: dict) -> list:
+    """Dict -> List of [k, v], sorted by key"""
+    return [
+        [canonicalize(k), canonicalize(v)]
+        for k, v in sorted(obj.items(), key=lambda i: _safe_sort_key(i[0]))
+    ]
+
+
+@canonicalize.register(list)
+@canonicalize.register(tuple)
+def _(obj: Union[list, tuple]) -> list:
+    """List/Tuple -> Recursive canonicalization"""
+    return [canonicalize(x) for x in obj]
+
+
+@canonicalize.register(set)
+@canonicalize.register(frozenset)
+def _(obj: Union[set, frozenset]) -> list:
+    """Set -> Sorted List"""
+    normalized_items = [canonicalize(x) for x in obj]
+    return sorted(normalized_items, key=_safe_sort_key)
+
+
+@canonicalize.register(type)
+def _(obj: type) -> Any:
+    """Type/Class Handling (Structure Awareness)"""
+    # Strategy A: Pydantic Model (Schema-based)
+    if hasattr(obj, "model_json_schema"):  # Pydantic v2
+        try:
+            return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
+        except Exception:
+            pass
+    if hasattr(obj, "schema"):  # Pydantic v1
+        try:
+            return ("__pydantic_v1__", canonicalize(obj.schema()))
+        except Exception:
+            pass
+
+    # Strategy B: Generic Class (Structure-based)
+    class_attrs = {}
+    try:
+        for k, v in obj.__dict__.items():
+            if k.startswith("__") and k != "__annotations__":
+                continue
+            if callable(v):
+                continue
+            class_attrs[k] = v
+    except AttributeError:
+        pass
+
+    return (
+        "__class__",
+        obj.__module__,
+        obj.__qualname__,
+        canonicalize(class_attrs),
+    )
 
 
 class Strategy(Enum):
@@ -125,9 +140,6 @@ class KeyGenPolicy:
     """
     A policy object that binds to a function signature to generate cache keys
     based on argument-specific strategies.
-
-    This acts as a bridge between the flexible `*args, **kwargs` interface of
-    the decorator and the structured `KeyGen` logic.
     """
 
     def __init__(
@@ -141,9 +153,6 @@ class KeyGenPolicy:
     def bind(self, func: Callable[P, Any]) -> Callable[P, str]:
         """
         Creates a key generation function bound to the specific signature of `func`.
-
-        This uses `inspect.signature` to map positional arguments to their names,
-        allowing strategies to be applied consistently regardless of how the function is called.
         """
         sig = inspect.signature(func)
 
@@ -180,11 +189,6 @@ class KeyGenPolicy:
 class KeyGen:
     """
     Generates stable cache keys (SHA-256) for function inputs (Identity Layer).
-
-    Note on Separation of Concerns:
-      - This class focuses on 'Input Identity' (checking if inputs are effectively the same).
-      - It does NOT handle 'Output Serialization' (saving results to DB).
-        For custom output serialization, use `spot.register()`.
     """
 
     # Constants for convenience usage in KeyGen.map()
@@ -257,10 +261,6 @@ class KeyGen:
     def ignore(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that ignores specific arguments (e.g., 'verbose', 'logger').
-
-        Example:
-            >>> @spot.mark(keygen=KeyGen.ignore("logger", "verbose"))
-            ... def process(data, logger, verbose=False): ...
         """
         strategies = {name: Strategy.IGNORE for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
@@ -269,13 +269,6 @@ class KeyGen:
     def map(cls, **arg_strategies: Strategy) -> KeyGenPolicy:
         """
         Creates a policy with explicit strategies for specific arguments.
-        Example:
-            >>> @spot.mark(keygen=KeyGen.map(
-            ...     data=KeyGen.HASH, 
-            ...     config_file=KeyGen.FILE_CONTENT,
-            ...     client=KeyGen.IGNORE
-            ... ))
-            ... def run(data, config_file, client): ...
         """
         return KeyGenPolicy(arg_strategies, default_strategy=Strategy.DEFAULT)
 
@@ -283,10 +276,6 @@ class KeyGen:
     def file_content(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that treats specified arguments as file paths and hashes their content.
-
-        Example:
-            >>> @spot.mark(keygen=KeyGen.file_content("config_path"))
-            ... def train_model(config_path): ...
         """
         strategies = {name: Strategy.FILE_CONTENT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
@@ -295,11 +284,7 @@ class KeyGen:
     def path_stat(cls, *arg_names: str) -> KeyGenPolicy:
         """
         Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).
-        Faster than file_content, but less strict.
-        
-        Example:
-            >>> @spot.mark(keygen=KeyGen.path_stat("dataset_path"))
-            ... def quick_check(dataset_path): ...
         """
         strategies = {name: Strategy.PATH_STAT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
+

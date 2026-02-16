@@ -13,11 +13,6 @@ from beautyspot.cli import app
 runner = CliRunner()
 
 
-# =============================================================================
-# Fixtures
-# =============================================================================
-
-
 @pytest.fixture
 def temp_db(tmp_path: Path) -> Path:
     """Create a temporary SQLite database with test data."""

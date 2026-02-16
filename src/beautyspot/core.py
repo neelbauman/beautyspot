@@ -106,7 +106,6 @@ class ScopedMark(Generic[R]):
 class SpotOptions(TypedDict, total=False):
     """
     Spotのオプション引数を定義する。
-    ここにフィールドを追加すれば、__init__.py と core.py の両方に補完が反映される。
     """
     blob_warning_threshold: int
     default_save_blob: bool
@@ -130,7 +129,7 @@ class Spot:
         serializer: SerializerProtocol,
         storage: BlobStorageBase,
         
-        # オプション設定 (明示的に定義)
+        # オプション設定
         tpm: int = 10000,
         io_workers: int = 4,
         blob_warning_threshold: int = 1024 * 1024,
@@ -141,26 +140,8 @@ class Spot:
         default_version: Optional[str] = None,
         default_content_type: Optional[str] = None,
         
-        # 将来の拡張用
         **kwargs: Any,
     ) -> None:
-        """
-        Initialize a Spot instance.
-
-        Args:
-            name: Name of the spot/workspace.
-            db: Database for tasks, can be a filepath or TaskDB instance.
-            storage: Path for storing blobs locally.
-            s3_opts: Options for S3 storage.
-            tpm: Tokens per minute for rate limiting.
-            io_workers: Number of IO workers for executor.
-            blob_warning_threshold: Threshold size (bytes) to warn when saving large data to SQLite.
-            executor: Optional pre-created executor.
-            storage: Optional pre-created storage instance.
-            default_save_blob: Default value for save_blob in mark/run.
-            default_version: Default version string for mark/run.
-            default_content_type: Default content_type for mark/run.
-        """
         self.name = name
         
         # --- 依存オブジェクトの注入 ---
@@ -192,12 +173,51 @@ class Spot:
             # GC時の安全なシャットダウン
             self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
 
+    @classmethod
+    def from_path(cls, db_path: str | Path, blob_dir: Optional[str | Path] = None, **kwargs) -> "Spot":
+        """
+        Factory method to create a Spot instance with standard configuration (SQLite + LocalStorage + Msgpack).
+        
+        Args:
+            db_path: Path to the SQLite database file.
+            blob_dir: Optional path to the blob directory. If not provided, it will be inferred 
+                      based on the db_path (sibling 'blobs' directory).
+            **kwargs: Additional arguments passed to Spot constructor.
+        """
+        # 遅延インポートで循環参照や不要なインポートを回避
+        from beautyspot.db import SQLiteTaskDB
+        from beautyspot.storage import create_storage
+        
+        path = Path(db_path)
+        
+        # Blobディレクトリの推論
+        if blob_dir:
+            b_path = Path(blob_dir)
+        else:
+            # 推論: .beautyspot/project.db -> .beautyspot/project/blobs/
+            # または単純に兄弟ディレクトリ: .beautyspot/blobs/
+            parent = path.parent
+            stem = path.stem
+            
+            candidate = parent / stem / "blobs"
+            if candidate.exists():
+                b_path = candidate
+            else:
+                b_path = parent / "blobs"
+        
+        return cls(
+            name="cli",
+            db=SQLiteTaskDB(path),
+            storage=create_storage(str(b_path)),
+            serializer=MsgpackSerializer(),
+            **kwargs
+        )
+
     def _setup_workspace(self):
         """Ensure the workspace directory and .gitignore exist."""
         if not self.workspace_dir.exists():
             self.workspace_dir.mkdir(parents=True, exist_ok=True)
 
-        # Add a .gitignore to ignore everything in this directory
         gitignore_path = self.workspace_dir / ".gitignore"
         if not gitignore_path.exists():
             with open(gitignore_path, "w") as f:
@@ -205,43 +225,16 @@ class Spot:
 
     @staticmethod
     def _shutdown_executor(executor: Executor):
-        """
-        Clean-up function for internal Executor.
-        ! This method must be a staticmethod to avoid circuler reference in weakrf.finalize() in self.__init__().
-
-        Args:
-            executor: The executor to be shut down.
-        """
         executor.shutdown(wait=True)
 
     def shutdown(self, wait: bool = True):
-        """
-        Manually release resources.
-
-        Args:
-            wait: Whether to wait for the executor to be shut down.
-        """
         if self._own_executor and self._finalizer.alive:
             self._finalizer()
 
     def __enter__(self) -> "Spot":
-        """
-        Enter the runtime context related to this object.
-
-        Returns:
-            self: The Spot instance itself.
-        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Exit the runtime context and clean up resources.
-
-        Args:
-            exc_type: Exception type.
-            exc_value: Exception value.
-            traceback: Traceback object.
-        """
         self.shutdown()
 
     def _resolve_key_fn(
@@ -250,10 +243,6 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
     ) -> Optional[Callable]:
-        """
-        Resolve key generation strategy, handling backward compatibility and policy binding.
-        """
-        # 両方指定された場合はエラー (Ambiguity check)
         if keygen is not None and input_key_fn is not None:
             raise ValueError(
                 "Cannot specify both 'keygen' and 'input_key_fn'. Please use 'keygen'."
@@ -261,17 +250,15 @@ class Spot:
 
         target = keygen
 
-        # 旧パラメータの移行措置 (Deprecation Warning)
         if input_key_fn is not None:
             warnings.warn(
                 "The 'input_key_fn' argument is deprecated and will be removed in v3.0. "
                 "Please use 'keygen' instead.",
                 DeprecationWarning,
-                stacklevel=3,  # 呼び出し元のコンテキストを表示
+                stacklevel=3,
             )
             target = input_key_fn
 
-        # Policyのバインド処理 (DRY解消: ここに集約)
         if isinstance(target, KeyGenPolicy):
             return target.bind(func)
         
@@ -284,36 +271,16 @@ class Spot:
         decoder: Optional[Callable[[Any], T]] = None,
         decoder_factory: Optional[Callable[[Type[T]], Callable[[Any], T]]] = None,
     ) -> Callable[[Type[T]], Type[T]]:
-        """
-        Decorator to register a custom type for serialization.
-        The `encoder` should return a msgpack-serializable object (dict, list, str, int, bytes, etc.).
-        The `decoder` will receive the unpacked object (mirroring what the encoder returned).
-
-        The encoder should return a serializable object (dict, list, int, etc.),
-        NOT raw bytes. The serializer handles packing/unpacking automatically.
-
-        Args:
-            code (int): Unique ExtType ID (0-127).
-            encoder (Callable): Function to convert the object to a serializable dict/list/etc.
-            decoder (Callable, optional): Function to reconstruct the object.
-            decoder_factory (Callable, optional): Factory to create a decoder (for generics).
-
-        Example:
-            >>> @spot.register(code=1, encoder=lambda x: x.to_dict(), decoder=MyClass.from_dict)
-            ... class MyClass: ...
-        """
         if decoder is None and decoder_factory is None:
             raise ValueError("Must provide either `decoder` or `decoder_factory`.")
 
         def decorator(cls: Type) -> Type:
             actual_decoder = decoder
-            # クラス生成後にファクトリを実行してデコーダを取得
             if decoder_factory:
                 actual_decoder = decoder_factory(cls)
 
             if actual_decoder is None:
                 raise ValueError("Decoder resolution failed.")
-            # ----------------------------------------
 
             self.register_type(cls, code, encoder, actual_decoder)
             return cls
@@ -327,21 +294,9 @@ class Spot:
         encoder: Callable[[T], Any],
         decoder: Callable[[Any], T],
     ):
-        """
-        Register a custom type for serialization (Msgpack Extension Type).
-        The encoder can return any msgpack-serializable object (dict, list, str, bytes, etc.).
-    The decoder will receive the unpacked object (mirroring what the encoder returned).
-
-        Args:
-            type_: The class to handle (e.g. MyClass)
-            code: Unique integer ID (0-127) for this type
-            encoder: Function that converts obj -> intermediate serializable object (e.g. dict)
-            decoder: Function that converts intermediate object -> obj
-        """
         if isinstance(self.serializer, MsgpackSerializer):
             self.serializer.register(type_class, code, encoder, decoder)
         else:
-            # Msgpack以外 (Pickle等) が使われている場合、登録機能は使えない旨を通知
             raise NotImplementedError(
                 f"The current serializer '{type(self.serializer).__name__}' does not support type registration.\n"
                 "The `@spot.register` decorator is only compatible with the default MsgpackSerializer."
@@ -352,10 +307,6 @@ class Spot:
     def _resolve_settings(
         self, save_blob: bool | None, version: str | None, content_type: str | None
     ) -> tuple[bool, str | None, str | None]:
-        """
-        Resolve settings based on arguments and spot defaults.
-        Priority: Argument > Spot Default
-        """
         final_save_blob = save_blob if save_blob is not None else self.default_save_blob
         final_version = version if version is not None else self.default_version
         final_content_type = (
@@ -371,7 +322,6 @@ class Spot:
         input_key_fn: Optional[Callable],
         version: str | None,
     ) -> tuple[str, str]:
-        """Generate input_id and cache_key."""
         iid = (
             input_key_fn(*args, **kwargs)
             if input_key_fn
@@ -396,15 +346,9 @@ class Spot:
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
     ) -> Any:
-        """Internal synchronous execution logic."""
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
-
-        # --- Policy Binding Check (ADDED) ---
-        # If input_key_fn is a Policy object (has 'bind'), bind it to the function now.
         effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
-
-        # ------------------------------------
 
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
@@ -433,11 +377,8 @@ class Spot:
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
     ) -> Any:
-        """Internal asynchronous execution logic."""
         # Resolve Defaults
         s_blob, s_ver, s_ct = self._resolve_settings(save_blob, version, content_type)
-
-        # Policy Binding Check (Refactored)
         effective_key_fn = self._resolve_key_fn(func, keygen=None, input_key_fn=input_key_fn)
 
         iid, ck = self._make_cache_key(
@@ -468,7 +409,6 @@ class Spot:
         )
         return res
 
-    # --- Core Logic (Sync) ---
     def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol] = None) -> Any:
         use_serializer = serializer or self.serializer
 
@@ -476,13 +416,13 @@ class Spot:
 
         if entry:
             r_type = entry["result_type"]
-            r_val = entry["result_value"]  # Path (str)
-            r_data = entry.get("result_data")  # Content (bytes)
+            r_val = entry["result_value"]
+            r_data = entry.get("result_data")
 
-            # Case 1: Native SQLite BLOB (Standard for small data)
+            # Case 1: Native SQLite BLOB
             if r_type == "DIRECT_BLOB":
                 if r_data is None:
-                    return CACHE_MISS  # データ破損時もMISS扱い
+                    return CACHE_MISS
                 try:
                     return use_serializer.loads(r_data)
                 except Exception as e:
@@ -491,19 +431,18 @@ class Spot:
                     )
                     return CACHE_MISS
 
-            # Case 2: External Blob (Standard for large data)
+            # Case 2: External Blob
             elif r_type == "FILE":
                 if r_val is None:
                     logger.warning(f"Data corruption: 'FILE' type record has no path for key `{cache_key}`")
                     return CACHE_MISS
                 try:
-                    # result_value is treated strictly as a Path/URI
                     data_bytes = self.storage.load(r_val)
                     return use_serializer.loads(data_bytes)
                 except Exception:
                     return CACHE_MISS
 
-        return CACHE_MISS  # エントリがない場合はMISS
+        return CACHE_MISS
 
     def _save_result_sync(
         self,
@@ -521,7 +460,6 @@ class Spot:
         try:
             data_bytes = use_serializer.dumps(result)
         except SerializationError as e:
-            # Fail fast if the type is not registered.
             raise e
 
         r_val = None
@@ -529,22 +467,16 @@ class Spot:
         r_type = "DIRECT_BLOB"
 
         if save_blob:
-            # Explicit Blob Storage
             r_val = self.storage.save(cache_key, data_bytes)
             r_type = "FILE"
         else:
-            # SQLite BLOB Storage
             data_size = len(data_bytes)
-
-            # Guardrail: Warning for unintentional large data
             if data_size > self.blob_warning_threshold:
                 logger.warning(
                     f"⚠️ Large data detected ({data_size / 1024:.1f} KB) for task '{func_name}'. "
-                    f"This is saved to SQLite directly, which may bloat the database file. "
-                    f"Consider adding `@spot.mark(save_blob=True)` to improve performance and file size."
+                    f"Consider adding `@spot.mark(save_blob=True)`."
                 )
 
-            # Save raw bytes
             r_blob = data_bytes
             r_type = "DIRECT_BLOB"
 
@@ -559,16 +491,7 @@ class Spot:
             result_data=r_blob,
         )
 
-    # --- Decorators ---
-
     def limiter(self, cost: Union[int, Callable] = 1):
-        """
-        Rate Limiting Decorator.
-
-        Args:
-            cost: Cost associated with the function, can be an int or a callable that returns an int.
-        """
-
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
@@ -588,15 +511,9 @@ class Spot:
 
         return decorator
 
-    # ----------------------------------------------------------------
-    # Overload 1: @spot.mark として直接使用する場合
-    # ----------------------------------------------------------------
     @overload
     def mark(self, _func: Callable[P, R]) -> Callable[P, R]: ...
 
-    # ----------------------------------------------------------------
-    # Overload 2: @spot.mark(save_blob=True) として使用する場合
-    # ----------------------------------------------------------------
     @overload
     def mark(
         self,
@@ -609,9 +526,6 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
-    # ----------------------------------------------------------------
-    # 実装 (Implementation)
-    # ----------------------------------------------------------------
     def mark(
         self,
         _func: Optional[Callable] = None,
@@ -623,87 +537,37 @@ class Spot:
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
     ) -> Any:
-        """
-        Mark a function as a managed spot (Resumable Task Decorator).
-
-        This decorator enables caching, rate-limiting, and storage management for the decorated function.
-        It calculates a unique cache key based on the function arguments and retrieves the result
-        from the database if available.
-
-        Args:
-            save_blob (bool, optional):
-                If True, the return value is saved as a separate blob file (useful for large data).
-                If False, it is saved directly in the SQLite database (faster for small data).
-                Defaults to the Spot instance's `default_save_blob`.
-            keygen (Callable | KeyGenPolicy, optional):
-                A custom strategy to generate cache keys from function arguments.
-                Use `KeyGen.map(...)` or `KeyGen.ignore(...)` to customize behavior.
-                Recommended over `input_key_fn`.
-            input_key_fn (Callable, optional):
-                .. deprecated:: 2.0
-                Use `keygen` instead.
-            version (str, optional):
-                A semantic version string (e.g., "v1.0"). Changing this invalidates existing caches
-                for this function. Defaults to the Spot instance's `default_version`.
-            content_type (str, optional):
-                MIME type or semantic type string (e.g., "application/json", "text/csv").
-                Used for metadata and potentially for custom serialization logic.
-
-        Returns:
-            Callable: A wrapper function that handles caching and execution logic.
-
-        Example:
-            >>> @spot.mark(save_blob=True, version="v2")
-            ... def heavy_computation(data):
-            ...     return process(data)
-
-            >>> @spot.mark(keygen=KeyGen.map(db_conn=KeyGen.IGNORE))
-            ... def fetch_data(query, db_conn):
-            ...     return db_conn.execute(query)
-        """
         if save_blob is None:
             save_blob = self.default_save_blob
-
         if version is None:
             version = self.default_version
-        
         if content_type is None:
             content_type = self.default_content_type
 
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
-
-            # --- Policy Binding Setup (ADDED) ---
-            # If a Policy is provided, bind it to the decorated function immediately.
             effective_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
 
-            # Key Gen Helper
             def make_key(args, kwargs):
                 from .cachekey import KeyGen
-
                 iid = (
                     effective_key_fn(*args, **kwargs)
                     if effective_key_fn
                     else KeyGen._default(args, kwargs)
                 )
-
                 key_source = f"{func.__name__}:{iid}"
                 if version:
                     key_source += f":{version}"
-
                 ck = hashlib.md5(key_source.encode()).hexdigest()
                 return iid, ck
 
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 iid, ck = make_key(args, kwargs)
-
                 cached = self._check_cache_sync(ck, serializer)
                 if cached is not CACHE_MISS:
                     return cached
-
                 res = func(*args, **kwargs)
-
                 self._save_result_sync(
                     ck, func.__name__, str(iid), version, res, content_type, save_blob, serializer
                 )
@@ -713,15 +577,12 @@ class Spot:
             async def async_wrapper(*args, **kwargs):
                 iid, ck = make_key(args, kwargs)
                 loop = asyncio.get_running_loop()
-
                 cached = await loop.run_in_executor(
                     self.executor, self._check_cache_sync, ck, serializer
                 )
                 if cached is not CACHE_MISS:
                     return cached
-
                 res = await func(*args, **kwargs)
-
                 await loop.run_in_executor(
                     self.executor,
                     self._save_result_sync,
@@ -740,14 +601,8 @@ class Spot:
 
         if _func is not None and callable(_func):
             return decorator(_func)
-
         return decorator
 
-    # ----------------------------------------------------------------
-    # cached_run: TypeVarTuple Powered Overloads
-    # ----------------------------------------------------------------
-
-    # Case 1: 単一の関数 -> 単体のラッパーを返す
     @overload
     def cached_run(
         self,
@@ -762,7 +617,6 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
     ) -> ScopedMark[T]: ...
 
-    # Case 2: 複数の関数 -> タプルで返す (型情報を維持)
     @overload
     def cached_run(
         self,
@@ -780,55 +634,14 @@ class Spot:
         *funcs: Any,
         save_blob: Optional[bool] = None,
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,  # Deprecated
+        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
     ):
-        """
-        Create a temporary context for executing function(s) with caching.
-
-        This is the recommended imperative API replacing the deprecated `spot.run()`.
-        It returns a context manager that provides a "cached version" of the function(s)
-        that is only valid within the `with` block.
-
-        Args:
-            *funcs: One or more functions to wrap with caching logic.
-            save_blob (bool, optional):
-                Override the default storage strategy. True for file storage, False for DB.
-            keygen (Callable | KeyGenPolicy, optional):
-                Custom key generation policy. Applies to ALL functions passed to this call.
-            input_key_fn (Callable, optional):
-                .. deprecated:: 2.0
-                Use `keygen` instead.
-            version (str, optional):
-                Cache version string. Useful for invalidating cache without changing code.
-            content_type (str, optional):
-                Metadata content type for the stored result.
-            serializer: Custom serializer object (e.g. pickle) for this context.
-
-        Returns:
-            ScopedMark: A context manager.
-                - If one function is passed, yields a single cached wrapper.
-                - If multiple functions are passed, yields a tuple of cached wrappers.
-
-        Raises:
-            RuntimeError: If the yielded function is called outside the `with` block.
-
-        Example:
-            # Single function usage
-            >>> with spot.cached_run(process_data, version="v1.1") as task:
-            ...     result = task(input_data)
-
-            # Multiple functions usage (useful for sharing config like version)
-            >>> with spot.cached_run(func_a, func_b, save_blob=True) as (task_a, task_b):
-            ...     res_a = task_a(data)
-            ...     res_b = task_b(res_a)
-        """
         if not funcs:
             raise ValueError("At least one function must be provided to cached_run.")
 
-        # Runtime Check (for safety)
         for f in funcs:
             if not callable(f):
                 raise TypeError(
@@ -846,8 +659,6 @@ class Spot:
             serializer=serializer,
         )
 
-    # --- Imperative Execution ---
-
     def run(
         self,
         func: Callable,
@@ -859,16 +670,9 @@ class Spot:
         _serializer: Optional[SerializerProtocol] = None,
         **kwargs,
     ) -> Any:
-        """
-        Execute a function with caching enabled.
-
-        .. deprecated:: 2.0
-            Use `with spot.cached_run(func) as task: task(*args)` instead.
-        """
         warnings.warn(
             "`spot.run()` is deprecated and will be removed in v3.0. "
-            "Please use `with spot.cached_run(func) as task: task(...)` instead "
-            "for better type safety and cleaner API.",
+            "Please use `with spot.cached_run(func) as task: task(...)` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -885,25 +689,16 @@ class Spot:
     def delete(self, cache_key: str) -> bool:
         """
         Delete a cached task record and its associated blob data (if any).
-
-        Args:
-            cache_key: The cache key of the task to delete.
-
-        Returns:
-            bool: True if the task was found and deleted, False otherwise.
         """
-        # 1. DBからレコード情報を取得 (Blobの場所を知るため)
         record = self.db.get(cache_key)
         if not record:
             return False
 
-        # 2. Blobがあれば削除
         if record["result_type"] == "FILE" and record["result_value"]:
             try:
-                # storage.delete は location (パス/URI) を受け取る
                 self.storage.delete(record["result_value"])
             except Exception as e:
                 logger.warning(f"Failed to delete blob for key '{cache_key}': {e}")
 
-        # 3. DBレコードを削除
         return self.db.delete(cache_key)
+

@@ -3,6 +3,7 @@
 import sqlite3
 import os
 import logging
+from datetime import datetime
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING, TypedDict
@@ -23,17 +24,14 @@ class TaskRecord(TypedDict):
 class TaskDB(ABC):
     """
     Abstract interface for task metadata storage.
-    Implement this class to support other databases (e.g., PostgreSQL, DuckDB).
     """
 
     @abstractmethod
     def init_schema(self):
-        """Initialize database schema (create tables, migrations)."""
         pass
 
     @abstractmethod
     def get(self, cache_key: str) -> Optional[TaskRecord]:
-        """Retrieve a task result by cache key."""
         pass
 
     @abstractmethod
@@ -48,50 +46,35 @@ class TaskDB(ABC):
         result_value: Optional[str] = None,
         result_data: Optional[bytes] = None,
     ):
-        """
-        Upsert a task result.
-
-        Args:
-            cache_key: Unique hash key.
-            func_name: Function name.
-            input_id: Input identifier.
-            version: Task version.
-            result_type: 'DIRECT_BLOB' or 'FILE'.
-            content_type: MIME type of the result (e.g. 'image/png').
-            result_value: Path/URI string (Only used when result_type='FILE').
-            result_data: Serialized binary data (Only used when result_type='DIRECT_BLOB').
-        """
         pass
 
     @abstractmethod
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
-        """
-        Fetch task execution history for analysis or dashboard visualization.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing the most recent tasks.
-                
-                **Schema:**
-                - `cache_key` (str): Unique hash of the task.
-                - `func_name` (str): Name of the executed function.
-                - `input_id` (str): Canonical hash of the arguments.
-                - `version` (str): Version tag provided at execution.
-                - `result_type` (str): Storage type ('DIRECT_BLOB' or 'FILE').
-                - `content_type` (str): MIME type of the result.
-                - `updated_at` (datetime): Timestamp of the last execution/cache hit.
-
-        Raises:
-            ImportError: If 'pandas' is not installed.
-        """
         pass
 
     @abstractmethod
     def delete(self, cache_key: str) -> bool:
-        """
-        Delete a task record by cache_key.
-        Returns True if a record was deleted, False otherwise.
-        """
         pass
+
+    # --- Optional Maintenance Methods ---
+
+    def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
+        """Delete tasks older than the specified datetime."""
+        logger.warning(
+            f"{self.__class__.__name__} does not support pruning operations."
+        )
+        return 0
+
+    def get_outdated_tasks(self, older_than: datetime, func_name: Optional[str] = None) -> list[tuple[str, str, str]]:
+        """
+        Retrieve tasks older than the specified datetime (Preview for prune).
+        Returns a list of (cache_key, func_name, updated_at).
+        """
+        return []
+
+    def get_blob_refs(self) -> Optional[set[str]]:
+        """Retrieve all 'result_value' entries that point to external storage."""
+        return None
 
 
 class SQLiteTaskDB(TaskDB):
@@ -108,8 +91,6 @@ class SQLiteTaskDB(TaskDB):
     def init_schema(self):
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL;")
-
-            # 1. Create Table (if not exists)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
                     cache_key TEXT PRIMARY KEY,
@@ -124,7 +105,6 @@ class SQLiteTaskDB(TaskDB):
                 )
             """)
 
-            # 2. Migration: Check and Add columns dynamically
             cursor = conn.execute("PRAGMA table_info(tasks)")
             columns = [row[1] for row in cursor.fetchall()]
 
@@ -136,7 +116,6 @@ class SQLiteTaskDB(TaskDB):
                 conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
 
     def get(self, cache_key: str) -> Optional[TaskRecord]:
-        """Retrieve a task result by cache key."""
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT result_type, result_value, result_data FROM tasks WHERE cache_key=?",
@@ -161,7 +140,6 @@ class SQLiteTaskDB(TaskDB):
         result_value: Optional[str] = None,
         result_data: Optional[bytes] = None,
     ):
-        """Upsert a task result."""
         with self._connect() as conn:
             conn.execute(
                 """
@@ -182,17 +160,10 @@ class SQLiteTaskDB(TaskDB):
             )
 
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
-        """
-        Fetch task history for analysis/dashboard.
-        """
         try:
             import pandas as pd
         except ImportError as e:
-            raise ImportError(
-                "Pandas is required for this feature. "
-                "Please install it via `pip install 'beautyspot[dashboard]'` "
-                "or `pip install pandas`."
-            ) from e
+            raise ImportError("Pandas is required for this feature.") from e
 
         if not os.path.exists(self.db_path):
             return pd.DataFrame()
@@ -200,28 +171,59 @@ class SQLiteTaskDB(TaskDB):
         with self._connect() as conn:
             query = """
                 SELECT 
-                    cache_key, 
-                    func_name, 
-                    input_id, 
-                    version, 
-                    result_type, 
-                    content_type, 
-                    result_value, 
-                    result_data,
-                    updated_at 
+                    cache_key, func_name, input_id, version, result_type, 
+                    content_type, result_value, result_data, updated_at 
                 FROM tasks 
-                ORDER BY updated_at DESC 
-                LIMIT ?
+                ORDER BY updated_at DESC LIMIT ?
             """
-            return pd.read_sql_query(
-                query,
-                conn,
-                params=[
-                    limit,
-                ],
-            )
+            return pd.read_sql_query(query, conn, params=[limit])
 
     def delete(self, cache_key: str) -> bool:
         with self._connect() as conn:
             cursor = conn.execute("DELETE FROM tasks WHERE cache_key=?", (cache_key,))
             return cursor.rowcount > 0
+
+    def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
+        cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
+        with self._connect() as conn:
+            if func_name:
+                cursor = conn.execute(
+                    "DELETE FROM tasks WHERE updated_at < ? AND func_name = ?",
+                    (cutoff_str, func_name),
+                )
+            else:
+                cursor = conn.execute(
+                    "DELETE FROM tasks WHERE updated_at < ?",
+                    (cutoff_str,),
+                )
+            return cursor.rowcount
+
+    def get_outdated_tasks(self, older_than: datetime, func_name: Optional[str] = None) -> list[tuple[str, str, str]]:
+        cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
+        if not os.path.exists(self.db_path):
+            return []
+            
+        with self._connect() as conn:
+            if func_name:
+                cursor = conn.execute(
+                    "SELECT cache_key, func_name, updated_at FROM tasks WHERE updated_at < ? AND func_name = ?",
+                    (cutoff_str, func_name),
+                )
+            else:
+                cursor = conn.execute(
+                    "SELECT cache_key, func_name, updated_at FROM tasks WHERE updated_at < ?",
+                    (cutoff_str,),
+                )
+            return [(row[0], row[1], str(row[2])) for row in cursor.fetchall()]
+
+    def get_blob_refs(self) -> Optional[set[str]]:
+        if not os.path.exists(self.db_path):
+            return set()
+
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "SELECT result_value FROM tasks WHERE result_type = 'FILE' AND result_value IS NOT NULL"
+            )
+            # Use filename for robust matching across machines/paths
+            return {Path(row[0]).name for row in cursor.fetchall() if row[0]}
+
