@@ -493,7 +493,6 @@ class Spot:
             if r_type == "DIRECT_BLOB":
                 if r_data is None:
                     return CACHE_MISS  # データ破損時もMISS扱い
-                    return None
                 try:
                     return use_serializer.loads(r_data)
                 except Exception as e:
@@ -504,6 +503,9 @@ class Spot:
 
             # Case 2: External Blob (Standard for large data)
             elif r_type == "FILE":
+                if r_val is None:
+                    logger.warning(f"Data corruption: 'FILE' type record has no path for key `{cache_key}`")
+                    return CACHE_MISS
                 try:
                     # result_value is treated strictly as a Path/URI
                     data_bytes = self.storage.load(r_val)

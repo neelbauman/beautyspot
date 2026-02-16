@@ -5,10 +5,11 @@ import os
 import msgpack
 import inspect
 from enum import Enum, auto
-from typing import Any, Union, Callable, Dict
+from typing import Any, Union, Callable, Dict, ParamSpec
 
 ReadableBuffer = Union[bytes, bytearray, memoryview]
 
+P = ParamSpec("P")
 
 def _safe_sort_key(obj: Any):
     """
@@ -137,7 +138,7 @@ class KeyGenPolicy:
         self.strategies = strategies
         self.default_strategy = default_strategy
 
-    def bind(self, func: Callable) -> Callable[..., str]:
+    def bind(self, func: Callable[P, Any]) -> Callable[P, str]:
         """
         Creates a key generation function bound to the specific signature of `func`.
 
@@ -146,7 +147,7 @@ class KeyGenPolicy:
         """
         sig = inspect.signature(func)
 
-        def _bound_keygen(*args, **kwargs) -> str:
+        def _bound_keygen(*args: P.args, **kwargs: P.kwargs) -> str:
             # Bind arguments to names, applying defaults
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()

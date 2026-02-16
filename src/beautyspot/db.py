@@ -4,13 +4,19 @@ import sqlite3
 import os
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     import pandas as pd
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class TaskRecord(TypedDict):
+    result_type: str
+    result_value: Optional[str]
+    result_data: Optional[bytes]
 
 
 class TaskDB(ABC):
@@ -25,7 +31,7 @@ class TaskDB(ABC):
         pass
 
     @abstractmethod
-    def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def get(self, cache_key: str) -> Optional[TaskRecord]:
         """Retrieve a task result by cache key."""
         pass
 
@@ -128,7 +134,7 @@ class SQLiteTaskDB(TaskDB):
             if "result_data" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
 
-    def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def get(self, cache_key: str) -> Optional[TaskRecord]:
         """Retrieve a task result by cache key."""
         with self._connect() as conn:
             row = conn.execute(
