@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-17 02:40:57
+**最終更新:** 2026-02-17 04:11:28
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -22,10 +22,10 @@ cli             | 0   | 1   | 1.00
 content_types   | 1   | 0   | 0.00
 dashboard       | 0   | 2   | 1.00
 maintenance     | 2   | 3   | 0.60
-storage         | 2   | 0   | 0.00
-core            | 0   | 5   | 1.00
 db              | 2   | 0   | 0.00
 serializer      | 2   | 0   | 0.00
+core            | 0   | 5   | 1.00
+storage         | 2   | 0   | 0.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -58,8 +58,6 @@ src/beautyspot/limiter.py
     M 20:4 TokenBucket.__init__ - A
     M 66:4 TokenBucket.consume - A
     M 84:4 TokenBucket.consume_async - A
-src/beautyspot/__init__.py
-    F 24:0 Spot - A
 src/beautyspot/cachekey.py
     F 27:0 canonicalize - C
     F 92:0 _ - B
@@ -116,58 +114,6 @@ src/beautyspot/maintenance.py
     M 123:4 MaintenanceService.get_prunable_tasks - A
     M 127:4 MaintenanceService.prune - A
     M 134:4 MaintenanceService.clear - A
-src/beautyspot/storage.py
-    M 69:4 LocalStorage._validate_key - A
-    M 120:4 S3Storage.__init__ - A
-    C 64:0 LocalStorage - A
-    M 88:4 LocalStorage.load - A
-    M 110:4 LocalStorage.list_keys - A
-    C 119:0 S3Storage - A
-    M 156:4 S3Storage.list_keys - A
-    F 164:0 create_storage - A
-    C 26:0 BlobStorageBase - A
-    M 104:4 LocalStorage.delete - A
-    M 141:4 S3Storage.load - A
-    M 149:4 S3Storage.delete - A
-    C 20:0 CacheCorruptedError - A
-    M 32:4 BlobStorageBase.save - A
-    M 40:4 BlobStorageBase.load - A
-    M 47:4 BlobStorageBase.delete - A
-    M 55:4 BlobStorageBase.list_keys - A
-    M 65:4 LocalStorage.__init__ - A
-    M 76:4 LocalStorage.save - A
-    M 135:4 S3Storage.save - A
-src/beautyspot/core.py
-    M 397:4 Spot._check_cache_sync - B
-    M 530:4 Spot.mark - B
-    M 219:4 Spot._resolve_key_fn - A
-    M 447:4 Spot._save_result_sync - A
-    M 286:4 Spot._resolve_settings - A
-    M 652:4 Spot.cached_run - A
-    C 47:0 ScopedMark - A
-    M 59:4 ScopedMark.__enter__ - A
-    C 120:0 Spot - A
-    M 187:4 Spot._setup_workspace - A
-    M 201:4 Spot.shutdown - A
-    M 246:4 Spot.register - A
-    M 296:4 Spot._make_cache_key - A
-    M 317:4 Spot._execute_sync - A
-    M 354:4 Spot._execute_async - A
-    M 433:4 Spot._save_result_safe - A
-    M 125:4 Spot.__init__ - A
-    M 208:4 Spot.__exit__ - A
-    M 269:4 Spot.register_type - A
-    M 53:4 ScopedMark.__init__ - A
-    M 101:4 ScopedMark.__exit__ - A
-    C 106:0 SpotOptions - A
-    M 182:4 Spot._track_future - A
-    M 198:4 Spot._shutdown_executor - A
-    M 205:4 Spot.__enter__ - A
-    M 494:4 Spot.limiter - A
-    M 515:4 Spot.mark - A
-    M 518:4 Spot.mark - A
-    M 627:4 Spot.cached_run - A
-    M 641:4 Spot.cached_run - A
 src/beautyspot/db.py
     M 108:4 SQLiteTaskDB.init_schema - A
     M 218:4 SQLiteTaskDB.get_outdated_tasks - A
@@ -191,20 +137,76 @@ src/beautyspot/db.py
     M 149:4 SQLiteTaskDB.save - A
     M 198:4 SQLiteTaskDB.delete - A
 src/beautyspot/serializer.py
-    M 69:4 MsgpackSerializer._default_packer - B
-    C 25:0 MsgpackSerializer - A
-    M 146:4 MsgpackSerializer.dumps - A
-    M 123:4 MsgpackSerializer._ext_hook - A
-    M 167:4 MsgpackSerializer.loads - A
-    C 7:0 SerializerProtocol - A
-    M 39:4 MsgpackSerializer.register - A
-    M 12:4 SerializerProtocol.dumps - A
-    M 15:4 SerializerProtocol.loads - A
-    C 19:0 SerializationError - A
-    M 33:4 MsgpackSerializer.__init__ - A
+    M 84:4 MsgpackSerializer._default_packer - B
+    C 40:0 MsgpackSerializer - A
+    M 161:4 MsgpackSerializer.dumps - A
+    M 138:4 MsgpackSerializer._ext_hook - A
+    M 182:4 MsgpackSerializer.loads - A
+    C 9:0 SerializerProtocol - A
+    C 21:0 TypeRegistryProtocol - A
+    M 54:4 MsgpackSerializer.register - A
+    M 14:4 SerializerProtocol.dumps - A
+    M 17:4 SerializerProtocol.loads - A
+    M 25:4 TypeRegistryProtocol.register - A
+    C 35:0 SerializationError - A
+    M 48:4 MsgpackSerializer.__init__ - A
+src/beautyspot/__init__.py
+    F 25:0 Spot - A
+src/beautyspot/core.py
+    M 416:4 Spot._check_cache_sync - B
+    M 225:4 Spot._resolve_key_fn - A
+    M 291:4 Spot._resolve_settings - A
+    M 466:4 Spot._save_result_sync - A
+    M 636:4 Spot.cached_run - A
+    C 48:0 ScopedMark - A
+    M 64:4 ScopedMark.__enter__ - A
+    C 126:0 Spot - A
+    M 193:4 Spot._setup_workspace - A
+    M 207:4 Spot.shutdown - A
+    M 252:4 Spot.register - A
+    M 308:4 Spot._make_cache_key - A
+    M 329:4 Spot._execute_sync - A
+    M 372:4 Spot._execute_async - A
+    M 452:4 Spot._save_result_safe - A
+    M 549:4 Spot.mark - A
+    M 106:4 ScopedMark.__exit__ - A
+    M 131:4 Spot.__init__ - A
+    M 214:4 Spot.__exit__ - A
+    M 275:4 Spot.register_type - A
+    M 55:4 ScopedMark.__init__ - A
+    C 112:0 SpotOptions - A
+    M 188:4 Spot._track_future - A
+    M 204:4 Spot._shutdown_executor - A
+    M 211:4 Spot.__enter__ - A
+    M 513:4 Spot.limiter - A
+    M 534:4 Spot.mark - A
+    M 537:4 Spot.mark - A
+    M 611:4 Spot.cached_run - A
+    M 625:4 Spot.cached_run - A
+src/beautyspot/storage.py
+    M 70:4 LocalStorage._validate_key - A
+    M 133:4 S3Storage.__init__ - A
+    C 64:0 LocalStorage - A
+    M 93:4 LocalStorage.load - A
+    M 111:4 LocalStorage.delete - A
+    M 123:4 LocalStorage.list_keys - A
+    C 132:0 S3Storage - A
+    M 169:4 S3Storage.list_keys - A
+    F 177:0 create_storage - A
+    C 26:0 BlobStorageBase - A
+    M 154:4 S3Storage.load - A
+    M 162:4 S3Storage.delete - A
+    C 20:0 CacheCorruptedError - A
+    M 32:4 BlobStorageBase.save - A
+    M 40:4 BlobStorageBase.load - A
+    M 47:4 BlobStorageBase.delete - A
+    M 55:4 BlobStorageBase.list_keys - A
+    M 65:4 LocalStorage.__init__ - A
+    M 77:4 LocalStorage.save - A
+    M 148:4 S3Storage.save - A
 
-139 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.762589928057554)
+141 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.7375886524822697)
 ```
 </details>
 
@@ -222,16 +224,16 @@ Average complexity: A (2.762589928057554)
 ```text
 src/beautyspot/_version.py - A
 src/beautyspot/limiter.py - A
-src/beautyspot/__init__.py - A
 src/beautyspot/cachekey.py - A
 src/beautyspot/cli.py - A
 src/beautyspot/content_types.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/maintenance.py - A
-src/beautyspot/storage.py - A
-src/beautyspot/core.py - A
 src/beautyspot/db.py - A
 src/beautyspot/serializer.py - A
+src/beautyspot/__init__.py - A
+src/beautyspot/core.py - A
+src/beautyspot/storage.py - A
 ```
 </details>
 
@@ -242,6 +244,7 @@ src/beautyspot/serializer.py - A
 graph LR
     classDef protocol fill:#f9f,stroke:#333,stroke-width:2px;
     class SerializerProtocol protocol;
+    class TypeRegistryProtocol protocol;
     KeyGen -- "creates" --> KeyGenPolicy
     KeyGen -- "creates" --> ValueError
     KeyGenPolicy -. "uses" .-> KeyGen.from_file_content
@@ -255,11 +258,13 @@ graph LR
     MaintenanceService -- "creates" --> SQLiteTaskDB
     MsgpackSerializer -- "creates" --> SerializationError
     MsgpackSerializer -. "implements" .-> SerializerProtocol
+    MsgpackSerializer -. "implements" .-> TypeRegistryProtocol
     MsgpackSerializer -- "creates" --> ValueError
     S3Storage -- "creates" --> FileNotFoundError
     S3Storage -- "creates" --> ImportError
     SQLiteTaskDB -- "creates" --> ImportError
     SQLiteTaskDB -- "creates" --> Path
+    ScopedMark -- "creates" --> ContextVar
     ScopedMark -- "creates" --> RuntimeError
     Spot -. "uses" .-> KeyGen._default
     Spot -- "creates" --> NotImplementedError
@@ -268,6 +273,7 @@ graph LR
     Spot -- "creates" --> ThreadPoolExecutor
     Spot -- "creates" --> TokenBucket
     Spot -- "creates" --> TypeError
+    Spot -. "implements" .-> TypeRegistryProtocol
     Spot -- "creates" --> ValueError
     TokenBucket -- "creates" --> ValueError
 ```

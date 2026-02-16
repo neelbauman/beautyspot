@@ -89,12 +89,12 @@ visualize: ## [Image] 依存関係グラフのみ生成
 	# 2. 明示的に PNG レンダリング
 	dot -Tpng docs/statics/img/generated/dependency_graph.dot -o docs/statics/img/generated/dependency_graph.png
 	
-	# (任意) 確認用: 成功したらファイルサイズを表示
 	@ls -lh docs/statics/img/generated/dependency_graph.png
 	@rm docs/statics/img/generated/dependency_graph.dot
 	@rm beautyspot.svg
 	
 	uv run python tools/analyze_structure.py
+	uv run --with pylint pyreverse -o png -p beautyspot src/beautyspot --output-directory docs/statics/img/generated/
 
 report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
