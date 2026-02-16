@@ -23,11 +23,11 @@ from typing import (
     ParamSpec,
 )
 
-from .limiter import TokenBucket
-from .storage import BlobStorageBase, create_storage
-from .db import TaskDB, SQLiteTaskDB
-from .serializer import MsgpackSerializer, SerializationError, SerializerProtocol
-from .cachekey import KeyGen, KeyGenPolicy
+from beautyspot.limiter import TokenBucket
+from beautyspot.storage import BlobStorageBase, create_storage
+from beautyspot.db import TaskDB, SQLiteTaskDB
+from beautyspot.serializer import MsgpackSerializer, SerializationError, SerializerProtocol
+from beautyspot.cachekey import KeyGen, KeyGenPolicy
 
 # ジェネリクスの定義
 P = ParamSpec("P")

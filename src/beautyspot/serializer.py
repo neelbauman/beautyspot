@@ -1,3 +1,5 @@
+# src/beautyspot/serializer.py
+
 import msgpack
 from typing import Any, Callable, Dict, Type, Tuple, Protocol, runtime_checkable
 

@@ -67,3 +67,25 @@ release: pypi-publish  ## 完全リリース（PyPI公開→GitHubタグPush）
 	git push origin v$(VERSION)
 	@echo "✓ Release $(VERSION) completed!"
 
+# Makefile (追加案)
+
+.PHONY: audit visualize
+
+# Makefile (抜粋)
+
+# ... (既存のcleanやtestなどはそのまま)
+
+audit:  ## [Console] コードの複雑度と保守性をコンソール出力
+	@echo "=== Cyclomatic Complexity (Rank C+) ==="
+	-uv run radon cc src -a -n C
+	@echo "\n=== Maintainability Index (Rank B-) ==="
+	-uv run radon mi src -n B
+
+visualize:  ## [Image] 依存関係グラフのみ生成 (レポートなし)
+	@mkdir -p docs/statics/img/generated
+	uv run pydeps src/beautyspot --noshow --max-bacon=2 --cluster -o docs/statics/img/generated/dependency_graph.svg
+	uv run python tools/analyze_structure.py
+
+report:  ## [Report] 全解析を実行し、docs/quality_report.md を生成
+	@uv run python tools/generate_report.py
+

@@ -1,6 +1,5 @@
 # src/beautyspot/types.py
 
-
 class ContentType:
     """
     Supported semantic content types for beautyspot tasks.
