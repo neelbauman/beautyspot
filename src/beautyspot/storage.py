@@ -104,7 +104,7 @@ class LocalStorage(BlobStorageBase):
     def delete(self, location: str) -> None:
         try:
             os.remove(location)
-        except OSError:
+        except FileNotFoundError:
             pass
 
     def list_keys(self) -> Iterator[str]:
