@@ -27,7 +27,7 @@ from typing import (
 from beautyspot.limiter import TokenBucket
 from beautyspot.storage import BlobStorageBase
 from beautyspot.db import TaskDB
-from beautyspot.serializer import MsgpackSerializer, SerializationError, SerializerProtocol
+from beautyspot.serializer import SerializationError, SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 
 # ジェネリクスの定義
@@ -273,7 +273,7 @@ class Spot:
         encoder: Callable[[T], Any],
         decoder: Callable[[Any], T],
     ):
-        if isinstance(self.serializer, MsgpackSerializer):
+        if isinstance(self.serializer, TypeRegistryProtocol):
             self.serializer.register(type_class, code, encoder, decoder)
         else:
             raise NotImplementedError(

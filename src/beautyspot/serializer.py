@@ -1,7 +1,9 @@
 # src/beautyspot/serializer.py
 
 import msgpack
-from typing import Any, Callable, Dict, Type, Tuple, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, Type, TypeVar, Tuple, Protocol, runtime_checkable
+
+T = TypeVar("T")
 
 @runtime_checkable
 class SerializerProtocol(Protocol):
@@ -15,10 +17,23 @@ class SerializerProtocol(Protocol):
     def loads(self, data: bytes, /) -> Any:
         ...
 
+@runtime_checkable
+class TypeRegistryProtocol(Protocol):
+    """
+    Protocol for serializers that support custom type registration.
+    """
+    def register(
+        self,
+        type_class: Type[Any],
+        code: int,
+        encoder: Callable[[Any], Any],
+        decoder: Callable[[Any], Any],
+    ) -> None:
+        ...
+
 
 class SerializationError(Exception):
     """Raised when an object cannot be serialized or deserialized."""
-
     pass
 
 
