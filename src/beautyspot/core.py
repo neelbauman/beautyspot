@@ -17,6 +17,7 @@ from typing import (
     Type,
     overload,
     TypeVar,
+    TypedDict,
     Generic,
     TypeVarTuple,
     Unpack,
@@ -24,8 +25,8 @@ from typing import (
 )
 
 from beautyspot.limiter import TokenBucket
-from beautyspot.storage import BlobStorageBase, create_storage
-from beautyspot.db import TaskDB, SQLiteTaskDB
+from beautyspot.storage import BlobStorageBase
+from beautyspot.db import TaskDB
 from beautyspot.serializer import MsgpackSerializer, SerializationError, SerializerProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 
@@ -102,35 +103,54 @@ class ScopedMark(Generic[R]):
         self._is_active = False
 
 
+class SpotOptions(TypedDict, total=False):
+    """
+    Spotのオプション引数を定義する。
+    ここにフィールドを追加すれば、__init__.py と core.py の両方に補完が反映される。
+    """
+    blob_warning_threshold: int
+    default_save_blob: bool
+    default_version: str | None
+    default_content_type: str | None
+    tpm: int
+    io_workers: int
+    executor: Executor | None
+
+
 class Spot:
     """
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
     """
-
     def __init__(
         self,
         name: str,
-        db: str | TaskDB | None = None,
-        storage_path: str | None = None,  # Changed default to None
-        s3_opts: dict | None = None,
+        # 必須の依存オブジェクト (DI)
+        db: TaskDB,
+        serializer: SerializerProtocol,
+        storage: BlobStorageBase,
+        
+        # オプション設定 (明示的に定義)
         tpm: int = 10000,
         io_workers: int = 4,
         blob_warning_threshold: int = 1024 * 1024,
         executor: Optional[Executor] = None,
-        storage: Optional[BlobStorageBase] = None,
-        # --- Default Task Settings ---
+        
+        # デフォルト動作設定
         default_save_blob: bool = False,
-        default_version: str | None = None,
-        default_content_type: str | None = None,
-    ):
+        default_version: Optional[str] = None,
+        default_content_type: Optional[str] = None,
+        
+        # 将来の拡張用
+        **kwargs: Any,
+    ) -> None:
         """
         Initialize a Spot instance.
 
         Args:
             name: Name of the spot/workspace.
             db: Database for tasks, can be a filepath or TaskDB instance.
-            storage_path: Path for storing blobs locally.
+            storage: Path for storing blobs locally.
             s3_opts: Options for S3 storage.
             tpm: Tokens per minute for rate limiting.
             io_workers: Number of IO workers for executor.
@@ -142,65 +162,35 @@ class Spot:
             default_content_type: Default content_type for mark/run.
         """
         self.name = name
-        self.blob_warning_threshold = blob_warning_threshold
+        
+        # --- 依存オブジェクトの注入 ---
+        self.db = db
+        self.serializer = serializer
+        self.storage = storage
 
-        # Store defaults
+        # --- オプション設定の適用 ---
+        self.blob_warning_threshold = blob_warning_threshold
         self.default_save_blob = default_save_blob
         self.default_version = default_version
         self.default_content_type = default_content_type
 
-        # --- Workspace Setup ---
-        # プロジェクト用の隠しディレクトリを用意
+        # --- ワークスペースとDBの初期化 ---
         self.workspace_dir = Path(".beautyspot")
         self._setup_workspace()
-
-        # --- キャッシュ管理用 テーブル確認と初期化 ---
-        if db is None:
-            # デフォルトは隠しディレクトリ内のDBファイル
-            self.db = SQLiteTaskDB(str(self.workspace_dir / f"{name}.db"))
-        elif isinstance(db, str):
-            self.db = SQLiteTaskDB(db)
-        elif isinstance(db, TaskDB):
-            self.db = db
-        else:
-            raise TypeError(
-                "Argument 'db' must be a string (path) or a TaskDB instance."
-            )
         self.db.init_schema()
 
-        # --- Rate Limiter ---
+        # --- レートリミッター ---
         self.bucket = TokenBucket(tpm)
 
-        # --- Serializer Setup ---
-        self.serializer: SerializerProtocol = MsgpackSerializer()
-
-        # --- Storage 初期化 ---
-        if storage is not None:
-            self.storage = storage
-        else:
-            # storage_pathが未指定なら、隠しディレクトリ内のblobsを使う
-            if storage_path is None:
-                final_storage_path = str(self.workspace_dir / "blobs")
-            else:
-                final_storage_path = storage_path
-
-            self.storage = create_storage(final_storage_path, s3_opts)
-
-        # -- Executor Management ---
+        # --- Executor管理 ---
         if executor is not None:
             self.executor = executor
             self._own_executor = False
         else:
             self.executor = ThreadPoolExecutor(max_workers=io_workers)
             self._own_executor = True
-
-            # 自動クリーンアップの登録
-            # selfへの強い参照を持たせないよう、executorオブジェクトだけを残すこと
-            self._finalizer = weakref.finalize(
-                self,
-                Spot._shutdown_executor,
-                self.executor,
-            )
+            # GC時の安全なシャットダウン
+            self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
 
     def _setup_workspace(self):
         """Ensure the workspace directory and .gitignore exist."""
@@ -332,7 +322,7 @@ class Spot:
 
     def register_type(
         self,
-        type_: Type[T],
+        type_class: Type[T],
         code: int,
         encoder: Callable[[T], Any],
         decoder: Callable[[Any], T],
@@ -349,7 +339,7 @@ class Spot:
             decoder: Function that converts intermediate object -> obj
         """
         if isinstance(self.serializer, MsgpackSerializer):
-            self.serializer.register(type_, code, encoder, decoder)
+            self.serializer.register(type_class, code, encoder, decoder)
         else:
             # Msgpack以外 (Pickle等) が使われている場合、登録機能は使えない旨を通知
             raise NotImplementedError(
@@ -674,7 +664,6 @@ class Spot:
         if save_blob is None:
             save_blob = self.default_save_blob
 
-        # 追加: デフォルト値の解決
         if version is None:
             version = self.default_version
         

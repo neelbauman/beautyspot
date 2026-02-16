@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-16 16:06:42
+**最終更新:** 2026-02-16 18:48:36
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -16,15 +16,15 @@
 Module          | Ca  | Ce  | I (Instability)
 ---------------------------------------------
 _version        | 0   | 0   | 0.00
-cli             | 0   | 1   | 1.00
 dashboard       | 0   | 3   | 1.00
 limiter         | 1   | 0   | 0.00
 cachekey        | 1   | 0   | 0.00
+serializer      | 1   | 0   | 0.00
+cli             | 0   | 1   | 1.00
 db              | 3   | 0   | 0.00
 storage         | 2   | 0   | 0.00
-core            | 0   | 5   | 1.00
-serializer      | 1   | 0   | 0.00
 types           | 1   | 0   | 0.00
+core            | 0   | 5   | 1.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -36,11 +36,11 @@ Graph generated at: docs/statics/img/generated/architecture_metrics.png
 複雑すぎてリファクタリングが推奨される箇所です。
 
 ```text
+src/beautyspot/cachekey.py
+    F 25:0 canonicalize - D
 src/beautyspot/cli.py
     F 528:0 clean_cmd - D
     F 695:0 prune_cmd - C
-src/beautyspot/cachekey.py
-    F 25:0 canonicalize - D
 
 3 blocks (classes, functions, methods) analyzed.
 Average complexity: D (21.333333333333332)
@@ -50,26 +50,6 @@ Average complexity: D (21.333333333333332)
 <summary>📄 すべての CC メトリクス一覧を表示</summary>
 
 ```text
-src/beautyspot/cli.py
-    F 528:0 clean_cmd - D
-    F 695:0 prune_cmd - C
-    F 410:0 stats_cmd - B
-    F 347:0 show_cmd - B
-    F 848:0 _clean_orphaned_blobs - B
-    F 296:0 _list_tasks - B
-    F 113:0 ui_cmd - B
-    F 478:0 clear_cmd - B
-    F 230:0 _list_databases - A
-    F 49:0 _find_available_port - A
-    F 60:0 _format_size - A
-    F 87:0 _infer_blob_dir - A
-    F 34:0 get_db - A
-    F 75:0 _get_task_count - A
-    F 203:0 list_cmd - A
-    F 886:0 version_cmd - A
-    F 43:0 _is_port_in_use - A
-    F 69:0 _format_timestamp - A
-    F 905:0 main - A
 src/beautyspot/dashboard.py
     F 62:0 load_data - A
     F 17:0 get_args - A
@@ -96,70 +76,6 @@ src/beautyspot/cachekey.py
     M 133:4 KeyGenPolicy.__init__ - A
     M 141:4 KeyGenPolicy.bind - A
     M 269:4 KeyGen.map - A
-src/beautyspot/db.py
-    M 107:4 SQLiteTaskDB.init_schema - A
-    C 96:0 SQLiteTaskDB - A
-    M 183:4 SQLiteTaskDB.get_history - A
-    C 22:0 TaskDB - A
-    M 137:4 SQLiteTaskDB.get - A
-    C 16:0 TaskRecord - A
-    M 29:4 TaskDB.init_schema - A
-    M 34:4 TaskDB.get - A
-    M 39:4 TaskDB.save - A
-    M 66:4 TaskDB.get_history - A
-    M 88:4 TaskDB.delete - A
-    M 101:4 SQLiteTaskDB.__init__ - A
-    M 104:4 SQLiteTaskDB._connect - A
-    M 152:4 SQLiteTaskDB.save - A
-    M 223:4 SQLiteTaskDB.delete - A
-src/beautyspot/storage.py
-    M 81:4 LocalStorage._validate_key - A
-    M 141:4 S3Storage.__init__ - A
-    C 76:0 LocalStorage - A
-    M 100:4 LocalStorage.load - A
-    M 126:4 LocalStorage.delete - A
-    C 140:0 S3Storage - A
-    F 177:0 create_storage - A
-    C 25:0 BlobStorageBase - A
-    M 158:4 S3Storage.load - A
-    M 168:4 S3Storage.delete - A
-    C 19:0 CacheCorruptedError - A
-    M 34:4 BlobStorageBase.save - A
-    M 49:4 BlobStorageBase.load - A
-    M 65:4 BlobStorageBase.delete - A
-    M 77:4 LocalStorage.__init__ - A
-    M 88:4 LocalStorage.save - A
-    M 152:4 S3Storage.save - A
-src/beautyspot/core.py
-    M 482:4 Spot._check_cache_sync - B
-    M 111:4 Spot.__init__ - B
-    M 625:4 Spot.mark - B
-    M 257:4 Spot._resolve_key_fn - A
-    M 518:4 Spot._save_result_sync - A
-    M 896:4 Spot.delete - A
-    C 105:0 Spot - A
-    M 362:4 Spot._resolve_settings - A
-    M 789:4 Spot.cached_run - A
-    C 46:0 ScopedMark - A
-    M 58:4 ScopedMark.__enter__ - A
-    M 205:4 Spot._setup_workspace - A
-    M 227:4 Spot.shutdown - A
-    M 290:4 Spot.register - A
-    M 376:4 Spot._make_cache_key - A
-    M 333:4 Spot.register_type - A
-    M 398:4 Spot._execute_sync - A
-    M 435:4 Spot._execute_async - A
-    M 862:4 Spot.run - A
-    M 52:4 ScopedMark.__init__ - A
-    M 100:4 ScopedMark.__exit__ - A
-    M 217:4 Spot._shutdown_executor - A
-    M 237:4 Spot.__enter__ - A
-    M 246:4 Spot.__exit__ - A
-    M 574:4 Spot.limiter - A
-    M 605:4 Spot.mark - A
-    M 611:4 Spot.mark - A
-    M 763:4 Spot.cached_run - A
-    M 778:4 Spot.cached_run - A
 src/beautyspot/serializer.py
     M 69:4 MsgpackSerializer._default_packer - B
     C 25:0 MsgpackSerializer - A
@@ -172,11 +88,99 @@ src/beautyspot/serializer.py
     M 15:4 SerializerProtocol.loads - A
     C 19:0 SerializationError - A
     M 33:4 MsgpackSerializer.__init__ - A
+src/beautyspot/cli.py
+    F 528:0 clean_cmd - D
+    F 695:0 prune_cmd - C
+    F 410:0 stats_cmd - B
+    F 347:0 show_cmd - B
+    F 848:0 _clean_orphaned_blobs - B
+    F 296:0 _list_tasks - B
+    F 113:0 ui_cmd - B
+    F 478:0 clear_cmd - B
+    F 230:0 _list_databases - A
+    F 49:0 _find_available_port - A
+    F 60:0 _format_size - A
+    F 87:0 _infer_blob_dir - A
+    F 34:0 get_db - A
+    F 75:0 _get_task_count - A
+    F 203:0 list_cmd - A
+    F 886:0 version_cmd - A
+    F 43:0 _is_port_in_use - A
+    F 69:0 _format_timestamp - A
+    F 905:0 main - A
+src/beautyspot/db.py
+    M 108:4 SQLiteTaskDB.init_schema - A
+    C 97:0 SQLiteTaskDB - A
+    M 184:4 SQLiteTaskDB.get_history - A
+    C 23:0 TaskDB - A
+    M 138:4 SQLiteTaskDB.get - A
+    C 17:0 TaskRecord - A
+    M 30:4 TaskDB.init_schema - A
+    M 35:4 TaskDB.get - A
+    M 40:4 TaskDB.save - A
+    M 67:4 TaskDB.get_history - A
+    M 89:4 TaskDB.delete - A
+    M 102:4 SQLiteTaskDB.__init__ - A
+    M 105:4 SQLiteTaskDB._connect - A
+    M 153:4 SQLiteTaskDB.save - A
+    M 224:4 SQLiteTaskDB.delete - A
+src/beautyspot/storage.py
+    M 82:4 LocalStorage._validate_key - A
+    M 142:4 S3Storage.__init__ - A
+    C 77:0 LocalStorage - A
+    M 101:4 LocalStorage.load - A
+    M 127:4 LocalStorage.delete - A
+    C 141:0 S3Storage - A
+    F 178:0 create_storage - A
+    C 26:0 BlobStorageBase - A
+    M 159:4 S3Storage.load - A
+    M 169:4 S3Storage.delete - A
+    C 20:0 CacheCorruptedError - A
+    M 35:4 BlobStorageBase.save - A
+    M 50:4 BlobStorageBase.load - A
+    M 66:4 BlobStorageBase.delete - A
+    M 78:4 LocalStorage.__init__ - A
+    M 89:4 LocalStorage.save - A
+    M 153:4 S3Storage.save - A
 src/beautyspot/types.py
     C 3:0 ContentType - A
+src/beautyspot/core.py
+    M 493:4 Spot._check_cache_sync - B
+    M 636:4 Spot.mark - B
+    M 142:4 Spot.__init__ - A
+    M 268:4 Spot._resolve_key_fn - A
+    M 529:4 Spot._save_result_sync - A
+    M 907:4 Spot.delete - A
+    C 123:0 Spot - A
+    M 373:4 Spot._resolve_settings - A
+    M 800:4 Spot.cached_run - A
+    C 47:0 ScopedMark - A
+    M 59:4 ScopedMark.__enter__ - A
+    M 216:4 Spot._setup_workspace - A
+    M 238:4 Spot.shutdown - A
+    M 301:4 Spot.register - A
+    M 387:4 Spot._make_cache_key - A
+    M 344:4 Spot.register_type - A
+    M 409:4 Spot._execute_sync - A
+    M 446:4 Spot._execute_async - A
+    M 873:4 Spot.run - A
+    M 53:4 ScopedMark.__init__ - A
+    M 101:4 ScopedMark.__exit__ - A
+    C 106:0 SpotParameters - A
+    M 228:4 Spot._shutdown_executor - A
+    M 248:4 Spot.__enter__ - A
+    M 257:4 Spot.__exit__ - A
+    M 585:4 Spot.limiter - A
+    M 616:4 Spot.mark - A
+    M 622:4 Spot.mark - A
+    M 774:4 Spot.cached_run - A
+    M 789:4 Spot.cached_run - A
+src/beautyspot/__init__.py
+    C 20:0 Spot - A
+    M 25:4 Spot.__init__ - A
 
-115 blocks (classes, functions, methods) analyzed.
-Average complexity: A (3.139130434782609)
+118 blocks (classes, functions, methods) analyzed.
+Average complexity: A (3.1271186440677967)
 ```
 </details>
 
@@ -193,15 +197,15 @@ Average complexity: A (3.139130434782609)
 
 ```text
 src/beautyspot/_version.py - A
-src/beautyspot/__init__.py - A
-src/beautyspot/cli.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/limiter.py - A
 src/beautyspot/cachekey.py - A
+src/beautyspot/serializer.py - A
+src/beautyspot/cli.py - A
 src/beautyspot/db.py - A
 src/beautyspot/storage.py - A
-src/beautyspot/core.py - A
-src/beautyspot/serializer.py - A
 src/beautyspot/types.py - A
+src/beautyspot/core.py - A
+src/beautyspot/__init__.py - A
 ```
 </details>

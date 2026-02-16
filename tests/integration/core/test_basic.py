@@ -1,7 +1,7 @@
 # tests/integration/coer/test_basic.py
 
 import pytest
-from beautyspot import Spot
+from beautyspot import Spot, LocalStorage, SQLiteTaskDB
 from beautyspot.serializer import SerializationError
 
 
@@ -10,10 +10,9 @@ def spot(tmp_path):
     # DBもBlobも一時ディレクトリに作成
     return Spot(
         name="test_spot",
-        db=str(tmp_path / "test.db"),
-        storage_path=str(tmp_path / "blobs"),
+        db=SQLiteTaskDB(tmp_path / "test.db"),
+        storage=LocalStorage(tmp_path / "blobs"),
     )
-
 
 def test_mark_execution(spot):
     """タスク(@mark)が実行され、結果が保存されるか"""

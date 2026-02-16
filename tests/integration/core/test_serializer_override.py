@@ -2,6 +2,7 @@
 
 import pickle
 import beautyspot as bs
+from beautyspot.db import SQLiteTaskDB
 
 # --- Helpers ---
 
@@ -15,7 +16,7 @@ class NonMsgpackable:
 
 def test_override_with_pickle_mark(tmp_path):
     """Test that @spot.mark(serializer=pickle) handles non-msgpackable objects."""
-    spot = bs.Spot("test_pickle_mark", db=str(tmp_path / "test.db"))
+    spot = bs.Spot("test_pickle_mark", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     # 1. Define a task that returns a complex object
     # Without serializer=pickle, this would raise SerializationError
@@ -37,7 +38,7 @@ def test_override_with_pickle_mark(tmp_path):
     
 def test_override_with_pickle_cached_run(tmp_path):
     """Test that spot.cached_run(serializer=pickle) works."""
-    spot = bs.Spot("test_pickle_run", db=str(tmp_path / "test.db"))
+    spot = bs.Spot("test_pickle_run", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     def heavy_set_op(a, b):
         # set is not supported by default msgpack
@@ -59,7 +60,7 @@ def test_fallback_on_serializer_mismatch(tmp_path):
     it treats it as a cache miss (due to deserialization error) and re-computes.
     """
     db_path = str(tmp_path / "mismatch.db")
-    spot = bs.Spot("test_mismatch", db=db_path)
+    spot = bs.Spot("test_mismatch", db=SQLiteTaskDB(db_path))
 
     # 1. Save data using Pickle
     @spot.mark(serializer=pickle)
@@ -71,7 +72,7 @@ def test_fallback_on_serializer_mismatch(tmp_path):
 
     # 2. Define SAME task but without override (defaults to Msgpack)
     # Note: Function name must match for cache key to collide
-    spot2 = bs.Spot("test_mismatch", db=db_path)
+    spot2 = bs.Spot("test_mismatch", db=SQLiteTaskDB(db_path))
     
     @spot2.mark
     def my_task_2(x):

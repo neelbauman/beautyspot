@@ -38,7 +38,7 @@ class MsgpackSerializer:
 
     def register(
         self,
-        type_: Type,
+        type_class: Type,
         code: int,
         encoder: Callable[[Any], Any],
         decoder: Callable[[Any], Any],
@@ -63,7 +63,7 @@ class MsgpackSerializer:
         if code in self._decoders:
             raise ValueError(f"ExtCode {code} is already registered.")
 
-        self._encoders[type_] = (code, encoder)
+        self._encoders[type_class] = (code, encoder)
         self._decoders[code] = decoder
 
     def _default_packer(self, obj: Any) -> Any:

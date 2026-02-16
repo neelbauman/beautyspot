@@ -1,6 +1,7 @@
 # tests/integreation/core/test_config.py
 
 from beautyspot import Spot
+from beautyspot.db import SQLiteTaskDB
 
 
 def test_project_defaults_run(tmp_path, inspect_db):
@@ -9,7 +10,10 @@ def test_project_defaults_run(tmp_path, inspect_db):
 
     # Init with defaults: save_blob=True, version="v1"
     with Spot(
-        name="test_defaults", db=db_path, default_save_blob=True, default_version="v1"
+        name="test_defaults",
+        db=SQLiteTaskDB(db_path),
+        default_save_blob=True,
+        default_version="v1",
     ) as project:
 
         def my_func(x):
@@ -49,7 +53,7 @@ def test_project_defaults_decorator(tmp_path, inspect_db):
     db_path = str(tmp_path / "test_dec_defaults.db")
 
     # Default: save_blob=True
-    project = Spot(name="test_dec", db=db_path, default_save_blob=True)
+    project = Spot(name="test_dec", db=SQLiteTaskDB(db_path), default_save_blob=True)
 
     # Case 1: Inherit
     @project.mark
@@ -83,7 +87,7 @@ def test_default_version_applied(tmp_path):
     # 1. default_version を指定して初期化
     spot = Spot(
         name="version_test",
-        db=str(tmp_path / "v_test.db"),
+        db=SQLiteTaskDB(str(tmp_path / "v_test.db")),
         default_version="v1.0"
     )
 
@@ -104,7 +108,7 @@ def test_override_default_version(tmp_path):
     """default_versionがあっても、個別に指定したversionが優先されるか"""
     spot = Spot(
         name="version_override",
-        db=str(tmp_path / "vo_test.db"),
+        db=SQLiteTaskDB(str(tmp_path / "vo_test.db")),
         default_version="v1.0"
     )
 

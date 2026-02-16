@@ -2,12 +2,12 @@
 
 import pytest
 import asyncio
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB 
 
 
 @pytest.fixture
 def spot(tmp_path):
-    return Spot(name="feat_test", db=str(tmp_path / "test.db"))
+    return Spot(name="feat_test", db=SQLiteTaskDB(tmp_path / "test.db"))
 
 
 def test_versioning(spot):

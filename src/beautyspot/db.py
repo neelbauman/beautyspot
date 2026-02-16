@@ -3,6 +3,7 @@
 import sqlite3
 import os
 import logging
+from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING, TypedDict
 
@@ -98,7 +99,7 @@ class SQLiteTaskDB(TaskDB):
     Default implementation using SQLite.
     """
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str | Path):
         self.db_path = db_path
 
     def _connect(self) -> sqlite3.Connection:

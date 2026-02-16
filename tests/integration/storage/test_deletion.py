@@ -2,6 +2,8 @@
 
 import os
 from beautyspot import Spot
+from beautyspot import LocalStorage
+from beautyspot import SQLiteTaskDB
 
 
 def test_delete_hit(tmp_path):
@@ -11,7 +13,7 @@ def test_delete_hit(tmp_path):
     db_path = tmp_path / "test.db"
     storage_path = tmp_path / "blobs"
 
-    spot = Spot("test_spot", db=str(db_path), storage_path=str(storage_path))
+    spot = Spot("test_spot", db=SQLiteTaskDB(db_path), storage=LocalStorage(storage_path))
 
     # 1. データを作成 (Blob保存あり)
     @spot.mark(save_blob=True)
@@ -46,7 +48,7 @@ def test_delete_miss(tmp_path):
     異常系: 存在しないキーを指定した場合
     """
     db_path = tmp_path / "test.db"
-    spot = Spot("test_spot", db=str(db_path))
+    spot = Spot("test_spot", db=SQLiteTaskDB(db_path))
 
     assert spot.delete("non_existent_key") is False
 
@@ -56,7 +58,7 @@ def test_delete_db_only(tmp_path):
     正常系: Blobを持たない（SQLite内にデータを保存した）タスクの削除
     """
     db_path = tmp_path / "test.db"
-    spot = Spot("test_spot", db=str(db_path))
+    spot = Spot("test_spot", db=SQLiteTaskDB(db_path))
 
     @spot.mark(save_blob=False)
     def light_func(x):
@@ -81,7 +83,7 @@ def test_delete_orphaned_blob_record(tmp_path):
     """
     db_path = tmp_path / "test.db"
     storage_path = tmp_path / "blobs"
-    spot = Spot("test_spot", db=str(db_path), storage_path=str(storage_path))
+    spot = Spot("test_spot", db=SQLiteTaskDB(db_path), storage=LocalStorage(storage_path))
 
     @spot.mark(save_blob=True)
     def func(x):
@@ -102,3 +104,4 @@ def test_delete_orphaned_blob_record(tmp_path):
 
     assert deleted is True
     assert spot.db.get(cache_key) is None
+

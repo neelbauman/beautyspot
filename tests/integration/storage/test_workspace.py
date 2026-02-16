@@ -2,7 +2,8 @@
 
 import os
 from pathlib import Path
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB
+from beautyspot import LocalStorage
 
 
 def test_workspace_creation(tmp_path):
@@ -46,7 +47,7 @@ def test_custom_paths_ignore_workspace(tmp_path):
     custom_blobs = tmp_path / "custom_blobs"
 
     # Explicitly providing paths should bypass default workspace locations
-    with Spot(name="custom", db=str(custom_db), storage_path=str(custom_blobs)):
+    with Spot(name="custom", db=SQLiteTaskDB(custom_db), storage=LocalStorage(custom_blobs)):
         pass
 
     # Files should be at custom locations

@@ -16,3 +16,5 @@ class ContentType:
     HTML = "text/html"
 
     # 将来的な拡張 (例: Audio, Video, CSV...)
+
+

@@ -2,7 +2,7 @@
 
 import pytest
 from typer.testing import CliRunner
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB
 from beautyspot.cli import app
 
 runner = CliRunner()
@@ -16,7 +16,7 @@ def spot_env(tmp_path):
     """
     db_path = tmp_path / "e2e_pipeline.db"
     # Spotインスタンスを作成（これがユーザーの起点となります）
-    spot = Spot(name="e2e_test", db=str(db_path))
+    spot = Spot(name="e2e_test", db=SQLiteTaskDB(db_path))
     return spot, db_path
 
 

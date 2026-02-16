@@ -5,7 +5,7 @@ import asyncio
 import time
 import sqlite3
 from dataclasses import dataclass
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB
 
 # --- 1. Custom Data Structure ---
 @dataclass
@@ -48,7 +48,7 @@ def strict_env(tmp_path):
     TPM=600 (10 tokens/sec) の厳格な環境。
     """
     db_path = tmp_path / "robust.db"
-    spot = Spot(name="robust_test", db=str(db_path), tpm=600)
+    spot = Spot(name="robust_test", db=SQLiteTaskDB(db_path), tpm=600)
     spot.register_type(CriticalData, code=20, encoder=encode_critical, decoder=decode_critical)
     return spot, db_path
 

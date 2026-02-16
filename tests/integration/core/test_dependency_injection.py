@@ -3,8 +3,8 @@
 from concurrent.futures import ThreadPoolExecutor
 import msgpack
 from beautyspot import Spot
-from beautyspot.storage import BlobStorageBase, ReadableBuffer
-from beautyspot.db import TaskDB
+from beautyspot.storage import BlobStorageBase, LocalStorage, ReadableBuffer
+from beautyspot.db import TaskDB, SQLiteTaskDB
 
 
 class MockStorage(BlobStorageBase):
@@ -70,7 +70,7 @@ class MockDB(TaskDB):
 def test_custom_storage_injection(tmp_path):
     """Test injecting a custom storage backend."""
     storage = MockStorage()
-    project = Spot(name="di_test", db=str(tmp_path / "test.db"), storage=storage)
+    project = Spot(name="di_test", db=SQLiteTaskDB(str(tmp_path / "test.db")), storage=storage)
 
     @project.mark(save_blob=True)
     def blob_task():
@@ -92,7 +92,7 @@ def test_custom_db_injection(tmp_path):
     """Test injecting a custom DB backend."""
 
     db = MockDB()
-    project = Spot(name="di_test", db=db, storage_path=str(tmp_path / "blobs"))
+    project = Spot(name="di_test", db=db, storage=LocalStorage(tmp_path / "blobs"))
 
     @project.mark
     def simple_task():
@@ -119,8 +119,8 @@ def test_custom_executor_injection(tmp_path):
     executor = ThreadPoolExecutor(max_workers=1)
     project = Spot(
         name="di_test",
-        db=str(tmp_path / "test.db"),
-        storage_path=str(tmp_path / "blobs"),
+        db=SQLiteTaskDB(tmp_path / "test.db"),
+        storage=LocalStorage(str(tmp_path / "blobs")),
         executor=executor,
     )
 

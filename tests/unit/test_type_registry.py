@@ -3,12 +3,12 @@
 import pytest
 import msgpack
 import io
-from beautyspot import Spot, SerializationError
+from beautyspot import Spot, SQLiteTaskDB, SerializationError
 
 @pytest.fixture
 def spot():
     # Use in-memory DB for fast testing
-    return Spot("test_spot", db=":memory:")
+    return Spot("test_spot", db=SQLiteTaskDB(":memory:"))
 
 
 # ----------------------------------------------------------------
@@ -165,7 +165,7 @@ def test_register_numpy_binary(spot):
             return np.load(f, allow_pickle=False)
 
     spot.register_type(
-        type_=np.ndarray,
+        type_class=np.ndarray,
         code=50,
         encoder=npy_encoder,
         decoder=npy_decoder

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB
 from beautyspot.storage import LocalStorage
 
 
@@ -24,8 +24,8 @@ def test_storage_failure_handling(tmp_path):
 
     project = Spot(
         name="test_proj",
-        db=str(tmp_path / "test.db"),
-        storage_path=str(tmp_path / "blobs"),
+        db=SQLiteTaskDB(tmp_path / "test.db"),
+        storage=LocalStorage(tmp_path / "blobs"),
     )
 
     # Mock storage.save to fail
@@ -41,7 +41,7 @@ def test_storage_failure_handling(tmp_path):
 
 def test_db_failure_handling(tmp_path):
     """Test behavior when DB fails."""
-    project = Spot(name="test_proj", db=str(tmp_path / "test.db"))
+    project = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     # Mock db.save to fail
     project.db.save = MagicMock(side_effect=Exception("DB Connection Lost"))
@@ -59,7 +59,7 @@ def test_invalid_json_serialization(tmp_path):
     """Test behavior when unserializable object is returned."""
     from beautyspot.serializer import SerializationError
 
-    project = Spot(name="test_proj", db=str(tmp_path / "test.db"))
+    project = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     class Unserializable:
         pass

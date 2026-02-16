@@ -34,11 +34,9 @@ def chaos_env(tmp_path):
     複雑な条件を設定したSpot環境。
     TPMを低く設定し、レート制限の効果を見やすくする。
     """
-    db_path = tmp_path / "chaos.db"
-    
     # TPM=600 (10 tokens/sec)
     # 並行でバーストするとすぐに待機が発生する設定
-    spot = Spot(name="chaos_test", db=str(db_path), tpm=600)
+    spot = Spot(name="chaos_test", tpm=600)
     
     # カスタム型の登録
     spot.register_type(Complexity, code=10, encoder=encode_complexity, decoder=decode_complexity)

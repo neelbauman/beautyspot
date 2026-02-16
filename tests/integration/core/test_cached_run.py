@@ -1,14 +1,14 @@
 # tests/integration/core/cached_run.py
 
 import pytest
-from beautyspot import Spot
+from beautyspot import Spot, SQLiteTaskDB
 
 
 @pytest.fixture
 def spot(tmp_path):
     """Temporary Spot instance for testing."""
     db_path = str(tmp_path / "test_cached_run.db")
-    return Spot(name="test_runner", db=db_path)
+    return Spot(name="test_runner", db=SQLiteTaskDB(db_path))
 
 
 def test_cached_run_single_function(spot):

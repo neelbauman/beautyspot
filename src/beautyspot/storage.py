@@ -2,6 +2,7 @@
 
 import os
 import io
+from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias
 
@@ -74,7 +75,7 @@ class BlobStorageBase(ABC):
 
 
 class LocalStorage(BlobStorageBase):
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str | Path):
         self.base_dir = base_dir
         os.makedirs(base_dir, exist_ok=True)
 
@@ -138,7 +139,10 @@ class LocalStorage(BlobStorageBase):
 
 
 class S3Storage(BlobStorageBase):
-    def __init__(self, s3_uri: str, s3_opts: dict[str, Any] | None = None):
+    def __init__(
+        self, s3_uri: str,
+        s3_opts: dict[str, Any] | None = None,
+    ):
         if not boto3:
             raise ImportError("Run `pip install beautyspot[s3]` to use S3 storage.")
 
