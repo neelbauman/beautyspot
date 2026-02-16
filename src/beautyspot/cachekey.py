@@ -12,6 +12,7 @@ ReadableBuffer = Union[bytes, bytearray, memoryview]
 
 P = ParamSpec("P")
 
+
 def _safe_sort_key(obj: Any):
     """
     Helper for sorting mixed types.
@@ -23,50 +24,66 @@ def _safe_sort_key(obj: Any):
     return (1, str(type(obj)), str(obj))
 
 
+# ---------------------------------------------------------------------------
+# Canonicalization helpers (extracted to reduce CC of the default handler)
+# ---------------------------------------------------------------------------
+
+def _canonicalize_ndarray(obj: Any) -> tuple:
+    """Numpy-like array → tagged tuple with raw bytes (efficient & exact)."""
+    return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
+
+
+def _canonicalize_instance(obj: Any) -> Any:
+    """Custom object instance → canonical form via __dict__ or __slots__."""
+    if hasattr(obj, "__dict__"):
+        return canonicalize(obj.__dict__)
+    # __slots__ path
+    return [
+        [k, canonicalize(getattr(obj, k))]
+        for k in sorted(obj.__slots__)
+        if hasattr(obj, k)
+    ]
+
+
+def _is_ndarray_like(obj: Any) -> bool:
+    """Duck-type check for numpy-like arrays (avoids hard dependency)."""
+    return hasattr(obj, "shape") and hasattr(obj, "dtype") and hasattr(obj, "tobytes")
+
+
+# ---------------------------------------------------------------------------
+# singledispatch canonicalize
+# ---------------------------------------------------------------------------
+
 @singledispatch
 def canonicalize(obj: Any) -> Any:
     """
-    Recursively converts an object into a canonical form suitable for stable Msgpack serialization.
+    Recursively converts an object into a canonical form suitable for stable
+    Msgpack serialization.
 
-    This function acts as the default handler for primitives and types not explicitly registered.
-    It also handles duck-typing cases like Numpy arrays and custom objects.
-
-    Strategies:
-    1. Primitives -> Return as-is.
-    2. Numpy-like -> Tuple with raw bytes (efficient & exact).
-    3. Custom Object (Instance) -> Dict via __dict__ or __slots__.
-    4. Fallback -> String representation.
+    Dispatch order for unregistered types:
+    1. Primitives        → return as-is
+    2. Numpy-like arrays → tagged tuple via duck typing
+    3. Object instances  → via __dict__ / __slots__
+    4. Fallback          → str()
     """
-    # 1. Primitives (No change needed)
     if obj is None or isinstance(obj, (int, float, bool, str, bytes)):
         return obj
 
-    # 2. Numpy Array Handling (Duck Typing)
-    # We check attributes to avoid hard dependency on numpy
-    if hasattr(obj, "shape") and hasattr(obj, "dtype") and hasattr(obj, "tobytes"):
+    if _is_ndarray_like(obj):
         try:
-            return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
+            return _canonicalize_ndarray(obj)
         except Exception:
             pass
 
-    # 3. Custom Objects (Instance)
-    if hasattr(obj, "__dict__"):
-        return canonicalize(obj.__dict__)
+    if hasattr(obj, "__dict__") or hasattr(obj, "__slots__"):
+        return _canonicalize_instance(obj)
 
-    if hasattr(obj, "__slots__"):
-        return [
-            [k, canonicalize(getattr(obj, k))]
-            for k in sorted(obj.__slots__)
-            if hasattr(obj, k)
-        ]
-
-    # 4. Last Resort: String representation
     return str(obj)
 
 
 @canonicalize.register(dict)
-def _(obj: dict) -> list:
-    """Dict -> List of [k, v], sorted by key"""
+def _canonicalize_dict(obj: dict) -> list:
+    """Dict → List of [k, v], sorted by key."""
     return [
         [canonicalize(k), canonicalize(v)]
         for k, v in sorted(obj.items(), key=lambda i: _safe_sort_key(i[0]))
@@ -75,35 +92,47 @@ def _(obj: dict) -> list:
 
 @canonicalize.register(list)
 @canonicalize.register(tuple)
-def _(obj: Union[list, tuple]) -> list:
-    """List/Tuple -> Recursive canonicalization"""
+def _canonicalize_sequence(obj: Union[list, tuple]) -> list:
+    """List / Tuple → recursive canonicalization."""
     return [canonicalize(x) for x in obj]
 
 
 @canonicalize.register(set)
 @canonicalize.register(frozenset)
-def _(obj: Union[set, frozenset]) -> list:
-    """Set -> Sorted List"""
+def _canonicalize_set(obj: Union[set, frozenset]) -> list:
+    """Set / Frozenset → sorted list."""
     normalized_items = [canonicalize(x) for x in obj]
     return sorted(normalized_items, key=_safe_sort_key)
 
 
+@canonicalize.register(Enum)
+def _canonicalize_enum(obj: Enum) -> Any:
+    """Enum member → canonical value (stable across sessions)."""
+    return (
+        "__enum__",
+        type(obj).__module__,
+        type(obj).__qualname__,
+        canonicalize(obj.value),
+    )
+
+
 @canonicalize.register(type)
-def _(obj: type) -> Any:
-    """Type/Class Handling (Structure Awareness)"""
-    # Strategy A: Pydantic Model (Schema-based)
-    if hasattr(obj, "model_json_schema"):  # Pydantic v2
+def _canonicalize_type(obj: type) -> Any:
+    """Type / Class handling (structure awareness)."""
+    # Pydantic v2
+    if hasattr(obj, "model_json_schema"):
         try:
             return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
         except Exception:
             pass
-    if hasattr(obj, "schema"):  # Pydantic v1
+    # Pydantic v1
+    if hasattr(obj, "schema"):
         try:
             return ("__pydantic_v1__", canonicalize(obj.schema()))
         except Exception:
             pass
 
-    # Strategy B: Generic Class (Structure-based)
+    # Generic class (structure-based)
     class_attrs = {}
     try:
         for k, v in obj.__dict__.items():
@@ -122,6 +151,25 @@ def _(obj: type) -> Any:
         canonicalize(class_attrs),
     )
 
+
+# ---------------------------------------------------------------------------
+# Optional: register numpy.ndarray directly when numpy is available
+# ---------------------------------------------------------------------------
+
+try:
+    import numpy as _np
+
+    @canonicalize.register(_np.ndarray)
+    def _canonicalize_np_ndarray(obj: _np.ndarray) -> tuple:
+        return _canonicalize_ndarray(obj)
+
+except ImportError:
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Strategy & Policy
+# ---------------------------------------------------------------------------
 
 class Strategy(Enum):
     """

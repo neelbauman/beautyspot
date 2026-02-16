@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-17 04:11:28
+**最終更新:** 2026-02-17 04:47:19
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -17,15 +17,15 @@ Module          | Ca  | Ce  | I (Instability)
 ---------------------------------------------
 _version        | 0   | 0   | 0.00
 limiter         | 1   | 0   | 0.00
-cachekey        | 1   | 0   | 0.00
 cli             | 0   | 1   | 1.00
 content_types   | 1   | 0   | 0.00
 dashboard       | 0   | 2   | 1.00
 maintenance     | 2   | 3   | 0.60
 db              | 2   | 0   | 0.00
-serializer      | 2   | 0   | 0.00
 core            | 0   | 5   | 1.00
+serializer      | 2   | 0   | 0.00
 storage         | 2   | 0   | 0.00
+cachekey        | 1   | 0   | 0.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -37,15 +37,13 @@ Graph generated at: docs/statics/img/generated/architecture_metrics.png
 複雑すぎてリファクタリングが推奨される箇所です。
 
 ```text
-src/beautyspot/cachekey.py
-    F 27:0 canonicalize - C
 src/beautyspot/cli.py
     F 302:0 show_cmd - C
     F 550:0 prune_cmd - C
     F 380:0 stats_cmd - C
 
-4 blocks (classes, functions, methods) analyzed.
-Average complexity: C (11.5)
+3 blocks (classes, functions, methods) analyzed.
+Average complexity: C (11.666666666666666)
 ```
 
 <details>
@@ -58,26 +56,6 @@ src/beautyspot/limiter.py
     M 20:4 TokenBucket.__init__ - A
     M 66:4 TokenBucket.consume - A
     M 84:4 TokenBucket.consume_async - A
-src/beautyspot/cachekey.py
-    F 27:0 canonicalize - C
-    F 92:0 _ - B
-    M 210:4 KeyGen.from_file_content - A
-    C 189:0 KeyGen - A
-    M 228:4 KeyGen._default - A
-    F 15:0 _safe_sort_key - A
-    F 68:0 _ - A
-    F 78:0 _ - A
-    F 85:0 _ - A
-    C 139:0 KeyGenPolicy - A
-    M 201:4 KeyGen.from_path_stat - A
-    M 251:4 KeyGen.hash_items - A
-    M 261:4 KeyGen.ignore - A
-    M 276:4 KeyGen.file_content - A
-    M 284:4 KeyGen.path_stat - A
-    C 126:0 Strategy - A
-    M 145:4 KeyGenPolicy.__init__ - A
-    M 153:4 KeyGenPolicy.bind - A
-    M 269:4 KeyGen.map - A
 src/beautyspot/cli.py
     F 302:0 show_cmd - C
     F 550:0 prune_cmd - C
@@ -136,20 +114,6 @@ src/beautyspot/db.py
     M 105:4 SQLiteTaskDB._connect - A
     M 149:4 SQLiteTaskDB.save - A
     M 198:4 SQLiteTaskDB.delete - A
-src/beautyspot/serializer.py
-    M 84:4 MsgpackSerializer._default_packer - B
-    C 40:0 MsgpackSerializer - A
-    M 161:4 MsgpackSerializer.dumps - A
-    M 138:4 MsgpackSerializer._ext_hook - A
-    M 182:4 MsgpackSerializer.loads - A
-    C 9:0 SerializerProtocol - A
-    C 21:0 TypeRegistryProtocol - A
-    M 54:4 MsgpackSerializer.register - A
-    M 14:4 SerializerProtocol.dumps - A
-    M 17:4 SerializerProtocol.loads - A
-    M 25:4 TypeRegistryProtocol.register - A
-    C 35:0 SerializationError - A
-    M 48:4 MsgpackSerializer.__init__ - A
 src/beautyspot/__init__.py
     F 25:0 Spot - A
 src/beautyspot/core.py
@@ -183,6 +147,20 @@ src/beautyspot/core.py
     M 537:4 Spot.mark - A
     M 611:4 Spot.cached_run - A
     M 625:4 Spot.cached_run - A
+src/beautyspot/serializer.py
+    M 84:4 MsgpackSerializer._default_packer - B
+    C 40:0 MsgpackSerializer - A
+    M 161:4 MsgpackSerializer.dumps - A
+    M 138:4 MsgpackSerializer._ext_hook - A
+    M 182:4 MsgpackSerializer.loads - A
+    C 9:0 SerializerProtocol - A
+    C 21:0 TypeRegistryProtocol - A
+    M 54:4 MsgpackSerializer.register - A
+    M 14:4 SerializerProtocol.dumps - A
+    M 17:4 SerializerProtocol.loads - A
+    M 25:4 TypeRegistryProtocol.register - A
+    C 35:0 SerializationError - A
+    M 48:4 MsgpackSerializer.__init__ - A
 src/beautyspot/storage.py
     M 70:4 LocalStorage._validate_key - A
     M 133:4 S3Storage.__init__ - A
@@ -204,9 +182,34 @@ src/beautyspot/storage.py
     M 65:4 LocalStorage.__init__ - A
     M 77:4 LocalStorage.save - A
     M 148:4 S3Storage.save - A
+src/beautyspot/cachekey.py
+    F 120:0 _canonicalize_type - B
+    F 58:0 canonicalize - B
+    F 36:0 _canonicalize_instance - A
+    M 258:4 KeyGen.from_file_content - A
+    F 48:0 _is_ndarray_like - A
+    C 237:0 KeyGen - A
+    M 276:4 KeyGen._default - A
+    F 16:0 _safe_sort_key - A
+    F 85:0 _canonicalize_dict - A
+    F 95:0 _canonicalize_sequence - A
+    F 102:0 _canonicalize_set - A
+    C 187:0 KeyGenPolicy - A
+    M 249:4 KeyGen.from_path_stat - A
+    M 299:4 KeyGen.hash_items - A
+    M 309:4 KeyGen.ignore - A
+    M 324:4 KeyGen.file_content - A
+    M 332:4 KeyGen.path_stat - A
+    F 31:0 _canonicalize_ndarray - A
+    F 109:0 _canonicalize_enum - A
+    F 163:4 _canonicalize_np_ndarray - A
+    C 174:0 Strategy - A
+    M 193:4 KeyGenPolicy.__init__ - A
+    M 201:4 KeyGenPolicy.bind - A
+    M 317:4 KeyGen.map - A
 
-141 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.7375886524822697)
+146 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.684931506849315)
 ```
 </details>
 
@@ -224,16 +227,16 @@ Average complexity: A (2.7375886524822697)
 ```text
 src/beautyspot/_version.py - A
 src/beautyspot/limiter.py - A
-src/beautyspot/cachekey.py - A
 src/beautyspot/cli.py - A
 src/beautyspot/content_types.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/maintenance.py - A
 src/beautyspot/db.py - A
-src/beautyspot/serializer.py - A
 src/beautyspot/__init__.py - A
 src/beautyspot/core.py - A
+src/beautyspot/serializer.py - A
 src/beautyspot/storage.py - A
+src/beautyspot/cachekey.py - A
 ```
 </details>
 
