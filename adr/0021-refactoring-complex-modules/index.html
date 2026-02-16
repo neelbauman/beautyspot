@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0007-customizable-serialization-with-msgpack/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0021-refactoring-complex-modules/">
       
       
-        <link rel="prev" href="../0006-semantic-content-type-support/">
-      
-      
-        <link rel="next" href="../0008-database-dependency-injection/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Customizable Serialization Strategy with Msgpack Default - beautyspot</title>
+        <title>21. Refactoring Complex Modules with Single Dispatch - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#customizable-serialization-strategy-with-msgpack-default" class="md-skip">
+        <a href="#21-refactoring-complex-modules-with-single-dispatch" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Customizable Serialization Strategy with Msgpack Default
+              21. Refactoring Complex Modules with Single Dispatch
             
           </span>
         </div>
@@ -928,20 +924,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -962,7 +958,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1187,44 +1183,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    0007 Serializaion
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--Accepted"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../0007-customizable-serialization-with-msgpack/" class="md-nav__link">
         
   
   
@@ -1247,109 +1209,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context and Problem Statement / コンテキスト
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Drivers / 要求
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-options" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered Options / 検討
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome / 決定
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome / 決定">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#technical-details" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical Details / 技術詳細
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences / 結果
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updates-2025-12-11" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Updates (2025-12-11)
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1585,10 +1444,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement / コンテキスト
+        Context
       
     </span>
   </a>
@@ -1596,10 +1455,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers / 要求
+        Decision
       
     </span>
   </a>
@@ -1607,33 +1466,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-options" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered Options / 検討
+        Consequences
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome / 決定
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome / 決定">
+    <nav class="md-nav" aria-label="Consequences">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#technical-details" class="md-nav__link">
+  <a href="#positive" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Technical Details / 技術詳細
+        Positive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#negative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Negative
       
     </span>
   </a>
@@ -1642,28 +1501,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences / 結果
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#updates-2025-12-11" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Updates (2025-12-11)
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1687,114 +1524,37 @@
   
 
 
-<h1 id="customizable-serialization-strategy-with-msgpack-default">Customizable Serialization Strategy with Msgpack Default</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
-<p>現在、<code>beautyspot</code> はキャッシュデータのシリアライズ（保存）に Python 標準の <code>pickle</code> を使用している。
-これには以下の重大な課題がある：</p>
-<ol>
-<li><strong>セキュリティリスク (RCE):</strong> <code>pickle</code> は信頼できないデータを読み込む際に任意のコード実行（RCE）を引き起こす可能性があり、「共有キャッシュ」としての利用にリスクがある。</li>
-<li><strong>互換性:</strong> Python のバージョンやライブラリのバージョンが変わると、クラス定義の不整合によりデシリアライズに失敗しやすい。</li>
-<li><strong>代替案の欠点:</strong> 標準ライブラリの <code>json</code> は安全だが、画像などのバイナリデータを効率的に扱えず（Base64化でサイズ増）、タプルなどのPython固有型が失われる。</li>
-</ol>
-<p>v1.0.0 リリースにあたり、<strong>「デフォルトで安全（Secure by Default）」</strong> かつ <strong>「拡張性（Extensibility）」</strong> のあるシリアライズ戦略が必要である。</p>
-<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<h1 id="21-refactoring-complex-modules-with-single-dispatch">21. Refactoring Complex Modules with Single Dispatch</h1>
 <ul>
-<li><strong>Security:</strong> デフォルト状態で RCE のリスクを排除したい。</li>
-<li><strong>Performance:</strong> 画像やNumpy配列などのバイナリデータを、オーバーヘッドなく高速に扱いたい。</li>
-<li><strong>Extensibility:</strong> ユーザーが独自のクラスや特殊な型（例: <code>pandas.DataFrame</code>）を、ライブラリ側の変更なしに保存・復元できるようにしたい。</li>
-<li><strong>Developer Experience (DX):</strong> シリアライズ失敗時に、「どのオブジェクトが原因か」と「どうすれば解決できるか」を明確に示したい。</li>
+<li>Status: Accepted</li>
+<li>Date: 2026-02-16</li>
 </ul>
-<h2 id="considered-options">Considered Options / 検討</h2>
+<h2 id="context">Context</h2>
+<p>The <code>quality_report</code> highlighted that <code>src/beautyspot/cachekey.py</code> has a high Cyclomatic Complexity (Rank D), specifically in the <code>canonicalize</code> function. This function uses a long chain of <code>if-elif-else</code> statements checking for various types (<code>dict</code>, <code>list</code>, <code>set</code>, <code>numpy</code>, <code>type</code>, etc.) to normalize objects for hashing.</p>
+<p>This structure violates the Open-Closed Principle: adding support for a new type requires modifying the core function, increasing the risk of regression.</p>
+<h2 id="decision">Decision</h2>
+<p>We will refactor <code>canonicalize</code> using Python's standard library <code>functools.singledispatch</code>.</p>
 <ul>
-<li><strong>Option 1:</strong> 現状維持（<code>pickle</code> のまま）。警告文で責任をユーザーに委ねる。</li>
-<li><strong>Option 2:</strong> 標準ライブラリ <code>json</code> に一本化する。バイナリは Base64 エンコードを強制する。</li>
-<li><strong>Option 3:</strong> <code>msgpack</code> を採用し、標準型のみサポートする。</li>
-<li><strong>Option 4:</strong> <code>msgpack</code> を採用し、<code>ExtType</code> 機能を用いた「カスタム型登録システム」を実装する。</li>
+<li><strong>Default Dispatch</strong>: Handles primitives, fallback logic (<code>str</code>), and duck-typing checks (e.g., Numpy arrays, objects with <code>__dict__</code>).</li>
+<li><strong>Registered Handlers</strong>: Specific logic for <code>dict</code>, <code>list</code>, <code>tuple</code>, <code>set</code>, <code>frozenset</code>, and <code>type</code> will be moved to decorated functions.</li>
 </ul>
-<h2 id="decision-outcome">Decision Outcome / 決定</h2>
-<p>Chosen option: <strong>Option 4</strong>.</p>
-<p>シリアライザのバックエンドとして <code>msgpack</code> (MessagePack) を採用し、さらにユーザーが任意の型変換ロジックを注入できる <code>TypeRegistry</code> パターンを導入する。</p>
-<ol>
-<li><strong>依存関係:</strong> <code>msgpack&gt;=1.0.0</code> を <code>pyproject.toml</code> に追加する。</li>
-<li><strong>デフォルトの挙動:</strong><ul>
-<li><code>pickle</code> はデフォルトから廃止（またはオプトイン化）する。</li>
-<li><code>msgpack</code> を使用し、安全な型のみをシリアライズする。</li>
-</ul>
-</li>
-<li><strong>カスタム型の登録:</strong><ul>
-<li><code>Project</code> クラスに <code>register_type(type, code, encoder, decoder)</code> メソッドを追加する。</li>
-<li>ユーザーは、シリアライズできない型（例: カスタムクラス）に対して、一意なID (<code>code</code>) と変換関数を登録することで対応できる。</li>
-</ul>
-</li>
-<li><strong>エラーハンドリング:</strong><ul>
-<li>未登録の型に遭遇した場合、標準の <code>TypeError</code> ではなく、具体的なオブジェクト情報と <code>register_type</code> の利用を促す親切なエラーメッセージ (<code>SerializationError</code>) を送出する。</li>
-</ul>
-</li>
-</ol>
-<h3 id="technical-details">Technical Details / 技術詳細</h3>
-<p><code>msgpack</code> の <code>default</code> (pack時) と <code>ext_hook</code> (unpack時) を活用し、拡張型を <code>msgpack.ExtType</code> としてラップする。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Implementation Sketch</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="c1"># ...</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">serializer</span> <span class="o">=</span> <span class="n">MsgpackSerializer</span><span class="p">()</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">encoder</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">decoder</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="sd">        Register a custom serializer for a specific type.</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="sd">            type_: The class to handle (e.g. MyClass)</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="sd">            code: Unique integer ID (0-127) for this type</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="sd">            encoder: Function that converts obj -&gt; bytes</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="sd">            decoder: Function that converts bytes -&gt; obj</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">serializer</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="n">code</span><span class="p">,</span> <span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span><span class="p">)</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># --- Internal ---</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="k">class</span><span class="w"> </span><span class="nc">MsgpackSerializer</span><span class="p">:</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_packer</span><span class="p">,</span> <span class="n">use_bin_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">unpackb</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ext_hook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ext_hook</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_default_packer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="c1"># 登録済みの型なら ExtType に変換</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoders</span><span class="p">:</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>            <span class="n">code</span><span class="p">,</span> <span class="n">encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoders</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)]</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>            <span class="k">return</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">ExtType</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">encoder</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="c1"># 未登録なら詳細なエラーを出す</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="k">raise</span> <span class="n">SerializationError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Object of type &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; is not serializable...&quot;</span><span class="p">)</span>
-</code></pre></div>
-<h2 id="consequences">Consequences / 結果</h2>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
 <ul>
-<li><strong>Positive:</strong><ul>
-<li><strong>安全性:</strong> <code>pickle</code> を排除することで、デフォルトでの脆弱性を解消できる。</li>
-<li><strong>パフォーマンス:</strong> <code>json</code> + Base64 よりも高速かつ省サイズでバイナリデータを扱える。</li>
-<li><strong>柔軟性:</strong> ユーザーはライブラリをフォークすることなく、必要な型（Numpy, Pandas, Custom Class）の対応を追加できる。</li>
+<li><strong>Reduced Complexity</strong>: The main function logic is split into smaller, focused handlers.</li>
+<li><strong>Extensibility</strong>: Future types can be supported by registering new handlers without changing existing code.</li>
+<li><strong>Readability</strong>: Each handler focuses on a single type responsibility.</li>
 </ul>
-</li>
-<li><strong>Negative:</strong><ul>
-<li><strong>依存関係:</strong> 新たに <code>msgpack</code> パッケージへの依存が発生する（ただし軽量であるため許容範囲とする）。</li>
-<li><strong>移行コスト:</strong> 既存の <code>pickle</code> で保存されたキャッシュデータ (<code>.pkl</code>) との互換性がなくなるため、v1.0.0 アップデート時にキャッシュクリア（DBリセット）が必要になる。</li>
+<h3 id="negative">Negative</h3>
+<ul>
+<li><strong>Duck Typing Limitation</strong>: <code>singledispatch</code> relies on types. Duck typing logic (like checking for <code>.shape</code> on Numpy-like objects) must still reside in the default handler or a base checking layer.</li>
 </ul>
-</li>
-</ul>
-<h2 id="updates-2025-12-11">Updates (2025-12-11)</h2>
-<p>See <a href="../0009-msgpack-everywhere-and-guardrails/">ADR-0009</a> for further refinements regarding <code>save_blob=False</code> behavior (Msgpack + Base64) and size guardrails.</p>
 
 
 
 
 
 
-
-  
-  
 
 
 

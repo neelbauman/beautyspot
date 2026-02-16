@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0017-tolerant-deletion-policy/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0022-service-layer-for-maintenance/">
       
       
       
@@ -21,7 +21,7 @@
     
     
       
-        <title>17. Tolerant Deletion Policy for Task Cleanup - beautyspot</title>
+        <title>22. Service Layer for Maintenance Operations - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#17-tolerant-deletion-policy-for-task-cleanup" class="md-skip">
+        <a href="#22-service-layer-for-maintenance-operations" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              17. Tolerant Deletion Policy for Task Cleanup
+              22. Service Layer for Maintenance Operations
             
           </span>
         </div>
@@ -723,7 +723,7 @@
   <span class="md-ellipsis">
     
   
-    API Reference
+    Reference
   
 
     
@@ -739,7 +739,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    API Reference
+    Reference
   
 
           </label>
@@ -759,7 +759,63 @@
   <span class="md-ellipsis">
     
   
-    Spot (Core)
+    Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cachekey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheKey
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/db/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheDB
   
 
     
@@ -836,14 +892,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cachekey/" class="md-nav__link">
+      <a href="../../reference/maintenance/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CacheKey
+    MaintenanceService
   
 
     
@@ -1388,17 +1444,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Status
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1479,36 +1524,38 @@
   
 
 
-<h1 id="17-tolerant-deletion-policy-for-task-cleanup">17. Tolerant Deletion Policy for Task Cleanup</h1>
-<p>Date: 2026-02-14</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
+<h1 id="22-service-layer-for-maintenance-operations">22. Service Layer for Maintenance Operations</h1>
+<ul>
+<li>Status: Accepted</li>
+<li>Date: 2026-02-16</li>
+</ul>
 <h2 id="context">Context</h2>
-<p><code>spot.delete(key)</code> 機能は、特定のタスクに関連する「キャッシュレコード（DB）」と「実データ（Blob/File）」の両方を削除することを目的としています。</p>
-<p>ローカルファイルシステムやS3などの外部ストレージにおいて、Blobの削除操作は様々な理由（ネットワーク障害、一時的な権限エラー、ファイルが既に手動で削除されている等）で失敗する可能性があります。</p>
-<p>このとき、厳密な整合性を求めて「Blob削除に失敗したらDBレコードの削除もロールバック（中断）する」という実装にすると、以下のような問題が発生します：</p>
-<ol>
-<li><strong>ゾンビレコード</strong>: 物理ファイルが見つからないだけなのに、DBからレコードを消せず、ユーザーは永遠にそのタスクを「無効化」できない。</li>
-<li><strong>再計算の阻害</strong>: 破損したキャッシュエントリが残り続けることで、新しい計算結果での上書きや、クリーンな状態からの再実行が妨げられる。</li>
-</ol>
+<p>Currently, <code>src/beautyspot/cli.py</code> contains significant business logic for:
+1.  <strong>Pruning</strong>: Deleting old tasks based on timestamps.
+2.  <strong>Cleaning</strong>: Identifying and deleting orphaned blob files (garbage collection).</p>
+<p>This logic directly accesses the <code>sqlite3</code> driver and manipulates file paths, bypassing the <code>TaskDB</code> and <code>BlobStorageBase</code> abstractions. This leads to:
+* <strong>Coupling</strong>: CLI is tightly coupled to SQLite and local file storage details.
+* <strong>Duplication</strong>: If we want to run maintenance from a script or Web UI, we must duplicate this logic.
+* <strong>Inconsistency</strong>: S3 storage support for "cleaning" is missing because logic is hardcoded for local paths.</p>
 <h2 id="decision">Decision</h2>
-<p>我々は、削除操作において <strong>「メタデータの削除を優先する（Tolerant Deletion）」</strong> ポリシーを採用します。</p>
-<p>具体的には、<code>delete</code> メソッドの実装を以下のように規定します：</p>
-<ol>
-<li>まず、Blob（実データ）の削除を試みる。</li>
-<li>Blobの削除中に例外が発生した場合、<strong>処理を中断せず</strong>、<code>WARNING</code> レベルのログを出力してエラーを捕捉（swallow）する。</li>
-<li>Blob削除の成否に関わらず、DB上のタスクレコードの削除を必ず実行する。</li>
-</ol>
+<p>We will extract the maintenance logic from <code>cli.py</code> into a dedicated service layer, <strong><code>MaintenanceService</code></strong> (<code>src/beautyspot/maintenance.py</code>).</p>
+<p>Instead of adding these responsibilities to the <code>Spot</code> class (which focuses on runtime execution context and caching), we separate the concerns:</p>
+<ul>
+<li><strong><code>MaintenanceService</code></strong>: Handles administrative tasks such as pruning records, cleaning orphaned blobs, and querying history. It orchestrates <code>TaskDB</code> and <code>BlobStorageBase</code>.</li>
+<li><strong><code>Spot</code></strong>: Remains focused on <code>mark</code> (registration) and <code>cached_run</code> (execution) for the application runtime.</li>
+</ul>
+<p>Both classes will share the underlying <code>TaskDB</code> and <code>BlobStorageBase</code> abstractions.</p>
 <h2 id="consequences">Consequences</h2>
 <h3 id="positive">Positive</h3>
 <ul>
-<li><strong>確実なリセット</strong>: ユーザーはストレージの状態に関わらず、<code>beautyspot</code> の管理下からタスクを確実に削除できる。</li>
-<li><strong>UXの向上</strong>: 「ファイルが見つからない」といった些細なエラーでワークフローが止まることを防げる。</li>
+<li><strong>Separation of Concerns</strong>: The runtime logic (<code>Spot</code>) is kept lightweight and focused, while administrative logic resides in its own service.</li>
+<li><strong>Testability</strong>: Core maintenance logic can be unit-tested without invoking the CLI.</li>
+<li><strong>Reusability</strong>: Pruning/Cleaning can be triggered programmatically from other scripts or the dashboard.</li>
+<li><strong>Abstraction</strong>: S3 and other storage backends will automatically support garbage collection if they implement <code>list_keys</code>.</li>
 </ul>
 <h3 id="negative">Negative</h3>
 <ul>
-<li><strong>Orphaned Blobs（孤立ファイル）</strong>: DBレコードは削除されたが、ストレージ上にファイルだけが残るケースが発生しうる（ストレージ容量の浪費）。</li>
-<li><strong>対策</strong>: これらは <code>beautyspot</code> のランタイムでは管理不能となるため、必要に応じて別途ガベージコレクション（GC）ツールや、S3のライフサイクルポリシー等で対処する必要がある。</li>
+<li><strong>Interface Expansion</strong>: <code>TaskDB</code> and <code>BlobStorageBase</code> interfaces need to expand to support maintenance operations (e.g., <code>list_keys</code>, <code>get_blob_refs</code>), affecting all backend implementations.</li>
 </ul>
 
 

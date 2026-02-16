@@ -585,6 +585,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        キャッシュの削除とクリーンアップ
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -852,7 +863,7 @@
   <span class="md-ellipsis">
     
   
-    API Reference
+    Reference
   
 
     
@@ -868,7 +879,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    API Reference
+    Reference
   
 
           </label>
@@ -888,7 +899,63 @@
   <span class="md-ellipsis">
     
   
-    Spot (Core)
+    Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cachekey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheKey
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/db/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheDB
   
 
     
@@ -965,14 +1032,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cachekey/" class="md-nav__link">
+      <a href="../../reference/maintenance/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CacheKey
+    MaintenanceService
   
 
     
@@ -1594,6 +1661,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        キャッシュの削除とクリーンアップ
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1656,6 +1734,14 @@
 </div>
 <p><code>prune</code> はデータベースのレコードも削除するため、一度削除すると復元できません。
 本番環境のデータに対して実行する場合は十分注意してください。</p>
+<h2 id="_1">キャッシュの削除とクリーンアップ</h2>
+<p>v2.0 より、<code>Spot.delete</code> メソッドは廃止されました。プログラムからキャッシュを削除する場合は、<code>MaintenanceService</code> を使用してください。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.maintenance</span><span class="w"> </span><span class="kn">import</span> <span class="n">MaintenanceService</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Spot の依存関係を渡して初期化</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">service</span> <span class="o">=</span> <span class="n">MaintenanceService</span><span class="p">(</span><span class="n">spot</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="n">spot</span><span class="o">.</span><span class="n">storage</span><span class="p">,</span> <span class="n">spot</span><span class="o">.</span><span class="n">serializer</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">service</span><span class="o">.</span><span class="n">delete_task</span><span class="p">(</span><span class="n">cache_key</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
+</code></pre></div>
 
 
 

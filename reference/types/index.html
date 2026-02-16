@@ -14,7 +14,7 @@
         <link rel="prev" href="../storage/">
       
       
-        <link rel="next" href="../cachekey/">
+        <link rel="next" href="../maintenance/">
       
       
         
@@ -727,7 +727,7 @@
   <span class="md-ellipsis">
     
   
-    API Reference
+    Reference
   
 
     
@@ -743,7 +743,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    API Reference
+    Reference
   
 
           </label>
@@ -763,7 +763,63 @@
   <span class="md-ellipsis">
     
   
-    Spot (Core)
+    Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cachekey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheKey
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../db/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheDB
   
 
     
@@ -872,19 +928,19 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#beautyspot.types" class="md-nav__link">
+  <a href="#beautyspot.content_types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        types
+        content_types
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="types">
+    <nav class="md-nav" aria-label="content_types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.ContentType" class="md-nav__link">
+  <a href="#beautyspot.content_types.ContentType" class="md-nav__link">
     <span class="md-ellipsis">
       
         ContentType
@@ -915,14 +971,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../cachekey/" class="md-nav__link">
+      <a href="../maintenance/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CacheKey
+    MaintenanceService
   
 
     
@@ -1467,19 +1523,19 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#beautyspot.types" class="md-nav__link">
+  <a href="#beautyspot.content_types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        types
+        content_types
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="types">
+    <nav class="md-nav" aria-label="content_types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.ContentType" class="md-nav__link">
+  <a href="#beautyspot.content_types.ContentType" class="md-nav__link">
     <span class="md-ellipsis">
       
         ContentType
@@ -1521,8 +1577,8 @@
 
 
 
-<h2 id="beautyspot.types" class="doc doc-heading">
-            <code>beautyspot.types</code>
+<h2 id="beautyspot.content_types" class="doc doc-heading">
+            <code>beautyspot.content_types</code>
 
 
 </h2>
@@ -1552,7 +1608,7 @@
 
 
 
-<h3 id="beautyspot.types.ContentType" class="doc doc-heading">
+<h3 id="beautyspot.content_types.ContentType" class="doc doc-heading">
             <code>ContentType</code>
 
 
@@ -1574,8 +1630,9 @@ Used by the dashboard to determine the appropriate rendering widget.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+                <summary>Source code in <code>src/beautyspot/content_types.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
 <span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
 <span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
 <span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
@@ -1587,21 +1644,20 @@ Used by the dashboard to determine the appropriate rendering widget.</p>
 <span class="normal"><a href="#__codelineno-0-13">13</a></span>
 <span class="normal"><a href="#__codelineno-0-14">14</a></span>
 <span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ContentType</span><span class="p">:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Supported semantic content types for beautyspot tasks.</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    Used by the dashboard to determine the appropriate rendering widget.</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">TEXT</span> <span class="o">=</span> <span class="s2">&quot;text/plain&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;application/json&quot;</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">MARKDOWN</span> <span class="o">=</span> <span class="s2">&quot;text/markdown&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">PNG</span> <span class="o">=</span> <span class="s2">&quot;image/png&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">JPEG</span> <span class="o">=</span> <span class="s2">&quot;image/jpeg&quot;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">MERMAID</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.mermaid&quot;</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">GRAPHVIZ</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="n">HTML</span> <span class="o">=</span> <span class="s2">&quot;text/html&quot;</span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">ContentType</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="sd">    Supported semantic content types for beautyspot tasks.</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Used by the dashboard to determine the appropriate rendering widget.</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">TEXT</span> <span class="o">=</span> <span class="s2">&quot;text/plain&quot;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;application/json&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">MARKDOWN</span> <span class="o">=</span> <span class="s2">&quot;text/markdown&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">PNG</span> <span class="o">=</span> <span class="s2">&quot;image/png&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">JPEG</span> <span class="o">=</span> <span class="s2">&quot;image/jpeg&quot;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">MERMAID</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.mermaid&quot;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">GRAPHVIZ</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">HTML</span> <span class="o">=</span> <span class="s2">&quot;text/html&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
 

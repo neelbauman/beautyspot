@@ -463,22 +463,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-imperative-execution-deprecated" class="md-nav__link">
+  <a href="#flush" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Imperative Execution (Deprecated)
+        コンテキストマネージャによる同期 (Flush)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Imperative Execution (Deprecated)">
+    <nav class="md-nav" aria-label="コンテキストマネージャによる同期 (Flush)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#migration-guide" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Migration Guide
+        推奨されるパターン：バッチ処理の区切り
       
     </span>
   </a>
@@ -869,7 +869,7 @@
   <span class="md-ellipsis">
     
   
-    API Reference
+    Reference
   
 
     
@@ -885,7 +885,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    API Reference
+    Reference
   
 
           </label>
@@ -905,7 +905,63 @@
   <span class="md-ellipsis">
     
   
-    Spot (Core)
+    Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cachekey/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheKey
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/db/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheDB
   
 
     
@@ -982,14 +1038,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cachekey/" class="md-nav__link">
+      <a href="../../reference/maintenance/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CacheKey
+    MaintenanceService
   
 
     
@@ -1601,22 +1657,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-imperative-execution-deprecated" class="md-nav__link">
+  <a href="#flush" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Imperative Execution (Deprecated)
+        コンテキストマネージャによる同期 (Flush)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Imperative Execution (Deprecated)">
+    <nav class="md-nav" aria-label="コンテキストマネージャによる同期 (Flush)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#migration-guide" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Migration Guide
+        推奨されるパターン：バッチ処理の区切り
       
     </span>
   </a>
@@ -1711,24 +1767,27 @@ v2.0 から推奨される、柔軟かつモダンな実行パターンです。
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>* **引数が複数の場合:** `(Wrapper, Wrapper, ...)` のタプルを返します。
 </code></pre></div>
 <hr />
-<h2 id="3-imperative-execution-deprecated">3. Imperative Execution (Deprecated)</h2>
-<div class="admonition warning">
-<p class="admonition-title">Deprecated: <code>spot.run</code></p>
-</div>
-<p>v1.x および v2.0初期にあった <code>spot.run(func, *args)</code> は、型安全性の問題により <strong>非推奨 (Deprecated)</strong> となりました。
-将来のバージョンで削除される予定です。今後は <code>cached_run</code> を使用してください。</p>
-<h3 id="migration-guide">Migration Guide</h3>
-<p><strong>Before (<code>spot.run</code>):</strong>
-引数の型チェックが効かず、オプション指定のために <code>_</code> プレフィックス付きの特殊なキーワード引数が必要でした。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># 非推奨</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">spot</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">my_func</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">_version</span><span class="o">=</span><span class="s2">&quot;v1&quot;</span><span class="p">)</span>
+<h2 id="flush">コンテキストマネージャによる同期 (Flush)</h2>
+<p><code>wait=False</code> を使用している場合、アプリケーションが急に終了すると、バックグラウンドで走っている保存処理が中断されるリスクがあります。<code>beautyspot</code> の <code>with</code> ブロックは、<strong>「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」</strong> として機能します。</p>
+<h3 id="_2">推奨されるパターン：バッチ処理の区切り</h3>
+<p><code>Spot</code> インスタンスはグローバルに定義し、同期が必要な区切りで <code>with</code> を使用します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">,</span> <span class="n">default_wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_experiment</span><span class="p">():</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">with</span> <span class="n">spot</span><span class="p">:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="c1"># このブロック内で行われる保存はすべてバックグラウンドで行われる</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            <span class="n">process_data</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="c1"># with ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機する</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="c1"># ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれていることが保証される</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="c1"># Spot インスタンスは再利用可能なため、次の処理でも使用可能</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">process_summary</span><span class="p">()</span>
 </code></pre></div>
-<p><strong>After (<code>cached_run</code>):</strong>
-標準的な関数呼び出しが可能になり、コードの意図も明確になります。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 推奨</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">my_func</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;v1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">task</span><span class="p">:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">task</span><span class="p">(</span><span class="n">arg1</span><span class="p">)</span>
-</code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> <code>with spot:</code> を抜けても Executor はシャットダウンされません。インスタンスは引き続き再利用可能です。完全に終了させる場合は <code>spot.shutdown()</code> を呼び出してください。</p>
+</blockquote>
 
 
 
