@@ -1,17 +1,18 @@
 # src/beautyspot/__init__.py 
 from importlib.metadata import version, PackageNotFoundError
+from typing import Optional, Any
+
 from beautyspot.core import Spot as _Spot, SpotOptions
 from beautyspot.cachekey import KeyGen
-from beautyspot.db import SQLiteTaskDB
-from beautyspot.storage import LocalStorage
-from beautyspot.serializer import MsgpackSerializer, SerializationError
+from beautyspot.serializer import SerializationError
 from beautyspot.content_types import ContentType
-
-from typing import Optional, Any
 from beautyspot.db import TaskDB
 from beautyspot.storage import BlobStorageBase
 from beautyspot.serializer import SerializerProtocol
 
+from beautyspot.db import SQLiteTaskDB
+from beautyspot.serializer import MsgpackSerializer
+from beautyspot.storage import LocalStorage
 
 try:
     __version__ = version("beautyspot")
@@ -33,6 +34,7 @@ def Spot(
     default_save_blob: bool = False,
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
+    default_wait: bool = True,
     **kwargs: Any
 ) -> _Spot:
     """
@@ -41,16 +43,13 @@ def Spot(
     # --- Orchestration: デフォルト実装の注入 ---
     
     # 1. DBの解決
-    from beautyspot.db import SQLiteTaskDB
     resolved_db = db or SQLiteTaskDB(f".beautyspot/{name}.db")
 
     # 2. Serializerの解決
-    from beautyspot.serializer import MsgpackSerializer
     resolved_ser = serializer or MsgpackSerializer()
 
     # 3. Storageの解決
-    from beautyspot.storage import LocalStorage
-    resolved_stg = storage or LocalStorage(".beautyspot/blobs")
+    resolved_stg = storage or LocalStorage(".beautyspot/blobs/{name}")
 
     # --- オプションのパッキングと型チェック ---
     # types.py の SpotOptions を使って、引数の整合性を（静的解析上で）担保する
@@ -62,6 +61,7 @@ def Spot(
         "default_save_blob": default_save_blob,
         "default_version": default_version,
         "default_content_type": default_content_type,
+        "default_wait": default_wait,
         **kwargs, # type: ignore
     }
 

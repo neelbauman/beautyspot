@@ -114,13 +114,13 @@ class SpotOptions(TypedDict, total=False):
     Spotのオプション引数を定義する。
     """
     blob_warning_threshold: int
-    default_save_blob: bool
-    default_version: str | None
-    default_content_type: str | None
     tpm: int
     io_workers: int
     executor: Executor | None
-    defalut_wait: bool
+    default_save_blob: bool
+    default_version: str | None
+    default_content_type: str | None
+    default_wait: bool
 
 
 class Spot:
