@@ -5,22 +5,17 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import argparse
-import os
-import msgpack
 import html
-from beautyspot.types import ContentType
-from beautyspot.db import SQLiteTaskDB
-from beautyspot.storage import S3Storage
+from beautyspot.content_types import ContentType
+from beautyspot.maintenance import MaintenanceService
 
 
-# CLI引数の解析 (Streamlitのお作法として sys.argv をパース)
+# CLI引数の解析
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=str, required=True)
-    # Streamlit引数との競合回避のため、知らない引数は無視
     args, _ = parser.parse_known_args()
     return args
-
 
 try:
     args = get_args()
@@ -30,12 +25,13 @@ except Exception:
     st.stop()
 
 
+# --- Service Initialization ---
+# UIレイヤーは具体的なDBクラスやStorageクラスを知る必要がない
+service = MaintenanceService.from_path(DB_PATH)
+
+
 # --- Helper: Mermaid Renderer ---
 def render_mermaid(code: str, height: int = 500):
-    """
-    Mermaid.jsをCDNから読み込んで描画するヘルパー。
-    Streamlit標準でMermaidがないためのWorkaround。
-    """
     html_code = f"""
     <div class="mermaid" style="display: flex; justify-content: center;">
         {html.escape(code)}
@@ -45,13 +41,8 @@ def render_mermaid(code: str, height: int = 500):
         mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
     </script>
     """
-    # scrolling=Trueにしておくと大きな図でも見切れない
     components.html(html_code, height=height, scrolling=True)
 
-
-# プロジェクトインスタンスの作成（DBを読むだけなのでStorage設定はDummyで可）
-# ただしLoad機能を使うなら正しいStorage設定が必要だが、
-# ここではDB内のパス情報を見て動的に判断する簡易版を実装
 
 st.set_page_config(page_title="beautyspot Dashboard", layout="wide", page_icon="🌑")
 st.title("🌑 beautyspot Dashboard")
@@ -61,8 +52,7 @@ st.caption(f"Database: `{DB_PATH}`")
 # --- Data Loading ---
 def load_data():
     try:
-        db = SQLiteTaskDB(DB_PATH)
-        return db.get_history(limit=1000)
+        return service.get_history(limit=1000)
     except Exception as e:
         st.error(f"Error reading DB: {e}")
         return pd.DataFrame()
@@ -138,64 +128,29 @@ else:
     st.info("Select Record from Table")
 
 if selected_key:
-    row = df[df["cache_key"] == selected_key].iloc[0]  # type: ignore[union-attr]
+    # サービス経由でデータを取得（デシリアライズ済み）
+    row = service.get_task_detail(selected_key)
 
-    r_type = row["result_type"]
-    r_val = row["result_value"]
+    if row:
+        c_type = row.get("content_type")
+        data = row.get("decoded_data")
+        
+        col1, col2 = st.columns([1, 2])
 
-    # Check if result_data exists (it might be NaN in pandas if not selected or null)
-    # The get_history query selects result_data, so it should be there.
-    # But pandas converts BLOB to bytes.
-    r_blob = row.get("result_data") if "result_data" in row else None
+        with col1:
+            st.write("**Metadata**")
+            # メタデータ表示用にblobデータを隠す
+            display_row = row.copy()
+            if "result_data" in display_row:
+                del display_row["result_data"]
+            if "decoded_data" in display_row:
+                del display_row["decoded_data"]
+            st.json(display_row)
 
-    c_type = row.get("content_type")
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.write("**Metadata**")
-        # Don't show raw blob in metadata view
-        display_row = row.to_dict().copy()
-        if "result_data" in display_row:
-            del display_row["result_data"]
-        st.json(display_row)
-
-    with col2:
-        st.write(f"**Content**: {c_type or 'Unknown Type'}")
-
-        try:
-            data = None
-            if r_type == "DIRECT_BLOB":
-                # New Native BLOB
-                if r_blob is not None and not pd.isna(r_blob):
-                    try:
-                        data = msgpack.unpackb(r_blob, raw=False)
-                    except Exception as e:
-                        st.error(f"Failed to decode DIRECT_BLOB data: {e}")
-                else:
-                    st.warning("DIRECT_BLOB record found but data is empty.")
-
-            elif r_type == "FILE":
-                # Auto Storage Detection
-                with st.spinner("Loading Blob..."):
-                    if r_val.startswith("s3://"):
-                        storage = S3Storage(r_val)  # 初期化時にバケット解析させる
-                        data = storage.load(r_val)
-                    else:
-                        # ローカルパスの場合、実行場所との相対パス問題があるため
-                        # 絶対パスか確認しつつ読み込む
-                        if os.path.exists(r_val):
-                            with open(r_val, "rb") as f:
-                                data = msgpack.unpack(f, raw=False)
-                        else:
-                            st.error(f"File not found on this machine: {r_val}")
+        with col2:
+            st.write(f"**Content**: {c_type or 'Unknown Type'}")
 
             if data is not None:
-                """
-                Rendering Strategy :
-                We strictly separate the 'Storage Layer' (how to fetch bytes) from the 'Presentation Layer' (how to show it).
-                The 'content_type' metadata drives the widget selection.
-                If 'content_type' is missing (legacy records), we fallback to a generic text/json view.
-                """
                 st.success("Restored successfully!")
 
                 if c_type == ContentType.GRAPHVIZ:
@@ -203,12 +158,8 @@ if selected_key:
                         st.graphviz_chart(data)
                     except Exception:
                         st.error("Graphviz rendering failed.")
-                        st.warning(
-                            "Hint: Is 'graphviz' installed on your OS? (e.g., `apt install graphviz`)"
-                        )
-                        st.code(data)  # フォールバックとしてソースを表示
+                        st.code(data)
 
-                # === Mermaid ===
                 elif c_type == ContentType.MERMAID:
                     render_mermaid(data)
                     with st.expander("View Source"):
@@ -218,7 +169,6 @@ if selected_key:
                     st.image(data)
 
                 elif c_type == ContentType.HTML:
-                    # Use components.html for sandboxed rendering to prevent XSS
                     components.html(data, height=600, scrolling=True)
 
                 elif c_type == ContentType.JSON:
@@ -228,21 +178,19 @@ if selected_key:
                     st.markdown(data)
 
                 else:
-                    # Fallback (Default Text Representation)
                     if isinstance(data, (dict, list)):
                         st.json(data)
                     else:
                         st.text(str(data))
-
-        except Exception as e:
-            st.error(f"Restore Failed: {e}")
-            st.exception(e)
+            else:
+                st.warning("Data could not be restored (decoding failed or empty).")
+    else:
+        st.error("Record not found in DB.")
 
 st.markdown("---")
 st.subheader("🗑️ Danger Zone")
 
 if selected_key:
-    # 削除ボタンを Popover (確認ダイアログ的な挙動) でラップ
     with st.popover("Delete Record", use_container_width=True):
         st.markdown(f"Are you sure you want to delete **`{selected_key}`**?")
         st.warning(
@@ -251,36 +199,16 @@ if selected_key:
 
         if st.button("Confirm Delete", type="primary"):
             try:
-                # 1. DB接続
-                db = SQLiteTaskDB(DB_PATH)
-
-                # 2. Blob削除のための情報取得
-                # (load_data() の df から情報を取れるが、念のためDBから最新を引く)
-                record = db.get(selected_key)
-
-                if record:
-                    # Blob削除
-                    if record["result_type"] == "FILE" and record["result_value"]:
-                        r_val = record["result_value"]
-                        if r_val.startswith("s3://"):
-                            storage = S3Storage(r_val)
-                            storage.delete(r_val)
-                        else:
-                            # Local file
-                            if os.path.exists(r_val):
-                                os.remove(r_val)
-
-                    # レコード削除
-                    db.delete(selected_key)
-
+                # サービス経由で削除
+                if service.delete_task(selected_key):
                     st.success(f"Deleted `{selected_key}`")
-                    # データをリフレッシュして再描画
                     st.cache_data.clear()
                     st.rerun()
                 else:
-                    st.error("Record not found in DB.")
+                    st.error("Record not found or failed to delete.")
 
             except Exception as e:
                 st.error(f"Failed to delete: {e}")
 else:
     st.info("Select a record to enable deletion.")
+

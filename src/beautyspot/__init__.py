@@ -5,7 +5,7 @@ from beautyspot.cachekey import KeyGen
 from beautyspot.db import SQLiteTaskDB
 from beautyspot.storage import LocalStorage
 from beautyspot.serializer import MsgpackSerializer, SerializationError
-from beautyspot.types import ContentType
+from beautyspot.content_types import ContentType
 
 from typing import Optional, Any
 from beautyspot.db import TaskDB
@@ -77,9 +77,9 @@ def Spot(
 __all__ = [
     "Spot",
     "KeyGen",
+    "ContentType",
     "SQLiteTaskDB",
     "LocalStorage",
     "MsgpackSerializer",
-    "ContentType",
     "SerializationError",
 ]

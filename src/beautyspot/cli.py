@@ -14,9 +14,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from beautyspot.core import Spot
 from beautyspot.maintenance import MaintenanceService
-# 注意: db, storage, serializer への直接のimportは排除された
 
 app = typer.Typer(
     name="beautyspot",
@@ -31,19 +29,16 @@ console = Console()
 # Helper Functions
 # =============================================================================
 
-def get_spot(db_path: str, blob_dir: Optional[str] = None) -> Spot:
+def get_service(db_path: str, blob_dir: Optional[str] = None) -> MaintenanceService:
     """
-    Initialize a Spot instance from CLI arguments using the core factory.
-    This encapsulates the details of DB/Storage creation.
+    Initialize MaintenanceService from CLI arguments.
     """
     path = Path(db_path)
     if not path.exists():
         console.print(f"[red]Error:[/red] Database not found: {db_path}")
         raise typer.Exit(1)
     
-    # Spot.from_path ファクトリを使用することで、CLIは具体的なバックエンドクラスを知る必要がなくなる
-    return Spot.from_path(path, blob_dir)
-
+    return MaintenanceService.from_path(path, blob_dir)
 
 def _is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -164,7 +159,7 @@ def _list_databases():
 
 
 def _list_tasks(db: str, limit: int, func: Optional[str]):
-    spot = get_spot(db)
+    spot = get_service(db)
     # Using spot.db (TaskDB interface) instead of SQLiteTaskDB
     df = spot.db.get_history(limit=limit)
 
@@ -311,18 +306,23 @@ def show_cmd(
     """
     🔍 Show details of a specific cached task.
     """
-    spot = get_spot(db)
-    result = spot.db.get(cache_key)
+    # 1. サービスを取得 (Spotインスタンスは不要)
+    service = get_service(db)
+    
+    # 2. 詳細を取得
+    # get_task_detail は DBレコードに加え、復元に成功すれば 'decoded_data' を含んで返す
+    result = service.get_task_detail(cache_key)
 
     if result is None:
         console.print(f"[red]Error:[/red] Cache key not found: {cache_key}")
         raise typer.Exit(1)
 
+    # 3. メタデータの表示
     detail_text = (
         f"[bold]Cache Key:[/bold] [cyan]{cache_key}[/cyan]\n"
-        f"[bold]Result Type:[/bold] [yellow]{result['result_type']}[/yellow]\n"
-        f"[bold]Result Value:[/bold] {result['result_value'] or '-'}\n"
-        f"[bold]Has Blob Data:[/bold] {'Yes' if result['result_data'] else 'No'}"
+        f"[bold]Result Type:[/bold] [yellow]{result.get('result_type')}[/yellow]\n"
+        f"[bold]Result Value:[/bold] {result.get('result_value') or '-'}\n"
+        f"[bold]Has Blob Data:[/bold] {'Yes' if result.get('result_data') else 'No'}"
     )
 
     console.print(
@@ -333,20 +333,23 @@ def show_cmd(
         )
     )
 
-    if result["result_data"]:
+    # 4. データの中身（デコード済み）の表示
+    # Service側ですでにデシリアライズされているので、ここでは表示方法だけを考える
+    data = result.get("decoded_data")
+
+    if data is not None:
         try:
             import json
-            # No longer importing msgpack directly. Use spot's serializer.
-            # This respects registered types!
-            data = spot.serializer.loads(result["result_data"])
-
-            if isinstance(data, dict):
+            
+            if isinstance(data, (dict, list)):
+                # JSONとして綺麗に表示
                 json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
                 syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
                 console.print(
                     Panel(syntax, title="📦 Data Preview (JSON)", border_style="blue")
                 )
             elif isinstance(data, str):
+                # 長すぎる文字列は省略して表示
                 preview = data[:1000] + "..." if len(data) > 1000 else data
                 console.print(
                     Panel(
@@ -354,9 +357,23 @@ def show_cmd(
                     )
                 )
             else:
-                console.print(f"[dim]Data type: {type(data).__name__}[/dim]")
+                # その他のオブジェクト
+                console.print(
+                    Panel(
+                        f"[dim]Type: {type(data).__name__}[/dim]\n{str(data)[:1000]}",
+                        title="📦 Data Preview (Object)",
+                        border_style="blue"
+                    )
+                )
+
         except Exception as e:
-            console.print(f"[yellow]Could not decode blob data: {e}[/yellow]")
+            console.print(f"[yellow]Error displaying data: {e}[/yellow]")
+
+    # データが存在するはずだが、デコードに失敗している場合 (decoded_data が None)
+    elif result.get("result_data") is not None or (
+        result.get("result_type") == "FILE" and result.get("result_value")
+    ):
+        console.print("[yellow]Could not decode blob data (Serialization format mismatch or missing file).[/yellow]")
 
 
 @app.command("stats")
@@ -366,7 +383,7 @@ def stats_cmd(
     """
     📊 Show cache statistics.
     """
-    spot = get_spot(db)
+    service = get_service(db)
     
     # Check for pandas presence is handled inside TaskDB.get_history or here
     # TaskDB.get_history raises ImportError if pandas is missing, so we can wrap it.
@@ -379,7 +396,7 @@ def stats_cmd(
         raise typer.Exit(1)
 
     try:
-        df = spot.db.get_history(limit=10000)
+        df = service.get_history(limit=10000)
     except ImportError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -447,8 +464,7 @@ def clear_cmd(
             console.print("[yellow]Aborted.[/yellow]")
             raise typer.Exit(0)
 
-    spot = get_spot(db)
-    service = MaintenanceService(spot.db, spot.storage)
+    service = get_service(db)
     
     # Use the new clear method in MaintenanceService
     # This delegates to prune with a future date, avoiding direct sqlite3 usage here
@@ -477,9 +493,7 @@ def clean_cmd(
     """
     🧹 Clean orphaned blob files (garbage collection).
     """
-    spot = get_spot(db, blob_dir)
-    service = MaintenanceService(spot.db, spot.storage)
-
+    service = get_service(db, blob_dir)
     orphans = service.scan_garbage()
     
     if not orphans:
@@ -561,9 +575,7 @@ def prune_cmd(
         console.print("[red]Error:[/red] --days must be at least 1")
         raise typer.Exit(1)
 
-    spot = get_spot(db)
-    service = MaintenanceService(spot.db, spot.storage)
-
+    service = get_service(db)
     tasks_to_delete = service.get_prunable_tasks(days, func)
 
     if not tasks_to_delete:

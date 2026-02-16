@@ -173,46 +173,6 @@ class Spot:
             # GC時の安全なシャットダウン
             self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
 
-    @classmethod
-    def from_path(cls, db_path: str | Path, blob_dir: Optional[str | Path] = None, **kwargs) -> "Spot":
-        """
-        Factory method to create a Spot instance with standard configuration (SQLite + LocalStorage + Msgpack).
-        
-        Args:
-            db_path: Path to the SQLite database file.
-            blob_dir: Optional path to the blob directory. If not provided, it will be inferred 
-                      based on the db_path (sibling 'blobs' directory).
-            **kwargs: Additional arguments passed to Spot constructor.
-        """
-        # 遅延インポートで循環参照や不要なインポートを回避
-        from beautyspot.db import SQLiteTaskDB
-        from beautyspot.storage import create_storage
-        
-        path = Path(db_path)
-        
-        # Blobディレクトリの推論
-        if blob_dir:
-            b_path = Path(blob_dir)
-        else:
-            # 推論: .beautyspot/project.db -> .beautyspot/project/blobs/
-            # または単純に兄弟ディレクトリ: .beautyspot/blobs/
-            parent = path.parent
-            stem = path.stem
-            
-            candidate = parent / stem / "blobs"
-            if candidate.exists():
-                b_path = candidate
-            else:
-                b_path = parent / "blobs"
-        
-        return cls(
-            name="cli",
-            db=SQLiteTaskDB(path),
-            storage=create_storage(str(b_path)),
-            serializer=MsgpackSerializer(),
-            **kwargs
-        )
-
     def _setup_workspace(self):
         """Ensure the workspace directory and .gitignore exist."""
         if not self.workspace_dir.exists():
