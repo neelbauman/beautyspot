@@ -84,29 +84,31 @@ with spot.cached_run(task_a, task_b, save_blob=True) as (run_a, run_b):
 
 ---
 
-## 3. Imperative Execution (Deprecated)
+## コンテキストマネージャによる同期 (Flush)
 
-!!! warning "Deprecated: `spot.run`"
-v1.x および v2.0初期にあった `spot.run(func, *args)` は、型安全性の問題により **非推奨 (Deprecated)** となりました。
-将来のバージョンで削除される予定です。今後は `cached_run` を使用してください。
+`wait=False` を使用している場合、アプリケーションが急に終了すると、バックグラウンドで走っている保存処理が中断されるリスクがあります。`beautyspot` の `with` ブロックは、**「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」** として機能します。
 
-### Migration Guide
+### 推奨されるパターン：バッチ処理の区切り
 
-**Before (`spot.run`):**
-引数の型チェックが効かず、オプション指定のために `_` プレフィックス付きの特殊なキーワード引数が必要でした。
+`Spot` インスタンスはグローバルに定義し、同期が必要な区切りで `with` を使用します。
 
 ```python
-# 非推奨
-result = spot.run(my_func, arg1, _version="v1")
+spot = Spot("my_app", default_wait=False)
+
+def run_experiment():
+    with spot:
+        # このブロック内で行われる保存はすべてバックグラウンドで行われる
+        for i in range(100):
+            process_data(i)
+            
+    # with ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機する
+    # ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれていることが保証される
+    
+    # Spot インスタンスは再利用可能なため、次の処理でも使用可能
+    process_summary()
 
 ```
 
-**After (`cached_run`):**
-標準的な関数呼び出しが可能になり、コードの意図も明確になります。
+> **Note:** `with spot:` を抜けても Executor はシャットダウンされません。インスタンスは引き続き再利用可能です。完全に終了させる場合は `spot.shutdown()` を呼び出してください。
 
-```python
-# 推奨
-with spot.cached_run(my_func, version="v1") as task:
-    result = task(arg1)
 
-```

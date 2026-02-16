@@ -68,11 +68,14 @@ nav:
       - Custom Backends (DI): guides/custom_backend.md # 復活
       - Architecture: reference/architecture.md
       - Philosophy: reference/philosophy.md
-  - API Reference:
-      - Spot (Core): reference/core.md
+  - Reference:
+      - Spot: reference/core.md
+      - CacheKey: reference/cachekey.md
+      - CacheDB: reference/db.md
       - Storage: reference/storage.md
       - Types: reference/types.md
-      - CacheKey: reference/cachekey.md
+      - MaintenanceService: reference/maintenance.md
+
   - ADR (Decision Records):
       - 0001 Stable Hashing: adr/0001-stable-argument-hashing.md
       - 0002 Rate Limiter: adr/0002-robust-rate-limiter.md

@@ -59,3 +59,16 @@ beautyspot prune --days 30 --db-path .beautyspot/my_spot.db
 `prune` はデータベースのレコードも削除するため、一度削除すると復元できません。
 本番環境のデータに対して実行する場合は十分注意してください。
 
+## キャッシュの削除とクリーンアップ
+
+v2.0 より、`Spot.delete` メソッドは廃止されました。プログラムからキャッシュを削除する場合は、`MaintenanceService` を使用してください。
+
+```python
+from beautyspot.maintenance import MaintenanceService
+
+# Spot の依存関係を渡して初期化
+service = MaintenanceService(spot.db, spot.storage, spot.serializer)
+service.delete_task(cache_key="...")
+
+```
+

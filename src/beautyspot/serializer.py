@@ -51,7 +51,7 @@ class MsgpackSerializer:
         representation into bytes.
 
         Args:
-            type_ (Type): The Python class to register (e.g., `pd.DataFrame`).
+            type_class (Type): The Python class to register (e.g., `pd.DataFrame`).
             code (int): A unique integer ID for the MessagePack ExtType tag.
                         Must be between 0 and 127 (inclusive).
             encoder (Callable): Function converting `type_` -> serializable object.

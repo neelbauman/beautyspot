@@ -1,215 +1,108 @@
 ![beautyspot_logo](docs/statics/img/beautyspot_logo_with_typo_1.jpeg)
 
-# beautyspot v2
+# beautyspot
 
 * [公式ドキュメント](https://neelbauman.github.io/beautyspot/)
 * [PyPI](https://pypi.org/project/beautyspot/)
 * [ライセンス](https://opensource.org/licenses/MIT)
 
-**"You focus on the logic. We handle the rest."**
-
-`beautyspot` は、データ分析パイプラインやバッチ処理のための「黒子（Kuroko）」ライブラリです。
-たった1行のデコレータを追加するだけで、あなたの関数に「永続化キャッシュ」「レート制限」「リカバリ機能」「大規模データの退避」といったインフラ機能を与えます。
-
-**v2.0 Update:**
-クラス名を `Project` から **`Spot`** へ、デコレータを `@task` から **`@mark`** へ刷新しました。より直感的で、世界観に統一感のある API に生まれ変わりました。
-また、実行時のキャッシュ制御を行う **`cached_run`** が導入されました。
-
 ---
 
-## ⚡ Installation
+`beautyspot` は、Python 関数の実行結果を透過的にキャッシュし、複雑なデータパイプラインや実験の再実行を高速化するための OSS ライブラリです。v2.0 では、インフラのオーバーヘッドを最小化する非同期保存機能と、柔軟なコンポーネント構成を可能にする DI（依存性注入）アーキテクチャが導入されました。
+
+## 📦 Installation
 
 ```bash
+uv add beautyspot
+# or
 pip install beautyspot
 
 ```
 
-* **Standard:** `msgpack` が同梱され、高速かつ安全に動作します。ローカルでの基本的なキャッシュ機能のみ。
-* **Options:**
-* `pip install "beautyspot[all]"`: 全部入り
-* `pip install "beautyspot[s3]"`: S3互換ストレージを利用する場合
-* `pip install "beautyspot[dashboard]"`: ダッシュボードを利用する場合
+## ✨ Key Features
 
+* **Non-blocking Caching**: キャッシュの保存をバックグラウンドで実行し、メイン処理のレイテンシを排除します。
+* **Dependency Injection**: DB、ストレージ、シリアライザを自由に入れ替え可能な柔軟な設計。
+* **Smart Lifecycle Management**: `with` ブロックを使用して、バックグラウンドタスクの完了を確実に同期できます。
+* **Type-safe Serialization**: `msgpack` をベースとした、カスタムクラス対応の高速なシリアライズ。
+* **Rate Limiting**: API コールなどの実行頻度をトークンバケットアルゴリズムで制御。
 
+## 🚀 Quick Start (v2.0)
 
----
-
-## 🚀 Quick Start
-
-関数に `@spot.mark` を付けるだけで、その場所（Spot）は管理下に置かれ、無駄なリクエストや計算が繰り返されることを華麗に回避します。
+v2.0 からは `Spot` インスタンスにコンポーネントを注入して使用します。
 
 ```python
-import time
 import beautyspot as bs
 
-# 1. Spot (現場/コンテキスト) を定義
-# デフォルトで "./my_experiment.db" (SQLite) が作成されます
-spot = bs.Spot("my_experiment")
+# カスタム
+# from beautyspot.db import SQLiteTaskDB
+# from beautyspot.storage import LocalStorage
+# from beautyspot.serializer import MsgpackSerializer
 
-# 2. Mark (印) を付ける
-@spot.mark
-def heavy_process(text):
-    # 実行に時間がかかる処理や、課金されるAPIコール
-    time.sleep(2)
-    return f"Processed: {text}"
+# 1. コンポーネントの準備
+# db = SQLiteTaskDB(".beautyspot/tasks.db")
+# storage = LocalStorage(".beautyspot/blobs")
+# serializer = MsgpackSerializer()
 
-# バッチ処理
-inputs = ["A", "B", "C", "A"]
-
-for i in inputs:
-    # 1. 初回の "A", "B", "C" は実行される
-    # 2. 最後の "A" は、DBからキャッシュが即座に返る（実行時間0秒）
-    print(heavy_process(i))
-
-```
-
----
-
-## 🛠️ Usage Patterns
-
-`beautyspot` は、利用シーンに合わせて2つのアプローチを提供します。
-
-### 1. Definition Time (`@spot.mark`)
-
-アプリケーションのコアロジックや、常にキャッシュしたい関数に使用します。
-
-```python
-@spot.mark
-def rigid_task(data):
-    # ...
-    return result
-
-```
-
-### 2. Execution Time (`with spot.cached_run`)
-
-既存のライブラリ関数や、特定のブロック内だけで設定を変えてキャッシュしたい場合に使用します。
-v2.0 から導入された推奨パターンです。
-
-```python
-from external_lib import simulation
-
-# このブロック内だけ、simulation関数はキャッシュ機能付きになります
-with spot.cached_run(simulation, version="v2") as sim:
-    result = sim(data)
-
-# 複数の関数もサポート
-with spot.cached_run(func_a, func_b) as (task_a, task_b):
-    task_a()
-    task_b()
-
-```
-
----
-
-## 💡 Key Features
-
-### 1. Spot & Mark Architecture (New in v2.0)
-
-v2.0 では、概念を再定義しました。
-
-* **Spot (`bs.Spot`):** データの保存先、DB接続、レート制限の設定などを管理する「実行コンテキスト」。
-* **Mark (`@spot.mark`):** 「この関数は Spot の管理下に置く」という宣言。
-
-### 2. Declarative Caching Strategies (New in v2.0)
-
-**"Cache what matters."**
-
-関数の引数に応じて、どのようにキャッシュキーを生成するかを宣言的に定義できます。
-「ログ設定は無視する」「ファイルの中身を見て判定する」といった高度な制御が可能です。
-
-```python
-from beautyspot.cachekey import KeyGen
-
-# verboseフラグは無視し、config_pathは中身を読んでハッシュ化
-@spot.mark(input_key_fn=KeyGen.map(
-    verbose=KeyGen.IGNORE,
-    config_path=KeyGen.FILE_CONTENT
-))
-def run_simulation(config_path, verbose=True):
-    ...
-
-```
-
-### 3. Hybrid Storage Strategy
-
-関数の戻り値が巨大になる場合（画像、音声、大規模なHTMLなど）、`save_blob=True` を指定してください。
-`beautyspot` が自動的にデータを外部ストレージ（Local/S3/GCS）へ逃がし、DBには軽量な参照のみを残します。
-
-```python
-# Large Data -> Blobに退避
-@spot.mark(save_blob=True)
-def download_image(url):
-    return requests.get(url).content
-
-```
-
-### 4. Dependency Injection (Flexible Backend)
-
-**"Start simple, scale later."**
-プロトタイプ段階では SQLite とローカルファイルで。本番運用では Redis と S3 で。
-コード（ロジック）を一切書き換えることなく、`Spot` への注入（Injection）を変えるだけでインフラを移行できます。
-
-```python
-from beautyspot.db import SQLiteTaskDB
-from beautyspot.storage import S3Storage
-
-# 本番構成: メタデータはSQLite、実データはS3へ
+# 2. Spot の初期化 (default_wait=False で高速化)
 spot = bs.Spot(
-    "production_app",
-    db=SQLiteTaskDB("./meta.db"),
-    storage=S3Storage("s3://my-bucket/cache")
+    name="my_app",
+#    db=db,
+#    storage=storage,
+#    serializer=serializer,
+    default_wait=False  # 保存を待たずに次へ進む
 )
 
+# 3. タスクの登録
+@spot.mark(version="v1")
+def heavy_computation(x: int):
+    # 重い処理...
+    return x * 10
+
+# 4. 実行
+with spot:
+    result = heavy_computation(5)
+    # ブロックを抜ける際、未完了の保存タスクが完了するのを待機します
+
 ```
 
-### 5. Declarative Rate Limiting
+## ⚡ Performance & Lifecycle
 
-APIの制限（例：1分間に60リクエスト）を守るために、複雑なスリープ処理を書く必要はありません。
-**GCRA (Generic Cell Rate Algorithm)** ベースの高性能なリミッターが、バーストを防ぎながらスムーズに実行を制御します。
+### Non-blocking Persistence
+
+`wait=False` オプションを使用すると、計算が終了した瞬間に結果が返されます。シリアライズやクラウドストレージへのアップロードは裏側で並列実行されるため、関数の応答速度が劇的に向上します。
+
+### Context-based Flush
+
+`with spot:` ブロックは同期ポイントとして機能します。ブロックを抜ける際に、そのインスタンスが抱えているすべてのバックグラウンドタスクが完了するのを待機するため、データロストを防げます。また、一度抜けても `Spot` インスタンスは再利用可能です。
+
+## 🛠 Advanced Usage
+
+### Maintenance Service
+
+キャッシュの削除やクリーンアップは、実行担当の `Spot` から切り離され、`MaintenanceService` に集約されました。
 
 ```python
-spot = bs.Spot("api_client", tpm=60)  # 60 Tokens Per Minute
+from beautyspot.maintenance import MaintenanceService
 
-@spot.mark
-@spot.limiter(cost=1)  # 自動的にレート制限がかかる
-def call_api(text):
-    return api.generate(text)
+admin = MaintenanceService(spot.db, spot.storage, spot.serializer)
+admin.delete_task(cache_key="...")
 
 ```
-
----
 
 ## ⚠️ Migration Guide (v1.x -> v2.0)
 
-v2.0 では API の破壊的変更が行われました。以下の通りにコードを修正してください。
+v2.0 は破壊的変更を含むメジャーアップデートです。
 
-| Feature | v1.x (Old) | v2.0 (New) |
-| --- | --- | --- |
-| **Class** | `project = bs.Project("name")` | `spot = bs.Spot("name")` |
-| **Decorator** | `@project.task` | `@spot.mark` |
-| **Imperative** | `project.run(func, ...)` | `with spot.cached_run(func) as task: task(...)` |
+* **`Project` -> `Spot**`: クラス名が変更されました。
+* **`@task` -> `@mark**`: デコレータ名が変更されました。
+* **`run()` メソッドの廃止**: 今後は `@mark` または `cached_run()` を使用してください。
 
-※ `spot.run` は v2.0 で非推奨となりました。今後は `cached_run` を使用してください。
+## 📖 Documentation
 
----
+詳細なガイドや API リファレンスについては、[Documentation (MkDocs)](https://www.google.com/search?q=mkdocs.yml) を参照してください。
 
-## 📊 Dashboard
+## 📄 License
 
-キャッシュされたデータや実行履歴を可視化する簡易ダッシュボードが付属しています。
-
-```bash
-# この依存関係が必要
-uv add beautyspot[dashboard]
-
-# DBファイルを指定して起動
-beautyspot ui ./.beautyspot/my_experiment.db
-
-```
-
----
-
-## 🤝 License
-
-MIT License
+This project is licensed under the MIT License.
 

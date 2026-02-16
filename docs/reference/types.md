@@ -1,3 +1,3 @@
 # Types
 
-::: beautyspot.types
+::: beautyspot.content_types
