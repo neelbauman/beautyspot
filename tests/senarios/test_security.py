@@ -1,7 +1,6 @@
 # tests/senarios/test_security.py
 
 import pytest
-import os
 from beautyspot.storage import LocalStorage
 
 
@@ -34,10 +33,16 @@ def test_valid_save_load(storage):
     key = "valid_key_123"
     data = b"hello world"
 
-    path = storage.save(key, data)
-    assert os.path.exists(path)
+    # v2.5.0 change: save() returns filename (relative path), not absolute path
+    filename = storage.save(key, data)
+    
+    # 検証: base_dir と結合してファイルの存在を確認
+    # storage.base_dir は pathlib.Path オブジェクトです
+    full_path = storage.base_dir / filename
+    assert full_path.exists()
 
-    loaded = storage.load(path)
+    # load() はファイル名（相対パス）を受け取って正しく解決できるはず
+    loaded = storage.load(filename)
     assert loaded == data
 
 

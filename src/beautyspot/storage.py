@@ -63,7 +63,8 @@ class BlobStorageBase(ABC):
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str | Path):
-        self.base_dir = Path(base_dir)
+        # Resolve to absolute path explicitly on init
+        self.base_dir = Path(base_dir).resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_key(self, key: str):
@@ -77,43 +78,55 @@ class LocalStorage(BlobStorageBase):
         self._validate_key(key)
         filename = f"{key}.bin"
         filepath = self.base_dir / filename
+        
+        # Atomic write
         temp_path = self.base_dir / f"{filename}.tmp"
-
         with open(temp_path, "wb") as f:
             f.write(data)
 
         temp_path.replace(filepath)
-        return str(filepath.absolute())
+        
+        # [CHANGED] Return filename (relative path) instead of absolute path
+        # This enables portability of the DB/Blob set across different environments.
+        return filename
 
     def load(self, location: str) -> bytes:
-        if not os.path.exists(location):
-            raise FileNotFoundError(f"Local blob lost: {location}")
+        # [CHANGED] Resolve location relative to base_dir.
+        # Note: If 'location' is an absolute path (legacy data), pathlib behavior 
+        # (base / abs) returns abs, so backward compatibility on the same machine is preserved.
+        full_path = (self.base_dir / location).resolve()
 
-        # Security check
-        abs_location = os.path.abspath(location)
-        abs_base = os.path.abspath(self.base_dir)
-
-        if not abs_location.startswith(abs_base):
+        # Security check: Ensure the path is strictly within the base_dir
+        if not str(full_path).startswith(str(self.base_dir)):
             raise ValueError(
-                f"Access denied: {location} is outside of storage directory."
+                f"Access denied: {location} resolves to {full_path}, which is outside {self.base_dir}"
             )
+            
+        if not full_path.exists():
+            raise FileNotFoundError(f"Local blob lost: {full_path}")
 
-        with open(location, "rb") as f:
+        with open(full_path, "rb") as f:
             return f.read()
 
     def delete(self, location: str) -> None:
+        full_path = (self.base_dir / location).resolve()
+        
+        # Security check
+        if not str(full_path).startswith(str(self.base_dir)):
+             return
+
         try:
-            os.remove(location)
+            os.remove(full_path)
         except FileNotFoundError:
             pass
 
     def list_keys(self) -> Iterator[str]:
-        """Yields absolute paths of all .bin files in the directory."""
+        """Yields filenames (relative paths) of all .bin files."""
         if not self.base_dir.exists():
             return
         for entry in self.base_dir.glob("*.bin"):
-            # delete() relies on full path to find the file
-            yield str(entry.absolute())
+            # [CHANGED] Yield filename only to match save() behavior
+            yield entry.name
 
 
 class S3Storage(BlobStorageBase):
@@ -166,4 +179,3 @@ def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
         return S3Storage(path, options)
 
     return LocalStorage(path)
-
