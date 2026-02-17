@@ -1,4 +1,5 @@
 # src/beautyspot/__init__.py 
+
 from importlib.metadata import version, PackageNotFoundError
 from typing import Optional, Any
 

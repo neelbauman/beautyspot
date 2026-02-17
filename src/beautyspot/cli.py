@@ -492,6 +492,10 @@ def clean_cmd(
 ):
     """
     🧹 Clean orphaned blob files (garbage collection).
+
+    [bold]Note:[/bold] This command is designed primarily for the standard directory structure.
+    If you are using custom storage paths or backends (e.g. S3), please ensure
+    you explicitly verify the target with [cyan]--dry-run[/cyan] before deletion.
     """
     service = get_service(db, blob_dir)
     orphans = service.scan_garbage()
@@ -544,6 +548,88 @@ def clean_cmd(
         progress.update(task, completed=len(orphans))
 
     console.print(f"[green]✓ Deleted {count} orphaned blob files.[/green]")
+
+
+# src/beautyspot/cli.py
+
+# ... (既存のimport) ...
+
+@app.command("gc")
+def gc_cmd(
+    all: bool = typer.Option(
+        False, "--all", help="Scan all projects (currently the only mode)"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"
+    ),
+    force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
+):
+    """
+    🗑️  Garbage Collect: Remove 'zombie' blob directories with no matching DB.
+    
+    Checks [bold].beautyspot/blobs/[/bold] for directories that do not have a corresponding
+    [bold].db[/bold] file in [bold].beautyspot/[/bold].
+    """
+    workspace = Path(".beautyspot")
+    if not workspace.exists():
+         console.print("[yellow]No .beautyspot directory found.[/yellow]")
+         raise typer.Exit(0)
+
+    # 1. ゾンビプロジェクトのスキャン
+    orphans = MaintenanceService.scan_orphan_projects(workspace)
+
+    if not orphans:
+        console.print(
+            Panel(
+                "[green]✓ No orphan storage directories found.[/green]",
+                title="🗑️ Garbage Collection",
+                border_style="green",
+            )
+        )
+        raise typer.Exit(0)
+
+    # 2. 結果の表示
+    table = Table(
+        title=f"Found {len(orphans)} orphan storage directories",
+        show_header=False,
+        box=None,
+    )
+    table.add_column("Path", style="red")
+    
+    for path in orphans:
+        table.add_row(f"- {path}")
+    
+    console.print(table)
+    console.print()
+
+    if dry_run:
+        console.print("[yellow]Dry run:[/yellow] No changes made.")
+        raise typer.Exit(0)
+
+    # 3. 確認と削除
+    if not force:
+        confirm = typer.confirm(f"Delete these {len(orphans)} directories?")
+        if not confirm:
+            console.print("[yellow]Aborted.[/yellow]")
+            raise typer.Exit(0)
+
+    deleted_count = 0
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Cleaning up...", total=len(orphans))
+        
+        for path in orphans:
+            try:
+                MaintenanceService.delete_project_storage(path)
+                deleted_count += 1
+            except Exception:
+                pass # エラーログはService側で出る
+            progress.advance(task)
+
+    console.print(f"[green]✓ Cleaned up {deleted_count} orphan projects.[/green]")
 
 
 @app.command("prune")

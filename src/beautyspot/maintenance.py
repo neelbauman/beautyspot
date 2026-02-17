@@ -1,6 +1,7 @@
 # src/beautyspot/maintenance.py
 
 import logging
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Any
@@ -143,20 +144,18 @@ class MaintenanceService:
         if refs is None:
             return []
 
-        # 1. 比較用に DB側の参照を「ファイル名」に正規化して集合(set)にする
+        # DB参照をファイル名のみのセットに変換 (S3/Local両対応)
         ref_filenames = set()
         for r in refs:
             if r:
-                # S3 URI や パス区切りを考慮して末尾(ファイル名)を取得
                 name = r.replace("\\", "/").split("/")[-1]
                 ref_filenames.add(name)
 
         orphans = []
         for location in self.storage.list_keys():
-            # 2. ストレージ上のファイルも同様にファイル名を取り出す
+            # location は "subdir/abc.bin" の可能性がある
             filename = location.replace("\\", "/").split("/")[-1]
             
-            # 3. ファイル名同士で比較
             if filename not in ref_filenames:
                 orphans.append(location)
         
@@ -166,17 +165,60 @@ class MaintenanceService:
         if orphans is None:
             orphans = self.scan_garbage()
         
-        if not orphans:
-            return 0, 0
-
         deleted_count = 0
         freed_bytes = 0 
-        for location in orphans:
+        
+        # Phase 1: ファイル削除
+        if orphans:
+            for location in orphans:
+                try:
+                    self.storage.delete(location)
+                    deleted_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to delete orphan {location}: {e}")
+        
+        # Phase 2: 空ディレクトリ掃除 (LocalStorageのみ)
+        if hasattr(self.storage, "prune_empty_dirs"):
             try:
-                self.storage.delete(location)
-                deleted_count += 1
+                dir_count = self.storage.prune_empty_dirs()  # type: ignore
+                if dir_count > 0:
+                    logger.info(f"Removed {dir_count} empty directories.")
             except Exception as e:
-                logger.warning(f"Failed to delete orphan {location}: {e}")
+                logger.warning(f"Failed to prune empty directories: {e}")
         
         return deleted_count, freed_bytes
+
+    # --- Zombie Project Cleanup (gc command) ---
+
+    @staticmethod
+    def scan_orphan_projects(workspace_dir: Path) -> list[Path]:
+        """
+        Scan for blob directories in .beautyspot/blobs/ that have no corresponding .db file.
+        Returns a list of Path objects for the orphan directories.
+        """
+        blobs_root = workspace_dir / "blobs"
+        if not blobs_root.exists():
+            return []
+        
+        orphans = []
+        for entry in blobs_root.iterdir():
+            if entry.is_dir():
+                # blobs/{name} に対して {name}.db が存在するか確認
+                db_path = workspace_dir / f"{entry.name}.db"
+                if not db_path.exists():
+                    orphans.append(entry)
+        
+        return orphans
+
+    @staticmethod
+    def delete_project_storage(path: Path) -> None:
+        """
+        Recursively delete a project storage directory.
+        """
+        if path.exists() and path.is_dir():
+            try:
+                shutil.rmtree(path)
+            except Exception as e:
+                logger.error(f"Failed to delete directory {path}: {e}")
+                raise e
 

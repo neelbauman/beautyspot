@@ -109,9 +109,12 @@ class LocalStorage(BlobStorageBase):
             return f.read()
 
     def delete(self, location: str) -> None:
+        """
+        Delete file and recursively remove empty parent directories
+        up to and including the base_dir.
+        """
         full_path = (self.base_dir / location).resolve()
         
-        # Security check
         if not str(full_path).startswith(str(self.base_dir)):
              return
 
@@ -121,12 +124,57 @@ class LocalStorage(BlobStorageBase):
             pass
 
     def list_keys(self) -> Iterator[str]:
-        """Yields filenames (relative paths) of all .bin files."""
+        """
+        Yields relative paths of all .bin files, including subdirectories.
+        Example: 'hash.bin' or 'subdir/hash.bin'
+        """
         if not self.base_dir.exists():
             return
-        for entry in self.base_dir.glob("*.bin"):
-            # [CHANGED] Yield filename only to match save() behavior
-            yield entry.name
+            
+        # [変更] rglob で再帰的に探索
+        for entry in self.base_dir.rglob("*.bin"):
+            if entry.is_file():
+                # [変更] base_dir からの相対パスを返す
+                yield str(entry.relative_to(self.base_dir))
+
+
+    def prune_empty_dirs(self) -> int:
+        """
+        Recursively remove empty directories under base_dir (including base_dir itself).
+        Also removes directories containing only system generated files (.DS_Store, etc).
+        Returns the count of removed directories.
+        """
+        if not self.base_dir.exists():
+            return 0
+
+        IGNORED_FILES = {".DS_Store", "Thumbs.db", "desktop.ini"}
+        removed_count = 0
+        
+        # os.walk(topdown=False) で深い階層から順に処理
+        for root, dirs, files in os.walk(self.base_dir, topdown=False):
+            path = Path(root)
+            
+            existing_files = set(files)
+            
+            # 無視リスト以外のファイルがある場合 -> 削除不可
+            if existing_files - IGNORED_FILES:
+                continue 
+            
+            # 無視リストにあるファイルしか残っていない場合、それらを消して空にする
+            for f in existing_files:
+                try:
+                    (path / f).unlink()
+                except OSError:
+                    pass
+            
+            # ディレクトリ削除を試みる
+            try:
+                path.rmdir()
+                removed_count += 1
+            except OSError:
+                pass
+
+        return removed_count
 
 
 class S3Storage(BlobStorageBase):
