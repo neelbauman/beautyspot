@@ -358,13 +358,22 @@ class Spot:
         res = func(*args, **kwargs)
 
         # 3. Save
-        save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
+        save_kwargs = {
+            "cache_key": ck,
+            "func_name": func.__name__,
+            "input_id": str(iid),
+            "version": s_ver,
+            "result": res,
+            "content_type": s_ct,
+            "save_blob": s_blob,
+            "serializer": serializer,
+        }
         
         # 解決済みの s_wait を使用
         if s_wait:
-            self._save_result_sync(*save_args)
+            self._save_result_sync(**save_kwargs)
         else:
-            future = self.executor.submit(self._save_result_safe, *save_args)
+            future = self.executor.submit(self._save_result_safe, **save_kwargs)
             self._track_future(future)
 
         return res
@@ -400,15 +409,27 @@ class Spot:
         res = await func(*args, **kwargs)
 
         # 3. Save (Offload IO)
-        save_args = (ck, func.__name__, str(iid), s_ver, res, s_ct, s_blob, serializer)
+        save_kwargs = {
+            "cache_key": ck,
+            "func_name": func.__name__,
+            "input_id": str(iid),
+            "version": s_ver,
+            "result": res,
+            "content_type": s_ct,
+            "save_blob": s_blob,
+            "serializer": serializer,
+        }
 
         if s_wait:
             # 完了を待つ (awaitする)
-            await loop.run_in_executor(self.executor, self._save_result_sync, *save_args)
+            await loop.run_in_executor(
+                self.executor,
+                functools.partial(self._save_result_sync, **save_kwargs),
+            )
         else:
             # markの実装に合わせて executor.submit を使い、確実に追跡する
             # (run_in_executor だと asyncio.Future が返るが、ここでは concurrent.Future で統一管理するため)
-            future = self.executor.submit(self._save_result_safe, *save_args)
+            future = self.executor.submit(self._save_result_safe, **save_kwargs)
             self._track_future(future)
 
         return res
@@ -449,15 +470,15 @@ class Spot:
         return CACHE_MISS
 
     # --- 安全なバックグラウンド実行用ラッパー ---
-    def _save_result_safe(self, *args, **kwargs):
+    def _save_result_safe(self, /, **kwargs):
         """
         Wrapper for _save_result_sync to handle exceptions in background threads.
         """
         try:
-            self._save_result_sync(*args, **kwargs)
+            self._save_result_sync(**kwargs)
         except Exception as e:
             # バックグラウンドでの失敗はメイン処理を止めないようログ出力に留める
-            func_name = args[1] if len(args) > 1 else "unknown"
+            func_name = kwargs.get("func_name", "unknown")
             logger.error(
                 f"Background save failed for task '{func_name}': {e}", 
                 exc_info=True

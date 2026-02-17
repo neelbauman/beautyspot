@@ -143,11 +143,23 @@ class MaintenanceService:
         if refs is None:
             return []
 
+        # 1. 比較用に DB側の参照を「ファイル名」に正規化して集合(set)にする
+        ref_filenames = set()
+        for r in refs:
+            if r:
+                # S3 URI や パス区切りを考慮して末尾(ファイル名)を取得
+                name = r.replace("\\", "/").split("/")[-1]
+                ref_filenames.add(name)
+
         orphans = []
         for location in self.storage.list_keys():
+            # 2. ストレージ上のファイルも同様にファイル名を取り出す
             filename = location.replace("\\", "/").split("/")[-1]
-            if filename not in refs:
+            
+            # 3. ファイル名同士で比較
+            if filename not in ref_filenames:
                 orphans.append(location)
+        
         return orphans
 
     def clean_garbage(self, orphans: Optional[list[str]] = None) -> tuple[int, int]:

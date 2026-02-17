@@ -49,7 +49,7 @@ def Spot(
     resolved_ser = serializer or MsgpackSerializer()
 
     # 3. Storageの解決
-    resolved_stg = storage or LocalStorage(".beautyspot/blobs/{name}")
+    resolved_stg = storage or LocalStorage(f".beautyspot/blobs/{name}/")
 
     # --- オプションのパッキングと型チェック ---
     # types.py の SpotOptions を使って、引数の整合性を（静的解析上で）担保する
