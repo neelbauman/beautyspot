@@ -193,7 +193,7 @@ class Spot:
 
     @staticmethod
     def _shutdown_executor(executor: Executor):
-        executor.shutdown(wait=True)
+        executor.shutdown(wait=False)
 
     def shutdown(self, wait: bool = True):
         if self._own_executor and self._finalizer.alive:
