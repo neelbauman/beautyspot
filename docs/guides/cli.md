@@ -15,60 +15,74 @@ beautyspot ui <path_to_db>
 
 * **`<path_to_db>`**: Spotを作成した際に指定したデータベースファイルのパス（デフォルトでは `.beautyspot/project_name.db` など）。
 
-### Features
-
-* **Task History:** 実行された関数の履歴を時系列で表示します。
-* **Result Viewer:** 戻り値をその `content_type` に応じて（JSON, 画像, Markdown, Mermaid図など）適切にレンダリングします。
-* **Filtering:** 関数名やResult Typeで履歴を絞り込むことができます。
-
 ---
 
-## Maintenance Tools
+## メンテナンスとクリーンアップ
 
-長期間 `beautyspot` を使用していると、不要になったBlobファイル（画像や巨大なデータ）がディスクに残ることがあります。
-以下のコマンドを使用して、ディスク容量を解放できます。
+タスクを実行し続けると、キャッシュデータベースやストレージ容量が増加していきます。`beautyspot` はこれらを管理するために、目的別の3つのコマンドを提供しています。
 
-### `clean` (Garbage Collection)
+### コマンドの概要
 
-データベース上に記録が存在しない「孤立したBlobファイル」を削除します。
-開発中にDBファイルを削除したが、`blobs/` ディレクトリ内のファイルだけ残ってしまった場合などに有効です。
+| コマンド | 対象 | 目的 | 使用タイミング |
+| --- | --- | --- | --- |
+| **`prune`** | **タスク** | 時間経過による古いタスクレコードの削除 | 定期メンテナンス（例:「30日以上前のタスクを削除」） |
+| **`clean`** | **ファイル** | DBにレコードがない「孤立したBlobファイル」の削除 | DBの手動操作後や、ストレージ整合性の修正時 |
+| **`gc`** | **プロジェクト** | DBが存在しない「ゾンビプロジェクト」フォルダの削除 | `.db` ファイルを手動で削除した後 |
 
-```bash
-# Dry-run (削除対象を表示するだけ)
-beautyspot clean --storage-path .beautyspot/blobs --db-path .beautyspot/my_spot.db --dry-run
+### 1. 古いタスクの削除 (`prune`)
 
-# Execute (実際に削除)
-beautyspot clean --storage-path .beautyspot/blobs --db-path .beautyspot/my_spot.db
+`prune` は、古いタスク履歴を削除してデータベースサイズを抑制するために使用します。
 
-```
-
-### `prune` (Delete Old Tasks)
-
-指定した期間より古いタスクデータを、データベースとBlobストレージの両方から削除します。
+**例:** 最終更新から30日以上経過したタスクを削除する
 
 ```bash
-# 30日以上前のデータを削除 (Dry-run)
-beautyspot prune --days 30 --db-path .beautyspot/my_spot.db --dry-run
-
-# 実行 (確認プロンプトが表示されます)
-beautyspot prune --days 30 --db-path .beautyspot/my_spot.db
+$ beautyspot prune .beautyspot/project.db --days 30
 
 ```
 
-!!! warning "注意"
-`prune` はデータベースのレコードも削除するため、一度削除すると復元できません。
-本番環境のデータに対して実行する場合は十分注意してください。
+* **動作:**
+1. SQLite内のレコードから、指定日数以上前のものを検索します。
+2. それらのレコードを削除します。
+3. **自動的に `clean` を実行** し、関連するBlobファイルも削除します（`--no-clean-blobs` を指定しない限り）。
 
-## キャッシュの削除とクリーンアップ
 
-v2.0 より、`Spot.delete` メソッドは廃止されました。プログラムからキャッシュを削除する場合は、`MaintenanceService` を使用してください。
+### 2. 孤立ファイルのクリーンアップ (`clean`)
 
-```python
-from beautyspot.maintenance import MaintenanceService
+`clean` は、ストレージの整合性を保つために使用します。プロセスのクラッシュやデータベースの手動変更により、どのタスクからも参照されていない「孤立した」ファイルがストレージに残ることがあります。
 
-# Spot の依存関係を渡して初期化
-service = MaintenanceService(spot.db, spot.storage, spot.serializer)
-service.delete_task(cache_key="...")
+**例:** 孤立ファイルをスキャンして削除する
+
+```bash
+$ beautyspot clean .beautyspot/project.db --dry-run
+# 削除対象のファイル一覧を確認...
+$ beautyspot clean .beautyspot/project.db
 
 ```
+
+* **動作:**
+1. ストレージディレクトリ（例: `.beautyspot/project/blobs/`）内の全ファイルをスキャンします。
+2. 各ファイルがデータベース内のタスクから参照されているか確認します。
+3. **参照されていない** ファイルを削除します。
+
+
+### 3. プロジェクトのガベージコレクション (`gc`)
+
+`gc` は、プロジェクトのデータベース全体を削除したが、ストレージディレクトリを消し忘れた場合に使用します。
+
+**シナリオ:**
+`.beautyspot/experiment.db` を手動で削除したが、`.beautyspot/blobs/experiment/` フォルダがまだ10GBの容量を占有している場合。
+
+**例:**
+
+```bash
+$ beautyspot gc --dry-run
+# Found orphan storage: .beautyspot/blobs/experiment
+$ beautyspot gc
+
+```
+
+* **動作:**
+1. `.beautyspot/blobs/` ディレクトリをスキャンします。
+2. 各フォルダに対応する `.db` ファイルが存在するか確認します。
+3. 対応するデータベースがないフォルダを削除します。
 
