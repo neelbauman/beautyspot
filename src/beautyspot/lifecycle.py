@@ -70,7 +70,7 @@ class LifecyclePolicy:
     def __init__(self, rules: List[Rule]):
         self.rules = rules
 
-    def resolve(self, func_name: str) -> Optional[timedelta]:
+    def resolve(self, func_name: str) -> Union[str, timedelta, None]:
         """
         Find the first matching rule for the given function name.
         Returns the retention timedelta, or None if indefinite (or no match).

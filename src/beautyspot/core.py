@@ -330,7 +330,7 @@ class Spot:
 
         # 2. ポリシー指定 (優先度: 低)
         if retention is None:
-            retention = self.lifecycle_policy.resolve(func_name)
+            retention = parse_retention(self.lifecycle_policy.resolve(func_name))
 
         if retention is None:
             return None  # 無期限
