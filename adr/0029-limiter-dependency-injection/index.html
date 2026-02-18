@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/cli/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0029-limiter-dependency-injection/">
       
       
-        <link rel="prev" href="../rate_limiting/">
-      
-      
-        <link rel="next" href="../../cookbooks/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>CLI & Dashboard - beautyspot</title>
+        <title>29. Limiter Dependency Injection - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cli-dashboard-guide" class="md-skip">
+        <a href="#29-limiter-dependency-injection" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CLI & Dashboard
+              29. Limiter Dependency Injection
             
           </span>
         </div>
@@ -287,7 +283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../usage_patterns/" class="md-nav__link">
+      <a href="../../guides/usage_patterns/" class="md-nav__link">
         
   
   
@@ -311,20 +307,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -345,7 +341,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -363,7 +359,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../caching/" class="md-nav__link">
+      <a href="../../guides/caching/" class="md-nav__link">
         
   
   
@@ -391,7 +387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../serialization/" class="md-nav__link">
+      <a href="../../guides/serialization/" class="md-nav__link">
         
   
   
@@ -419,7 +415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom_backend/" class="md-nav__link">
+      <a href="../../guides/custom_backend/" class="md-nav__link">
         
   
   
@@ -447,7 +443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rate_limiting/" class="md-nav__link">
+      <a href="../../guides/rate_limiting/" class="md-nav__link">
         
   
   
@@ -472,37 +468,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CLI & Dashboard
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/cli/" class="md-nav__link">
         
   
   
@@ -518,115 +487,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dashboard (UI)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Dashboard (UI)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        メンテナンスとクリーンアップ
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        コマンドの役割分担
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. ガベージコレクション (gc)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 古いタスクの手動削除 (prune)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1366,91 +1226,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dashboard (UI)
+        Status
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Dashboard (UI)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        メンテナンスとクリーンアップ
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        コマンドの役割分担
+        Context
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. ガベージコレクション (gc)
+        Decision
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. 古いタスクの手動削除 (prune)
+        Consequences
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,87 +1289,32 @@
   
 
 
-<h1 id="cli-dashboard-guide">CLI &amp; Dashboard Guide</h1>
-<p><code>beautyspot</code> は、キャッシュされたデータの閲覧や、ディスク容量を管理するためのコマンドラインツールを提供しています。</p>
-<h2 id="dashboard-ui">Dashboard (UI)</h2>
-<p>キャッシュされたタスクの実行履歴、結果、依存関係などをブラウザで視覚的に確認できます。</p>
-<h3 id="basic-usage">Basic Usage</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>beautyspot<span class="w"> </span>ui<span class="w"> </span>&lt;path_to_db&gt;
-</code></pre></div>
-<ul>
-<li><strong><code>&lt;path_to_db&gt;</code></strong>: Spotを作成した際に指定したデータベースファイルのパス（デフォルトでは <code>.beautyspot/project_name.db</code> など）。</li>
-</ul>
-<hr />
-<h2 id="_1">メンテナンスとクリーンアップ</h2>
-<p>タスクを実行し続けると、キャッシュデータベースやストレージ容量が増加していきます。<code>beautyspot</code> はこれらを管理するために、目的別の3つのコマンドを提供しています。</p>
-<h3 id="_2">コマンドの役割分担</h3>
-<table>
-<thead>
-<tr>
-<th>コマンド</th>
-<th>アプローチ</th>
-<th>対象</th>
-<th>目的</th>
-<th>推奨頻度</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong><code>gc</code></strong></td>
-<td><strong>宣言的 (Declarative)</strong></td>
-<td>全体</td>
-<td><strong>ポリシー執行</strong>（期限切れデータの削除）とゴミ掃除</td>
-<td>定期実行 (Daily)</td>
-</tr>
-<tr>
-<td><strong><code>prune</code></strong></td>
-<td><strong>命令的 (Imperative)</strong></td>
-<td>タスク</td>
-<td><strong>手動介入</strong>（「30日以上前のデータ」を一括削除）</td>
-<td>必要に応じて</td>
-</tr>
-<tr>
-<td><strong><code>clean</code></strong></td>
-<td><strong>修復 (Repair)</strong></td>
-<td>ファイル</td>
-<td><strong>整合性回復</strong>（DBにない孤立ファイルの削除）</td>
-<td>トラブル時のみ</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1-gc">1. ガベージコレクション (<code>gc</code>)</h3>
-<p><code>gc</code> は、<strong>日常的なメンテナンス</strong>で使用するメインコマンドです。
-ワークスペース内の全てのデータベースをスキャンし、事前に定義されたルール（Lifecycle Policy）に従って不要なデータを削除します。</p>
-<p><strong>主な機能:</strong></p>
+<h1 id="29-limiter-dependency-injection">29. Limiter Dependency Injection</h1>
+<p>Date: 2026-02-18</p>
+<h2 id="status">Status</h2>
+<p>Accepted</p>
+<h2 id="context">Context</h2>
+<p>Previously, the <code>Spot</code> class in <code>core.py</code> was tightly coupled with the <code>TokenBucket</code> implementation. It accepted a <code>tpm</code> (tokens per minute) integer argument and instantiated the <code>TokenBucket</code> internally.</p>
+<p>This design had several limitations:
+1.  <strong>Testing</strong>: Unit tests were slow because they relied on real <code>time.sleep</code> calls within <code>TokenBucket</code>.
+2.  <strong>Extensibility</strong>: Users could not provide custom rate limiters (e.g., Redis-based distributed limiters) or different algorithms.
+3.  <strong>Separation of Concerns</strong>: <code>core.Spot</code> was managing the lifecycle and configuration of the limiter, which violated the Single Responsibility Principle.</p>
+<h2 id="decision">Decision</h2>
+<p>We decided to decouple the rate limiter from <code>core.Spot</code> using Dependency Injection (DI).</p>
 <ol>
-<li><strong>期限切れタスクの削除</strong>: <code>@mark(retention="7d")</code> などで設定された期限を過ぎたデータを、全てのデータベースから削除します（デフォルト有効）。</li>
-<li><strong>ゾンビプロジェクトの削除</strong>: <code>.db</code> ファイルが削除され、取り残されたストレージディレクトリを削除します。</li>
+<li><strong>Protocol Definition</strong>: Define a <code>LimiterProtocol</code> in <code>beautyspot.limiter</code> that mandates <code>consume(cost: int)</code> and <code>consume_async(cost: int)</code> methods.</li>
+<li><strong>Explicit Inheritance</strong>: The default <code>TokenBucket</code> implementation will explicitly inherit from <code>LimiterProtocol</code> to ensure type safety and clarity.</li>
+<li><strong>Injection</strong>: Modify <code>core.Spot.__init__</code> to accept a <code>limiter: LimiterProtocol</code> instance instead of <code>tpm</code>.</li>
+<li><strong>Factory Responsibility</strong>: The <code>Spot</code> factory function in <code>__init__.py</code> will handle the creation of the default <code>TokenBucket</code> if no custom limiter is provided.</li>
+<li><strong>Isolation</strong>: The limiter will not share the <code>Executor</code> or <code>io_workers</code> with <code>Spot</code>. If a limiter requires background threads (e.g., for network I/O), it must manage its own resources or receive them via its own DI.</li>
 </ol>
-<p><strong>使用例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 全てのプロジェクトをスキャンし、期限切れデータとゾンビプロジェクトを削除</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 期限切れタスクの削除は行わず、ゾンビプロジェクトの削除のみ行う</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--no-expired
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 実際に削除せず、何が消えるか確認する</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--dry-run
-</code></pre></div>
-<p><strong>推奨:</strong> <code>cron</code> 等で定期実行することで、宣言した保持期間（Retention）に従ってディスク容量が自動的に管理されます。</p>
-<h3 id="2-prune">2. 古いタスクの手動削除 (<code>prune</code>)</h3>
-<p><code>prune</code> は、ポリシーに関係なく、<strong>「古いデータを一括で消したい」</strong> 場合に使用します。ディスク容量が逼迫した場合の緊急対応などに適しています。</p>
-<p><strong>例:</strong> 最終更新から30日以上経過したタスクを無条件で削除する</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>prune<span class="w"> </span>.beautyspot/project.db<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span>
-</code></pre></div>
+<h2 id="consequences">Consequences</h2>
 <ul>
-<li><strong>動作:</strong> 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。</li>
+<li><strong>Positive</strong>: <strong>Testability</strong>. We can now inject a <code>MockLimiter</code> or <code>NoOpLimiter</code> during tests to eliminate sleep times.</li>
+<li><strong>Positive</strong>: <strong>Flexibility</strong>. Users can implement custom limiters (e.g., sliding window, external stores) without modifying the core logic.</li>
+<li><strong>Positive</strong>: <strong>Clean Core</strong>. <code>core.Spot</code> is simplified as it no longer handles rate limiter initialization.</li>
+<li><strong>Negative</strong>: The signature of the internal class <code>_Spot</code> changes, breaking any code that instantiated it directly (though <code>Spot</code> factory usage remains compatible).</li>
 </ul>
-<h3 id="3-clean">3. 孤立ファイルのクリーンアップ (<code>clean</code>)</h3>
-<p><code>clean</code> は、<strong>ストレージの整合性を修復</strong> するための低レイヤーコマンドです。
-通常、<code>gc</code> や <code>prune</code> が自動的に整合性を保つため、頻繁に使う必要はありません。プロセスのクラッシュなどで「DBレコードは消えたが、ファイルだけ残っている」状態が発生した場合に使用します。</p>
-<p><strong>例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>clean<span class="w"> </span>.beautyspot/project.db
-</code></pre></div>
 
 
 

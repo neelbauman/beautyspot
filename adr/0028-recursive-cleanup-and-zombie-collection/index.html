@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/cli/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0028-recursive-cleanup-and-zombie-collection/">
       
       
-        <link rel="prev" href="../rate_limiting/">
-      
-      
-        <link rel="next" href="../../cookbooks/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>CLI & Dashboard - beautyspot</title>
+        <title>28. Recursive Storage Cleanup and Zombie Project Collection - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cli-dashboard-guide" class="md-skip">
+        <a href="#28-recursive-storage-cleanup-and-zombie-project-collection" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CLI & Dashboard
+              28. Recursive Storage Cleanup and Zombie Project Collection
             
           </span>
         </div>
@@ -287,7 +283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../usage_patterns/" class="md-nav__link">
+      <a href="../../guides/usage_patterns/" class="md-nav__link">
         
   
   
@@ -311,20 +307,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -345,7 +341,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -363,7 +359,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../caching/" class="md-nav__link">
+      <a href="../../guides/caching/" class="md-nav__link">
         
   
   
@@ -391,7 +387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../serialization/" class="md-nav__link">
+      <a href="../../guides/serialization/" class="md-nav__link">
         
   
   
@@ -419,7 +415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom_backend/" class="md-nav__link">
+      <a href="../../guides/custom_backend/" class="md-nav__link">
         
   
   
@@ -447,7 +443,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rate_limiting/" class="md-nav__link">
+      <a href="../../guides/rate_limiting/" class="md-nav__link">
         
   
   
@@ -472,37 +468,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CLI & Dashboard
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/cli/" class="md-nav__link">
         
   
   
@@ -518,115 +487,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dashboard (UI)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Dashboard (UI)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        メンテナンスとクリーンアップ
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        コマンドの役割分担
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. ガベージコレクション (gc)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 古いタスクの手動削除 (prune)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1366,22 +1226,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dashboard (UI)
+        Context and Problem Statement
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Dashboard (UI)">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+  <a href="#1-two-phase-cleanup-strategy-clean-command" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        1. Two-Phase Cleanup Strategy (clean command)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-robust-directory-pruning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Robust Directory Pruning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-zombie-project-garbage-collection-gc-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Zombie Project Garbage Collection (gc command)
       
     </span>
   </a>
@@ -1394,22 +1287,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        メンテナンスとクリーンアップ
+        Consequences
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
+    <nav class="md-nav" aria-label="Consequences">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#positive" class="md-nav__link">
     <span class="md-ellipsis">
       
-        コマンドの役割分担
+        Positive
       
     </span>
   </a>
@@ -1417,32 +1310,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
+  <a href="#negative" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. ガベージコレクション (gc)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 古いタスクの手動削除 (prune)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
+        Negative
       
     </span>
   </a>
@@ -1474,87 +1345,50 @@
   
 
 
-<h1 id="cli-dashboard-guide">CLI &amp; Dashboard Guide</h1>
-<p><code>beautyspot</code> は、キャッシュされたデータの閲覧や、ディスク容量を管理するためのコマンドラインツールを提供しています。</p>
-<h2 id="dashboard-ui">Dashboard (UI)</h2>
-<p>キャッシュされたタスクの実行履歴、結果、依存関係などをブラウザで視覚的に確認できます。</p>
-<h3 id="basic-usage">Basic Usage</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>beautyspot<span class="w"> </span>ui<span class="w"> </span>&lt;path_to_db&gt;
-</code></pre></div>
+<h1 id="28-recursive-storage-cleanup-and-zombie-project-collection">28. Recursive Storage Cleanup and Zombie Project Collection</h1>
 <ul>
-<li><strong><code>&lt;path_to_db&gt;</code></strong>: Spotを作成した際に指定したデータベースファイルのパス（デフォルトでは <code>.beautyspot/project_name.db</code> など）。</li>
+<li>Status: Accepted</li>
+<li>Date: 2026-02-17</li>
+<li>Context: v2.3.0</li>
 </ul>
-<hr />
-<h2 id="_1">メンテナンスとクリーンアップ</h2>
-<p>タスクを実行し続けると、キャッシュデータベースやストレージ容量が増加していきます。<code>beautyspot</code> はこれらを管理するために、目的別の3つのコマンドを提供しています。</p>
-<h3 id="_2">コマンドの役割分担</h3>
-<table>
-<thead>
-<tr>
-<th>コマンド</th>
-<th>アプローチ</th>
-<th>対象</th>
-<th>目的</th>
-<th>推奨頻度</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong><code>gc</code></strong></td>
-<td><strong>宣言的 (Declarative)</strong></td>
-<td>全体</td>
-<td><strong>ポリシー執行</strong>（期限切れデータの削除）とゴミ掃除</td>
-<td>定期実行 (Daily)</td>
-</tr>
-<tr>
-<td><strong><code>prune</code></strong></td>
-<td><strong>命令的 (Imperative)</strong></td>
-<td>タスク</td>
-<td><strong>手動介入</strong>（「30日以上前のデータ」を一括削除）</td>
-<td>必要に応じて</td>
-</tr>
-<tr>
-<td><strong><code>clean</code></strong></td>
-<td><strong>修復 (Repair)</strong></td>
-<td>ファイル</td>
-<td><strong>整合性回復</strong>（DBにない孤立ファイルの削除）</td>
-<td>トラブル時のみ</td>
-</tr>
-</tbody>
-</table>
-<h3 id="1-gc">1. ガベージコレクション (<code>gc</code>)</h3>
-<p><code>gc</code> は、<strong>日常的なメンテナンス</strong>で使用するメインコマンドです。
-ワークスペース内の全てのデータベースをスキャンし、事前に定義されたルール（Lifecycle Policy）に従って不要なデータを削除します。</p>
-<p><strong>主な機能:</strong></p>
+<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
+<p>これまでの <code>beautyspot clean</code> コマンドの実装には、以下の課題があった。</p>
 <ol>
-<li><strong>期限切れタスクの削除</strong>: <code>@mark(retention="7d")</code> などで設定された期限を過ぎたデータを、全てのデータベースから削除します（デフォルト有効）。</li>
-<li><strong>ゾンビプロジェクトの削除</strong>: <code>.db</code> ファイルが削除され、取り残されたストレージディレクトリを削除します。</li>
+<li><strong>ディレクトリの残留:</strong> <code>clean</code> コマンドは個別のファイル削除 (<code>os.remove</code>) のみを行い、空になったディレクトリを削除していなかった。</li>
+<li><strong>隠しファイルの阻害:</strong> macOS の <code>.DS_Store</code> や Windows の <code>Thumbs.db</code> などのシステムファイルが存在する場合、ディレクトリが空とみなされず、削除できないケースがあった。</li>
+<li><strong>ゾンビプロジェクト:</strong> ユーザーが手動で DB ファイル (<code>.db</code>) のみを削除した場合、対応する Blob ディレクトリ (<code>.beautyspot/blobs/{name}</code>) が管理外のゴミ（ゾンビプロジェクト）としてディスク上に残り続け、CLI から削除する手段がなかった。</li>
 </ol>
-<p><strong>使用例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 全てのプロジェクトをスキャンし、期限切れデータとゾンビプロジェクトを削除</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 期限切れタスクの削除は行わず、ゾンビプロジェクトの削除のみ行う</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--no-expired
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 実際に削除せず、何が消えるか確認する</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--dry-run
-</code></pre></div>
-<p><strong>推奨:</strong> <code>cron</code> 等で定期実行することで、宣言した保持期間（Retention）に従ってディスク容量が自動的に管理されます。</p>
-<h3 id="2-prune">2. 古いタスクの手動削除 (<code>prune</code>)</h3>
-<p><code>prune</code> は、ポリシーに関係なく、<strong>「古いデータを一括で消したい」</strong> 場合に使用します。ディスク容量が逼迫した場合の緊急対応などに適しています。</p>
-<p><strong>例:</strong> 最終更新から30日以上経過したタスクを無条件で削除する</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>prune<span class="w"> </span>.beautyspot/project.db<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span>
-</code></pre></div>
+<h2 id="decision">Decision</h2>
+<p>これらの課題を解決するため、ストレージのクリーンアップ戦略を以下のように変更・拡張する。</p>
+<h3 id="1-two-phase-cleanup-strategy-clean-command">1. Two-Phase Cleanup Strategy (clean command)</h3>
+<p><code>clean</code> コマンドの実行プロセスを2段階に分割する。</p>
 <ul>
-<li><strong>動作:</strong> 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。</li>
+<li><strong>Phase 1 (File Deletion):</strong> 従来通り、DB参照のない孤立ファイル（Orphan Blobs）を削除する。</li>
+<li><strong>Phase 2 (Directory Pruning):</strong> <code>LocalStorage</code> に <code>prune_empty_dirs()</code> メソッドを追加し、Phase 1 完了後に実行する。これはストレージルートから再帰的にディレクトリを探索し、空のディレクトリを一括で削除する。</li>
 </ul>
-<h3 id="3-clean">3. 孤立ファイルのクリーンアップ (<code>clean</code>)</h3>
-<p><code>clean</code> は、<strong>ストレージの整合性を修復</strong> するための低レイヤーコマンドです。
-通常、<code>gc</code> や <code>prune</code> が自動的に整合性を保つため、頻繁に使う必要はありません。プロセスのクラッシュなどで「DBレコードは消えたが、ファイルだけ残っている」状態が発生した場合に使用します。</p>
-<p><strong>例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>clean<span class="w"> </span>.beautyspot/project.db
-</code></pre></div>
+<h3 id="2-robust-directory-pruning">2. Robust Directory Pruning</h3>
+<p><code>prune_empty_dirs()</code> メソッドにおいて、以下のロジックを採用する。</p>
+<ul>
+<li>ディレクトリ内にシステム生成ファイル（<code>.DS_Store</code>, <code>Thumbs.db</code>, <code>desktop.ini</code>）のみが存在する場合、それらを「実質的な空」とみなし、強制的に削除した上でディレクトリを削除する。</li>
+<li>これにより、OSの仕様に依存せず、確実にプロジェクトディレクトリをクリーンアップ可能にする。</li>
+</ul>
+<h3 id="3-zombie-project-garbage-collection-gc-command">3. Zombie Project Garbage Collection (gc command)</h3>
+<p>DBファイル自体が失われたプロジェクトを回収するための新コマンド <code>gc</code> を実装する。</p>
+<ul>
+<li><strong>Logic:</strong> <code>.beautyspot/blobs/</code> 配下のディレクトリを走査し、対応する <code>.db</code> ファイルが存在しないものを「ゾンビプロジェクト」と判定する（ADR 0027 の Scope Policy に準拠）。</li>
+<li><strong>Action:</strong> 検出されたディレクトリに対し、<code>shutil.rmtree</code> を用いて、内部のファイル整合性に関わらず強制的に一括削除を行う。</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
+<ul>
+<li><strong>完全なクリーンアップ:</strong> ユーザーは <code>clean</code> コマンドを実行するだけで、不要なファイルだけでなく、不要になったディレクトリ構造（プロジェクトルート含む）もきれいに削除できる。</li>
+<li><strong>運用性の向上:</strong> テスト失敗や手動操作で発生した「DBのないデータ残骸」を、<code>gc</code> コマンド一発で解消できるようになった。</li>
+<li><strong>安全性と保守性:</strong> ファイル削除ロジック（<code>delete</code>）とディレクトリ掃除ロジック（<code>prune</code>）を分離したことで、コードの責務が明確になり、隠しファイル処理などの複雑性を <code>Storage</code> クラス内に隠蔽できた。</li>
+</ul>
+<h3 id="negative">Negative</h3>
+<ul>
+<li><strong>IOオーバーヘッド:</strong> <code>prune_empty_dirs</code> は <code>os.walk</code> を使用するため、ファイル数が膨大な場合に若干のオーバーヘッドが発生する。ただし、これは頻繁に実行される処理ではなくメンテナンス操作であるため、許容範囲とする。</li>
+</ul>
 
 
 

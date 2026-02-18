@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/cli/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/lifecycle/">
       
       
-        <link rel="prev" href="../rate_limiting/">
-      
-      
-        <link rel="next" href="../../cookbooks/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>CLI & Dashboard - beautyspot</title>
+        <title>データのライフサイクル管理 (Lifecycle Management) - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cli-dashboard-guide" class="md-skip">
+        <a href="#lifecycle-management" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CLI & Dashboard
+              データのライフサイクル管理 (Lifecycle Management)
             
           </span>
         </div>
@@ -311,20 +307,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -345,7 +341,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -472,37 +468,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CLI & Dashboard
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
         
   
   
@@ -518,115 +487,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dashboard (UI)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Dashboard (UI)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        メンテナンスとクリーンアップ
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        コマンドの役割分担
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. ガベージコレクション (gc)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 古いタスクの手動削除 (prune)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1366,22 +1226,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dashboard-ui" class="md-nav__link">
+  <a href="#retention-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dashboard (UI)
+        保持期間の設定 (Retention Policy)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Dashboard (UI)">
+    <nav class="md-nav" aria-label="保持期間の設定 (Retention Policy)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+  <a href="#mark" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        @mark デコレータによる指定
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        期間フォーマット
       
     </span>
   </a>
@@ -1394,55 +1265,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#garbage-collection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        メンテナンスとクリーンアップ
+        データの削除 (Garbage Collection)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="メンテナンスとクリーンアップ">
+    <nav class="md-nav" aria-label="データの削除 (Garbage Collection)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cli-beautyspot-gc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI コマンド: beautyspot gc
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        コマンドの役割分担
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#1-gc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. ガベージコレクション (gc)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-prune" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 古いタスクの手動削除 (prune)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-clean" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 孤立ファイルのクリーンアップ (clean)
+        運用のベストプラクティス
       
     </span>
   </a>
@@ -1451,6 +1300,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        注意事項
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1474,87 +1334,84 @@
   
 
 
-<h1 id="cli-dashboard-guide">CLI &amp; Dashboard Guide</h1>
-<p><code>beautyspot</code> は、キャッシュされたデータの閲覧や、ディスク容量を管理するためのコマンドラインツールを提供しています。</p>
-<h2 id="dashboard-ui">Dashboard (UI)</h2>
-<p>キャッシュされたタスクの実行履歴、結果、依存関係などをブラウザで視覚的に確認できます。</p>
-<h3 id="basic-usage">Basic Usage</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>beautyspot<span class="w"> </span>ui<span class="w"> </span>&lt;path_to_db&gt;
+<h1 id="lifecycle-management">データのライフサイクル管理 (Lifecycle Management)</h1>
+<p>機械学習や実験プロセスにおいて生成されるデータには、「重要度」と「寿命」があります。
+<code>beautyspot</code> では、タスク定義時にデータの保持期間（Retention）を宣言することで、不要になったデータを自動的に識別し、削除候補とすることができます。</p>
+<h2 id="retention-policy">保持期間の設定 (Retention Policy)</h2>
+<h3 id="mark"><code>@mark</code> デコレータによる指定</h3>
+<p><code>@mark</code> デコレータの <code>retention</code> 引数を使用して、そのタスクの結果データをどのくらいの期間保持するかを指定します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="kn">import</span> <span class="n">mark</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 7日間保持（その後は削除候補となる）</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nd">@mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="s2">&quot;7d&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">weekly_report</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">return</span> <span class="n">process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># 12時間保持（一時的なデータ）</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nd">@mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="s2">&quot;12h&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">temporary_cache</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">return</span> <span class="n">quick_process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># 30分保持</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nd">@mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="s2">&quot;30m&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">short_lived_task</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">2</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># 指定なし（None）は「無期限（Indefinite）」</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># 明示的に retention=None と書くことも可能</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nd">@mark</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="k">def</span><span class="w"> </span><span class="nf">important_model</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="k">return</span> <span class="n">train</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 </code></pre></div>
-<ul>
-<li><strong><code>&lt;path_to_db&gt;</code></strong>: Spotを作成した際に指定したデータベースファイルのパス（デフォルトでは <code>.beautyspot/project_name.db</code> など）。</li>
-</ul>
-<hr />
-<h2 id="_1">メンテナンスとクリーンアップ</h2>
-<p>タスクを実行し続けると、キャッシュデータベースやストレージ容量が増加していきます。<code>beautyspot</code> はこれらを管理するために、目的別の3つのコマンドを提供しています。</p>
-<h3 id="_2">コマンドの役割分担</h3>
+<h3 id="_1">期間フォーマット</h3>
+<p><code>retention</code> 引数には、以下の単位を含む文字列を指定できます。</p>
 <table>
 <thead>
 <tr>
-<th>コマンド</th>
-<th>アプローチ</th>
-<th>対象</th>
-<th>目的</th>
-<th>推奨頻度</th>
+<th>単位</th>
+<th>説明</th>
+<th>例</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong><code>gc</code></strong></td>
-<td><strong>宣言的 (Declarative)</strong></td>
-<td>全体</td>
-<td><strong>ポリシー執行</strong>（期限切れデータの削除）とゴミ掃除</td>
-<td>定期実行 (Daily)</td>
+<td><code>d</code></td>
+<td>日 (Days)</td>
+<td><code>"7d"</code>, <code>"30d"</code></td>
 </tr>
 <tr>
-<td><strong><code>prune</code></strong></td>
-<td><strong>命令的 (Imperative)</strong></td>
-<td>タスク</td>
-<td><strong>手動介入</strong>（「30日以上前のデータ」を一括削除）</td>
-<td>必要に応じて</td>
+<td><code>h</code></td>
+<td>時間 (Hours)</td>
+<td><code>"12h"</code>, <code>"24h"</code></td>
 </tr>
 <tr>
-<td><strong><code>clean</code></strong></td>
-<td><strong>修復 (Repair)</strong></td>
-<td>ファイル</td>
-<td><strong>整合性回復</strong>（DBにない孤立ファイルの削除）</td>
-<td>トラブル時のみ</td>
+<td><code>m</code></td>
+<td>分 (Minutes)</td>
+<td><code>"30m"</code>, <code>"60m"</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="1-gc">1. ガベージコレクション (<code>gc</code>)</h3>
-<p><code>gc</code> は、<strong>日常的なメンテナンス</strong>で使用するメインコマンドです。
-ワークスペース内の全てのデータベースをスキャンし、事前に定義されたルール（Lifecycle Policy）に従って不要なデータを削除します。</p>
-<p><strong>主な機能:</strong></p>
-<ol>
-<li><strong>期限切れタスクの削除</strong>: <code>@mark(retention="7d")</code> などで設定された期限を過ぎたデータを、全てのデータベースから削除します（デフォルト有効）。</li>
-<li><strong>ゾンビプロジェクトの削除</strong>: <code>.db</code> ファイルが削除され、取り残されたストレージディレクトリを削除します。</li>
-</ol>
-<p><strong>使用例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 全てのプロジェクトをスキャンし、期限切れデータとゾンビプロジェクトを削除</span>
+<p>また、<code>datetime.timedelta</code> オブジェクトや、秒数（<code>int</code>）を直接渡すことも可能です。</p>
+<h2 id="garbage-collection">データの削除 (Garbage Collection)</h2>
+<p>期限切れとなったデータは、ディスクから即座に削除されるわけではありません（Lazy Expiration）。
+<strong><code>beautyspot</code> は分散システムではないため、バックグラウンドのクリーンアッププロセスを持ちません。</strong>
+そのため、物理的な削除を行うには、CLIコマンド <code>gc</code> を明示的に実行する必要があります。</p>
+<h3 id="cli-beautyspot-gc">CLI コマンド: <code>beautyspot gc</code></h3>
+<p><code>gc</code> コマンドを実行することで、宣言された寿命を迎えたデータが一括削除されます。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 期限切れ（expires_at &lt; 現在時刻）のデータを全て削除</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># 期限切れタスクの削除は行わず、ゾンビプロジェクトの削除のみ行う</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--no-expired
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 実際に削除せず、何が消えるか確認する</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--dry-run
 </code></pre></div>
-<p><strong>推奨:</strong> <code>cron</code> 等で定期実行することで、宣言した保持期間（Retention）に従ってディスク容量が自動的に管理されます。</p>
-<h3 id="2-prune">2. 古いタスクの手動削除 (<code>prune</code>)</h3>
-<p><code>prune</code> は、ポリシーに関係なく、<strong>「古いデータを一括で消したい」</strong> 場合に使用します。ディスク容量が逼迫した場合の緊急対応などに適しています。</p>
-<p><strong>例:</strong> 最終更新から30日以上経過したタスクを無条件で削除する</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>prune<span class="w"> </span>.beautyspot/project.db<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span>
+<h3 id="_2">運用のベストプラクティス</h3>
+<p>開発サーバーや共有環境では、<code>cron</code> や CI/CD パイプラインなどで定期的に <code>gc</code> コマンドを実行し、ディスク容量を確保することを推奨します。</p>
+<p><strong>例: 毎日深夜3時にクリーンアップを実行する (crontab)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>0 3 * * * beautyspot gc --force
 </code></pre></div>
+<h2 id="_3">注意事項</h2>
 <ul>
-<li><strong>動作:</strong> 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。</li>
+<li><strong>アクセス時の挙動</strong>: 期限切れのデータに対して <code>spot.run()</code> や <code>spot.get()</code> でアクセスしようとすると、データが物理的に残っていたとしても <code>None</code> (Cache Miss) として扱われ、再計算が行われます（Lazy Check）。</li>
+<li><strong>依存関係</strong>: 親タスクが削除されても、その子タスク（依存して作られたデータ）はそれぞれの <code>retention</code> 設定に従って管理されます。子タスクの寿命が親より長い場合、子タスクは残ります。</li>
 </ul>
-<h3 id="3-clean">3. 孤立ファイルのクリーンアップ (<code>clean</code>)</h3>
-<p><code>clean</code> は、<strong>ストレージの整合性を修復</strong> するための低レイヤーコマンドです。
-通常、<code>gc</code> や <code>prune</code> が自動的に整合性を保つため、頻繁に使う必要はありません。プロセスのクラッシュなどで「DBレコードは消えたが、ファイルだけ残っている」状態が発生した場合に使用します。</p>
-<p><strong>例:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>clean<span class="w"> </span>.beautyspot/project.db
-</code></pre></div>
 
 
 
