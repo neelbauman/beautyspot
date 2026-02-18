@@ -37,7 +37,7 @@ class SerializationError(Exception):
     pass
 
 
-class MsgpackSerializer:
+class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
     """
     A secure and extensible serializer based on MessagePack.
 

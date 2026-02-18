@@ -21,7 +21,7 @@ class TaskRecord(TypedDict):
     result_data: Optional[bytes]
 
 
-class TaskDB(ABC):
+class TaskDBBase(ABC):
     """
     Abstract interface for task metadata storage.
 
@@ -86,7 +86,7 @@ class TaskDB(ABC):
         return None
 
 
-class SQLiteTaskDB(TaskDB):
+class SQLiteTaskDB(TaskDBBase):
     """
     Default implementation using SQLite.
     """

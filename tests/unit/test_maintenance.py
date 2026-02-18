@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 from beautyspot.maintenance import MaintenanceService
-from beautyspot.db import TaskDB
+from beautyspot.db import TaskDBBase
 from beautyspot.storage import BlobStorageBase
 from beautyspot.serializer import SerializerProtocol
 
 
 @pytest.fixture
 def mock_db():
-    return MagicMock(spec=TaskDB)
+    return MagicMock(spec=TaskDBBase)
 
 
 @pytest.fixture

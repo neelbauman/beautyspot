@@ -19,7 +19,7 @@ def spot(tmp_path: Path):
     db_path = tmp_path / "test_context.db"
     
     # Spotの初期化 (storage_pathも一時ディレクトリ内へ)
-    instance = Spot("test_spot", db=SQLiteTaskDB(db_path), storage=LocalStorage(tmp_path / "blobs"))
+    instance = Spot("test_spot", db=SQLiteTaskDB(db_path), storage_backend=LocalStorage(tmp_path / "blobs"))
     
     yield instance
     

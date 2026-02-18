@@ -26,11 +26,11 @@ def test_storage_failure_handling(tmp_path):
     project = Spot(
         name="test_proj",
         db=SQLiteTaskDB(tmp_path / "test.db"),
-        storage=LocalStorage(tmp_path / "blobs"),
+        storage_backend=LocalStorage(tmp_path / "blobs"),
     )
 
     # Mock storage.save to fail
-    project.storage.save = MagicMock(side_effect=PermissionError("Disk full"))
+    project.storage_backend.save = MagicMock(side_effect=PermissionError("Disk full"))
 
     @project.mark(save_blob=True)
     def my_task():

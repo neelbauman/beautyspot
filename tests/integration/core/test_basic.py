@@ -13,7 +13,7 @@ def spot(tmp_path):
     return Spot(
         name="test_spot",
         db=SQLiteTaskDB(tmp_path / "test.db"),
-        storage=LocalStorage(tmp_path / "blobs"),
+        storage_backend=LocalStorage(tmp_path / "blobs"),
     )
 
 def test_mark_execution(spot):

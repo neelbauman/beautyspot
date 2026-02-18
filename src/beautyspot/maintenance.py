@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Any
 
-from beautyspot.db import TaskDB
+from beautyspot.db import TaskDBBase
 from beautyspot.storage import BlobStorageBase
 from beautyspot.serializer import SerializerProtocol
 
@@ -19,7 +19,7 @@ class MaintenanceService:
     Service layer for administrative tasks, dashboard support, and system assembly.
     """
 
-    def __init__(self, db: TaskDB, storage: BlobStorageBase, serializer: SerializerProtocol):
+    def __init__(self, db: TaskDBBase, storage: BlobStorageBase, serializer: SerializerProtocol):
         self.db = db
         self.storage = storage
         self.serializer = serializer

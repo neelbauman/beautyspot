@@ -3,9 +3,19 @@
 import time
 import asyncio
 import threading
+from typing import Protocol, runtime_checkable
 
 
-class TokenBucket:
+@runtime_checkable
+class LimiterProtocol(Protocol):
+    def consume(self, cost: int) -> None:
+        ...
+
+    async def consume_async(self, cost: int) -> None:
+        ...
+
+
+class TokenBucket(LimiterProtocol):
     """
     A smooth rate limiter based on the GCRA (Generic Cell Rate Algorithm).
 

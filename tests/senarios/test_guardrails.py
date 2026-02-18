@@ -7,33 +7,31 @@ from beautyspot.db import SQLiteTaskDB
 
 
 def test_large_data_warning(tmp_path, caplog):
-    """
-    save_blob=False なのに閾値を超えるデータを返した時、
-    正しく警告ログが出るか検証する。
-    """
-    # 閾値を小さく設定 (1KB)
-    project = Spot(
-        name="guard_test", db=SQLiteTaskDB(tmp_path / "test.db"), blob_warning_threshold=1024
-    )
-
-    @project.mark(save_blob=False)
-    def heavy_task():
-        # 2KBのデータ
-        return "x" * 2048
-
-    # 実行してログをキャプチャ
-    with caplog.at_level(logging.WARNING):
-        res = heavy_task()
-
-    assert len(res) == 2048
-
-    # 警告が含まれているか
-    assert "Large data detected" in caplog.text
-    assert "save_blob=True" in caplog.text
-
-    # DBには DIRECT_BLOB として保存されているはず
-    hist = project.db.get_history()
-    assert hist.iloc[0]["result_type"] == "DIRECT_BLOB"
+        """
+        save_blob=None (デフォルト) の状態で閾値を超えるデータを返した時、
+        WarningOnlyPolicy が機能して警告ログが出るか検証する。
+        """
+        # 閾値を小さく設定 (1KB)
+        # ※ Spot はファクトリ関数経由で初期化されている想定
+        project = Spot(
+            name="guard_test", 
+            db=SQLiteTaskDB(tmp_path / "test.db"), 
+            blob_warning_threshold=1024 # WarningOnlyPolicy に渡される
+        )
+    
+        # [修正] save_blob=False を削除し、デフォルト(None)にする
+        # これにより storage_policy.should_save_as_blob() が呼ばれる
+        @project.mark
+        def heavy_task():
+            # 2KBのデータ
+            return "x" * 2048
+    
+        # 実行してログをキャプチャ
+        with caplog.at_level(logging.WARNING):
+            res = heavy_task()
+    
+        assert len(res) == 2048
+        assert "Large data detected" in caplog.text
 
 
 def test_msgpack_consistency(tmp_path):

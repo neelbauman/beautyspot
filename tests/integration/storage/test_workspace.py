@@ -48,7 +48,7 @@ def test_custom_paths_ignore_workspace(tmp_path):
     custom_blobs = tmp_path / "custom_blobs"
 
     # Explicitly providing paths should bypass default workspace locations
-    with Spot(name="custom", db=SQLiteTaskDB(custom_db), storage=LocalStorage(custom_blobs)):
+    with Spot(name="custom", db=SQLiteTaskDB(custom_db), storage_backend=LocalStorage(custom_blobs)):
         pass
 
     # Files should be at custom locations

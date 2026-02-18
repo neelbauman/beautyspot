@@ -2,9 +2,11 @@
 
 import os
 import io
+import logging
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Any, TypeAlias, Iterator
+from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
+from dataclasses import dataclass
 
 try:
     import boto3
@@ -16,6 +18,56 @@ except ImportError:
 
 ReadableBuffer: TypeAlias = bytes | bytearray | memoryview
 
+# --- Storage Policies ---
+
+@runtime_checkable
+class StoragePolicyProtocol(Protocol):
+    """
+    Protocol to determine if data should be saved as a blob (file/object storage)
+    or directly in the database based on the data content (usually size).
+    """
+    def should_save_as_blob(self, data: bytes) -> bool:
+        ...
+
+@dataclass
+class ThresholdStoragePolicy(StoragePolicyProtocol):
+    """
+    Policy that saves data as a blob if its size exceeds a configured threshold.
+    This is the recommended policy for automatic optimization.
+    """
+    threshold: int
+
+    def should_save_as_blob(self, data: bytes) -> bool:
+        return len(data) > self.threshold
+
+@dataclass
+class WarningOnlyPolicy(StoragePolicyProtocol):
+    """
+    Policy for backward compatibility (v2.0 behavior).
+    Does not force blob storage, but logs a warning if size exceeds threshold.
+    """
+    warning_threshold: int
+    logger: logging.Logger
+
+    def should_save_as_blob(self, data: bytes) -> bool:
+        if len(data) > self.warning_threshold:
+            self.logger.warning(
+                f"⚠️ Large data detected ({len(data)} bytes). "
+                f"Consider using `save_blob=True` or a stricter StoragePolicy."
+            )
+        return False
+
+@dataclass
+class AlwaysBlobPolicy(StoragePolicyProtocol):
+    """
+    Policy that always saves data as a blob.
+    Equivalent to setting `default_save_blob=True`.
+    """
+    def should_save_as_blob(self, data: bytes) -> bool:
+        return True
+
+
+# --- Blob Storage Implementations ---
 
 class CacheCorruptedError(Exception):
     """Raised when blob data cannot be deserialized (e.g. code changes)."""
@@ -227,3 +279,4 @@ def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
         return S3Storage(path, options)
 
     return LocalStorage(path)
+

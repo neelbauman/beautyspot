@@ -1,78 +1,95 @@
-# src/beautyspot/__init__.py 
+# src/beautyspot/__init__.py
 
+import logging
 from importlib.metadata import version, PackageNotFoundError
 from typing import Optional, Any
 
-from beautyspot.core import Spot as _Spot, SpotOptions
+from beautyspot.core import Spot as _Spot
 from beautyspot.cachekey import KeyGen
+from beautyspot.limiter import TokenBucket, LimiterProtocol
 from beautyspot.serializer import SerializationError
 from beautyspot.content_types import ContentType
-from beautyspot.db import TaskDB
-from beautyspot.storage import BlobStorageBase
-from beautyspot.serializer import SerializerProtocol
-
-from beautyspot.db import SQLiteTaskDB
-from beautyspot.serializer import MsgpackSerializer
-from beautyspot.storage import LocalStorage
+from beautyspot.db import TaskDBBase, SQLiteTaskDB
+from beautyspot.storage import (
+    BlobStorageBase, 
+    LocalStorage, 
+    StoragePolicyProtocol,
+    WarningOnlyPolicy, 
+    ThresholdStoragePolicy,
+    AlwaysBlobPolicy
+)
+from beautyspot.serializer import SerializerProtocol, MsgpackSerializer
 
 try:
     __version__ = version("beautyspot")
 except PackageNotFoundError:
-    # 開発中や未インストールの状態
     __version__ = "0.0.0+unknown"
 
 
-# ユーザーが使う "Spot" を定義
 def Spot(
     name: str,
-    db: Optional[TaskDB] = None,
+    db: Optional[TaskDBBase] = None,
     serializer: Optional[SerializerProtocol] = None,
-    storage: Optional[BlobStorageBase] = None,
+    limiter: Optional[LimiterProtocol] = None,
+    storage_backend: Optional[BlobStorageBase] = None,
+    storage_policy: Optional[StoragePolicyProtocol] = None,
+    executor: Optional[Any] = None,
+    # --- Configuration Options ---
+    blob_warning_threshold: int = 1024 * 1024,
+    default_save_blob: bool = False,
     tpm: int = 10000,
     io_workers: int = 4,
-    blob_warning_threshold: int = 1024 * 1024,
-    executor: Optional[Any] = None,
-    default_save_blob: bool = False,
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
     default_wait: bool = True,
     **kwargs: Any
 ) -> _Spot:
     """
-    Beautyspotのメインエントリポイント。
+    Beautyspotのメインエントリポイント（Factory Function）。
+    依存関係の解決とデフォルト設定の適用を行います。
     """
-    # --- Orchestration: デフォルト実装の注入 ---
     
-    # 1. DBの解決
+    # 1. コンポーネントの解決 (DI)
     resolved_db = db or SQLiteTaskDB(f".beautyspot/{name}.db")
-
-    # 2. Serializerの解決
     resolved_ser = serializer or MsgpackSerializer()
+    resolved_stg = storage_backend or LocalStorage(f".beautyspot/blobs/{name}/")
+    resolved_limiter = limiter or TokenBucket(tokens_per_minute=tpm)
 
-    # 3. Storageの解決
-    resolved_stg = storage or LocalStorage(f".beautyspot/blobs/{name}/")
+    # 2. Storage Policy の解決 (Factory側でロジックを担保)
+    #    ユーザーがポリシーを直接渡した場合はそれを優先
+    resolved_policy: StoragePolicyProtocol
+    
+    if storage_policy is not None:
+        resolved_policy = storage_policy
+    elif default_save_blob:
+        # レガシーフラグ互換: 常にBlob保存
+        resolved_policy = AlwaysBlobPolicy()
+    else:
+        # デフォルト動作: 警告のみ (ロガー注入)
+        logger = logging.getLogger("beautyspot")
+        resolved_policy = WarningOnlyPolicy(
+            warning_threshold=blob_warning_threshold,
+            logger=logger
+        )
 
-    # --- オプションのパッキングと型チェック ---
-    # types.py の SpotOptions を使って、引数の整合性を（静的解析上で）担保する
-    options: SpotOptions = {
-        "tpm": tpm,
-        "io_workers": io_workers,
-        "blob_warning_threshold": blob_warning_threshold,
-        "executor": executor,
-        "default_save_blob": default_save_blob,
-        "default_version": default_version,
-        "default_content_type": default_content_type,
-        "default_wait": default_wait,
-        **kwargs, # type: ignore
-    }
-
-    # explicitな引数として core に渡す
+    # 3. Coreへ渡すオプションの整理
+    # SpotOptionsの型定義に合わせてパッキングしますが、
+    # core.Spot が受け取らないレガシー引数はここでは渡さないように注意します。
+    
     return _Spot(
         name=name,
         db=resolved_db,
         serializer=resolved_ser,
-        storage=resolved_stg,
-        **options,
+        storage_backend=resolved_stg,
+        storage_policy=resolved_policy,
+        limiter=resolved_limiter,
+        # その他のオプション
+        executor=executor,
+        io_workers=io_workers,
+        default_version=default_version,
+        default_content_type=default_content_type,
+        default_wait=default_wait,
+        **kwargs
     )
 
 __all__ = [
@@ -83,4 +100,8 @@ __all__ = [
     "LocalStorage",
     "MsgpackSerializer",
     "SerializationError",
+    "ThresholdStoragePolicy",
+    "WarningOnlyPolicy",
+    "AlwaysBlobPolicy",
 ]
+

@@ -2,6 +2,8 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock
 from beautyspot.core import ScopedMark, Spot
+from beautyspot.storage import WarningOnlyPolicy
+from beautyspot.limiter import TokenBucket
 
 @pytest.mark.asyncio
 async def test_scoped_mark_context_isolation():
@@ -19,13 +21,16 @@ async def test_scoped_mark_context_isolation():
     mock_db = MagicMock()
     mock_storage = MagicMock()
     mock_serializer = MagicMock()
+    test_policy = WarningOnlyPolicy(warning_threshold=99999, logger=MagicMock())
     
     # Spotの最小限のセットアップ
     spot = Spot(
         name="test_spot",
-        db=mock_db,
-        storage=mock_storage,
         serializer=mock_serializer,
+        db=mock_db,
+        storage_backend=mock_storage,
+        storage_policy=test_policy,
+        limiter=TokenBucket(tokens_per_minute=100000),
         # テスト用にExecutorを無効化または同期実行させる設定があれば良いが、
         # ここではコアロジックのモックで対応
     )

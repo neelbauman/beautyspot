@@ -25,7 +25,7 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
     spot = Spot(
         "async_app", 
         db=SQLiteTaskDB(db_path), 
-        storage=slow_storage,  # Mockストレージ注入
+        storage_backend=slow_storage,  # Mockストレージ注入
         default_wait=False,    # ★ Fire-and-Forgetモード
         default_save_blob=True # Storageを使わせるため
     )

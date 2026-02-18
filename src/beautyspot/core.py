@@ -18,16 +18,15 @@ from typing import (
     Type,
     overload,
     TypeVar,
-    TypedDict,
     Generic,
     TypeVarTuple,
     Unpack,
     ParamSpec,
 )
 
-from beautyspot.limiter import TokenBucket
-from beautyspot.storage import BlobStorageBase
-from beautyspot.db import TaskDB
+from beautyspot.limiter import LimiterProtocol
+from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
+from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializationError, SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 
@@ -52,7 +51,12 @@ class ScopedMark(Generic[R]):
     Uses ContextVar to ensure thread/task safety even if the manager is reused.
     """
 
-    def __init__(self, spot: "Spot", funcs: tuple[Callable, ...], **options):
+    def __init__(
+        self,
+        spot: "Spot",
+        funcs: tuple[Callable, ...],
+        **options,
+    ):
         self.spot = spot
         self.funcs = funcs
         self.options = options
@@ -109,19 +113,6 @@ class ScopedMark(Generic[R]):
             self._is_active.reset(self._token)
             self._token = None
 
-class SpotOptions(TypedDict, total=False):
-    """
-    Spotのオプション引数を定義する。
-    """
-    blob_warning_threshold: int
-    tpm: int
-    io_workers: int
-    executor: Executor | None
-    default_save_blob: bool
-    default_version: str | None
-    default_content_type: str | None
-    default_wait: bool
-
 
 class Spot:
     """
@@ -132,22 +123,21 @@ class Spot:
         self,
         name: str,
         # 必須の依存オブジェクト (DI)
-        db: TaskDB,
+        db: TaskDBBase,
         serializer: SerializerProtocol,
-        storage: BlobStorageBase,
+        storage_backend: BlobStorageBase,
+        storage_policy: StoragePolicyProtocol,
+        limiter: LimiterProtocol,
         
         # オプション設定
-        tpm: int = 10000,
-        io_workers: int = 4,
-        blob_warning_threshold: int = 1024 * 1024,
         executor: Optional[Executor] = None,
-        
+        io_workers: int = 4,
+        default_wait: bool = True,
+
         # デフォルト動作設定
-        default_save_blob: bool = False,
         default_version: Optional[str] = None,
         default_content_type: Optional[str] = None,
-        default_wait: bool = True,
-        
+
         **kwargs: Any,
     ) -> None:
         self.name = name
@@ -155,11 +145,11 @@ class Spot:
         # --- 依存オブジェクトの注入 ---
         self.db = db
         self.serializer = serializer
-        self.storage = storage
+        self.storage_backend = storage_backend
+        self.storage_policy = storage_policy
+        self.bucket = limiter
 
         # --- オプション設定の適用 ---
-        self.blob_warning_threshold = blob_warning_threshold
-        self.default_save_blob = default_save_blob
         self.default_version = default_version
         self.default_content_type = default_content_type
         self.default_wait = default_wait
@@ -168,9 +158,6 @@ class Spot:
         self.workspace_dir = Path(".beautyspot")
         self._setup_workspace()
         self.db.init_schema()
-
-        # --- レートリミッター ---
-        self.bucket = TokenBucket(tpm)
 
         # --- Executor管理 ---
         if executor is not None:
@@ -293,17 +280,19 @@ class Spot:
         save_blob: bool | None,
         version: str | None,
         content_type: str | None,
-        wait: bool | None,  # 追加
-    ) -> tuple[bool, str | None, str | None, bool]:
-        final_save_blob = save_blob if save_blob is not None else self.default_save_blob
+        wait: bool | None,
+    ) -> tuple[bool | None, str | None, str | None, bool]:
+        # [CHANGED] save_blob が None の場合、ここで False に解決せず None のまま通す。
+        # これにより _save_result_sync で policy.should_save_as_blob() が呼ばれるようになる。
+        final_save_blob = save_blob 
+
         final_version = version if version is not None else self.default_version
         final_content_type = (
             content_type if content_type is not None else self.default_content_type
         )
-        final_wait = wait if wait is not None else self.default_wait  # 追加
+        final_wait = wait if wait is not None else self.default_wait
         
         return final_save_blob, final_version, final_content_type, final_wait
-
 
     def _make_cache_key(
         self,
@@ -462,7 +451,7 @@ class Spot:
                     logger.warning(f"Data corruption: 'FILE' type record has no path for key `{cache_key}`")
                     return CACHE_MISS
                 try:
-                    data_bytes = self.storage.load(r_val)
+                    data_bytes = self.storage_backend.load(r_val)
                     return use_serializer.loads(data_bytes)
                 except Exception:
                     return CACHE_MISS
@@ -492,7 +481,7 @@ class Spot:
         version: str | None,
         result: Any,
         content_type: str | None,
-        save_blob: bool,
+        save_blob: bool | None,
         serializer: Optional[SerializerProtocol] = None,
     ):
         use_serializer = serializer or self.serializer
@@ -502,21 +491,21 @@ class Spot:
         except SerializationError as e:
             raise e
 
+        # 1. 明示的な指定(True/False)があればそれに従う
+        # 2. なければ(Noneであれば)ポリシーに問い合わせる
+        if save_blob is not None:
+            should_use_blob = save_blob
+        else:
+            should_use_blob = self.storage_policy.should_save_as_blob(data_bytes)
+
         r_val = None
         r_blob = None
         r_type = "DIRECT_BLOB"
 
-        if save_blob:
-            r_val = self.storage.save(cache_key, data_bytes)
+        if should_use_blob:
+            r_val = self.storage_backend.save(cache_key, data_bytes)
             r_type = "FILE"
         else:
-            data_size = len(data_bytes)
-            if data_size > self.blob_warning_threshold:
-                logger.warning(
-                    f"⚠️ Large data detected ({data_size / 1024:.1f} KB) for task '{func_name}'. "
-                    f"Consider adding `@spot.mark(save_blob=True)`."
-                )
-
             r_blob = data_bytes
             r_type = "DIRECT_BLOB"
 

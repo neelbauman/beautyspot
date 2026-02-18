@@ -20,7 +20,7 @@ def spot_with_slow_storage(tmp_path):
     spot = Spot(
         name="tracking_test",
         db=SQLiteTaskDB(db_path),
-        storage=slow_storage,
+        storage_backend=slow_storage,
         serializer=MagicMock(), # デコード不要のためモックでOK
         default_wait=False,
         default_save_blob=True
@@ -90,7 +90,7 @@ async def test_async_task_tracking(tmp_path):
     spot = Spot(
         "async_tracking", 
         db=SQLiteTaskDB(db_path), 
-        storage=slow_storage,
+        storage_backend=slow_storage,
         serializer=MagicMock(),
         default_wait=False,
     )
