@@ -177,3 +177,88 @@ def train_model(): ...
 
 これにより、依存関係やグルーピングの管理という「How」をツール側に移譲できます。
 
+
+## Smart Serializerの依存拡大問題
+
+この課題に対して、以下の **「Soft Dependency（緩やかな依存）」パターン** で解決することを提案します。
+
+### 解決策: "Soft Dependency" と "Extra Modules"
+
+依存ライブラリを強制せず、**「ユーザーの環境にそのライブラリが存在する場合のみ、拡張機能を有効化する」** というアプローチです。
+
+#### 1. 実装イメージ: 実行時の動的検出 (Lazy Import)
+
+`beautyspot` 本体は、これらのライブラリを import しません。シリアライザの解決時にのみ、環境をチェックします。
+
+```python
+# src/beautyspot/serializers/negotiator.py (仮)
+
+class SmartSerializer:
+    def resolve(self, data: Any) -> str:
+        # 1. Pandas DataFrame の検出
+        # try-except ブロックで囲むことで、pandas がない環境でもクラッシュしない
+        try:
+            import pandas as pd
+            if isinstance(data, pd.DataFrame):
+                return "parquet"  # pandas がある場合のみ Parquet などを選択
+        except ImportError:
+            pass
+
+        # 2. NumPy Array の検出
+        try:
+            import numpy as np
+            if isinstance(data, np.ndarray):
+                return "numpy_bytes"
+        except ImportError:
+            pass
+
+        # デフォルト
+        return "msgpack"
+
+```
+
+これにより、コアライブラリの依存は増えません。
+
+#### 2. パッケージング: `pyproject.toml` での管理
+
+`uv` や `pip` でインストールする際、ユーザーが必要な機能だけを選べるように `optional-dependencies` (extras) を定義します。
+
+`pyproject.toml`:
+
+```toml
+[project]
+name = "beautyspot"
+dependencies = [
+    "msgpack>=1.0.0",
+    # pandas や numpy はここには書かない！
+]
+
+[project.optional-dependencies]
+# ユーザーが明示的に選ぶ
+data = ["pandas", "pyarrow", "numpy"]
+image = ["pillow"]
+all = ["pandas", "pyarrow", "numpy", "pillow"]
+
+```
+
+ユーザーは以下のようにインストールします（Whatの宣言）：
+
+* データ分析をする人: `uv add beautyspot[data]`
+* Web開発だけの人: `uv add beautyspot` （余計なものは入らない）
+
+### メンテナンスコストへの対策
+
+「対応型が増え続ける」というメンテナの負担に対しては、**「Extension Protocol（プラグイン機構）」** を導入し、コア機能と拡張機能を分離することで対処します。
+
+* **Core (`beautyspot`):** 基本的な Python 型 (dict, list, int, str) のみをサポート。
+* **Extensions:** `beautyspot.ext.pandas` や `beautyspot.ext.torch` のような別モジュール（あるいは別ファイル）に切り出し、それぞれ独立して開発・テストする。
+
+### 結論と提案
+
+「依存地獄」を避けるために、この機能は **「オプショナルな拡張」** として設計すべきだという点に同意します。
+
+もしよろしければ、次の ADR として **「Optional Dependency Strategy（依存関係の疎結合戦略）」** を作成し、以下のルールを明文化するのはいかがでしょうか？
+
+1. **Core Minimal:** `core` モジュールはサードパーティ製ライブラリ（標準ライブラリ以外）を import してはならない。
+2. **Detection over Dependency:** ライブラリの存在は `try-import` で検出し、ない場合は優雅にフォールバック（または明確なエラーメッセージ「この機能を使うには pip install beautyspot[data] してね」を表示）する。
+
