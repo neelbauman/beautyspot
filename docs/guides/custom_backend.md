@@ -8,7 +8,7 @@ v1.0.0 から導入された **Dependency Injection (DI)** 機構を利用する
 
 カスタムバックエンドを作成するには、`beautyspot.db.TaskDB` 抽象基底クラス（Abstract Base Class）を継承し、以下の4つのメソッドを実装する必要があります。
 
-::: beautyspot.db.TaskDB
+::: beautyspot.db.TaskDBBase
     options:
         show_root_heading: false
         show_source: true
