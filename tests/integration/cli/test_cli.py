@@ -507,3 +507,130 @@ def test_format_timestamp():
 
     assert "2025-01-15" in result
     assert "10:30" in result
+
+    # tests/integration/cli/test_cli.py
+
+# ... (既存のテストコード)
+
+# =============================================================================
+# Test: gc (Garbage Collection for Zombie Projects)
+# =============================================================================
+
+@pytest.fixture
+def workspace_with_zombies(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """
+    Create a workspace with:
+    1. Active project (DB + Blobs) -> Should be KEPT
+    2. Zombie project (Blobs only, no DB) -> Should be DELETED
+    """
+    beautyspot = tmp_path / ".beautyspot"
+    beautyspot.mkdir()
+    blobs_root = beautyspot / "blobs"
+    blobs_root.mkdir()
+
+    # 1. Active Project
+    active_db = beautyspot / "active.db"
+    active_db.touch()
+    active_blobs = blobs_root / "active"
+    active_blobs.mkdir()
+    (active_blobs / "data.bin").write_bytes(b"important data")
+
+    # 2. Zombie Project
+    zombie_blobs = blobs_root / "zombie"
+    zombie_blobs.mkdir()
+    (zombie_blobs / "ghost.bin").write_bytes(b"scary data")
+
+    # Change working directory to tmp_path so CLI looks at .beautyspot
+    monkeypatch.chdir(tmp_path)
+
+    return beautyspot
+
+
+def test_gc_dry_run(workspace_with_zombies: Path):
+    """Test gc command with dry-run."""
+    result = runner.invoke(app, ["gc", "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "Dry run" in result.stdout
+    assert "zombie" in result.stdout
+
+    # Verify nothing was deleted
+    blobs_root = workspace_with_zombies / "blobs"
+    assert (blobs_root / "zombie").exists()
+    assert (blobs_root / "active").exists()
+
+
+def test_gc_force(workspace_with_zombies: Path):
+    """Test gc command execution."""
+    result = runner.invoke(app, ["gc", "--force"])
+
+    assert result.exit_code == 0
+    assert "Cleaned up 1 orphan projects" in result.stdout
+
+    blobs_root = workspace_with_zombies / "blobs"
+    
+    # Zombie should be gone
+    assert not (blobs_root / "zombie").exists()
+    
+    # Active should remain
+    assert (blobs_root / "active").exists()
+    assert (blobs_root / "active" / "data.bin").exists()
+
+
+def test_gc_no_orphans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test gc when everything is clean."""
+    beautyspot = tmp_path / ".beautyspot"
+    beautyspot.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["gc"])
+
+    assert result.exit_code == 0
+    assert "No orphan storage directories found" in result.stdout
+
+
+# =============================================================================
+# Test: Prune vs Clean Interaction
+# =============================================================================
+
+def test_prune_without_clean(temp_db_with_blobs: tuple[Path, Path]):
+    """
+    Test pruning tasks BUT keeping the files (--no-clean-blobs).
+    This clarifies the distinction: Prune deletes DB rows, Clean deletes files.
+    """
+    db_path, blob_dir = temp_db_with_blobs
+    
+    # Manually update the timestamp of the task to be old
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE tasks SET updated_at = datetime('now', '-100 days') WHERE cache_key = 'key1'"
+    )
+    conn.commit()
+    conn.close()
+
+    # Run Prune with --no-clean-blobs
+    result = runner.invoke(
+        app, 
+        ["prune", str(db_path), "--days", "30", "--no-clean-blobs", "--force"]
+    )
+
+    assert result.exit_code == 0
+    
+    # 1. Task record should be gone
+    conn = sqlite3.connect(db_path)
+    count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    conn.close()
+    assert count == 0
+
+    # 2. Blob file should STILL exist (because we skipped clean)
+    assert (blob_dir / "referenced.bin").exists()
+
+    # 3. Now run Clean
+    result_clean = runner.invoke(
+        app, ["clean", str(db_path), "--blob-dir", str(blob_dir), "--force"]
+    )
+    assert result_clean.exit_code == 0
+    
+    # 4. Blob file should NOW be gone
+    assert not (blob_dir / "referenced.bin").exists()
+

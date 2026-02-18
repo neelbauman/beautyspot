@@ -493,6 +493,9 @@ def clean_cmd(
     """
     🧹 Clean orphaned blob files (garbage collection).
 
+    Removes files in the storage directory that are NOT referenced by any task in the database.
+    Use this to clean up leftover files after manual DB operations or errors.
+
     [bold]Note:[/bold] This command is designed primarily for the standard directory structure.
     If you are using custom storage paths or backends (e.g. S3), please ensure
     you explicitly verify the target with [cyan]--dry-run[/cyan] before deletion.
@@ -567,6 +570,11 @@ def gc_cmd(
 ):
     """
     🗑️  Garbage Collect: Remove 'zombie' blob directories with no matching DB.
+
+    Scans the [bold].beautyspot/blobs/[/bold] directory for folders that do NOT have a 
+    corresponding [bold].db[/bold] file in the workspace.
+    
+    Use this when you have manually deleted a .db file but the blob directory remains.
     
     Checks [bold].beautyspot/blobs/[/bold] for directories that do not have a corresponding
     [bold].db[/bold] file in [bold].beautyspot/[/bold].
@@ -656,7 +664,10 @@ def prune_cmd(
     ),
 ):
     """
-    🗓️  Prune old cached tasks.
+    🗓️  Prune old cached tasks (time-based expiration).
+    
+    Deletes task records older than the specified number of days.
+    By default, it also removes the associated blob files (implied --clean-blobs).
     """
     if days < 1:
         console.print("[red]Error:[/red] --days must be at least 1")

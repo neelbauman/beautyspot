@@ -58,6 +58,9 @@ class TaskDBBase(ABC):
         pass
     
     # --- Optional Maintenance Methods ---
+    def delete_expired(self) -> int:
+        """Delete tasks that have passed their expiration time."""
+        return 0
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
         """Delete tasks older than the specified datetime."""
@@ -239,6 +242,18 @@ class SQLiteTaskDB(TaskDBBase):
                     (cutoff_str,),
                 )
             return [(row[0], row[1], str(row[2])) for row in cursor.fetchall()]
+
+    def delete_expired(self) -> int:
+        if not os.path.exists(self.db_path):
+            return 0
+            
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "DELETE FROM tasks WHERE expires_at < ?", 
+                (now_str,)
+            )
+            return cursor.rowcount
 
     def get_blob_refs(self) -> Optional[set[str]]:
         if not os.path.exists(self.db_path):

@@ -107,11 +107,8 @@ class MaintenanceService:
 
     def delete_expired_tasks(self) -> int:
         """期限切れタスクの物理削除 (GC用)"""
-        if hasattr(self.db, "_connect"):
-            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with self.db._connect() as conn:
-                return conn.execute("DELETE FROM tasks WHERE expires_at < ?", (now_str,)).rowcount
-        return 0
+        # [FIX] 内部実装(_connect)への依存を排除し、インターフェースメソッドを使用
+        return self.db.delete_expired()
 
     def delete_task(self, cache_key: str) -> bool:
         """

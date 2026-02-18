@@ -56,6 +56,7 @@ class MockDB(TaskDBBase):
         content_type,
         result_value=None,
         result_data=None,
+        expires_at=None,
     ):
         self.store[cache_key] = {
             "func_name": func_name,
