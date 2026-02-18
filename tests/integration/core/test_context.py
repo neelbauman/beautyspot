@@ -4,6 +4,7 @@ import pytest
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB
 
+
 def test_spot_context_manager_reusability(tmp_path):
     """
     Spotがコンテキストマネージャとして動作し、
@@ -15,8 +16,11 @@ def test_spot_context_manager_reusability(tmp_path):
     # 1回目のコンテキスト
     with spot as p:
         assert p is spot
+
         @spot.mark
-        def task1(x): return x
+        def task1(x):
+            return x
+
         task1(1)
 
     # 仕様変更: __exit__ で shutdown されないため、2回目もエラーなく実行できるはず
@@ -26,16 +30,19 @@ def test_spot_context_manager_reusability(tmp_path):
     except RuntimeError:
         pytest.fail("Spot should be reusable after exiting a context block.")
 
+
 def test_spot_explicit_shutdown(tmp_path):
     """明示的に shutdown を呼んだ後は、Executorが停止することを確認する。"""
     db_path = str(tmp_path / "test.db")
     spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path))
-    
+
     spot.shutdown(wait=True)
-    
+
     # シャットダウン後はタスクを投げると RuntimeError になるのが正しい挙動
     with pytest.raises(RuntimeError):
-        @spot.mark(wait=False)
-        def task(x): return x
-        task(1)
 
+        @spot.mark(wait=False)
+        def task(x):
+            return x
+
+        task(1)

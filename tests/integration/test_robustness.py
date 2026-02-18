@@ -8,17 +8,21 @@ from dataclasses import dataclass
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB
 
+
 # --- 1. Custom Data Structure ---
 @dataclass
 class CriticalData:
     id: str
     payload: bytes  # バイナリデータの整合性もチェック
 
+
 def encode_critical(obj: CriticalData) -> list:
     return [obj.id, obj.payload]
 
+
 def decode_critical(data: list) -> CriticalData:
     return CriticalData(id=data[0], payload=data[1])
+
 
 # --- 2. Helper for White-box Verification ---
 def inspect_db_counts(db_path: str) -> dict:
@@ -29,19 +33,20 @@ def inspect_db_counts(db_path: str) -> dict:
     with sqlite3.connect(db_path) as conn:
         cursor = conn.execute("SELECT count(*) FROM tasks")
         total = cursor.fetchone()[0]
-        
+
         # 成功/失敗のステータス概念がDBスキーマにある場合はここで集計
         # 現状のスキーマ(core.py参照)では結果があれば成功とみなせる
         return {"total_records": total}
+
 
 def inspect_db_record(db_path: str, cache_key: str):
     """特定のキャッシュキーのレコードが生で存在するか確認"""
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
-            "SELECT func_name, result_type FROM tasks WHERE cache_key=?", 
-            (cache_key,)
+            "SELECT func_name, result_type FROM tasks WHERE cache_key=?", (cache_key,)
         ).fetchone()
         return row
+
 
 @pytest.fixture
 def strict_env(tmp_path):
@@ -50,51 +55,58 @@ def strict_env(tmp_path):
     """
     db_path = tmp_path / "robust.db"
     spot = Spot(name="robust_test", db=SQLiteTaskDB(db_path), tpm=600)
-    spot.register_type(CriticalData, code=20, encoder=encode_critical, decoder=decode_critical)
+    spot.register_type(
+        CriticalData, code=20, encoder=encode_critical, decoder=decode_critical
+    )
     return spot, db_path
+
 
 @pytest.mark.asyncio
 async def test_strict_rate_limiting(strict_env):
     """
     [Robustness] レートリミッターが理論値通りに動作するか検証する。
-    
+
     Theory:
       TPM=600 -> Rate = 10 tokens/sec
       Task Cost = 5 tokens
       Interval = 5 / 10 = 0.5 sec
-      
+
       10 Tasks:
         Task 0: T=0.0s (即時実行)
         Task 1: T=0.5s
         ...
         Task 9: T=4.5s
-      
+
       Total Elapsed should be >= 4.5s.
       もし 0.5s (前回のテスト) で終わるなら、リミッターは壊れている。
     """
     spot, _ = strict_env
-    
+
     @spot.limiter(cost=5)
     @spot.mark
     async def paced_task(idx: int):
         return idx
 
     start_time = time.monotonic()
-    
+
     # 並行実行をリクエスト
     tasks = [paced_task(i) for i in range(10)]
     await asyncio.gather(*tasks)
-    
+
     elapsed = time.monotonic() - start_time
-    
-    print(f"\n[RateLimit] 10 tasks (cost=5, tpm=600) took {elapsed:.4f}s (Theory: ~4.5s)")
-    
+
+    print(
+        f"\n[RateLimit] 10 tasks (cost=5, tpm=600) took {elapsed:.4f}s (Theory: ~4.5s)"
+    )
+
     # CI環境のゆらぎを許容しつつ、理論的下限(4.5s)を割っていないことを確認
     # ※ 最初の1回はwaitなしなので厳密には (N-1)*Interval
-    expected_min_duration = 4.5 
-    
-    assert elapsed >= expected_min_duration, \
+    expected_min_duration = 4.5
+
+    assert elapsed >= expected_min_duration, (
         f"Rate limiter is too loose! Expected at least {expected_min_duration}s, got {elapsed}s"
+    )
+
 
 @pytest.mark.asyncio
 async def test_transient_failure_recovery(strict_env):
@@ -102,7 +114,7 @@ async def test_transient_failure_recovery(strict_env):
     [Robustness] 一時的な失敗がDBに永続化されず、再試行で正しく回復・保存されるか検証する。
     """
     spot, db_path = strict_env
-    
+
     # 外部要因による失敗をシミュレートするフラグ
     simulate_network_error = True
 
@@ -121,7 +133,7 @@ async def test_transient_failure_recovery(strict_env):
         pytest.fail("Task should have raised RuntimeError")
     except RuntimeError:
         pass
-    
+
     # 検証1: 失敗したタスクはDBに保存されていてはいけない
     # (beautyspotは成功結果のみをキャッシュすべき)
     counts = inspect_db_counts(str(db_path))
@@ -129,15 +141,15 @@ async def test_transient_failure_recovery(strict_env):
 
     # --- Phase 2: Recovery ---
     print("[Recovery] Phase 2: Retrying after 'recovery'...")
-    simulate_network_error = False # 障害復旧
-    
+    simulate_network_error = False  # 障害復旧
+
     result = await unstable_task(input_data)
     assert result == "Processed bad_item"
-    
+
     # 検証2: 成功後はDBにレコードが1件あるはず
     counts = inspect_db_counts(str(db_path))
     assert counts["total_records"] == 1, "Success result was not persisted!"
-    
+
     # 検証3: DBの内容が正しいか (White-box check)
     # キャッシュキーを計算して直接引くことも可能だが、ここでは件数と中身の存在確認
     # 検証3: DBの内容が正しいか (White-box check)
@@ -146,16 +158,17 @@ async def test_transient_failure_recovery(strict_env):
         # (Msgpackは文字列をそのままUTF-8バイト列として埋め込むため、これで簡易検証可能です)
         assert b"Processed bad_item" in row[0]
 
+
 @pytest.mark.asyncio
 async def test_cache_consistency_verification(strict_env):
     """
     [Robustness] 入力が全く同じなら、キャッシュキーも一意になり、
     DBへの重複書き込みが発生しないことを検証する。
-    
+
     修正: 時間計測(Flaky)をやめ、実行回数カウンタでキャッシュヒットを証明する。
     """
     spot, db_path = strict_env
-    
+
     # 実行回数を追跡するカウンタ
     execution_count = 0
 
@@ -169,24 +182,23 @@ async def test_cache_consistency_verification(strict_env):
 
     # --- 1回目の実行 ---
     val1 = await deterministic_task(42)
-    
+
     assert val1 == 84
     assert execution_count == 1, "First run should execute the function body"
-    
+
     # DBの状態を確認
     counts_1 = inspect_db_counts(str(db_path))
     assert counts_1["total_records"] == 1
-    
+
     # --- 2回目の実行 (キャッシュヒットするはず) ---
     val2 = await deterministic_task(42)
-    
+
     assert val2 == 84
-    
+
     # 【重要】キャッシュヒットの証明
     # 関数本体が実行されていなければ、カウントは 1 のままであるはず
     assert execution_count == 1, "Cache hit failed! Function body was executed again."
-    
+
     # DBのレコード数が増えていないことを確認 (重複insertされていないか)
     counts_2 = inspect_db_counts(str(db_path))
     assert counts_2["total_records"] == 1, "Duplicate records found for same input!"
-

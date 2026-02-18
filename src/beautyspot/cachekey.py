@@ -1,12 +1,16 @@
 # src/beautyspot/cachekey.py
 
 import hashlib
+import logging
 import os
 import msgpack
 import inspect
 from enum import Enum, auto
 from functools import singledispatch
 from typing import Any, Union, Callable, Dict, ParamSpec
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 ReadableBuffer = Union[bytes, bytearray, memoryview]
 
@@ -27,6 +31,7 @@ def _safe_sort_key(obj: Any):
 # ---------------------------------------------------------------------------
 # Canonicalization helpers (extracted to reduce CC of the default handler)
 # ---------------------------------------------------------------------------
+
 
 def _canonicalize_ndarray(obj: Any) -> tuple:
     """Numpy-like array → tagged tuple with raw bytes (efficient & exact)."""
@@ -53,6 +58,7 @@ def _is_ndarray_like(obj: Any) -> bool:
 # ---------------------------------------------------------------------------
 # singledispatch canonicalize
 # ---------------------------------------------------------------------------
+
 
 @singledispatch
 def canonicalize(obj: Any) -> Any:
@@ -170,6 +176,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Strategy & Policy
 # ---------------------------------------------------------------------------
+
 
 class Strategy(Enum):
     """
@@ -292,7 +299,10 @@ class KeyGen:
             return hashlib.sha256(packed).hexdigest()
 
         except Exception:
-            # Fallback
+            logger.warning(
+                "Failed to canonicalize or pack arguments; falling back to str-based hash. "
+                "This may cause unexpected cache misses if argument repr is not stable."
+            )
             return hashlib.sha256(str((args, kwargs)).encode()).hexdigest()
 
     @staticmethod
@@ -335,4 +345,3 @@ class KeyGen:
         """
         strategies = {name: Strategy.PATH_STAT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
-

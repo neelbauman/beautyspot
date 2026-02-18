@@ -18,18 +18,20 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
     """
     if value is None:
         return None
-    
+
     if isinstance(value, timedelta):
         return value
-    
+
     if isinstance(value, int):
         return timedelta(seconds=value)
-    
+
     if isinstance(value, str):
         match = _TIME_PATTERN.match(value)
         if not match:
-            raise ValueError(f"Invalid retention format: '{value}'. Use format like '7d', '12h', '30m'.")
-        
+            raise ValueError(
+                f"Invalid retention format: '{value}'. Use format like '7d', '12h', '30m'."
+            )
+
         amount, unit = int(match.group(1)), match.group(2)
         if unit == "d":
             return timedelta(days=amount)
@@ -43,6 +45,7 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
 
 class Retention:
     """Constants for retention policies."""
+
     INDEFINITE = None
 
 
@@ -51,18 +54,19 @@ class Rule:
     """
     A rule defining retention policy based on function name pattern.
     """
-    pattern: str
-    retention: Optional[timedelta]
 
-    def __init__(self, pattern: str, retention: Union[str, timedelta, None]):
-        self.pattern = pattern
-        self.retention = parse_retention(retention)
+    pattern: str
+    retention: Union[str, timedelta, None]
+
+    def __post_init__(self):
+        self.retention = parse_retention(self.retention)
 
 
 class LifecyclePolicy:
     """
     Manages data retention policies based on function names.
     """
+
     def __init__(self, rules: List[Rule]):
         self.rules = rules
 
@@ -81,4 +85,3 @@ class LifecyclePolicy:
     def default(cls) -> "LifecyclePolicy":
         """Default policy: Everything is kept indefinitely."""
         return cls(rules=[])
-

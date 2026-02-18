@@ -84,11 +84,13 @@ def test_ml_pipeline_lifecycle(spot_env):
     # 前処理のロジックを変更 (x10 -> x20) し、バージョンを上げる
     # 注意: Pythonのデコレータの仕様上、同じ関数名で上書き定義することでシミュレート
     @spot.mark(version="v2")
-    def preprocess_v2(raw_data: dict): # func_name="preprocess" として登録したい場合は明示が必要だが、
-                                       # ここではフローのテストなので別関数として扱うか、
-                                       # 実践的にはコードを書き換える挙動を模倣する。
-                                       # ここでは依存関係の連鎖を見たいので、新しい関数として定義し、
-                                       # パイプラインに組み込む。
+    def preprocess_v2(
+        raw_data: dict,
+    ):  # func_name="preprocess" として登録したい場合は明示が必要だが、
+        # ここではフローのテストなので別関数として扱うか、
+        # 実践的にはコードを書き換える挙動を模倣する。
+        # ここでは依存関係の連鎖を見たいので、新しい関数として定義し、
+        # パイプラインに組み込む。
         call_counts["process"] += 1
         return [x * 20 for x in raw_data["data"]]
 
@@ -96,21 +98,21 @@ def test_ml_pipeline_lifecycle(spot_env):
     # load_data("dataset_A") は v1 のまま呼び出し -> キャッシュヒットするはず
     # preprocess_v2 は v2 なので新規実行 -> カウントアップ
     # train_model は入力が変わるため（preprocessの結果が変わる）、キャッシュミスして再実行 -> カウントアップ
-    
+
     data_v2 = load_data("dataset_A")
     features_v2 = preprocess_v2(data_v2)
     result_v2 = train_model(features_v2)
 
-    assert result_v2 == 300 # (15)*20 = 300
-    
+    assert result_v2 == 300  # (15)*20 = 300
+
     # 検証
-    assert call_counts["load"] == 1    # 変わらず (Cache Hit)
-    assert call_counts["process"] == 2 # +1 (New Version)
-    assert call_counts["train"] == 2   # +1 (Input Changed)
+    assert call_counts["load"] == 1  # 変わらず (Cache Hit)
+    assert call_counts["process"] == 2  # +1 (New Version)
+    assert call_counts["train"] == 2  # +1 (Input Changed)
 
     # --- Step 5: CLI インテグレーション ---
     print("\n--- Phase 4: CLI Stats Check ---")
-    
+
     # 生成されたDBファイルに対してCLIコマンドを実行
     cli_result = runner.invoke(app, ["stats", str(db_path)])
 
@@ -118,8 +120,7 @@ def test_ml_pipeline_lifecycle(spot_env):
     # 出力に含まれるべきキーワードの検証
     assert "Overview" in cli_result.stdout
     assert "Total Tasks" in cli_result.stdout
-    
+
     # 関数名が記録されているか
     assert "load_data" in cli_result.stdout
     assert "train_model" in cli_result.stdout
-

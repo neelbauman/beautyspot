@@ -12,12 +12,12 @@ from beautyspot.serializer import SerializationError
 from beautyspot.content_types import ContentType
 from beautyspot.db import TaskDBBase, SQLiteTaskDB
 from beautyspot.storage import (
-    BlobStorageBase, 
-    LocalStorage, 
+    BlobStorageBase,
+    LocalStorage,
     StoragePolicyProtocol,
-    WarningOnlyPolicy, 
+    WarningOnlyPolicy,
     ThresholdStoragePolicy,
-    AlwaysBlobPolicy
+    AlwaysBlobPolicy,
 )
 from beautyspot.serializer import SerializerProtocol, MsgpackSerializer
 
@@ -44,13 +44,13 @@ def Spot(
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
     default_wait: bool = True,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> _Spot:
     """
     Beautyspotのメインエントリポイント（Factory Function）。
     依存関係の解決とデフォルト設定の適用を行います。
     """
-    
+
     # 1. コンポーネントの解決 (DI)
     resolved_db = db or SQLiteTaskDB(f".beautyspot/{name}.db")
     resolved_ser = serializer or MsgpackSerializer()
@@ -60,7 +60,7 @@ def Spot(
     # 2. Storage Policy の解決 (Factory側でロジックを担保)
     #    ユーザーがポリシーを直接渡した場合はそれを優先
     resolved_policy: StoragePolicyProtocol
-    
+
     if storage_policy is not None:
         resolved_policy = storage_policy
     elif default_save_blob:
@@ -70,14 +70,13 @@ def Spot(
         # デフォルト動作: 警告のみ (ロガー注入)
         logger = logging.getLogger("beautyspot")
         resolved_policy = WarningOnlyPolicy(
-            warning_threshold=blob_warning_threshold,
-            logger=logger
+            warning_threshold=blob_warning_threshold, logger=logger
         )
 
     # 3. Coreへ渡すオプションの整理
     # SpotOptionsの型定義に合わせてパッキングしますが、
     # core.Spot が受け取らないレガシー引数はここでは渡さないように注意します。
-    
+
     return _Spot(
         name=name,
         db=resolved_db,
@@ -92,8 +91,9 @@ def Spot(
         default_version=default_version,
         default_content_type=default_content_type,
         default_wait=default_wait,
-        **kwargs
+        **kwargs,
     )
+
 
 __all__ = [
     "Spot",
@@ -110,4 +110,3 @@ __all__ = [
     "Rule",
     "Retention",
 ]
-

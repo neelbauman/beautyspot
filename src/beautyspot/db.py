@@ -56,7 +56,7 @@ class TaskDBBase(ABC):
     @abstractmethod
     def delete(self, cache_key: str) -> bool:
         pass
-    
+
     # --- Optional Maintenance Methods ---
     def delete_expired(self) -> int:
         """Delete tasks that have passed their expiration time."""
@@ -69,7 +69,9 @@ class TaskDBBase(ABC):
         )
         return 0
 
-    def get_outdated_tasks(self, older_than: datetime, func_name: Optional[str] = None) -> list[tuple[str, str, str]]:
+    def get_outdated_tasks(
+        self, older_than: datetime, func_name: Optional[str] = None
+    ) -> list[tuple[str, str, str]]:
         """
         Retrieve tasks older than the specified datetime (Preview for prune).
         """
@@ -79,9 +81,14 @@ class TaskDBBase(ABC):
         """Retrieve all 'result_value' entries that point to external storage."""
         return None
 
+    def delete_all(self, func_name: Optional[str] = None) -> int:
+        """Delete all tasks, optionally filtered by function name."""
+        return 0
+
     def get_keys_start_with(self, prefix: str) -> list[str]:
         """Retrieve cache keys that start with the given prefix."""
         return []
+
 
 class SQLiteTaskDB(TaskDBBase):
     """
@@ -122,10 +129,12 @@ class SQLiteTaskDB(TaskDBBase):
                 conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
             if "result_data" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
-            
+
             if "expires_at" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN expires_at TIMESTAMP;")
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);"
+                )
 
     def get(self, cache_key: str) -> Optional[TaskRecord]:
         with self._connect() as conn:
@@ -134,10 +143,10 @@ class SQLiteTaskDB(TaskDBBase):
                 "SELECT result_type, result_value, result_data, expires_at FROM tasks WHERE cache_key=?",
                 (cache_key,),
             ).fetchone()
-            
+
             if row:
                 r_type, r_val, r_data, exp_str = row
-                
+
                 # [ADD] Lazy Expiration Check
                 if exp_str:
                     try:
@@ -148,7 +157,7 @@ class SQLiteTaskDB(TaskDBBase):
                             # (Physical deletion is deferred to `beautyspot gc`)
                             return None
                     except (ValueError, TypeError):
-                        pass # Ignore parsing errors, treat as valid
+                        pass  # Ignore parsing errors, treat as valid
 
                 return {
                     "result_type": r_type,
@@ -167,7 +176,7 @@ class SQLiteTaskDB(TaskDBBase):
         content_type: Optional[str],
         result_value: Optional[str] = None,
         result_data: Optional[bytes] = None,
-        expires_at: Optional[datetime] = None, # [ADD] Added argument
+        expires_at: Optional[datetime] = None,  # [ADD] Added argument
     ):
         with self._connect() as conn:
             conn.execute(
@@ -185,7 +194,7 @@ class SQLiteTaskDB(TaskDBBase):
                     content_type,
                     result_value,
                     result_data,
-                    expires_at, # [ADD]
+                    expires_at,  # [ADD]
                 ),
             )
 
@@ -213,6 +222,16 @@ class SQLiteTaskDB(TaskDBBase):
             cursor = conn.execute("DELETE FROM tasks WHERE cache_key=?", (cache_key,))
             return cursor.rowcount > 0
 
+    def delete_all(self, func_name: Optional[str] = None) -> int:
+        with self._connect() as conn:
+            if func_name:
+                cursor = conn.execute(
+                    "DELETE FROM tasks WHERE func_name = ?", (func_name,)
+                )
+            else:
+                cursor = conn.execute("DELETE FROM tasks")
+            return cursor.rowcount
+
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
         cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
         with self._connect() as conn:
@@ -228,11 +247,13 @@ class SQLiteTaskDB(TaskDBBase):
                 )
             return cursor.rowcount
 
-    def get_outdated_tasks(self, older_than: datetime, func_name: Optional[str] = None) -> list[tuple[str, str, str]]:
+    def get_outdated_tasks(
+        self, older_than: datetime, func_name: Optional[str] = None
+    ) -> list[tuple[str, str, str]]:
         cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
         if not os.path.exists(self.db_path):
             return []
-            
+
         with self._connect() as conn:
             if func_name:
                 cursor = conn.execute(
@@ -249,12 +270,11 @@ class SQLiteTaskDB(TaskDBBase):
     def delete_expired(self) -> int:
         if not os.path.exists(self.db_path):
             return 0
-            
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         with self._connect() as conn:
             cursor = conn.execute(
-                "DELETE FROM tasks WHERE expires_at < ?", 
-                (now_str,)
+                "DELETE FROM tasks WHERE expires_at IS NOT NULL AND expires_at < ?",
+                (datetime.now().isoformat(),),
             )
             return cursor.rowcount
 
@@ -272,7 +292,7 @@ class SQLiteTaskDB(TaskDBBase):
     def get_keys_start_with(self, prefix: str) -> list[str]:
         if not os.path.exists(self.db_path):
             return []
-            
+
         with self._connect() as conn:
             # プレフィックス検索 (LIMITをつけて大量取得を防止)
             cursor = conn.execute(
@@ -280,4 +300,3 @@ class SQLiteTaskDB(TaskDBBase):
                 (f"{prefix}%",),
             )
             return [row[0] for row in cursor.fetchall()]
-

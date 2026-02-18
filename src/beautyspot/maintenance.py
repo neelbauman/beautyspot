@@ -19,13 +19,17 @@ class MaintenanceService:
     Service layer for administrative tasks, dashboard support, and system assembly.
     """
 
-    def __init__(self, db: TaskDBBase, storage: BlobStorageBase, serializer: SerializerProtocol):
+    def __init__(
+        self, db: TaskDBBase, storage: BlobStorageBase, serializer: SerializerProtocol
+    ):
         self.db = db
         self.storage = storage
         self.serializer = serializer
 
     @classmethod
-    def from_path(cls, db_path: str | Path, blob_dir: Optional[str | Path] = None) -> "MaintenanceService":
+    def from_path(
+        cls, db_path: str | Path, blob_dir: Optional[str | Path] = None
+    ) -> "MaintenanceService":
         """
         Factory method to assemble the system components (SQLite + Msgpack + Storage)
         from a database path.
@@ -45,7 +49,7 @@ class MaintenanceService:
             # または兄弟ディレクトリ: .beautyspot/blobs/
             parent = path.parent
             stem = path.stem
-            
+
             candidate = parent / stem / "blobs"
             if candidate.exists():
                 b_path = candidate
@@ -55,15 +59,16 @@ class MaintenanceService:
         db = SQLiteTaskDB(path)
         try:
             db.init_schema()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(
+                f"Failed to initialize schema for {path}: {e}. Proceeding with existing schema."
+            )
 
         return cls(
             db=db,
             storage=create_storage(str(b_path)),
             serializer=MsgpackSerializer(),
         )
-
 
     # --- Dashboard Support ---
 
@@ -91,13 +96,13 @@ class MaintenanceService:
             if r_type == "DIRECT_BLOB":
                 if r_blob is not None:
                     decoded_data = self.serializer.loads(r_blob)
-            
+
             elif r_type == "FILE":
                 if r_val:
                     # Storage からロードしてデシリアライズ
                     data_bytes = self.storage.load(r_val)
                     decoded_data = self.serializer.loads(data_bytes)
-        
+
         except Exception as e:
             logger.error(f"Failed to decode data for key '{cache_key}': {e}")
             # デコード失敗時は decoded_data は None のまま
@@ -132,7 +137,9 @@ class MaintenanceService:
 
     # --- Maintenance Operations ---
 
-    def get_prunable_tasks(self, days: int, func_name: Optional[str] = None) -> list[tuple[str, str, str]]:
+    def get_prunable_tasks(
+        self, days: int, func_name: Optional[str] = None
+    ) -> list[tuple[str, str, str]]:
         cutoff = datetime.now() - timedelta(days=days)
         return self.db.get_outdated_tasks(cutoff, func_name)
 
@@ -142,11 +149,10 @@ class MaintenanceService:
         count = self.db.prune(cutoff, func_name)
         logger.info(f"Deleted {count} tasks.")
         return count
-        
+
     def clear(self, func_name: Optional[str] = None) -> int:
-        future = datetime.now() + timedelta(days=365*100)
         logger.info(f"Clearing all tasks (func={func_name})...")
-        count = self.db.prune(future, func_name)
+        count = self.db.delete_all(func_name)
         logger.info(f"Cleared {count} tasks.")
         return count
 
@@ -166,19 +172,19 @@ class MaintenanceService:
         for location in self.storage.list_keys():
             # location は "subdir/abc.bin" の可能性がある
             filename = location.replace("\\", "/").split("/")[-1]
-            
+
             if filename not in ref_filenames:
                 orphans.append(location)
-        
+
         return orphans
 
     def clean_garbage(self, orphans: Optional[list[str]] = None) -> tuple[int, int]:
         if orphans is None:
             orphans = self.scan_garbage()
-        
+
         deleted_count = 0
-        freed_bytes = 0 
-        
+        freed_bytes = 0
+
         # Phase 1: ファイル削除
         if orphans:
             for location in orphans:
@@ -187,7 +193,7 @@ class MaintenanceService:
                     deleted_count += 1
                 except Exception as e:
                     logger.warning(f"Failed to delete orphan {location}: {e}")
-        
+
         # Phase 2: 空ディレクトリ掃除 (LocalStorageのみ)
         if hasattr(self.storage, "prune_empty_dirs"):
             try:
@@ -196,13 +202,13 @@ class MaintenanceService:
                     logger.info(f"Removed {dir_count} empty directories.")
             except Exception as e:
                 logger.warning(f"Failed to prune empty directories: {e}")
-        
+
         return deleted_count, freed_bytes
 
     def resolve_key_prefix(self, prefix: str) -> str | list[str] | None:
         """
         Resolve a potentially shortened key to a full cache key.
-        
+
         Returns:
             str: The single matching full key (Exact match or unique prefix match).
             list[str]: A list of conflicting candidates (Ambiguous).
@@ -211,16 +217,16 @@ class MaintenanceService:
         # 1. 完全一致を最優先でチェック
         if self.db.get(prefix):
             return prefix
-        
+
         # 2. プレフィックス検索
         candidates = self.db.get_keys_start_with(prefix)
-        
+
         if not candidates:
             return None
-            
+
         if len(candidates) == 1:
             return candidates[0]
-        
+
         # 3. 曖昧な場合 (複数の候補を返す)
         return candidates
 
@@ -235,7 +241,7 @@ class MaintenanceService:
         blobs_root = workspace_dir / "blobs"
         if not blobs_root.exists():
             return []
-        
+
         orphans = []
         for entry in blobs_root.iterdir():
             if entry.is_dir():
@@ -243,7 +249,7 @@ class MaintenanceService:
                 db_path = workspace_dir / f"{entry.name}.db"
                 if not db_path.exists():
                     orphans.append(entry)
-        
+
         return orphans
 
     @staticmethod
@@ -257,6 +263,3 @@ class MaintenanceService:
             except Exception as e:
                 logger.error(f"Failed to delete directory {path}: {e}")
                 raise e
-
-
-

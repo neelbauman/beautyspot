@@ -25,7 +25,7 @@ def test_project_defaults_run(tmp_path, inspect_db):
         # 検証
         entries = inspect_db(db_path)
         assert len(entries) == 1
-        
+
         # デフォルト値が適用されているか確認
         assert entries[0]["version"] == "v1"
         # result_typeがFILEならsave_blob=Trueが効いている
@@ -72,7 +72,7 @@ def test_default_version_applied(tmp_path):
     spot = Spot(
         name="version_test",
         db=SQLiteTaskDB(str(tmp_path / "v_test.db")),
-        default_version="v1.0"
+        default_version="v1.0",
     )
 
     @spot.mark
@@ -86,14 +86,15 @@ def test_default_version_applied(tmp_path):
     df = spot.db.get_history()
     assert len(df) == 1
     # バグがある場合、ここは None になりアサーションエラーになるはず
-    assert df.iloc[0]["version"] == "v1.0" 
+    assert df.iloc[0]["version"] == "v1.0"
+
 
 def test_override_default_version(tmp_path):
     """default_versionがあっても、個別に指定したversionが優先されるか"""
     spot = Spot(
         name="version_override",
         db=SQLiteTaskDB(str(tmp_path / "vo_test.db")),
-        default_version="v1.0"
+        default_version="v1.0",
     )
 
     @spot.mark(version="v2.0-beta")
@@ -104,4 +105,3 @@ def test_override_default_version(tmp_path):
 
     df = spot.db.get_history()
     assert df.iloc[0]["version"] == "v2.0-beta"
-

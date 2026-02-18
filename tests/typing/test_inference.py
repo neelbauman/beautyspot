@@ -4,18 +4,22 @@
 Tests for type inference using static analysis.
 Run this file with pyright, not pytest.
 """
+
 from typing import assert_type, Any
 import beautyspot
 from beautyspot import KeyGen
 
 spot = beautyspot.Spot("test_spot")
 
+
 # --- テスト用のダミー関数 ---
 def int_to_str(x: int) -> str:
     return str(x)
 
+
 def str_to_int(x: str) -> int:
     return len(x)
+
 
 # -----------------------------------------------------------------------------
 # Case 1: @spot.mark (Decorator)
@@ -23,6 +27,7 @@ def str_to_int(x: str) -> int:
 @spot.mark
 def marked_func(a: int, b: int) -> int:
     return a + b
+
 
 assert_type(marked_func(1, 2), int)
 
@@ -49,6 +54,7 @@ with spot.cached_run(int_to_str, str_to_int) as (task_1, task_2):
 def marked_identity[T](x: T) -> T:
     return x
 
+
 assert_type(marked_identity(10), int)
 assert_type(marked_identity("foo"), str)
 
@@ -59,9 +65,11 @@ assert_type(marked_identity("foo"), str)
 # Coroutine型の厳密一致チェックは実装依存(types.CoroutineType vs typing.Coroutine)で
 # 不安定なため、「await可能であり、awaitした結果の型が正しいか」を検証する。
 
+
 @spot.mark
 async def async_worker(x: int) -> float:
     return float(x)
+
 
 # async関数の中で await した結果の検証
 async def _async_check():
@@ -77,6 +85,7 @@ async def _async_check():
 def api_call(endpoint: str, token: str) -> dict[str, Any]:
     return {"data": "ok"}
 
+
 assert_type(api_call("https://example.com", token="secret"), dict[str, Any])
 
 
@@ -87,13 +96,16 @@ assert_type(api_call("https://example.com", token="secret"), dict[str, Any])
 def limited_operation(name: str) -> int:
     return len(name)
 
+
 assert_type(limited_operation("test"), int)
+
 
 # 重ねがけ（Stacking Decorators）
 @spot.limiter(cost=1)
 @spot.mark
 def stacked_operation(x: int) -> str:
     return str(x)
+
 
 assert_type(stacked_operation(123), str)
 
@@ -106,9 +118,10 @@ assert_type(stacked_operation(123), str)
 # これを防ぐために `decoder_factory` を使用する。
 # factory は (cls) -> (data) -> cls という構造を持つため、T が正しく cls にバインドされる。
 
+
 @spot.register(
-    code=100, 
-    encoder=lambda x: x.val, 
+    code=100,
+    encoder=lambda x: x.val,
     # decoder=... ではなく factory を使うのが Generic class decorator の定石
     decoder=lambda x: MyCustomType(x),
 )
@@ -119,10 +132,10 @@ class MyCustomType:
     def method(self) -> str:
         return str(self.val)
 
+
 # コンストラクタの型チェック
 instance = MyCustomType(val=42)
 assert_type(instance, MyCustomType)
 
 # メソッドの型チェック
 assert_type(instance.method(), str)
-

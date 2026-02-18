@@ -2,23 +2,24 @@
 import ast
 from pathlib import Path
 
+
 class DesignAnalyzer(ast.NodeVisitor):
     def __init__(self):
         self.current_class = None
         self.protocols = {}  # {Name: {methods}}
-        self.classes = {}    # {Name: {methods}}
-        self.relationships = [] # list of (Subject, Object, Type)
+        self.classes = {}  # {Name: {methods}}
+        self.relationships = []  # list of (Subject, Object, Type)
 
     def visit_ClassDef(self, node):
         methods = {n.name for n in node.body if isinstance(n, ast.FunctionDef)}
-        
+
         # Protocolかどうかの判定
         is_protocol = any(
-            (isinstance(b, ast.Name) and b.id == "Protocol") or
-            (isinstance(b, ast.Attribute) and b.attr == "Protocol")
+            (isinstance(b, ast.Name) and b.id == "Protocol")
+            or (isinstance(b, ast.Attribute) and b.attr == "Protocol")
             for b in node.bases
         )
-        
+
         if is_protocol:
             self.protocols[node.name] = methods - {"__init__", "..."}
         else:
@@ -46,9 +47,16 @@ class DesignAnalyzer(ast.NodeVisitor):
                 target_class = node.func.value.id
                 if target_class[0].isupper():
                     rel_type = "binds" if node.func.attr == "bind" else "uses"
-                    self.relationships.append((self.current_class, f"{target_class}.{node.func.attr}", rel_type))
+                    self.relationships.append(
+                        (
+                            self.current_class,
+                            f"{target_class}.{node.func.attr}",
+                            rel_type,
+                        )
+                    )
 
         self.generic_visit(node)
+
 
 def analyze_design(src_dir="src/beautyspot"):
     src_path = Path(src_dir)
@@ -70,22 +78,22 @@ def analyze_design(src_dir="src/beautyspot"):
     lines = ["graph LR"]
     # スタイル定義
     lines.append("    classDef protocol fill:#f9f,stroke:#333,stroke-width:2px;")
-    
+
     for proto in analyzer.protocols:
         lines.append(f"    class {proto} protocol;")
 
     for sub, obj, rel in sorted(list(set(analyzer.relationships))):
         if rel == "implements":
-            lines.append(f"    {sub} -. \"implements\" .-> {obj}")
+            lines.append(f'    {sub} -. "implements" .-> {obj}')
         elif rel == "creates":
-            lines.append(f"    {sub} -- \"creates\" --> {obj}")
+            lines.append(f'    {sub} -- "creates" --> {obj}')
         elif rel == "binds":
-            lines.append(f"    {sub} ==> \"binds\" ==> {obj}")
+            lines.append(f'    {sub} ==> "binds" ==> {obj}')
         elif rel == "uses":
-            lines.append(f"    {sub} -. \"uses\" .-> {obj}")
-            
+            lines.append(f'    {sub} -. "uses" .-> {obj}')
+
     return "\n".join(lines)
+
 
 if __name__ == "__main__":
     print(analyze_design())
-

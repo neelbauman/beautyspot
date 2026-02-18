@@ -35,7 +35,7 @@ def test_valid_save_load(storage):
 
     # v2.5.0 change: save() returns filename (relative path), not absolute path
     filename = storage.save(key, data)
-    
+
     # 検証: base_dir と結合してファイルの存在を確認
     # storage.base_dir は pathlib.Path オブジェクトです
     full_path = storage.base_dir / filename

@@ -510,11 +510,13 @@ def test_format_timestamp():
 
     # tests/integration/cli/test_cli.py
 
+
 # ... (既存のテストコード)
 
 # =============================================================================
 # Test: gc (Garbage Collection for Zombie Projects)
 # =============================================================================
+
 
 @pytest.fixture
 def workspace_with_zombies(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -568,10 +570,10 @@ def test_gc_force(workspace_with_zombies: Path):
     assert "Cleaned up 1 orphan projects" in result.stdout
 
     blobs_root = workspace_with_zombies / "blobs"
-    
+
     # Zombie should be gone
     assert not (blobs_root / "zombie").exists()
-    
+
     # Active should remain
     assert (blobs_root / "active").exists()
     assert (blobs_root / "active" / "data.bin").exists()
@@ -593,13 +595,14 @@ def test_gc_no_orphans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 # Test: Prune vs Clean Interaction
 # =============================================================================
 
+
 def test_prune_without_clean(temp_db_with_blobs: tuple[Path, Path]):
     """
     Test pruning tasks BUT keeping the files (--no-clean-blobs).
     This clarifies the distinction: Prune deletes DB rows, Clean deletes files.
     """
     db_path, blob_dir = temp_db_with_blobs
-    
+
     # Manually update the timestamp of the task to be old
     conn = sqlite3.connect(db_path)
     conn.execute(
@@ -610,12 +613,11 @@ def test_prune_without_clean(temp_db_with_blobs: tuple[Path, Path]):
 
     # Run Prune with --no-clean-blobs
     result = runner.invoke(
-        app, 
-        ["prune", str(db_path), "--days", "30", "--no-clean-blobs", "--force"]
+        app, ["prune", str(db_path), "--days", "30", "--no-clean-blobs", "--force"]
     )
 
     assert result.exit_code == 0
-    
+
     # 1. Task record should be gone
     conn = sqlite3.connect(db_path)
     count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
@@ -630,7 +632,6 @@ def test_prune_without_clean(temp_db_with_blobs: tuple[Path, Path]):
         app, ["clean", str(db_path), "--blob-dir", str(blob_dir), "--force"]
     )
     assert result_clean.exit_code == 0
-    
+
     # 4. Blob file should NOW be gone
     assert not (blob_dir / "referenced.bin").exists()
-

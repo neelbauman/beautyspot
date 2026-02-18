@@ -17,6 +17,7 @@ def get_args():
     args, _ = parser.parse_known_args()
     return args
 
+
 try:
     args = get_args()
     DB_PATH = args.db
@@ -134,7 +135,7 @@ if selected_key:
     if row:
         c_type = row.get("content_type")
         data = row.get("decoded_data")
-        
+
         col1, col2 = st.columns([1, 2])
 
         with col1:
@@ -211,4 +212,3 @@ if selected_key:
                 st.error(f"Failed to delete: {e}")
 else:
     st.info("Select a record to enable deletion.")
-

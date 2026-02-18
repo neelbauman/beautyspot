@@ -29,7 +29,7 @@ from beautyspot.limiter import LimiterProtocol
 from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
 from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
-from beautyspot.serializer import SerializationError, SerializerProtocol, TypeRegistryProtocol
+from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 
 # ジェネリクスの定義
@@ -121,6 +121,7 @@ class Spot:
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
     """
+
     def __init__(
         self,
         name: str,
@@ -130,27 +131,24 @@ class Spot:
         storage_backend: BlobStorageBase,
         storage_policy: StoragePolicyProtocol,
         limiter: LimiterProtocol,
-        
         # オプション設定
         executor: Optional[Executor] = None,
         io_workers: int = 4,
         default_wait: bool = True,
-
         # デフォルト動作設定
         default_version: Optional[str] = None,
         default_content_type: Optional[str] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
-
         **kwargs: Any,
     ) -> None:
         self.name = name
-        
+
         # --- 依存オブジェクトの注入 ---
         self.db = db
         self.serializer = serializer
         self.storage_backend = storage_backend
         self.storage_policy = storage_policy
-        self.bucket = limiter
+        self._limiter = limiter
 
         # --- オプション設定の適用 ---
         self.default_version = default_version
@@ -171,7 +169,9 @@ class Spot:
             self.executor = ThreadPoolExecutor(max_workers=io_workers)
             self._own_executor = True
             # GC時の安全なシャットダウン
-            self._finalizer = weakref.finalize(self, self._shutdown_executor, self.executor)
+            self._finalizer = weakref.finalize(
+                self, self._shutdown_executor, self.executor
+            )
 
         # 実行中のタスクを管理するセット
         self._active_futures = set()
@@ -197,7 +197,8 @@ class Spot:
 
     def shutdown(self, wait: bool = True):
         if self._own_executor and self._finalizer.alive:
-            self._finalizer()
+            self._finalizer.detach()
+            self.executor.shutdown(wait=wait)
 
     def __enter__(self) -> "Spot":
         return self
@@ -237,7 +238,7 @@ class Spot:
 
         if isinstance(target, KeyGenPolicy):
             return target.bind(func)
-        
+
         return target
 
     def register(
@@ -288,14 +289,14 @@ class Spot:
     ) -> tuple[bool | None, str | None, str | None, bool]:
         # [CHANGED] save_blob が None の場合、ここで False に解決せず None のまま通す。
         # これにより _save_result_sync で policy.should_save_as_blob() が呼ばれるようになる。
-        final_save_blob = save_blob 
+        final_save_blob = save_blob
 
         final_version = version if version is not None else self.default_version
         final_content_type = (
             content_type if content_type is not None else self.default_content_type
         )
         final_wait = wait if wait is not None else self.default_wait
-        
+
         return final_save_blob, final_version, final_content_type, final_wait
 
     def _make_cache_key(
@@ -316,24 +317,24 @@ class Spot:
         if version:
             key_source += f":{version}"
 
-        ck = hashlib.md5(key_source.encode()).hexdigest()
+        ck = hashlib.sha256(key_source.encode()).hexdigest()
         return iid, ck
 
     # --- ヘルパーメソッド: 有効期限の計算 ---
     def _calculate_expires_at(
         self, func_name: str, local_retention: Union[str, timedelta, None]
     ) -> Optional[datetime]:
-        
+
         # 1. ローカル指定 (優先度: 高)
         retention = parse_retention(local_retention)
-        
+
         # 2. ポリシー指定 (優先度: 低)
         if retention is None:
             retention = self.lifecycle_policy.resolve(func_name)
-            
+
         if retention is None:
-            return None # 無期限
-            
+            return None  # 無期限
+
         return datetime.now() + retention
 
     def _execute_sync(
@@ -354,8 +355,10 @@ class Spot:
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
             save_blob, version, content_type, wait
         )
-        
-        effective_key_fn = self._resolve_key_fn(func, keygen=keygen, input_key_fn=input_key_fn)
+
+        effective_key_fn = self._resolve_key_fn(
+            func, keygen=keygen, input_key_fn=input_key_fn
+        )
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
@@ -383,7 +386,7 @@ class Spot:
             "serializer": serializer,
             "expires_at": expires_at,
         }
-        
+
         # 解決済みの s_wait を使用
         if s_wait:
             self._save_result_sync(**save_kwargs)
@@ -408,8 +411,12 @@ class Spot:
         retention: Union[str, timedelta, None],
     ) -> Any:
         # Resolve Defaults
-        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(save_blob, version, content_type, wait)
-        effective_key_fn = self._resolve_key_fn(func, keygen=keygen, input_key_fn=input_key_fn)
+        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
+            save_blob, version, content_type, wait
+        )
+        effective_key_fn = self._resolve_key_fn(
+            func, keygen=keygen, input_key_fn=input_key_fn
+        )
 
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
@@ -417,7 +424,9 @@ class Spot:
         loop = asyncio.get_running_loop()
 
         # 1. Check Cache (Offload IO)
-        cached = await loop.run_in_executor(self.executor, self._check_cache_sync, ck, serializer)
+        cached = await loop.run_in_executor(
+            self.executor, self._check_cache_sync, ck, serializer
+        )
         if cached is not CACHE_MISS:
             return cached
 
@@ -427,7 +436,7 @@ class Spot:
         # 3. Calculate Expiration (New)
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
-        # 3. Save (Offload IO)
+        # 4. Save (Offload IO)
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
@@ -454,7 +463,9 @@ class Spot:
 
         return res
 
-    def _check_cache_sync(self, cache_key: str, serializer: Optional[SerializerProtocol] = None) -> Any:
+    def _check_cache_sync(
+        self, cache_key: str, serializer: Optional[SerializerProtocol] = None
+    ) -> Any:
         use_serializer = serializer or self.serializer
 
         entry = self.db.get(cache_key)
@@ -479,7 +490,9 @@ class Spot:
             # Case 2: External Blob
             elif r_type == "FILE":
                 if r_val is None:
-                    logger.warning(f"Data corruption: 'FILE' type record has no path for key `{cache_key}`")
+                    logger.warning(
+                        f"Data corruption: 'FILE' type record has no path for key `{cache_key}`"
+                    )
                     return CACHE_MISS
                 try:
                     data_bytes = self.storage_backend.load(r_val)
@@ -500,8 +513,7 @@ class Spot:
             # バックグラウンドでの失敗はメイン処理を止めないようログ出力に留める
             func_name = kwargs.get("func_name", "unknown")
             logger.error(
-                f"Background save failed for task '{func_name}': {e}", 
-                exc_info=True
+                f"Background save failed for task '{func_name}': {e}", exc_info=True
             )
 
     def _save_result_sync(
@@ -519,10 +531,7 @@ class Spot:
     ):
         use_serializer = serializer or self.serializer
 
-        try:
-            data_bytes = use_serializer.dumps(result)
-        except SerializationError as e:
-            raise e
+        data_bytes = use_serializer.dumps(result)
 
         # 1. 明示的な指定(True/False)があればそれに従う
         # 2. なければ(Noneであれば)ポリシーに問い合わせる
@@ -561,13 +570,13 @@ class Spot:
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
-                self.bucket.consume(c)
+                self._limiter.consume(c)
                 return func(*args, **kwargs)
 
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
-                await self.bucket.consume_async(c)
+                await self._limiter.consume_async(c)
                 return await func(*args, **kwargs)
 
             return async_wrapper if is_async else sync_wrapper
@@ -608,6 +617,7 @@ class Spot:
         Decorator to mark a function for caching and persistence.
         All logic is delegated to _execute_sync or _execute_async.
         """
+
         def decorator(func):
             # --- 1. Eager Validation (定義時チェック) ---
             # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
@@ -616,7 +626,7 @@ class Spot:
             self._resolve_key_fn(func, keygen, input_key_fn)
 
             is_async = inspect.iscoroutinefunction(func)
-            
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 return self._execute_sync(
@@ -629,7 +639,7 @@ class Spot:
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
-                    wait=wait, # None のまま渡す
+                    wait=wait,  # None のまま渡す
                     retention=retention,
                 )
 
@@ -645,7 +655,7 @@ class Spot:
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
-                    wait=wait, # None のまま渡す
+                    wait=wait,  # None のまま渡す
                     retention=retention,
                 )
 
@@ -714,4 +724,3 @@ class Spot:
             serializer=serializer,
             retention=retention,
         )
-

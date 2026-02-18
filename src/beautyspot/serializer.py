@@ -1,9 +1,19 @@
 # src/beautyspot/serializer.py
 
 import msgpack
-from typing import Any, Callable, Dict, Type, TypeVar, Tuple, Protocol, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Type,
+    TypeVar,
+    Tuple,
+    Protocol,
+    runtime_checkable,
+)
 
 T = TypeVar("T")
+
 
 @runtime_checkable
 class SerializerProtocol(Protocol):
@@ -11,29 +21,30 @@ class SerializerProtocol(Protocol):
     Protocol for custom serializers.
     Any object implementing these methods can be used as a serializer.
     """
-    def dumps(self, obj: Any, /) -> bytes:
-        ...
 
-    def loads(self, data: bytes, /) -> Any:
-        ...
+    def dumps(self, obj: Any, /) -> bytes: ...
+
+    def loads(self, data: bytes, /) -> Any: ...
+
 
 @runtime_checkable
 class TypeRegistryProtocol(Protocol):
     """
     Protocol for serializers that support custom type registration.
     """
+
     def register(
         self,
         type_class: Type[Any],
         code: int,
         encoder: Callable[[Any], Any],
         decoder: Callable[[Any], Any],
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class SerializationError(Exception):
     """Raised when an object cannot be serialized or deserialized."""
+
     pass
 
 
@@ -75,6 +86,8 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         Raises:
             ValueError: If the `code` is already registered.
         """
+        if not (0 <= code <= 127):
+            raise ValueError(f"ExtCode must be between 0 and 127, got {code}.")
         if code in self._decoders:
             raise ValueError(f"ExtCode {code} is already registered.")
 
@@ -172,7 +185,8 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         """
         try:
             result = msgpack.packb(obj, default=self._default_packer, use_bin_type=True)
-            assert result is not None
+            if result is None:
+                raise SerializationError("msgpack.packb returned None unexpectedly.")
             return result
         except Exception as e:
             if isinstance(e, SerializationError):

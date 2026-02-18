@@ -29,6 +29,7 @@ console = Console()
 # Helper Functions
 # =============================================================================
 
+
 def get_service(db_path: str, blob_dir: Optional[str] = None) -> MaintenanceService:
     """
     Initialize MaintenanceService from CLI arguments.
@@ -37,8 +38,9 @@ def get_service(db_path: str, blob_dir: Optional[str] = None) -> MaintenanceServ
     if not path.exists():
         console.print(f"[red]Error:[/red] Database not found: {db_path}")
         raise typer.Exit(1)
-    
+
     return MaintenanceService.from_path(path, blob_dir)
+
 
 def _is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -74,12 +76,11 @@ def _get_task_count(db_path: Path) -> int:
     """
     try:
         import sqlite3
-        conn = sqlite3.connect(db_path)
-        cursor = conn.execute("SELECT COUNT(*) FROM tasks")
-        result = cursor.fetchone()
-        count = result[0] if result else 0
-        conn.close()
-        return count
+
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM tasks")
+            result = cursor.fetchone()
+            return result[0] if result else 0
     except Exception:
         return -1
 
@@ -182,12 +183,12 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
             if len(str(row["input_id"])) > 20
             else str(row["input_id"])
         )
-        
+
         # [FIX] Avoid pd.notna() in conditional to satisfy strict type checkers
         # row.get returns Any, which might be scalar or None here.
         expires_at: Any = row.get("expires_at")
         expires_str = str(expires_at) if expires_at is not None else "-"
-        
+
         cache_key_short = str(row["cache_key"])[:8]
 
         table.add_row(
@@ -306,22 +307,24 @@ def show_cmd(
     🔍 Show details of a specific cached task.
     """
     service = get_service(db)
-    
+
     # Prefix-based key resolution
     resolved = service.resolve_key_prefix(cache_key)
 
     if resolved is None:
         console.print(f"[red]Error:[/red] Cache key not found: {cache_key}")
         raise typer.Exit(1)
-    
+
     if isinstance(resolved, list):
-        console.print(f"[yellow]Ambiguous key prefix '{cache_key}'. Candidates:[/yellow]")
+        console.print(
+            f"[yellow]Ambiguous key prefix '{cache_key}'. Candidates:[/yellow]"
+        )
         for cand in resolved[:10]:
             console.print(f"  - {cand}")
         if len(resolved) > 10:
             console.print(f"  [dim]... and {len(resolved) - 10} more[/dim]")
         raise typer.Exit(1)
-    
+
     real_key = resolved
 
     result = service.get_task_detail(real_key)
@@ -329,8 +332,8 @@ def show_cmd(
         console.print(f"[red]Error:[/red] Failed to retrieve details for: {real_key}")
         raise typer.Exit(1)
 
-    expires_at = result.get('expires_at')
-    
+    expires_at = result.get("expires_at")
+
     detail_text = (
         f"[bold]Cache Key:[/bold] [cyan]{real_key}[/cyan]\n"
         f"[bold]Result Type:[/bold] [yellow]{result.get('result_type')}[/yellow]\n"
@@ -352,7 +355,7 @@ def show_cmd(
     if data is not None:
         try:
             import json
-            
+
             if isinstance(data, (dict, list)):
                 json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
                 syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
@@ -371,7 +374,7 @@ def show_cmd(
                     Panel(
                         f"[dim]Type: {type(data).__name__}[/dim]\n{str(data)[:1000]}",
                         title="📦 Data Preview (Object)",
-                        border_style="blue"
+                        border_style="blue",
                     )
                 )
 
@@ -381,7 +384,9 @@ def show_cmd(
     elif result.get("result_data") is not None or (
         result.get("result_type") == "FILE" and result.get("result_value")
     ):
-        console.print("[yellow]Could not decode blob data (Serialization format mismatch or missing file).[/yellow]")
+        console.print(
+            "[yellow]Could not decode blob data (Serialization format mismatch or missing file).[/yellow]"
+        )
 
 
 @app.command("stats")
@@ -392,7 +397,7 @@ def stats_cmd(
     📊 Show cache statistics.
     """
     service = get_service(db)
-    
+
     try:
         df = service.get_history(limit=10000)
     except ImportError as e:
@@ -494,7 +499,7 @@ def clean_cmd(
     """
     service = get_service(db, blob_dir)
     orphans = service.scan_garbage()
-    
+
     if not orphans:
         console.print(
             Panel(
@@ -512,13 +517,13 @@ def clean_cmd(
         border_style="yellow",
     )
     table.add_column("File", style="cyan")
-    
+
     for orphan in orphans[:20]:
         table.add_row(Path(orphan).name)
-    
+
     if len(orphans) > 20:
         table.add_row(f"... and {len(orphans) - 20} more files")
-    
+
     console.print(table)
 
     if dry_run:
@@ -551,10 +556,15 @@ def gc_cmd(
         False, "--all", help="Scan all projects (currently the only mode)"
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be deleted without actually deleting",
     ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
-    expired: bool = typer.Option(True, "--expired/--no-expired", help="Remove expired tasks from DBs"),
+    expired: bool = typer.Option(
+        True, "--expired/--no-expired", help="Remove expired tasks from DBs"
+    ),
 ):
     """
     🗑️  Garbage Collect: Clean up expired tasks and orphan storage.
@@ -565,18 +575,22 @@ def gc_cmd(
     """
     workspace = Path(".beautyspot")
     if not workspace.exists():
-         console.print("[yellow]No .beautyspot directory found.[/yellow]")
-         raise typer.Exit(0)
+        console.print("[yellow]No .beautyspot directory found.[/yellow]")
+        raise typer.Exit(0)
 
     # --- 1. Expired Tasks Cleanup ---
     if expired:
         db_files = list(workspace.glob("**/*.db")) + list(workspace.glob("**/*.sqlite"))
-        
+
         if db_files:
-            console.print(f"[bold]Checking {len(db_files)} databases for expired tasks...[/bold]")
-            
+            console.print(
+                f"[bold]Checking {len(db_files)} databases for expired tasks...[/bold]"
+            )
+
             if dry_run:
-                console.print("[yellow]Dry run:[/yellow] Would scan and remove expired tasks.")
+                console.print(
+                    "[yellow]Dry run:[/yellow] Would scan and remove expired tasks."
+                )
             else:
                 total_expired = 0
                 for db_path in db_files:
@@ -584,14 +598,16 @@ def gc_cmd(
                         service = get_service(str(db_path))
                         count = service.delete_expired_tasks()
                         if count > 0:
-                            console.print(f"  [green]✓ {db_path.stem}: Removed {count} expired tasks[/green]")
+                            console.print(
+                                f"  [green]✓ {db_path.stem}: Removed {count} expired tasks[/green]"
+                            )
                             total_expired += count
                     except Exception as e:
                         console.print(f"  [red]x {db_path.stem}: Error ({e})[/red]")
-                
+
                 if total_expired == 0:
-                     console.print("  [dim]No expired tasks found.[/dim]")
-    
+                    console.print("  [dim]No expired tasks found.[/dim]")
+
     console.print()
 
     # --- 2. Zombie Projects Cleanup ---
@@ -613,10 +629,10 @@ def gc_cmd(
         box=None,
     )
     table.add_column("Path", style="red")
-    
+
     for path in orphans:
         table.add_row(f"- {path}")
-    
+
     console.print(table)
     console.print()
 
@@ -637,13 +653,13 @@ def gc_cmd(
         console=console,
     ) as progress:
         task = progress.add_task("Cleaning up...", total=len(orphans))
-        
+
         for path in orphans:
             try:
                 MaintenanceService.delete_project_storage(path)
                 deleted_count += 1
             except Exception:
-                pass 
+                pass
             progress.advance(task)
 
     console.print(f"[green]✓ Cleaned up {deleted_count} orphan projects.[/green]")
@@ -673,7 +689,7 @@ def prune_cmd(
 ):
     """
     🗓️  Prune old cached tasks (time-based expiration).
-    
+
     Deletes task records older than the specified number of days.
     By default, it also removes the associated blob files (implied --clean-blobs).
     """
@@ -738,7 +754,7 @@ def prune_cmd(
 
     if clean_blobs:
         console.print("\n[dim]Running blob cleanup...[/dim]")
-        
+
         orphans = service.scan_garbage()
         if orphans:
             c, _ = service.clean_garbage(orphans)
@@ -774,4 +790,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

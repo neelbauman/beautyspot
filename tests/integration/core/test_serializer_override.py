@@ -6,13 +6,16 @@ from beautyspot.db import SQLiteTaskDB
 
 # --- Helpers ---
 
+
 class NonMsgpackable:
     """Class that Msgpack cannot serialize by default, but Pickle can."""
+
     def __init__(self, val):
         self.val = val
-    
+
     def __eq__(self, other):
         return self.val == other.val
+
 
 def test_override_with_pickle_mark(tmp_path):
     """Test that @spot.mark(serializer=pickle) handles non-msgpackable objects."""
@@ -34,8 +37,9 @@ def test_override_with_pickle_mark(tmp_path):
     # (In a real unit test we might mock, but here we trust the behavior)
     obj2 = create_complex(10)
     assert obj2 is not obj1  # Should be a new instance from unpickling
-    assert obj2 == obj1      # Value equality
-    
+    assert obj2 == obj1  # Value equality
+
+
 def test_override_with_pickle_cached_run(tmp_path):
     """Test that spot.cached_run(serializer=pickle) works."""
     spot = bs.Spot("test_pickle_run", db=SQLiteTaskDB(tmp_path / "test.db"))
@@ -48,11 +52,12 @@ def test_override_with_pickle_cached_run(tmp_path):
     with spot.cached_run(heavy_set_op, serializer=pickle) as task:
         res1 = task(1, 2)
         assert res1 == {1, 2}
-    
+
     # 2. Run again (Hit cache)
     with spot.cached_run(heavy_set_op, serializer=pickle) as task:
         res2 = task(1, 2)
         assert res2 == {1, 2}
+
 
 def test_fallback_on_serializer_mismatch(tmp_path):
     """
@@ -73,7 +78,7 @@ def test_fallback_on_serializer_mismatch(tmp_path):
     # 2. Define SAME task but without override (defaults to Msgpack)
     # Note: Function name must match for cache key to collide
     spot2 = bs.Spot("test_mismatch", db=SQLiteTaskDB(db_path))
-    
+
     @spot2.mark
     def my_task_2(x):
         return f"value-{x}-recomputed"
@@ -82,6 +87,5 @@ def test_fallback_on_serializer_mismatch(tmp_path):
     # The existing cache is a pickled blob. Msgpack.unpack will likely fail (or produce garbage).
     # BeautySpot should catch the error and re-execute.
     val2 = my_task_2("A")
-    
-    assert val2 == "value-A-recomputed"
 
+    assert val2 == "value-A-recomputed"

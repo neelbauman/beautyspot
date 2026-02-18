@@ -20,14 +20,16 @@ ReadableBuffer: TypeAlias = bytes | bytearray | memoryview
 
 # --- Storage Policies ---
 
+
 @runtime_checkable
 class StoragePolicyProtocol(Protocol):
     """
     Protocol to determine if data should be saved as a blob (file/object storage)
     or directly in the database based on the data content (usually size).
     """
-    def should_save_as_blob(self, data: bytes) -> bool:
-        ...
+
+    def should_save_as_blob(self, data: bytes) -> bool: ...
+
 
 @dataclass
 class ThresholdStoragePolicy(StoragePolicyProtocol):
@@ -35,10 +37,12 @@ class ThresholdStoragePolicy(StoragePolicyProtocol):
     Policy that saves data as a blob if its size exceeds a configured threshold.
     This is the recommended policy for automatic optimization.
     """
+
     threshold: int
 
     def should_save_as_blob(self, data: bytes) -> bool:
         return len(data) > self.threshold
+
 
 @dataclass
 class WarningOnlyPolicy(StoragePolicyProtocol):
@@ -46,6 +50,7 @@ class WarningOnlyPolicy(StoragePolicyProtocol):
     Policy for backward compatibility (v2.0 behavior).
     Does not force blob storage, but logs a warning if size exceeds threshold.
     """
+
     warning_threshold: int
     logger: logging.Logger
 
@@ -57,17 +62,20 @@ class WarningOnlyPolicy(StoragePolicyProtocol):
             )
         return False
 
+
 @dataclass
 class AlwaysBlobPolicy(StoragePolicyProtocol):
     """
     Policy that always saves data as a blob.
     Equivalent to setting `default_save_blob=True`.
     """
+
     def should_save_as_blob(self, data: bytes) -> bool:
         return True
 
 
 # --- Blob Storage Implementations ---
+
 
 class CacheCorruptedError(Exception):
     """Raised when blob data cannot be deserialized (e.g. code changes)."""
@@ -130,30 +138,30 @@ class LocalStorage(BlobStorageBase):
         self._validate_key(key)
         filename = f"{key}.bin"
         filepath = self.base_dir / filename
-        
+
         # Atomic write
         temp_path = self.base_dir / f"{filename}.tmp"
         with open(temp_path, "wb") as f:
             f.write(data)
 
         temp_path.replace(filepath)
-        
+
         # [CHANGED] Return filename (relative path) instead of absolute path
         # This enables portability of the DB/Blob set across different environments.
         return filename
 
     def load(self, location: str) -> bytes:
         # [CHANGED] Resolve location relative to base_dir.
-        # Note: If 'location' is an absolute path (legacy data), pathlib behavior 
+        # Note: If 'location' is an absolute path (legacy data), pathlib behavior
         # (base / abs) returns abs, so backward compatibility on the same machine is preserved.
         full_path = (self.base_dir / location).resolve()
 
         # Security check: Ensure the path is strictly within the base_dir
-        if not str(full_path).startswith(str(self.base_dir)):
+        if not full_path.is_relative_to(self.base_dir):
             raise ValueError(
                 f"Access denied: {location} resolves to {full_path}, which is outside {self.base_dir}"
             )
-            
+
         if not full_path.exists():
             raise FileNotFoundError(f"Local blob lost: {full_path}")
 
@@ -166,9 +174,9 @@ class LocalStorage(BlobStorageBase):
         up to and including the base_dir.
         """
         full_path = (self.base_dir / location).resolve()
-        
-        if not str(full_path).startswith(str(self.base_dir)):
-             return
+
+        if not full_path.is_relative_to(self.base_dir):
+            return
 
         try:
             os.remove(full_path)
@@ -182,13 +190,12 @@ class LocalStorage(BlobStorageBase):
         """
         if not self.base_dir.exists():
             return
-            
+
         # [変更] rglob で再帰的に探索
         for entry in self.base_dir.rglob("*.bin"):
             if entry.is_file():
                 # [変更] base_dir からの相対パスを返す
                 yield str(entry.relative_to(self.base_dir))
-
 
     def prune_empty_dirs(self) -> int:
         """
@@ -201,24 +208,24 @@ class LocalStorage(BlobStorageBase):
 
         IGNORED_FILES = {".DS_Store", "Thumbs.db", "desktop.ini"}
         removed_count = 0
-        
+
         # os.walk(topdown=False) で深い階層から順に処理
         for root, dirs, files in os.walk(self.base_dir, topdown=False):
             path = Path(root)
-            
+
             existing_files = set(files)
-            
+
             # 無視リスト以外のファイルがある場合 -> 削除不可
             if existing_files - IGNORED_FILES:
-                continue 
-            
+                continue
+
             # 無視リストにあるファイルしか残っていない場合、それらを消して空にする
             for f in existing_files:
                 try:
                     (path / f).unlink()
                 except OSError:
                     pass
-            
+
             # ディレクトリ削除を試みる
             try:
                 path.rmdir()
@@ -279,4 +286,3 @@ def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
         return S3Storage(path, options)
 
     return LocalStorage(path)
-

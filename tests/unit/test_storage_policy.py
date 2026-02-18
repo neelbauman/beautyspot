@@ -8,6 +8,7 @@ from beautyspot.storage import (
     AlwaysBlobPolicy,
 )
 
+
 class TestThresholdStoragePolicy:
     def test_below_threshold(self):
         # 100バイトの閾値に対して、10バイトのデータ
@@ -33,11 +34,11 @@ class TestWarningOnlyPolicy:
         # WarningOnlyPolicy はデータサイズに関わらず常に False を返すべき
         logger = Mock(spec=logging.Logger)
         policy = WarningOnlyPolicy(warning_threshold=100, logger=logger)
-        
+
         # 小さいデータ
         assert policy.should_save_as_blob(b"small") is False
         logger.warning.assert_not_called()
-        
+
         # 大きいデータ
         assert policy.should_save_as_blob(b"x" * 150) is False
         # 警告ログが呼ばれたか確認
@@ -51,4 +52,3 @@ class TestAlwaysBlobPolicy:
         policy = AlwaysBlobPolicy()
         assert policy.should_save_as_blob(b"") is True
         assert policy.should_save_as_blob(b"large" * 1000) is True
-

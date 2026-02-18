@@ -41,14 +41,16 @@ class TestMaintenanceServiceDetail:
         mock_db.get.return_value = None
         assert service.get_task_detail("missing_key") is None
 
-    def test_get_task_detail_direct_blob_success(self, service, mock_db, mock_serializer):
+    def test_get_task_detail_direct_blob_success(
+        self, service, mock_db, mock_serializer
+    ):
         """DIRECT_BLOB 型でデータがある場合、デシリアライズして返すこと"""
         mock_db.get.return_value = {
             "result_type": "DIRECT_BLOB",
             "result_data": b"packed_data",
             "result_value": None,
         }
-        
+
         # [Fix] side_effect を解除して return_value を有効にする
         mock_serializer.loads.side_effect = None
         mock_serializer.loads.return_value = "decoded_object"
@@ -58,7 +60,9 @@ class TestMaintenanceServiceDetail:
         assert result["decoded_data"] == "decoded_object"
         mock_serializer.loads.assert_called_once_with(b"packed_data")
 
-    def test_get_task_detail_file_success(self, service, mock_db, mock_storage, mock_serializer):
+    def test_get_task_detail_file_success(
+        self, service, mock_db, mock_storage, mock_serializer
+    ):
         """FILE 型の場合、Storageから読み込んでデシリアライズすること"""
         mock_db.get.return_value = {
             "result_type": "FILE",
@@ -66,7 +70,7 @@ class TestMaintenanceServiceDetail:
             "result_data": None,
         }
         mock_storage.load.return_value = b"file_content"
-        
+
         # [Fix] side_effect を解除
         mock_serializer.loads.side_effect = None
         mock_serializer.loads.return_value = "decoded_file"
@@ -155,7 +159,7 @@ class TestMaintenanceFactory:
     """
     from_path ファクトリのテスト
     """
-    
+
     # [Fix] patchの対象をメンテナンスモジュールではなく、実体の定義場所に変更する
     # maintenance.py ではこれらを関数内で import しているため、
     # そのインポート元を patch すれば、関数実行時に Mock が使われる
@@ -166,7 +170,7 @@ class TestMaintenanceFactory:
         """パスから正しくコンポーネントを組み立てられるか"""
         # Given
         db_path = Path("/tmp/test.db")
-        
+
         # When
         svc = MaintenanceService.from_path(db_path)
 
@@ -176,4 +180,3 @@ class TestMaintenanceFactory:
         expected_blob_path = str(db_path.parent / "blobs")
         MockCreateStorage.assert_called_once_with(expected_blob_path)
         assert isinstance(svc, MaintenanceService)
-

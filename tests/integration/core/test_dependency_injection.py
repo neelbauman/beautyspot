@@ -80,7 +80,11 @@ class MockDB(TaskDBBase):
 def test_custom_storage_injection(tmp_path):
     """Test injecting a custom storage backend."""
     storage = MockStorage()
-    project = Spot(name="di_test", db=SQLiteTaskDB(str(tmp_path / "test.db")), storage_backend=storage)
+    project = Spot(
+        name="di_test",
+        db=SQLiteTaskDB(str(tmp_path / "test.db")),
+        storage_backend=storage,
+    )
 
     @project.mark(save_blob=True)
     def blob_task():
@@ -102,7 +106,9 @@ def test_custom_db_injection(tmp_path):
     """Test injecting a custom DB backend."""
 
     db = MockDB()
-    project = Spot(name="di_test", db=db, storage_backend=LocalStorage(tmp_path / "blobs"))
+    project = Spot(
+        name="di_test", db=db, storage_backend=LocalStorage(tmp_path / "blobs")
+    )
 
     @project.mark
     def simple_task():

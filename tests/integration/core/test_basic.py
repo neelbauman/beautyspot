@@ -16,6 +16,7 @@ def spot(tmp_path):
         storage_backend=LocalStorage(tmp_path / "blobs"),
     )
 
+
 def test_mark_execution(spot):
     """タスク(@mark)が実行され、結果が保存されるか"""
 

@@ -8,11 +8,9 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class LimiterProtocol(Protocol):
-    def consume(self, cost: int) -> None:
-        ...
+    def consume(self, cost: int) -> None: ...
 
-    async def consume_async(self, cost: int) -> None:
-        ...
+    async def consume_async(self, cost: int) -> None: ...
 
 
 class TokenBucket(LimiterProtocol):
@@ -107,4 +105,3 @@ class TokenBucket(LimiterProtocol):
         wait_time = self._consume_reservation(cost)
         if wait_time > 0:
             await asyncio.sleep(wait_time)
-
