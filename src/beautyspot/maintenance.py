@@ -199,6 +199,31 @@ class MaintenanceService:
         
         return deleted_count, freed_bytes
 
+    def resolve_key_prefix(self, prefix: str) -> str | list[str] | None:
+        """
+        Resolve a potentially shortened key to a full cache key.
+        
+        Returns:
+            str: The single matching full key (Exact match or unique prefix match).
+            list[str]: A list of conflicting candidates (Ambiguous).
+            None: No match found.
+        """
+        # 1. 完全一致を最優先でチェック
+        if self.db.get(prefix):
+            return prefix
+        
+        # 2. プレフィックス検索
+        candidates = self.db.get_keys_start_with(prefix)
+        
+        if not candidates:
+            return None
+            
+        if len(candidates) == 1:
+            return candidates[0]
+        
+        # 3. 曖昧な場合 (複数の候補を返す)
+        return candidates
+
     # --- Zombie Project Cleanup (gc command) ---
 
     @staticmethod
@@ -232,4 +257,6 @@ class MaintenanceService:
             except Exception as e:
                 logger.error(f"Failed to delete directory {path}: {e}")
                 raise e
+
+
 

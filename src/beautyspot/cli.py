@@ -5,7 +5,7 @@ import socket
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 import typer
 from rich.console import Console
@@ -70,28 +70,14 @@ def _format_timestamp(timestamp: float) -> str:
 
 def _get_task_count(db_path: Path) -> int:
     """
-    Get task count.
-    Note: Ideally we should use Spot to query this, but creating Spot
-    for just listing databases might be heavy. Keeping simple sqlite3 check here
-    is acceptable for `list_databases` discovery, OR we can instantiate Spot.
-    For consistency with removing deps, let's try to instantiate Spot if cheap,
-    OR keep this isolated helper.
-    Since `list_databases` scans many files, instantiating Spot for each is slow.
-    Let's use a minimal sqlite3 connection here, AS AN EXCEPTION for performance,
-    OR just show '-' if we strictly want to avoid sqlite3 import in CLI.
-    
-    Strictly speaking, the user asked to remove direct dependency on `db`, `storage`, `serializer`.
-    `sqlite3` is a standard library.
-    If we want to be strict, we can remove `_get_task_count` or make it use Spot.
-    Let's try to use Spot.from_path but simpler? No, Spot initializes schema etc.
-    
-    Let's keep `sqlite3` here as it's a file format checker, not a dependency on our internal `SQLiteTaskDB` class.
+    Get task count using a lightweight sqlite3 connection.
     """
     try:
         import sqlite3
         conn = sqlite3.connect(db_path)
         cursor = conn.execute("SELECT COUNT(*) FROM tasks")
-        count = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        count = result[0] if result else 0
         conn.close()
         return count
     except Exception:
@@ -160,7 +146,6 @@ def _list_databases():
 
 def _list_tasks(db: str, limit: int, func: Optional[str]):
     spot = get_service(db)
-    # Using spot.db (TaskDB interface) instead of SQLiteTaskDB
     df = spot.db.get_history(limit=limit)
 
     if df.empty:
@@ -168,7 +153,8 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
         raise typer.Exit(0)
 
     if func:
-        df = df[df["func_name"].str.contains(func, na=False)]  # type: ignore[union-attr]
+        # Note: Filtering DataFrame returns DataFrame, so this is safe from 'if df:' issue
+        df = df[df["func_name"].str.contains(func, na=False)]  # type: ignore
         if df.empty:
             console.print(f"[yellow]No tasks found for function: {func}[/yellow]")
             raise typer.Exit(0)
@@ -181,25 +167,38 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
     )
 
     table.add_column("Function", style="cyan", no_wrap=True)
+    table.add_column("Cache Key", style="magenta", no_wrap=True)
     table.add_column("Input ID", style="dim", max_width=20)
     table.add_column("Version", style="green")
     table.add_column("Type", style="yellow")
     table.add_column("Content", style="blue")
     table.add_column("Updated", style="dim")
+    table.add_column("Expires", style="red")
 
+    # iterrows yields (index, Series)
     for _, row in df.iterrows():
         input_id = (
             str(row["input_id"])[:20] + "..."
             if len(str(row["input_id"])) > 20
             else str(row["input_id"])
         )
+        
+        # [FIX] Avoid pd.notna() in conditional to satisfy strict type checkers
+        # row.get returns Any, which might be scalar or None here.
+        expires_at: Any = row.get("expires_at")
+        expires_str = str(expires_at) if expires_at is not None else "-"
+        
+        cache_key_short = str(row["cache_key"])[:8]
+
         table.add_row(
             str(row["func_name"]),
+            cache_key_short,
             input_id,
             str(row["version"] or "-"),
             str(row["result_type"]),
             str(row["content_type"] or "-"),
             str(row["updated_at"]),
+            expires_str,
         )
 
     console.print(table)
@@ -301,28 +300,43 @@ def list_cmd(
 @app.command("show")
 def show_cmd(
     db: str = typer.Argument(..., help="Path to SQLite database file"),
-    cache_key: str = typer.Argument(..., help="Cache key to inspect"),
+    cache_key: str = typer.Argument(..., help="Cache key (full or prefix) to inspect"),
 ):
     """
     🔍 Show details of a specific cached task.
     """
-    # 1. サービスを取得 (Spotインスタンスは不要)
     service = get_service(db)
     
-    # 2. 詳細を取得
-    # get_task_detail は DBレコードに加え、復元に成功すれば 'decoded_data' を含んで返す
-    result = service.get_task_detail(cache_key)
+    # Prefix-based key resolution
+    resolved = service.resolve_key_prefix(cache_key)
 
-    if result is None:
+    if resolved is None:
         console.print(f"[red]Error:[/red] Cache key not found: {cache_key}")
         raise typer.Exit(1)
+    
+    if isinstance(resolved, list):
+        console.print(f"[yellow]Ambiguous key prefix '{cache_key}'. Candidates:[/yellow]")
+        for cand in resolved[:10]:
+            console.print(f"  - {cand}")
+        if len(resolved) > 10:
+            console.print(f"  [dim]... and {len(resolved) - 10} more[/dim]")
+        raise typer.Exit(1)
+    
+    real_key = resolved
 
-    # 3. メタデータの表示
+    result = service.get_task_detail(real_key)
+    if result is None:
+        console.print(f"[red]Error:[/red] Failed to retrieve details for: {real_key}")
+        raise typer.Exit(1)
+
+    expires_at = result.get('expires_at')
+    
     detail_text = (
-        f"[bold]Cache Key:[/bold] [cyan]{cache_key}[/cyan]\n"
+        f"[bold]Cache Key:[/bold] [cyan]{real_key}[/cyan]\n"
         f"[bold]Result Type:[/bold] [yellow]{result.get('result_type')}[/yellow]\n"
         f"[bold]Result Value:[/bold] {result.get('result_value') or '-'}\n"
-        f"[bold]Has Blob Data:[/bold] {'Yes' if result.get('result_data') else 'No'}"
+        f"[bold]Has Blob Data:[/bold] {'Yes' if result.get('result_data') else 'No'}\n"
+        f"[bold]Expires At:[/bold] [red]{expires_at if expires_at else '-'}[/red]"
     )
 
     console.print(
@@ -333,8 +347,6 @@ def show_cmd(
         )
     )
 
-    # 4. データの中身（デコード済み）の表示
-    # Service側ですでにデシリアライズされているので、ここでは表示方法だけを考える
     data = result.get("decoded_data")
 
     if data is not None:
@@ -342,14 +354,12 @@ def show_cmd(
             import json
             
             if isinstance(data, (dict, list)):
-                # JSONとして綺麗に表示
                 json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str)
                 syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
                 console.print(
                     Panel(syntax, title="📦 Data Preview (JSON)", border_style="blue")
                 )
             elif isinstance(data, str):
-                # 長すぎる文字列は省略して表示
                 preview = data[:1000] + "..." if len(data) > 1000 else data
                 console.print(
                     Panel(
@@ -357,7 +367,6 @@ def show_cmd(
                     )
                 )
             else:
-                # その他のオブジェクト
                 console.print(
                     Panel(
                         f"[dim]Type: {type(data).__name__}[/dim]\n{str(data)[:1000]}",
@@ -369,7 +378,6 @@ def show_cmd(
         except Exception as e:
             console.print(f"[yellow]Error displaying data: {e}[/yellow]")
 
-    # データが存在するはずだが、デコードに失敗している場合 (decoded_data が None)
     elif result.get("result_data") is not None or (
         result.get("result_type") == "FILE" and result.get("result_value")
     ):
@@ -385,16 +393,6 @@ def stats_cmd(
     """
     service = get_service(db)
     
-    # Check for pandas presence is handled inside TaskDB.get_history or here
-    # TaskDB.get_history raises ImportError if pandas is missing, so we can wrap it.
-    try:
-        import pandas as pd
-    except ImportError:
-        console.print(
-            "[red]Error:[/red] pandas is required. Install with: pip install pandas"
-        )
-        raise typer.Exit(1)
-
     try:
         df = service.get_history(limit=10000)
     except ImportError as e:
@@ -406,9 +404,9 @@ def stats_cmd(
         raise typer.Exit(0)
 
     total_tasks = len(df)
-    unique_functions = df["func_name"].nunique()  # type: ignore[union-attr]
-    result_types = df["result_type"].value_counts().to_dict()  # type: ignore[union-attr]
-    content_types = df["content_type"].value_counts().to_dict()  # type: ignore[union-attr]
+    unique_functions = df["func_name"].nunique()  # type: ignore
+    result_types = df["result_type"].value_counts().to_dict()  # type: ignore
+    content_types = df["content_type"].value_counts().to_dict()  # type: ignore
 
     summary = (
         f"[bold]Total Tasks:[/bold] [cyan]{total_tasks:,}[/cyan]\n"
@@ -429,10 +427,12 @@ def stats_cmd(
         ct_table.add_column("Type", style="blue")
         ct_table.add_column("Count", style="cyan", justify="right")
         for ct, count in content_types.items():
-            ct_table.add_row(str(ct) if pd.notna(ct) else "-", str(count))
+            # [FIX] Avoid pd.notna(ct) in conditional
+            ct_str = str(ct) if ct else "-"
+            ct_table.add_row(ct_str, str(count))
         console.print(ct_table)
 
-    top_funcs = df["func_name"].value_counts().head(10).to_dict()  # type: ignore[union-attr]
+    top_funcs = df["func_name"].value_counts().head(10).to_dict()  # type: ignore
     if top_funcs:
         func_table = Table(title="Top Functions", border_style="blue")
         func_table.add_column("Function", style="cyan")
@@ -465,11 +465,7 @@ def clear_cmd(
             raise typer.Exit(0)
 
     service = get_service(db)
-    
-    # Use the new clear method in MaintenanceService
-    # This delegates to prune with a future date, avoiding direct sqlite3 usage here
     deleted = service.clear(func)
-    
     console.print(f"[green]✓ Deleted {deleted} tasks.[/green]")
 
 
@@ -495,10 +491,6 @@ def clean_cmd(
 
     Removes files in the storage directory that are NOT referenced by any task in the database.
     Use this to clean up leftover files after manual DB operations or errors.
-
-    [bold]Note:[/bold] This command is designed primarily for the standard directory structure.
-    If you are using custom storage paths or backends (e.g. S3), please ensure
-    you explicitly verify the target with [cyan]--dry-run[/cyan] before deletion.
     """
     service = get_service(db, blob_dir)
     orphans = service.scan_garbage()
@@ -553,10 +545,6 @@ def clean_cmd(
     console.print(f"[green]✓ Deleted {count} orphaned blob files.[/green]")
 
 
-# src/beautyspot/cli.py
-
-# ... (既存のimport) ...
-
 @app.command("gc")
 def gc_cmd(
     all: bool = typer.Option(
@@ -566,38 +554,59 @@ def gc_cmd(
         False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"
     ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
-    expired: bool = typer.Option(True, "--expired/--no-expired"),
+    expired: bool = typer.Option(True, "--expired/--no-expired", help="Remove expired tasks from DBs"),
 ):
     """
-    🗑️  Garbage Collect: Remove 'zombie' blob directories with no matching DB.
+    🗑️  Garbage Collect: Clean up expired tasks and orphan storage.
 
-    Scans the [bold].beautyspot/blobs/[/bold] directory for folders that do NOT have a 
-    corresponding [bold].db[/bold] file in the workspace.
-    
-    Use this when you have manually deleted a .db file but the blob directory remains.
-    
-    Checks [bold].beautyspot/blobs/[/bold] for directories that do not have a corresponding
-    [bold].db[/bold] file in [bold].beautyspot/[/bold].
+    Performs two types of cleanup:
+    1. [bold]Expired Tasks[/bold]: Removes tasks where `expires_at < NOW` from all databases.
+    2. [bold]Zombie Projects[/bold]: Removes blob directories that have no corresponding .db file.
     """
     workspace = Path(".beautyspot")
     if not workspace.exists():
          console.print("[yellow]No .beautyspot directory found.[/yellow]")
          raise typer.Exit(0)
 
-    # 1. ゾンビプロジェクトのスキャン
+    # --- 1. Expired Tasks Cleanup ---
+    if expired:
+        db_files = list(workspace.glob("**/*.db")) + list(workspace.glob("**/*.sqlite"))
+        
+        if db_files:
+            console.print(f"[bold]Checking {len(db_files)} databases for expired tasks...[/bold]")
+            
+            if dry_run:
+                console.print("[yellow]Dry run:[/yellow] Would scan and remove expired tasks.")
+            else:
+                total_expired = 0
+                for db_path in db_files:
+                    try:
+                        service = get_service(str(db_path))
+                        count = service.delete_expired_tasks()
+                        if count > 0:
+                            console.print(f"  [green]✓ {db_path.stem}: Removed {count} expired tasks[/green]")
+                            total_expired += count
+                    except Exception as e:
+                        console.print(f"  [red]x {db_path.stem}: Error ({e})[/red]")
+                
+                if total_expired == 0:
+                     console.print("  [dim]No expired tasks found.[/dim]")
+    
+    console.print()
+
+    # --- 2. Zombie Projects Cleanup ---
     orphans = MaintenanceService.scan_orphan_projects(workspace)
 
     if not orphans:
         console.print(
             Panel(
                 "[green]✓ No orphan storage directories found.[/green]",
-                title="🗑️ Garbage Collection",
+                title="🗑️ Garbage Collection (Zombies)",
                 border_style="green",
             )
         )
         raise typer.Exit(0)
 
-    # 2. 結果の表示
     table = Table(
         title=f"Found {len(orphans)} orphan storage directories",
         show_header=False,
@@ -612,10 +621,9 @@ def gc_cmd(
     console.print()
 
     if dry_run:
-        console.print("[yellow]Dry run:[/yellow] No changes made.")
+        console.print("[yellow]Dry run:[/yellow] No changes made to zombie projects.")
         raise typer.Exit(0)
 
-    # 3. 確認と削除
     if not force:
         confirm = typer.confirm(f"Delete these {len(orphans)} directories?")
         if not confirm:
@@ -635,7 +643,7 @@ def gc_cmd(
                 MaintenanceService.delete_project_storage(path)
                 deleted_count += 1
             except Exception:
-                pass # エラーログはService側で出る
+                pass 
             progress.advance(task)
 
     console.print(f"[green]✓ Cleaned up {deleted_count} orphan projects.[/green]")

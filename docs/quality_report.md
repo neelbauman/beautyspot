@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-18 15:16:24
+**最終更新:** 2026-02-18 16:53:43
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -39,12 +39,12 @@ Graph generated at: docs/statics/img/generated/architecture_metrics.png
 
 ```text
 src/beautyspot/cli.py
-    F 302:0 show_cmd - C
-    F 645:0 prune_cmd - C
-    F 380:0 stats_cmd - C
+    F 301:0 show_cmd - C
+    F 549:0 gc_cmd - C
+    F 653:0 prune_cmd - C
 
 3 blocks (classes, functions, methods) analyzed.
-Average complexity: C (11.666666666666666)
+Average complexity: C (15.0)
 ```
 
 <details>
@@ -178,15 +178,16 @@ src/beautyspot/core.py
     M 659:4 Spot.cached_run - A
     M 674:4 Spot.cached_run - A
 src/beautyspot/db.py
-    M 95:4 SQLiteTaskDB.init_schema - B
-    M 127:4 SQLiteTaskDB.get - A
-    M 228:4 SQLiteTaskDB.get_outdated_tasks - A
-    M 258:4 SQLiteTaskDB.get_blob_refs - A
-    C 83:0 SQLiteTaskDB - A
-    M 189:4 SQLiteTaskDB.get_history - A
+    M 98:4 SQLiteTaskDB.init_schema - B
+    M 130:4 SQLiteTaskDB.get - A
+    M 231:4 SQLiteTaskDB.get_outdated_tasks - A
+    M 261:4 SQLiteTaskDB.get_blob_refs - A
+    C 86:0 SQLiteTaskDB - A
+    M 192:4 SQLiteTaskDB.get_history - A
+    M 272:4 SQLiteTaskDB.get_keys_start_with - A
     C 24:0 TaskDBBase - A
-    M 213:4 SQLiteTaskDB.prune - A
-    M 246:4 SQLiteTaskDB.delete_expired - A
+    M 216:4 SQLiteTaskDB.prune - A
+    M 249:4 SQLiteTaskDB.delete_expired - A
     C 18:0 TaskRecord - A
     M 30:4 TaskDBBase.init_schema - A
     M 34:4 TaskDBBase.get - A
@@ -197,19 +198,21 @@ src/beautyspot/db.py
     M 65:4 TaskDBBase.prune - A
     M 72:4 TaskDBBase.get_outdated_tasks - A
     M 78:4 TaskDBBase.get_blob_refs - A
-    M 88:4 SQLiteTaskDB.__init__ - A
-    M 92:4 SQLiteTaskDB._connect - A
-    M 157:4 SQLiteTaskDB.save - A
-    M 208:4 SQLiteTaskDB.delete - A
+    M 82:4 TaskDBBase.get_keys_start_with - A
+    M 91:4 SQLiteTaskDB.__init__ - A
+    M 95:4 SQLiteTaskDB._connect - A
+    M 160:4 SQLiteTaskDB.save - A
+    M 211:4 SQLiteTaskDB.delete - A
 src/beautyspot/maintenance.py
     M 175:4 MaintenanceService.clean_garbage - B
     M 74:4 MaintenanceService.get_task_detail - B
     M 153:4 MaintenanceService.scan_garbage - B
     M 113:4 MaintenanceService.delete_task - A
-    M 205:4 MaintenanceService.scan_orphan_projects - A
+    M 230:4 MaintenanceService.scan_orphan_projects - A
     C 17:0 MaintenanceService - A
     M 28:4 MaintenanceService.from_path - A
-    M 225:4 MaintenanceService.delete_project_storage - A
+    M 202:4 MaintenanceService.resolve_key_prefix - A
+    M 250:4 MaintenanceService.delete_project_storage - A
     M 22:4 MaintenanceService.__init__ - A
     M 70:4 MaintenanceService.get_history - A
     M 108:4 MaintenanceService.delete_expired_tasks - A
@@ -217,27 +220,27 @@ src/beautyspot/maintenance.py
     M 139:4 MaintenanceService.prune - A
     M 146:4 MaintenanceService.clear - A
 src/beautyspot/cli.py
-    F 302:0 show_cmd - C
-    F 645:0 prune_cmd - C
-    F 380:0 stats_cmd - C
-    F 561:0 gc_cmd - B
-    F 161:0 _list_tasks - B
-    F 214:0 ui_cmd - B
-    F 477:0 clean_cmd - B
-    F 101:0 _list_databases - A
+    F 301:0 show_cmd - C
+    F 549:0 gc_cmd - C
+    F 653:0 prune_cmd - C
+    F 388:0 stats_cmd - B
+    F 147:0 _list_tasks - B
+    F 213:0 ui_cmd - B
+    F 473:0 clean_cmd - B
+    F 87:0 _list_databases - A
     F 446:0 clear_cmd - A
     F 48:0 _find_available_port - A
     F 58:0 _format_size - A
-    F 32:0 get_service - A
     F 71:0 _get_task_count - A
-    F 284:0 list_cmd - A
-    F 743:0 version_cmd - A
+    F 32:0 get_service - A
+    F 283:0 list_cmd - A
+    F 751:0 version_cmd - A
     F 43:0 _is_port_in_use - A
     F 66:0 _format_timestamp - A
-    F 762:0 main - A
+    F 770:0 main - A
 
-172 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.7674418604651163)
+175 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.84)
 ```
 </details>
 

@@ -79,6 +79,9 @@ class TaskDBBase(ABC):
         """Retrieve all 'result_value' entries that point to external storage."""
         return None
 
+    def get_keys_start_with(self, prefix: str) -> list[str]:
+        """Retrieve cache keys that start with the given prefix."""
+        return []
 
 class SQLiteTaskDB(TaskDBBase):
     """
@@ -265,4 +268,16 @@ class SQLiteTaskDB(TaskDBBase):
             )
             # Use filename for robust matching across machines/paths
             return {Path(row[0]).name for row in cursor.fetchall() if row[0]}
+
+    def get_keys_start_with(self, prefix: str) -> list[str]:
+        if not os.path.exists(self.db_path):
+            return []
+            
+        with self._connect() as conn:
+            # プレフィックス検索 (LIMITをつけて大量取得を防止)
+            cursor = conn.execute(
+                "SELECT cache_key FROM tasks WHERE cache_key LIKE ? LIMIT 50",
+                (f"{prefix}%",),
+            )
+            return [row[0] for row in cursor.fetchall()]
 
