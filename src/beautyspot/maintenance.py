@@ -52,8 +52,14 @@ class MaintenanceService:
             else:
                 b_path = parent / "blobs"
 
+        db = SQLiteTaskDB(path)
+        try:
+            db.init_schema()
+        except Exception:
+            pass
+
         return cls(
-            db=SQLiteTaskDB(path),
+            db=db,
             storage=create_storage(str(b_path)),
             serializer=MsgpackSerializer(),
         )
@@ -98,6 +104,14 @@ class MaintenanceService:
 
         result_record["decoded_data"] = decoded_data
         return result_record
+
+    def delete_expired_tasks(self) -> int:
+        """期限切れタスクの物理削除 (GC用)"""
+        if hasattr(self.db, "_connect"):
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with self.db._connect() as conn:
+                return conn.execute("DELETE FROM tasks WHERE expires_at < ?", (now_str,)).rowcount
+        return 0
 
     def delete_task(self, cache_key: str) -> bool:
         """

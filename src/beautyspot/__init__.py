@@ -6,6 +6,7 @@ from typing import Optional, Any
 
 from beautyspot.core import Spot as _Spot
 from beautyspot.cachekey import KeyGen
+from beautyspot.lifecycle import LifecyclePolicy, Rule, Retention
 from beautyspot.limiter import TokenBucket, LimiterProtocol
 from beautyspot.serializer import SerializationError
 from beautyspot.content_types import ContentType
@@ -35,6 +36,7 @@ def Spot(
     storage_policy: Optional[StoragePolicyProtocol] = None,
     executor: Optional[Any] = None,
     # --- Configuration Options ---
+    lifecycle_policy: Optional[LifecyclePolicy] = None,
     blob_warning_threshold: int = 1024 * 1024,
     default_save_blob: bool = False,
     tpm: int = 10000,
@@ -84,6 +86,7 @@ def Spot(
         storage_policy=resolved_policy,
         limiter=resolved_limiter,
         # その他のオプション
+        lifecycle_policy=lifecycle_policy,
         executor=executor,
         io_workers=io_workers,
         default_version=default_version,
@@ -103,5 +106,8 @@ __all__ = [
     "ThresholdStoragePolicy",
     "WarningOnlyPolicy",
     "AlwaysBlobPolicy",
+    "LifecyclePolicy",
+    "Rule",
+    "Retention",
 ]
 

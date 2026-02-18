@@ -9,6 +9,7 @@ import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor, wait
 from contextvars import ContextVar, Token
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import (
     Any,
@@ -26,6 +27,7 @@ from typing import (
 
 from beautyspot.limiter import LimiterProtocol
 from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
+from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializationError, SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
@@ -137,6 +139,7 @@ class Spot:
         # デフォルト動作設定
         default_version: Optional[str] = None,
         default_content_type: Optional[str] = None,
+        lifecycle_policy: Optional[LifecyclePolicy] = None,
 
         **kwargs: Any,
     ) -> None:
@@ -153,6 +156,7 @@ class Spot:
         self.default_version = default_version
         self.default_content_type = default_content_type
         self.default_wait = default_wait
+        self.lifecycle_policy = lifecycle_policy or LifecyclePolicy.default()
 
         # --- ワークスペースとDBの初期化 ---
         self.workspace_dir = Path(".beautyspot")
@@ -315,6 +319,23 @@ class Spot:
         ck = hashlib.md5(key_source.encode()).hexdigest()
         return iid, ck
 
+    # --- ヘルパーメソッド: 有効期限の計算 ---
+    def _calculate_expires_at(
+        self, func_name: str, local_retention: Union[str, timedelta, None]
+    ) -> Optional[datetime]:
+        
+        # 1. ローカル指定 (優先度: 高)
+        retention = parse_retention(local_retention)
+        
+        # 2. ポリシー指定 (優先度: 低)
+        if retention is None:
+            retention = self.lifecycle_policy.resolve(func_name)
+            
+        if retention is None:
+            return None # 無期限
+            
+        return datetime.now() + retention
+
     def _execute_sync(
         self,
         func: Callable,
@@ -326,6 +347,7 @@ class Spot:
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
+        retention: Union[str, timedelta, None],
         wait: bool | None,
     ) -> Any:
         # Resolve Defaults (wait もここで解決)
@@ -346,7 +368,10 @@ class Spot:
         # 2. Execute
         res = func(*args, **kwargs)
 
-        # 3. Save
+        # 3. Calculate Expiration (New)
+        expires_at = self._calculate_expires_at(func.__name__, retention)
+
+        # 4. Save
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
@@ -356,6 +381,7 @@ class Spot:
             "content_type": s_ct,
             "save_blob": s_blob,
             "serializer": serializer,
+            "expires_at": expires_at,
         }
         
         # 解決済みの s_wait を使用
@@ -379,6 +405,7 @@ class Spot:
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
         wait: bool | None,
+        retention: Union[str, timedelta, None],
     ) -> Any:
         # Resolve Defaults
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(save_blob, version, content_type, wait)
@@ -397,6 +424,9 @@ class Spot:
         # 2. Execute (Async)
         res = await func(*args, **kwargs)
 
+        # 3. Calculate Expiration (New)
+        expires_at = self._calculate_expires_at(func.__name__, retention)
+
         # 3. Save (Offload IO)
         save_kwargs = {
             "cache_key": ck,
@@ -407,6 +437,7 @@ class Spot:
             "content_type": s_ct,
             "save_blob": s_blob,
             "serializer": serializer,
+            "expires_at": expires_at,
         }
 
         if s_wait:
@@ -483,6 +514,8 @@ class Spot:
         content_type: str | None,
         save_blob: bool | None,
         serializer: Optional[SerializerProtocol] = None,
+        expires_at: Optional[datetime] = None,
+        **kwargs,
     ):
         use_serializer = serializer or self.serializer
 
@@ -518,6 +551,7 @@ class Spot:
             content_type=content_type,
             result_value=r_val,
             result_data=r_blob,
+            expires_at=expires_at,
         )
 
     def limiter(self, cost: Union[int, Callable] = 1):
@@ -554,6 +588,7 @@ class Spot:
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
+        retention: Union[str, timedelta, None] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     def mark(
@@ -567,6 +602,7 @@ class Spot:
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
+        retention: Union[str, timedelta, None] = None,
     ) -> Any:
         """
         Decorator to mark a function for caching and persistence.
@@ -594,6 +630,7 @@ class Spot:
                     content_type=content_type,
                     serializer=serializer,
                     wait=wait, # None のまま渡す
+                    retention=retention,
                 )
 
             @functools.wraps(func)
@@ -609,6 +646,7 @@ class Spot:
                     content_type=content_type,
                     serializer=serializer,
                     wait=wait, # None のまま渡す
+                    retention=retention,
                 )
 
             return async_wrapper if is_async else sync_wrapper
@@ -629,6 +667,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        retention: Union[str, timedelta, None] = None,
     ) -> ScopedMark[T]: ...
 
     @overload
@@ -641,6 +680,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        retention: Union[str, timedelta, None] = None,
     ) -> ScopedMark[tuple[Unpack[Ts]]]: ...
 
     def cached_run(
@@ -652,6 +692,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        retention: Union[str, timedelta, None] = None,
     ):
         if not funcs:
             raise ValueError("At least one function must be provided to cached_run.")
@@ -671,5 +712,6 @@ class Spot:
             version=version,
             content_type=content_type,
             serializer=serializer,
+            retention=retention,
         )
 

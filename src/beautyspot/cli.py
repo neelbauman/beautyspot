@@ -563,6 +563,7 @@ def gc_cmd(
         False, "--dry-run", "-n", help="Show what would be deleted without actually deleting"
     ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
+    expired: bool = typer.Option(True, "--expired/--no-expired"),
 ):
     """
     🗑️  Garbage Collect: Remove 'zombie' blob directories with no matching DB.
