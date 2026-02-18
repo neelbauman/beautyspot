@@ -106,3 +106,74 @@ v2.0 は破壊的変更を含むメジャーアップデートです。
 
 This project is licensed under the MIT License.
 
+---
+
+# What's next ?
+
+### 1. 依存性の注入（DI）の「設定」の宣言化
+
+現在、`Spot` インスタンスの初期化は非常に命令的（Imperative）です。
+`README.md` の例 を見ると、ユーザーは以下のようにコンポーネントを自分で組み立てて注入する必要があります。
+
+```python
+# 現在の "How" アプローチ
+db = SQLiteTaskDB(".beautyspot/tasks.db")
+storage = LocalStorage(".beautyspot/blobs")
+serializer = MsgpackSerializer()
+
+spot = bs.Spot(name="my_app", db=db, storage=storage, serializer=serializer, ...)
+
+```
+
+これだと、ユーザーは「ローカル環境で動かしたい」という意図（What）を実現するために、具体的なクラスの組み立て方（How）を知っていなければなりません。
+
+**改善案: Configuration Profiles**
+設定ファイル（`pyproject.toml` や `beautyspot.yml`）や、プリセットを用いた宣言的な初期化を導入するのはどうでしょうか？
+
+```python
+# 改善後の "What" アプローチ（イメージ）
+# "local-dev" というプロファイルを指定するだけ
+spot = bs.Spot.from_profile("local-dev")
+
+```
+
+これにより、ユーザーはインフラの詳細から解放されます。
+
+### 2. シリアライザ選択の自動ネゴシエーション (Content Negotiation)
+
+現在、`core.py` では `serializer` を一つ受け取っています。
+ユーザーは特定の型を扱うために `@spot.register` で手動でエンコーダ/デコーダを登録するか、カスタムシリアライザを実装する必要があります。これは「How」の負担が大きいです。
+
+**改善案: Semantic Content Type**
+ユーザーは「この関数は画像を返す」「これはPandas DataFrameを返す」という事実（What）だけを宣言し、最適なシリアライズ方式（msgpack なのか、parquet なのか、png なのか）は `beautyspot` が自動で決定する仕組みです。
+
+```python
+# ユーザーは "dataframe" であることだけを宣言
+@spot.mark(content_type="dataframe")
+def process_data(df):
+    ...
+
+```
+
+システム側で「DataFrameならParquetで保存するのが効率的だ」と判断し、適切なバックエンド処理を行います。これは `core.py` の `_save_result_sync` 内のロジックを拡張することで実現できそうです。
+
+### 3. キャッシュ無効化の「タグベース」管理
+
+現在の `MaintenanceService` では、削除のために `cache_key` を指定するか、ADR 30 のように時間の経過（Retention）を待つしかありません。
+
+「特定のデータセットに関連するキャッシュをすべて消したい」という要求（What）に対し、現在はユーザーが関連するキーを自力で管理・検索する（How）必要があります。
+
+**改善案: Cache Tagging**
+タスク定義時にタグを宣言できるようにします。
+
+```python
+@spot.mark(tags=["dataset_v1", "experiment_A"])
+def train_model(): ...
+
+```
+
+そして、削除時はタグを指定します。
+`spot.invalidate(tags=["experiment_A"])`
+
+これにより、依存関係やグルーピングの管理という「How」をツール側に移譲できます。
+
