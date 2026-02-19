@@ -69,7 +69,7 @@ release: pypi-publish  ## 完全リリース（PyPI公開→GitHubタグPush）
 
 # Makefile (追加案)
 
-.PHONY: audit visualize
+.PHONY: audit visualize update-claude
 
 audit:  ## [Console] コードの複雑度と保守性をコンソール出力
 	@echo "=== Cyclomatic Complexity (Rank C+) ==="
@@ -98,4 +98,7 @@ visualize: ## [Image] 依存関係グラフのみ生成
 
 report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
+
+update-claude:  ## CLAUDE.md の自動生成セクションを更新
+	uv run python tools/generate_claude_ref.py
 
