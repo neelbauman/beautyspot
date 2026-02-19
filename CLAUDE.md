@@ -2,6 +2,26 @@
 
 This file provides guidance for AI assistants working on the `beautyspot` codebase.
 
+## How to Maintain This File
+
+CLAUDE.md has two zones:
+
+- **Manual zone** (above the `AUTO-GENERATED` marker): conventions, judgment criteria,
+  and workflows. Edit directly when team conventions change.
+- **Auto-generated zone** (below the marker): module list, class summaries, CLI commands,
+  and public API — derived from source docstrings via `tools/generate_claude_ref.py`.
+  **Never edit manually.** Run `make update-claude` to refresh.
+
+### When to run `make update-claude`
+
+| Change | Action |
+|---|---|
+| New `.py` module added to `src/beautyspot/` | `make update-claude` |
+| New CLI command added (`@app.command`) | `make update-claude` |
+| Class docstring updated | `make update-claude` |
+| `__all__` in `__init__.py` changed | `make update-claude` |
+| Convention or DI principle changed | Edit manual zone directly |
+
 ---
 
 ## Project Overview
