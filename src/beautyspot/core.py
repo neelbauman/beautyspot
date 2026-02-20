@@ -1,8 +1,6 @@
 # src/beautyspot/core.py
 
 import asyncio
-# from contextlib import contextmanager
-# from collections.abc import Iterator
 import hashlib
 import logging
 import functools
@@ -10,6 +8,7 @@ import inspect
 import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor, wait
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,14 +24,16 @@ from typing import (
     TypeVarTuple,
     Unpack,
     ParamSpec,
+    ContextManager,
 )
 
 from beautyspot.limiter import LimiterProtocol
-from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol, CacheCorruptedError
+from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
 from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
+from beautyspot.exceptions import CacheCorruptedError
 
 # ジェネリクスの定義
 P = ParamSpec("P")
@@ -346,8 +347,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]],
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
+        effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
@@ -359,9 +359,7 @@ class Spot:
             save_blob, version, content_type, wait
         )
 
-        effective_key_fn = self._resolve_key_fn(
-            func, keygen=keygen, input_key_fn=input_key_fn
-        )
+        # [MOD] ここでの _resolve_key_fn の呼び出しを削除し、直接 effective_key_fn を使用
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
@@ -374,7 +372,7 @@ class Spot:
         # 2. Execute
         res = func(*args, **kwargs)
 
-        # 3. Calculate Expiration (New)
+        # 3. Calculate Expiration
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
         # 4. Save
@@ -390,7 +388,6 @@ class Spot:
             "expires_at": expires_at,
         }
 
-        # 解決済みの s_wait を使用
         if s_wait:
             self._save_result_sync(**save_kwargs)
         else:
@@ -405,8 +402,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]],
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]],
+        effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
@@ -417,10 +413,8 @@ class Spot:
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
             save_blob, version, content_type, wait
         )
-        effective_key_fn = self._resolve_key_fn(
-            func, keygen=keygen, input_key_fn=input_key_fn
-        )
 
+        # [MOD] ここでの _resolve_key_fn の呼び出しを削除
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
@@ -436,7 +430,7 @@ class Spot:
         # 2. Execute (Async)
         res = await func(*args, **kwargs)
 
-        # 3. Calculate Expiration (New)
+        # 3. Calculate Expiration
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
         # 4. Save (Offload IO)
@@ -453,14 +447,11 @@ class Spot:
         }
 
         if s_wait:
-            # 完了を待つ (awaitする)
             await loop.run_in_executor(
                 self.executor,
                 functools.partial(self._save_result_sync, **save_kwargs),
             )
         else:
-            # markの実装に合わせて executor.submit を使い、確実に追跡する
-            # (run_in_executor だと asyncio.Future が返るが、ここでは concurrent.Future で統一管理するため)
             future = self.executor.submit(self._save_result_safe, **save_kwargs)
             self._track_future(future)
 
@@ -626,7 +617,7 @@ class Spot:
             # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
             # 非推奨パラメータの使用に対して、定義時に即座にエラー/警告を出します。
             # これにより既存のテスト (test_params_migration.py) が通るようになります。
-            self._resolve_key_fn(func, keygen, input_key_fn)
+            effectice_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
 
             is_async = inspect.iscoroutinefunction(func)
 
@@ -637,8 +628,7 @@ class Spot:
                     args=args,
                     kwargs=kwargs,
                     save_blob=save_blob,
-                    keygen=keygen,
-                    input_key_fn=input_key_fn,
+                    effective_key_fn=effectice_key_fn,
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
@@ -653,8 +643,7 @@ class Spot:
                     args=args,
                     kwargs=kwargs,
                     save_blob=save_blob,
-                    keygen=keygen,
-                    input_key_fn=input_key_fn,
+                    effective_key_fn=effectice_key_fn,
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
@@ -667,7 +656,7 @@ class Spot:
         if _func is not None and callable(_func):
             return decorator(_func)
         return decorator
-
+    
     @overload
     def cached_run(
         self,
@@ -680,8 +669,9 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
-    ) -> ScopedMark[T]: ...
+    ) -> ContextManager[T]: ...
 
     @overload
     def cached_run(
@@ -693,9 +683,11 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
-    ) -> ScopedMark[tuple[Unpack[Ts]]]: ...
+    ) -> ContextManager[tuple[Unpack[Ts]]]: ...
 
+    @contextmanager
     def cached_run(
         self,
         *funcs: Any,
@@ -705,6 +697,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str] = None,
         serializer: Optional[SerializerProtocol] = None,
+        wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
     ):
         if not funcs:
@@ -716,14 +709,58 @@ class Spot:
                     f"All arguments to cached_run must be callable. Got: {type(f)}"
                 )
 
-        return ScopedMark(
-            self,
-            funcs,
-            save_blob=save_blob,
-            keygen=keygen,
-            input_key_fn=input_key_fn,
-            version=version,
-            content_type=content_type,
-            serializer=serializer,
-            retention=retention,
-        )
+        # タスクごとに独立した ContextVar を作成
+        is_active = ContextVar(f"scoped_mark_active_{id(funcs)}", default=False)
+        token = is_active.set(True)
+
+        def make_scoped_guard(func):
+            # 1. キャッシュ機能付きラッパーを作成
+            # Pyrightのオーバーロード制約に準拠するため、まずデコレータを生成してから関数に適用する
+            cache_decorator = self.mark(
+                save_blob=save_blob,
+                keygen=keygen,
+                input_key_fn=input_key_fn,
+                version=version,
+                content_type=content_type,
+                serializer=serializer,
+                wait=wait,
+                retention=retention,
+            )
+            cached_func = cache_decorator(func)
+
+            # 2. Async/Sync に合わせてガード処理をラップ
+            if inspect.iscoroutinefunction(func):
+
+                @functools.wraps(cached_func)
+                async def _async_guard(*args, **kwargs):
+                    if not is_active.get():
+                        raise RuntimeError(
+                            f"The cached function '{func.__name__}' was called outside of its 'cached_run' context. "
+                            "Cached functions generated by 'cached_run' are only valid within the 'with' block."
+                        )
+                    return await cached_func(*args, **kwargs)
+
+                return _async_guard
+            else:
+
+                @functools.wraps(cached_func)
+                def _sync_guard(*args, **kwargs):
+                    if not is_active.get():
+                        raise RuntimeError(
+                            f"The cached function '{func.__name__}' was called outside of its 'cached_run' context. "
+                            "Cached functions generated by 'cached_run' are only valid within the 'with' block."
+                        )
+                    return cached_func(*args, **kwargs)
+
+                return _sync_guard
+
+        try:
+            wrappers = [make_scoped_guard(f) for f in funcs]
+            if len(wrappers) == 1:
+                yield wrappers[0]
+            else:
+                yield tuple(wrappers)
+        finally:
+            # yieldから戻ってきたら必ずリセットする
+            is_active.reset(token)
+

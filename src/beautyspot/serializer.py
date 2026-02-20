@@ -11,6 +11,7 @@ from typing import (
     Protocol,
     runtime_checkable,
 )
+from beautyspot.exceptions import SerializationError
 
 T = TypeVar("T")
 
@@ -40,10 +41,6 @@ class TypeRegistryProtocol(Protocol):
         encoder: Callable[[Any], Any],
         decoder: Callable[[Any], Any],
     ) -> None: ...
-
-
-class SerializationError(Exception):
-    """Raised when an object cannot be serialized or deserialized."""
 
 
 class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):

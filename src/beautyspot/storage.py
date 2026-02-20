@@ -7,6 +7,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
 from dataclasses import dataclass
+from beautyspot.exceptions import CacheCorruptedError
 
 try:
     import boto3
@@ -75,13 +76,6 @@ class AlwaysBlobPolicy(StoragePolicyProtocol):
 
 
 # --- Blob Storage Implementations ---
-
-
-class CacheCorruptedError(Exception):
-    """Raised when blob data cannot be deserialized (e.g. code changes)."""
-
-    pass
-
 
 class BlobStorageBase(ABC):
     """
