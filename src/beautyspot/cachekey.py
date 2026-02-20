@@ -24,7 +24,7 @@ def _safe_sort_key(obj: Any):
     even across different types that are not natively comparable in Python 3.
     """
     if obj is None:
-        return (0, "")
+        return (0, "", "")
     return (1, str(type(obj)), str(obj))
 
 
@@ -233,7 +233,14 @@ class KeyGenPolicy:
                     items_to_hash.append(KeyGen.from_path_stat(str(val)))
 
                 else:  # DEFAULT
-                    items_to_hash.append(canonicalize(val))
+                    try:
+                        items_to_hash.append(canonicalize(val))
+                    except RecursionError:
+                        logger.warning(
+                            f"Circular reference detected in argument '{name}'; "
+                            "falling back to str-based representation for this argument."
+                        )
+                        items_to_hash.append(str(val))
 
             # Hash the accumulated list of canonical items
             return KeyGen.hash_items(items_to_hash)
@@ -298,6 +305,12 @@ class KeyGen:
             # 3. Hash (SHA-256)
             return hashlib.sha256(packed).hexdigest()
 
+        except RecursionError:
+            logger.warning(
+                "Circular reference detected in arguments; falling back to str-based hash. "
+                "This may cause unexpected cache misses if argument repr is not stable."
+            )
+            return hashlib.sha256(str((args, kwargs)).encode()).hexdigest()
         except Exception:
             logger.warning(
                 "Failed to canonicalize or pack arguments; falling back to str-based hash. "

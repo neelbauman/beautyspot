@@ -139,10 +139,13 @@ class LocalStorage(BlobStorageBase):
         filename = f"{key}.bin"
         filepath = self.base_dir / filename
 
-        # Atomic write
+        # Atomic write: flush + fsync ensures data reaches disk before rename,
+        # so a crash between write and rename never leaves a corrupt file.
         temp_path = self.base_dir / f"{filename}.tmp"
         with open(temp_path, "wb") as f:
             f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
 
         temp_path.replace(filepath)
 
@@ -252,6 +255,19 @@ class S3Storage(BlobStorageBase):
         opts = s3_opts or {}
         self.s3 = boto3.client("s3", **opts)
 
+    @staticmethod
+    def _parse_s3_uri(location: str) -> tuple[str, str]:
+        """Parse an s3:// URI into (bucket, key). Raises ValueError for invalid URIs."""
+        if not location.startswith("s3://"):
+            raise ValueError(f"Expected an s3:// URI, got: {location!r}")
+        path = location[len("s3://"):]
+        parts = path.split("/", 1)
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise ValueError(
+                f"Invalid S3 URI (expected s3://bucket/key): {location!r}"
+            )
+        return parts[0], parts[1]
+
     def save(self, key: str, data: ReadableBuffer) -> str:
         s3_key = f"{self.prefix}/{key}.bin"
         buffer = io.BytesIO(data)
@@ -259,17 +275,17 @@ class S3Storage(BlobStorageBase):
         return f"s3://{self.bucket_name}/{s3_key}"
 
     def load(self, location: str) -> bytes:
-        parts = location.replace("s3://", "").split("/", 1)
+        bucket, key = self._parse_s3_uri(location)
         try:
-            resp = self.s3.get_object(Bucket=parts[0], Key=parts[1])
+            resp = self.s3.get_object(Bucket=bucket, Key=key)
             return resp["Body"].read()
         except ClientError as e:
             raise FileNotFoundError(f"S3 blob lost: {location}") from e
 
     def delete(self, location: str) -> None:
-        parts = location.replace("s3://", "").split("/", 1)
+        bucket, key = self._parse_s3_uri(location)
         try:
-            self.s3.delete_object(Bucket=parts[0], Key=parts[1])
+            self.s3.delete_object(Bucket=bucket, Key=key)
         except ClientError:
             pass
 

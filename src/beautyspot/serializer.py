@@ -45,8 +45,6 @@ class TypeRegistryProtocol(Protocol):
 class SerializationError(Exception):
     """Raised when an object cannot be serialized or deserialized."""
 
-    pass
-
 
 class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
     """

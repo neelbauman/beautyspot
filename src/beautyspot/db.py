@@ -3,6 +3,8 @@
 import sqlite3
 import os
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from abc import ABC, abstractmethod
@@ -99,8 +101,23 @@ class SQLiteTaskDB(TaskDBBase):
         self.db_path = db_path
         self.timeout = timeout
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.db_path, timeout=self.timeout)
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """
+        Thread-safe connection context manager.
+        Each call creates a new connection (one per operation), ensuring that
+        concurrent callers from different threads never share a connection.
+        Commits on success, rolls back on exception, and always closes.
+        """
+        conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def init_schema(self):
         with self._connect() as conn:
@@ -194,7 +211,7 @@ class SQLiteTaskDB(TaskDBBase):
                     content_type,
                     result_value,
                     result_data,
-                    expires_at,  # [ADD]
+                    expires_at.isoformat(" ") if expires_at is not None else None,
                 ),
             )
 
@@ -233,7 +250,7 @@ class SQLiteTaskDB(TaskDBBase):
             return cursor.rowcount
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
-        cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
+        cutoff_str = older_than.isoformat(" ")
         with self._connect() as conn:
             if func_name:
                 cursor = conn.execute(
@@ -250,7 +267,7 @@ class SQLiteTaskDB(TaskDBBase):
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        cutoff_str = older_than.strftime("%Y-%m-%d %H:%M:%S")
+        cutoff_str = older_than.isoformat(" ")
         if not os.path.exists(self.db_path):
             return []
 
@@ -274,7 +291,7 @@ class SQLiteTaskDB(TaskDBBase):
         with self._connect() as conn:
             cursor = conn.execute(
                 "DELETE FROM tasks WHERE expires_at IS NOT NULL AND expires_at < ?",
-                (datetime.now().isoformat(),),
+                (datetime.now().isoformat(" "),),
             )
             return cursor.rowcount
 

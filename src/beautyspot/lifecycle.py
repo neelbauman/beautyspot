@@ -58,9 +58,6 @@ class Rule:
     pattern: str
     retention: Union[str, timedelta, None]
 
-    def __post_init__(self):
-        self.retention = parse_retention(self.retention)
-
 
 class LifecyclePolicy:
     """
@@ -70,14 +67,14 @@ class LifecyclePolicy:
     def __init__(self, rules: List[Rule]):
         self.rules = rules
 
-    def resolve(self, func_name: str) -> Union[str, timedelta, None]:
+    def resolve(self, func_name: str) -> Optional[timedelta]:
         """
         Find the first matching rule for the given function name.
         Returns the retention timedelta, or None if indefinite (or no match).
         """
         for rule in self.rules:
             if fnmatch.fnmatch(func_name, rule.pattern):
-                return rule.retention
+                return parse_retention(rule.retention)
         # Default is indefinite (None)
         return Retention.INDEFINITE
 
@@ -85,3 +82,4 @@ class LifecyclePolicy:
     def default(cls) -> "LifecyclePolicy":
         """Default policy: Everything is kept indefinitely."""
         return cls(rules=[])
+
