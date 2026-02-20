@@ -5,7 +5,7 @@ import os
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING, TypedDict
@@ -169,7 +169,10 @@ class SQLiteTaskDB(TaskDBBase):
                     try:
                         # SQLite returns timestamps as strings usually
                         expires_at = datetime.fromisoformat(exp_str)
-                        if expires_at < datetime.now():
+                        # Naive datetimes stored before timezone support are treated as UTC
+                        if expires_at.tzinfo is None:
+                            expires_at = expires_at.replace(tzinfo=timezone.utc)
+                        if expires_at < datetime.now(timezone.utc):
                             # Expired -> Treat as Cache Miss
                             # (Physical deletion is deferred to `beautyspot gc`)
                             return None
@@ -211,7 +214,13 @@ class SQLiteTaskDB(TaskDBBase):
                     content_type,
                     result_value,
                     result_data,
-                    expires_at.isoformat(" ") if expires_at is not None else None,
+                    (
+                        expires_at.replace(tzinfo=timezone.utc)
+                        if expires_at.tzinfo is None
+                        else expires_at
+                    ).isoformat(" ")
+                    if expires_at is not None
+                    else None,
                 ),
             )
 
@@ -250,6 +259,8 @@ class SQLiteTaskDB(TaskDBBase):
             return cursor.rowcount
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
+        if older_than.tzinfo is None:
+            older_than = older_than.replace(tzinfo=timezone.utc)
         cutoff_str = older_than.isoformat(" ")
         with self._connect() as conn:
             if func_name:
@@ -267,6 +278,8 @@ class SQLiteTaskDB(TaskDBBase):
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
+        if older_than.tzinfo is None:
+            older_than = older_than.replace(tzinfo=timezone.utc)
         cutoff_str = older_than.isoformat(" ")
         if not os.path.exists(self.db_path):
             return []
@@ -291,7 +304,7 @@ class SQLiteTaskDB(TaskDBBase):
         with self._connect() as conn:
             cursor = conn.execute(
                 "DELETE FROM tasks WHERE expires_at IS NOT NULL AND expires_at < ?",
-                (datetime.now().isoformat(" "),),
+                (datetime.now(timezone.utc).isoformat(" "),),
             )
             return cursor.rowcount
 

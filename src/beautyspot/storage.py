@@ -166,15 +166,22 @@ class LocalStorage(BlobStorageBase):
             )
 
         if not full_path.exists():
-            raise FileNotFoundError(f"Local blob lost: {full_path}")
+            raise CacheCorruptedError(f"Local blob lost: {full_path}")
 
-        with open(full_path, "rb") as f:
-            return f.read()
+        try:
+            with open(full_path, "rb") as f:
+                return f.read()
+        except OSError as e:
+            raise CacheCorruptedError(f"Failed to read blob: {e}")
 
     def delete(self, location: str) -> None:
         """
-        Delete file and recursively remove empty parent directories
-        up to and including the base_dir.
+        Delete the file at the given location.
+        
+        Note:
+            For performance reasons, this method does not synchronously remove 
+            empty parent directories. Directory cleanup is deferred to the 
+            asynchronous maintenance task (`prune_empty_dirs` / `beautyspot gc`).
         """
         full_path = (self.base_dir / location).resolve()
 

@@ -1,6 +1,8 @@
 # src/beautyspot/core.py
 
 import asyncio
+# from contextlib import contextmanager
+# from collections.abc import Iterator
 import hashlib
 import logging
 import functools
@@ -26,7 +28,7 @@ from typing import (
 )
 
 from beautyspot.limiter import LimiterProtocol
-from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
+from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol, CacheCorruptedError
 from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
@@ -498,7 +500,8 @@ class Spot:
                 try:
                     data_bytes = self.storage_backend.load(r_val)
                     return use_serializer.loads(data_bytes)
-                except Exception:
+                except CacheCorruptedError as e:
+                    logger.debug(f"Cache corrupted or lost for {cache_key}, falling back to CACHE_MISS: {e}")
                     return CACHE_MISS
 
         return CACHE_MISS
