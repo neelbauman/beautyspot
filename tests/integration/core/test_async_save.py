@@ -156,6 +156,6 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
     spot.shutdown(wait=True)
 
     # Assert: ログにコールバック内部のエラーが出力されていることを確認
-    assert "Error in on_background_error callback" in caplog.text
+    assert "Error occurred within the 'on_background_error' callback" in caplog.text
     assert "Error inside callback!" in caplog.text
 

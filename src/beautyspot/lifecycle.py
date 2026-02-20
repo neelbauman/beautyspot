@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Optional, List, Union
+from beautyspot.exceptions import ValidationError
 
 # Regex for parsing retention strings (e.g., "7d", "12h", "30m")
 _TIME_PATTERN = re.compile(r"^(\d+)([dhm])$")
@@ -28,7 +29,7 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
     if isinstance(value, str):
         match = _TIME_PATTERN.match(value)
         if not match:
-            raise ValueError(
+            raise ValidationError(
                 f"Invalid retention format: '{value}'. Use format like '7d', '12h', '30m'."
             )
 
@@ -40,7 +41,7 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
         elif unit == "m":
             return timedelta(minutes=amount)
 
-    raise TypeError(f"Retention must be str, int, or timedelta, got {type(value)}")
+    raise ValidationError(f"Retention must be str, int, or timedelta, got {type(value)}")
 
 
 class Retention:

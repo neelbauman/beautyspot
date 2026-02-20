@@ -7,7 +7,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
 from dataclasses import dataclass
-from beautyspot.exceptions import CacheCorruptedError
+from beautyspot.exceptions import CacheCorruptedError, ValidationError
 
 try:
     import boto3
@@ -124,7 +124,7 @@ class LocalStorage(BlobStorageBase):
     def _validate_key(self, key: str):
         # Prevent Path Traversal
         if ".." in key or "/" in key or "\\" in key:
-            raise ValueError(
+            raise ValidationError(
                 f"Invalid key: '{key}'. Keys must not contain path separators."
             )
 
@@ -260,11 +260,11 @@ class S3Storage(BlobStorageBase):
     def _parse_s3_uri(location: str) -> tuple[str, str]:
         """Parse an s3:// URI into (bucket, key). Raises ValueError for invalid URIs."""
         if not location.startswith("s3://"):
-            raise ValueError(f"Expected an s3:// URI, got: {location!r}")
+            raise ValidationError(f"Expected an s3:// URI, got: {location!r}")
         path = location[len("s3://"):]
         parts = path.split("/", 1)
         if len(parts) != 2 or not parts[0] or not parts[1]:
-            raise ValueError(
+            raise ValidationError(
                 f"Invalid S3 URI (expected s3://bucket/key): {location!r}"
             )
         return parts[0], parts[1]

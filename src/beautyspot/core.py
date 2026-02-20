@@ -33,7 +33,7 @@ from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
-from beautyspot.exceptions import CacheCorruptedError
+from beautyspot.exceptions import CacheCorruptedError, IncompatibleProviderError, ValidationError
 
 # ジェネリクスの定義
 P = ParamSpec("P")
@@ -177,7 +177,7 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
     ) -> Optional[Callable]:
         if keygen is not None and input_key_fn is not None:
-            raise ValueError(
+            raise IncompatibleProviderError(
                 "Cannot specify both 'keygen' and 'input_key_fn'. Please use 'keygen'."
             )
 
@@ -205,7 +205,7 @@ class Spot:
         decoder_factory: Optional[Callable[[Type[T]], Callable[[Any], T]]] = None,
     ) -> Callable[[Type[T]], Type[T]]:
         if decoder is None and decoder_factory is None:
-            raise ValueError("Must provide either `decoder` or `decoder_factory`.")
+            raise IncompatibleProviderError("Must provide either `decoder` or `decoder_factory`.")
 
         def decorator(cls: Type) -> Type:
             actual_decoder = decoder
@@ -674,11 +674,11 @@ class Spot:
         retention: Union[str, timedelta, None] = None,
     ):
         if not funcs:
-            raise ValueError("At least one function must be provided to cached_run.")
+            raise ValidationError("At least one function must be provided to cached_run.")
 
         for f in funcs:
             if not callable(f):
-                raise TypeError(
+                raise ValidationError(
                     f"All arguments to cached_run must be callable. Got: {type(f)}"
                 )
 
