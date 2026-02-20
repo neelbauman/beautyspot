@@ -165,6 +165,7 @@ class Spot:
         if executor is not None:
             self.executor = executor
             self._own_executor = False
+            self._finalizer = None
         else:
             self.executor = ThreadPoolExecutor(max_workers=io_workers)
             self._own_executor = True
@@ -196,7 +197,7 @@ class Spot:
         executor.shutdown(wait=False)
 
     def shutdown(self, wait: bool = True):
-        if self._own_executor and self._finalizer.alive:
+        if self._own_executor and self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
             self.executor.shutdown(wait=wait)
 
@@ -304,12 +305,12 @@ class Spot:
         func_name: str,
         args: tuple,
         kwargs: dict,
-        input_key_fn: Optional[Callable],
+        resolved_key_fn: Optional[Callable],
         version: str | None,
     ) -> tuple[str, str]:
         iid = (
-            input_key_fn(*args, **kwargs)
-            if input_key_fn
+            resolved_key_fn(*args, **kwargs)
+            if resolved_key_fn
             else KeyGen._default(args, kwargs)
         )
 
@@ -407,8 +408,8 @@ class Spot:
         version: str | None,
         content_type: Optional[str],
         serializer: Optional[SerializerProtocol],
-        wait: bool | None,
         retention: Union[str, timedelta, None],
+        wait: bool | None,
     ) -> Any:
         # Resolve Defaults
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
@@ -527,7 +528,6 @@ class Spot:
         save_blob: bool | None,
         serializer: Optional[SerializerProtocol] = None,
         expires_at: Optional[datetime] = None,
-        **kwargs,
     ):
         use_serializer = serializer or self.serializer
 

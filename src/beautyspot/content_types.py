@@ -1,4 +1,4 @@
-# src/beautyspot/types.py
+# src/beautyspot/content_types.py
 
 
 class ContentType:
