@@ -20,7 +20,7 @@ key_policy = KeyGen.map(
     config_path=KeyGen.FILE_CONTENT
 )
 
-@spot.mark(input_key_fn=key_policy)
+@spot.mark(keygen=key_policy)
 def train_model(data, config_path, verbose=False, logger=None):
     if verbose:
         print("Training started...")

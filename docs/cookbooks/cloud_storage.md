@@ -58,7 +58,7 @@ spot = bs.Spot(
 )
 
 @spot.mark(save_blob=True, version="v0.1.0")
-@spot.limiter(cost=1)
+@spot.consume(cost=1)
 def generate_large_dataset():
     # 戻り値は自動的に Google Drive 上の 'beautyspot-data' フォルダ内に保存されます
     return b"..." * 1024 * 1024

@@ -170,7 +170,13 @@ if selected_key:
                     st.image(data)
 
                 elif c_type == ContentType.HTML:
-                    components.html(data, height=600, scrolling=True)
+                    # sandboxed iframe: script 実行を制限しつつ HTML を表示
+                    sandbox_html = (
+                        '<iframe sandbox="allow-same-origin" srcdoc="'
+                        + html.escape(data, quote=True)
+                        + '" style="width:100%;height:600px;border:none;"></iframe>'
+                    )
+                    components.html(sandbox_html, height=620, scrolling=True)
 
                 elif c_type == ContentType.JSON:
                     st.json(data)

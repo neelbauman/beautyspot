@@ -27,14 +27,15 @@ class ConfigurationError(BeautySpotError):
     (e.g., invalid retention policy, incompatible storage options).
     """
 
-class ValidationError(ConfigurationError):
+class ValidationError(ConfigurationError, ValueError):
     """
     メソッド呼び出し時の引数やバリデーションエラー。
-    ValueError/TypeError の代わりに、BeautySpotError 傘下として送出します。
+    ValueError のサブクラスでもあるため、既存の `except ValueError:` でも捕捉できます。
     """
 
-class IncompatibleProviderError(ConfigurationError):
+class IncompatibleProviderError(ConfigurationError, ValueError):
     """
     注入された依存オブジェクト（Serializer, Storage, DB）が
     要求された機能を提供していない場合のエラー。
+    ValueError のサブクラスでもあるため、既存の `except ValueError:` でも捕捉できます。
     """

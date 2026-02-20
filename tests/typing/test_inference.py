@@ -92,7 +92,7 @@ assert_type(api_call("https://example.com", token="secret"), dict[str, Any])
 # -----------------------------------------------------------------------------
 # Case 7: Rate Limiter Decorator
 # -----------------------------------------------------------------------------
-@spot.limiter(cost=5)
+@spot.consume(cost=5)
 def limited_operation(name: str) -> int:
     return len(name)
 
@@ -101,7 +101,7 @@ assert_type(limited_operation("test"), int)
 
 
 # 重ねがけ（Stacking Decorators）
-@spot.limiter(cost=1)
+@spot.consume(cost=1)
 @spot.mark
 def stacked_operation(x: int) -> str:
     return str(x)

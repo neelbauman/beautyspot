@@ -50,8 +50,8 @@ class TestParseRetention:
             parse_retention(invalid_str)
 
     def test_parse_invalid_type(self):
-        """未サポートの型は TypeError を送出すること"""
-        with pytest.raises(TypeError):
+        """未サポートの型は ValueError (ValidationError) を送出すること"""
+        with pytest.raises(ValueError, match="Retention must be"):
             parse_retention([1, 2])  # list is not supported
 
 

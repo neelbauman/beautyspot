@@ -66,7 +66,8 @@ def _format_size(size_bytes: int | float) -> str:
 
 
 def _format_timestamp(timestamp: float) -> str:
-    dt = datetime.fromtimestamp(timestamp)
+    from datetime import timezone
+    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc).astimezone()
     return dt.strftime("%Y-%m-%d %H:%M")
 
 

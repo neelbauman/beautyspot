@@ -10,7 +10,7 @@ import beautyspot as bs
 spot = bs.Spot("crawler", tpm=20)
 
 @spot.mark
-@spot.limiter(cost=1)
+@spot.consume(cost=1)
 def fetch_page(url: str):
     print(f"Accessing {url}...")
     resp = requests.get(url)

@@ -31,7 +31,7 @@ v2.0 以降、`KeyGen` クラスを使用して、引数ごとのキャッシュ
 from beautyspot.cachekey import KeyGen
 
 # verbose や logger が変わっても、data が同じならキャッシュはヒットします
-@spot.mark(input_key_fn=KeyGen.ignore("verbose", "logger"))
+@spot.mark(keygen=KeyGen.ignore("verbose", "logger"))
 def heavy_task(data, verbose=False, logger=None):
     if verbose:
         print("Processing...")
@@ -54,7 +54,7 @@ def heavy_task(data, verbose=False, logger=None):
 `KeyGen.map` を使うと、引数ごとに異なる戦略を詳細に定義できます。これが最も柔軟な方法です。
 
 ```python
-@spot.mark(input_key_fn=KeyGen.map(
+@spot.mark(keygen=KeyGen.map(
     # data_path はメタデータ(サイズ+日付)でチェック（高速化）
     data_path=KeyGen.PATH_STAT,
     
@@ -75,14 +75,14 @@ def analyze(data_path, config_path, debug_mode=False):
 
 ## カスタムキー生成（Advanced）
 
-上記のポリシーでカバーできない特殊なケースでは、独自の関数を `input_key_fn` に渡すことも可能です。
+上記のポリシーでカバーできない特殊なケースでは、独自の関数を `keygen` に渡すことも可能です。
 
 ```python
 def custom_key_generator(*args, **kwargs):
     # 独自のロジックで文字列を返す
     return f"custom-{args[0].id}"
 
-@spot.mark(input_key_fn=custom_key_generator)
+@spot.mark(keygen=custom_key_generator)
 def my_func(obj):
     ...
 

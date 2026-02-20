@@ -10,7 +10,7 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor, wait
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import (
     Any,
@@ -93,7 +93,6 @@ class Spot:
         default_content_type: Optional[str] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
         on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
-        **kwargs: Any,
     ) -> None:
         self.name = name
 
@@ -102,7 +101,7 @@ class Spot:
         self.serializer = serializer
         self.storage_backend = storage_backend
         self.storage_policy = storage_policy
-        self._limiter = limiter
+        self.limiter = limiter
 
         # --- オプション設定の適用 ---
         self.default_version = default_version
@@ -111,9 +110,7 @@ class Spot:
         self.lifecycle_policy = lifecycle_policy or LifecyclePolicy.default()
         self.on_background_error = on_background_error
 
-        # --- ワークスペースとDBの初期化 ---
-        self.workspace_dir = Path(".beautyspot")
-        self._setup_workspace()
+        # --- DBの初期化 ---
         self.db.init_schema()
 
         # --- Executor管理 ---
@@ -137,15 +134,14 @@ class Spot:
         self._active_futures.add(future)
         future.add_done_callback(self._active_futures.discard)
 
-    def _setup_workspace(self):
+    @staticmethod
+    def _setup_workspace(workspace_dir: Path):
         """Ensure the workspace directory and .gitignore exist."""
-        if not self.workspace_dir.exists():
-            self.workspace_dir.mkdir(parents=True, exist_ok=True)
+        workspace_dir.mkdir(parents=True, exist_ok=True)
 
-        gitignore_path = self.workspace_dir / ".gitignore"
+        gitignore_path = workspace_dir / ".gitignore"
         if not gitignore_path.exists():
-            with open(gitignore_path, "w") as f:
-                f.write("*\n")
+            gitignore_path.write_text("*\n")
 
     @staticmethod
     def _shutdown_executor(executor: Executor):
@@ -291,7 +287,7 @@ class Spot:
         if retention is None:
             return None  # 無期限
 
-        return datetime.now() + retention
+        return datetime.now(timezone.utc) + retention
 
     def _execute_sync(
         self,
@@ -530,20 +526,20 @@ class Spot:
             expires_at=expires_at,
         )
 
-    def limiter(self, cost: Union[int, Callable] = 1):
+    def consume(self, cost: Union[int, Callable] = 1):
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
-                self._limiter.consume(c)
+                self.limiter.consume(c)
                 return func(*args, **kwargs)
 
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
-                await self._limiter.consume_async(c)
+                await self.limiter.consume_async(c)
                 return await func(*args, **kwargs)
 
             return async_wrapper if is_async else sync_wrapper
@@ -590,7 +586,7 @@ class Spot:
             # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
             # 非推奨パラメータの使用に対して、定義時に即座にエラー/警告を出します。
             # これにより既存のテスト (test_params_migration.py) が通るようになります。
-            effectice_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
+            effective_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
 
             is_async = inspect.iscoroutinefunction(func)
 
@@ -601,7 +597,7 @@ class Spot:
                     args=args,
                     kwargs=kwargs,
                     save_blob=save_blob,
-                    effective_key_fn=effectice_key_fn,
+                    effective_key_fn=effective_key_fn,
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
@@ -616,7 +612,7 @@ class Spot:
                     args=args,
                     kwargs=kwargs,
                     save_blob=save_blob,
-                    effective_key_fn=effectice_key_fn,
+                    effective_key_fn=effective_key_fn,
                     version=version,
                     content_type=content_type,
                     serializer=serializer,

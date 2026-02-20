@@ -75,7 +75,7 @@ async def test_resilient_pipeline_simulation(chaos_env):
             for i in range(n)
         ]
 
-    @spot.limiter(cost=5)  # 1回の実行で5トークン消費 (秒間2回までしか走れない)
+    @spot.consume(cost=5)  # 1回の実行で5トークン消費 (秒間2回までしか走れない)
     @spot.mark(save_blob=True)  # Blobストレージも併用
     async def process_item(item: Complexity) -> Complexity:
         nonlocal has_failed_once
@@ -153,7 +153,7 @@ async def test_resilient_pipeline_simulation(chaos_env):
     # 10個投げると理論上5秒かかるはず
 
     # キャッシュを無効化するためにバージョンを変える
-    @spot.limiter(cost=5)
+    @spot.consume(cost=5)
     @spot.mark(version="stress_test")
     async def heavy_task(x):
         return x * 2

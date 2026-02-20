@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+def _ensure_utc_isoformat(dt: Optional[datetime]) -> Optional[str]:
+    """datetime を UTC 保証の ISO 8601 文字列に変換する。None はそのまま返す。"""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat(" ")
+
+
 class TaskRecord(TypedDict):
     result_type: str
     result_value: Optional[str]
@@ -214,13 +223,7 @@ class SQLiteTaskDB(TaskDBBase):
                     content_type,
                     result_value,
                     result_data,
-                    (
-                        expires_at.replace(tzinfo=timezone.utc)
-                        if expires_at.tzinfo is None
-                        else expires_at
-                    ).isoformat(" ")
-                    if expires_at is not None
-                    else None,
+                    _ensure_utc_isoformat(expires_at),
                 ),
             )
 
@@ -259,9 +262,7 @@ class SQLiteTaskDB(TaskDBBase):
             return cursor.rowcount
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
-        if older_than.tzinfo is None:
-            older_than = older_than.replace(tzinfo=timezone.utc)
-        cutoff_str = older_than.isoformat(" ")
+        cutoff_str = _ensure_utc_isoformat(older_than)
         with self._connect() as conn:
             if func_name:
                 cursor = conn.execute(
@@ -278,9 +279,7 @@ class SQLiteTaskDB(TaskDBBase):
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        if older_than.tzinfo is None:
-            older_than = older_than.replace(tzinfo=timezone.utc)
-        cutoff_str = older_than.isoformat(" ")
+        cutoff_str = _ensure_utc_isoformat(older_than)
         if not os.path.exists(self.db_path):
             return []
 

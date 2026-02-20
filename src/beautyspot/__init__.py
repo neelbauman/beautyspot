@@ -2,15 +2,22 @@
 
 import logging
 from importlib.metadata import version, PackageNotFoundError
-from typing import Optional, Any
+from pathlib import Path
+from typing import Optional, Any, Callable
 
 from beautyspot.core import Spot as _Spot
+from beautyspot.types import SaveErrorContext
 from beautyspot.cachekey import KeyGen
 from beautyspot.lifecycle import LifecyclePolicy, Rule, Retention
 from beautyspot.limiter import TokenBucket, LimiterProtocol
-from beautyspot.serializer import SerializationError
 from beautyspot.content_types import ContentType
 from beautyspot.db import TaskDBBase, SQLiteTaskDB
+from beautyspot.exceptions import (
+    BeautySpotError,
+    CacheCorruptedError,
+    SerializationError,
+    ConfigurationError,
+)
 from beautyspot.storage import (
     BlobStorageBase,
     LocalStorage,
@@ -44,17 +51,23 @@ def Spot(
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
     default_wait: bool = True,
-    **kwargs: Any,
+    on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
 ) -> _Spot:
     """
     Beautyspotのメインエントリポイント（Factory Function）。
     依存関係の解決とデフォルト設定の適用を行います。
     """
 
+    # 0. デフォルトパス使用時のみワークスペースをセットアップ
+    #    カスタムパスを渡した場合、不要な .beautyspot/ を作らない
+    _default_workspace = Path(".beautyspot")
+    if db is None or storage_backend is None:
+        _Spot._setup_workspace(_default_workspace)
+
     # 1. コンポーネントの解決 (DI)
-    resolved_db = db or SQLiteTaskDB(f".beautyspot/{name}.db")
+    resolved_db = db or SQLiteTaskDB(_default_workspace / f"{name}.db")
     resolved_ser = serializer or MsgpackSerializer()
-    resolved_stg = storage_backend or LocalStorage(f".beautyspot/blobs/{name}/")
+    resolved_stg = storage_backend or LocalStorage(_default_workspace / "blobs" / name)
     resolved_limiter = limiter or TokenBucket(tokens_per_minute=tpm)
 
     # 2. Storage Policy の解決 (Factory側でロジックを担保)
@@ -91,20 +104,36 @@ def Spot(
         default_version=default_version,
         default_content_type=default_content_type,
         default_wait=default_wait,
-        **kwargs,
+        on_background_error=on_background_error,
     )
 
 
 __all__ = [
+    # --- Core ---
+    "Spot",
     "KeyGen",
     "ContentType",
+    "SaveErrorContext",
+    # --- Exceptions ---
+    "BeautySpotError",
+    "CacheCorruptedError",
+    "SerializationError",
+    "ConfigurationError",
+    # --- Protocols & Base Classes (for custom implementations) ---
+    "TaskDBBase",
+    "BlobStorageBase",
+    "SerializerProtocol",
+    "StoragePolicyProtocol",
+    "LimiterProtocol",
+    # --- Default Implementations ---
     "SQLiteTaskDB",
     "LocalStorage",
     "MsgpackSerializer",
-    "SerializationError",
+    "TokenBucket",
     "ThresholdStoragePolicy",
     "WarningOnlyPolicy",
     "AlwaysBlobPolicy",
+    # --- Lifecycle ---
     "LifecyclePolicy",
     "Rule",
     "Retention",

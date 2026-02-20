@@ -49,12 +49,12 @@ embeddings = [get_text_embedding(t) for t in my_documents]
 
 ## ⏳ 3. レート制限とコスト管理
 
-多くの LLM プロバイダーには TPM (Tokens Per Minute) や RPM (Requests Per Minute) の制限があります。`@spot.limiter` を使うことで、これらの制限を超えないように自動調整できます。
+多くの LLM プロバイダーには TPM (Tokens Per Minute) や RPM (Requests Per Minute) の制限があります。`@spot.consume` を使うことで、これらの制限を超えないように自動調整できます。
 
 ```python
 # 1分間に 20 リクエストに制限
 @spot.mark
-@spot.limiter(cost=1)
+@spot.consume(cost=1)
 def safe_llm_call(prompt: str):
     # API 呼び出し
     ...

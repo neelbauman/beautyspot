@@ -128,12 +128,9 @@ Default policy is `WarningOnlyPolicy` — never forces blob, only warns when lar
 |---|---|
 | New function / class logic, no I/O | `tests/unit/` |
 | New `Spot` option, DB operation, or storage backend | `tests/integration/` |
-| Bug regression, user workflow, security | `tests/senarios/` |
+| Bug regression, user workflow, security | `tests/scenarios/` |
 | Deprecated param still emits warning and works | `tests/migration/` |
 | Type inference correctness | `tests/typing/` (pyright) |
-
-> **Note**: `senarios/` is a typo that exists in the repo (should be `scenarios/`).
-> Do not create `scenarios/` — always use the existing `senarios/` directory.
 
 ### Key Fixture: `inspect_db`
 
@@ -221,13 +218,15 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 | `cachekey.py` | `Strategy`, `KeyGenPolicy`, `KeyGen` |
 | `cli.py` | — |
 | `content_types.py` | `ContentType` |
-| `core.py` | `ScopedMark`, `Spot` |
+| `core.py` | `Spot` |
 | `db.py` | `TaskDBBase`, `SQLiteTaskDB` |
+| `exceptions.py` | `BeautySpotError`, `CacheCorruptedError`, `SerializationError`, `ConfigurationError`, `ValidationError` |
 | `lifecycle.py` | `Retention`, `Rule`, `LifecyclePolicy` |
 | `limiter.py` | `TokenBucket` |
 | `maintenance.py` | `MaintenanceService` |
-| `serializer.py` | `SerializerProtocol`, `TypeRegistryProtocol`, `SerializationError`, `MsgpackSerializer` |
-| `storage.py` | `StoragePolicyProtocol`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `CacheCorruptedError` |
+| `serializer.py` | `SerializerProtocol`, `TypeRegistryProtocol`, `MsgpackSerializer` |
+| `storage.py` | `StoragePolicyProtocol`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `BlobStorageBase` |
+| `types.py` | `SaveErrorContext` |
 
 ### Class Summaries
 
@@ -243,13 +242,21 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 
 **`core.py`**
 
-- `ScopedMark`: Helper context manager for 'with spot.cached_run(...):'
 - `Spot`: Spot class that handles task management, serialization, and
 
 **`db.py`**
 
 - `TaskDBBase`: Abstract interface for task metadata storage
 - `SQLiteTaskDB`: Default implementation using SQLite
+
+**`exceptions.py`**
+
+- `BeautySpotError`: Base exception for all beautyspot errors
+- `CacheCorruptedError`: Raised when cache data (DB record or Blob file) is lost, 
+- `SerializationError`: Raised when the serializer fails to encode or decode data
+- `ConfigurationError`: Raised when there is a logical error in the user's configuration
+- `ValidationError`: メソッド呼び出し時の引数やバリデーションエラー。
+- `IncompatibleProviderError`: 注入された依存オブジェクト（Serializer, Storage, DB）が
 
 **`lifecycle.py`**
 
@@ -269,7 +276,6 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 
 - `SerializerProtocol`: Protocol for custom serializers
 - `TypeRegistryProtocol`: Protocol for serializers that support custom type registration
-- `SerializationError`: Raised when an object cannot be serialized or deserialized
 - `MsgpackSerializer`: A secure and extensible serializer based on MessagePack
 
 **`storage.py`**
@@ -278,8 +284,11 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 - `ThresholdStoragePolicy`: Policy that saves data as a blob if its size exceeds a configured threshold
 - `WarningOnlyPolicy`: Policy for backward compatibility (v2.0 behavior)
 - `AlwaysBlobPolicy`: Policy that always saves data as a blob
-- `CacheCorruptedError`: Raised when blob data cannot be deserialized (e.g. code changes)
 - `BlobStorageBase`: Abstract base class for large object storage (BLOBs)
+
+**`types.py`**
+
+- `SaveErrorContext`: バックグラウンドでのキャッシュ保存処理 (wait=False) が失敗した際に、
 
 ### CLI Commands
 
@@ -297,5 +306,5 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 
 ### Public API (`import beautyspot as bs`)
 
-`Spot`, `KeyGen`, `ContentType`, `SQLiteTaskDB`, `LocalStorage`, `MsgpackSerializer`, `SerializationError`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `LifecyclePolicy`, `Rule`, `Retention`
+`Spot`, `KeyGen`, `ContentType`, `SaveErrorContext`, `BeautySpotError`, `CacheCorruptedError`, `SerializationError`, `ConfigurationError`, `TaskDBBase`, `BlobStorageBase`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`, `SQLiteTaskDB`, `LocalStorage`, `MsgpackSerializer`, `TokenBucket`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `LifecyclePolicy`, `Rule`, `Retention`
 

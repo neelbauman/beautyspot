@@ -281,7 +281,7 @@ class S3Storage(BlobStorageBase):
             resp = self.s3.get_object(Bucket=bucket, Key=key)
             return resp["Body"].read()
         except ClientError as e:
-            raise FileNotFoundError(f"S3 blob lost: {location}") from e
+            raise CacheCorruptedError(f"S3 blob lost: {location}") from e
 
     def delete(self, location: str) -> None:
         bucket, key = self._parse_s3_uri(location)

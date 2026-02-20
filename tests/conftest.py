@@ -3,6 +3,9 @@
 import pytest
 import sqlite3
 
+# tests/typing/ 配下は pyright 専用。pytest での収集を除外する。
+collect_ignore_glob = ["typing/*.py"]
+
 
 @pytest.fixture
 def inspect_db():

@@ -16,16 +16,16 @@ spot = bs.Spot("api_client", tpm=60)
 ```
 
 #### 2. 関数にコストを設定する
-`@spot.limiter`  デコレータを使用して、その関数を実行するのに必要な「コスト（トークン消費量）」を定義します。
+`@spot.consume`  デコレータを使用して、その関数を実行するのに必要な「コスト（トークン消費量）」を定義します。
 
 ```
 @spot.mark
-@spot.limiter(cost=1)  # 1回の実行で1トークン消費
+@spot.consume(cost=1)  # 1回の実行で1トークン消費
 def call_api_endpoint_a():
     ...
 
 @spot.mark
-@spot.limiter(cost=5)  # 重いエンドポイントは5トークン消費
+@spot.consume(cost=5)  # 重いエンドポイントは5トークン消費
 def call_heavy_endpoint():
     ...
 ```
@@ -45,7 +45,7 @@ def calculate_cost(text_list):
     return len(text_list)
 
 @spot.mark
-@spot.limiter(cost=calculate_cost)
+@spot.consume(cost=calculate_cost)
 def batch_process(text_list):
     ...
 ```
@@ -58,7 +58,7 @@ def batch_process(text_list):
 
 ```
 @spot.mark
-@spot.limiter(cost=1)
+@spot.consume(cost=1)
 async def fetch_data():
     # レート制限にかかった場合、ここで非同期に待機します
     await client.get(...)

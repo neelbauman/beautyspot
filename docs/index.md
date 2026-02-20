@@ -148,7 +148,7 @@ API 制限（例: 1分間に100回まで）を守るために、**GCRA (Generic 
 spot = bs.Spot("api_client", tpm=60)
 
 @spot.mark
-@spot.limiter(cost=1)  # 1回の実行で1トークン消費
+@spot.consume(cost=1)  # 1回の実行で1トークン消費
 def call_api():
     ...
 
@@ -192,7 +192,7 @@ import redis
 from google.cloud import storage as gcs
 
 import beautyspot as bs
-from beautyspot.db import TaskDB
+from beautyspot.db import TaskDBBase
 from beautyspot.storage import BlobStorageBase
 from beautyspot.cachekey import KeyGen
 
@@ -218,7 +218,7 @@ my_storage = GCSStorage(bucket_name="my-app-blobs")
 spot = bs.Spot(
     name="production_pipeline",
     db=my_db,
-    storage=my_storage,
+    storage_backend=my_storage,
     tpm=60
 )
 
@@ -234,11 +234,11 @@ spot.register_type(
 
 @spot.mark(
     save_blob=True,                     # 1. 結果はGCSへ (Blob)
-    input_key_fn=KeyGen.from_path_stat, # 2. ファイルのタイムスタンプを見てキャッシュ判定
+    keygen=KeyGen.path_stat,            # 2. ファイルのタイムスタンプを見てキャッシュ判定
     version="v2.0.1",                   # 3. ロジック変更時はここを変えてキャッシュ無効化
     content_type="application/json"     # 4. ダッシュボード表示用ヒント
 )
-@spot.limiter(cost=1)                   # 5. レート制限を適用
+@spot.consume(cost=1)                   # 5. レート制限を適用
 def analyze_log_file(file_path: str) -> AnalysisResult:
     """
     重い処理の実体。

@@ -82,7 +82,7 @@ async def test_strict_rate_limiting(strict_env):
     """
     spot, _ = strict_env
 
-    @spot.limiter(cost=5)
+    @spot.consume(cost=5)
     @spot.mark
     async def paced_task(idx: int):
         return idx

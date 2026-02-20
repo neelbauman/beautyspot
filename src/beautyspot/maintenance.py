@@ -2,7 +2,7 @@
 
 import logging
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Any
 
@@ -140,11 +140,11 @@ class MaintenanceService:
     def get_prunable_tasks(
         self, days: int, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         return self.db.get_outdated_tasks(cutoff, func_name)
 
     def prune(self, days: int, func_name: Optional[str] = None) -> int:
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         logger.info(f"Pruning tasks older than {cutoff} (func={func_name})...")
         count = self.db.prune(cutoff, func_name)
         logger.info(f"Deleted {count} tasks.")
@@ -183,7 +183,6 @@ class MaintenanceService:
             orphans = self.scan_garbage()
 
         deleted_count = 0
-        freed_bytes = 0
 
         # Phase 1: ファイル削除
         if orphans:
@@ -203,7 +202,7 @@ class MaintenanceService:
             except Exception as e:
                 logger.warning(f"Failed to prune empty directories: {e}")
 
-        return deleted_count, freed_bytes
+        return deleted_count, 0
 
     def resolve_key_prefix(self, prefix: str) -> str | list[str] | None:
         """
