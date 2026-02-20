@@ -4,6 +4,7 @@ import time
 from unittest.mock import MagicMock
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB
+from beautyspot.types import SaveErrorContext
 
 
 def test_shutdown_waits_for_pending_tasks(tmp_path):
@@ -71,3 +72,90 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
     df = spot.db.get_history()
     assert len(df) == 1
     assert df.iloc[0]["result_type"] == "FILE"
+
+
+def test_on_background_error_called_on_save_failure(mocker):
+    """
+    バックグラウンド保存 (wait=False) 中に _save_result_sync が例外を投げた場合、
+    on_background_error コールバックが正しい引数で呼ばれることを検証する。
+    """
+    # Arrange: コールバックのモックを作成
+    mock_callback = MagicMock()
+    
+    # Spotインスタンスの作成（依存関係は適宜モック化されている前提）
+    # ※ 実際のプロジェクトの fixture (例: mock_db, mock_serializer等) に合わせて調整してください
+    spot = Spot(
+        name="test_spot",
+        db=MagicMock(),
+        serializer=MagicMock(),
+        storage_backend=MagicMock(),
+        storage_policy=MagicMock(),
+        limiter=MagicMock(),
+        default_wait=False,  # バックグラウンド実行をデフォルトに
+        on_background_error=mock_callback
+    )
+
+    # _save_result_sync が意図的に例外を投げるようにモック化
+    test_exception = RuntimeError("Disk full!")
+    mocker.patch.object(spot, '_save_result_sync', side_effect=test_exception)
+
+    @spot.mark()
+    def dummy_task(x):
+        return x * 2
+
+    # Act: 関数を実行 (wait=False なので保存処理は裏で走る)
+    result = dummy_task(10)
+    
+    # バックグラウンドタスクの完了を待機 (Spot.__exit__ の仕組みを利用するか、手動で wait する)
+    spot.shutdown(wait=True)
+
+    # Assert: 戻り値自体は正常に計算されていること
+    assert result == 20
+
+    # コールバックが1回呼ばれていること
+    mock_callback.assert_called_once()
+    
+    # 呼ばれた際の引数を検証
+    args, _ = mock_callback.call_args
+    passed_exception, passed_context = args
+    
+    assert passed_exception is test_exception
+    assert isinstance(passed_context, SaveErrorContext)
+    assert passed_context.func_name == "dummy_task"
+    assert passed_context.result == 20
+    # cache_key 等が kwargs から正しく渡されているかも検証可能
+
+def test_on_background_error_does_not_crash_thread(mocker, caplog):
+    """
+    on_background_error コールバック自体が例外を投げた場合でも、
+    スレッドがクラッシュせずにエラーがログに記録されることを検証する。
+    """
+    # Arrange: 呼ばれると例外を投げる悪意のある（？）コールバック
+    def faulty_callback(err, context):
+        raise ValueError("Error inside callback!")
+
+    spot = Spot(
+        name="test_spot_faulty",
+        db=MagicMock(),
+        serializer=MagicMock(),
+        storage_backend=MagicMock(),
+        storage_policy=MagicMock(),
+        limiter=MagicMock(),
+        default_wait=False,
+        on_background_error=faulty_callback
+    )
+
+    mocker.patch.object(spot, '_save_result_sync', side_effect=RuntimeError("Save failed"))
+
+    @spot.mark()
+    def dummy_task():
+        return "ok"
+
+    # Act
+    dummy_task()
+    spot.shutdown(wait=True)
+
+    # Assert: ログにコールバック内部のエラーが出力されていることを確認
+    assert "Error in on_background_error callback" in caplog.text
+    assert "Error inside callback!" in caplog.text
+

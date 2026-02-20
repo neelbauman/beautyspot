@@ -132,3 +132,72 @@ def critical_task():
 
 ```
 
+---
+
+
+## バックグラウンド保存時のエラーハンドリング
+
+`beautyspot` では、`wait=False`（デフォルト、または明示的な指定）を用いることで、キャッシュの保存処理をバックグラウンドスレッドに逃がし、メインの処理を高速化することができます。
+
+しかし、シリアライズ不可能なオブジェクトを返してしまった場合や、ストレージの容量不足などでバックグラウンド保存が失敗した場合、メインスレッドには影響を与えない（アプリケーションはクラッシュしない）代わりに、エラーがサイレントにログ出力されるのみとなります。
+
+これを検知し、Sentryなどの監視ツールに通知したり、カスタムのログを出力したりするには、`Spot` インスタンスの初期化時に `on_background_error` コールバックを設定します。
+
+### 基本的な使い方
+
+コールバック関数は、発生した `Exception` オブジェクトと、詳細な状態を持つ `SaveErrorContext` データクラスを受け取ります。
+
+```python
+import logging
+from beautyspot import Spot
+from beautyspot.types import SaveErrorContext
+
+logger = logging.getLogger(__name__)
+
+def my_background_error_handler(err: Exception, context: SaveErrorContext):
+    """カスタムエラーハンドラーの例"""
+    
+    # 1. エラーの基本情報をログ出力
+    logger.error(
+        f"[Cache Alert] '{context.func_name}' のキャッシュ保存に失敗しました。"
+        f"Key: {context.cache_key}, 理由: {err}"
+    )
+    
+    # 2. 監視ツール(Sentry等)への通知（擬似コード）
+    # sentry_sdk.capture_exception(err, contexts={"beautyspot": {"func_name": context.func_name}})
+    
+    # 3. 失敗したデータの中身を少しだけ確認する
+    if isinstance(context.result, dict):
+        logger.debug(f"保存しようとした辞書のキー: {context.result.keys()}")
+
+# Spotの初期化時にコールバックを渡す
+spot = Spot(
+    name="my_app",
+    # ... 他の依存関係 ...
+    on_background_error=my_background_error_handler
+)
+
+@spot.mark(wait=False)
+def process_data():
+    # もしここでシリアライズできないオブジェクトを返すと、
+    # バックグラウンド保存が失敗し、上記のコールバックが発火します。
+    return {"status": "ok", "unserializable": object()} 
+
+```
+
+### `SaveErrorContext` について
+
+`SaveErrorContext` は、IDEの型補完が効く安全なデータクラスです。以下のプロパティにアクセスできます。
+
+* `func_name`: 対象の関数名
+* `cache_key`: 生成されたキャッシュキー
+* `input_id`: 入力引数の識別子
+* `version`: キャッシュバージョン
+* `content_type`: コンテンツタイプ
+* `save_blob`: Blobストレージへの保存フラグ
+* `expires_at`: 有効期限
+* `result`: キャッシュしようとした実際の戻り値
+
+> **⚠️ 警告: `result` の取り扱いとメモリリークについて**
+> `context.result` には、キャッシュ対象の評価済みオブジェクトがそのまま格納されています。巨大なDataFrameやテンソルを扱う関数の場合、この `result` への参照をエラーハンドラーの外（グローバルなリストや長寿命のオブジェクトなど）に保持し続けると、メモリリークの原因となります。エラーハンドラー内でのログ出力や一時的な検査のみに留めることを強く推奨します。
+

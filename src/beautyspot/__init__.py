@@ -96,7 +96,6 @@ def Spot(
 
 
 __all__ = [
-    "Spot",
     "KeyGen",
     "ContentType",
     "SQLiteTaskDB",
