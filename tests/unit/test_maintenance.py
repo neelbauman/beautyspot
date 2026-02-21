@@ -176,7 +176,8 @@ class TestMaintenanceFactory:
 
         # Then
         MockDB.assert_called_once_with(db_path)
-        # Blobパスの推論ロジックの検証 (/tmp/blobs になるはず)
-        expected_blob_path = str(db_path.parent / "blobs")
+        # Blobパスの推論ロジックの検証 (.beautyspot/blobs/{stem} レイアウトに合わせた推論)
+        # bs.Spot(name="test") -> DB: parent/test.db, Storage: parent/blobs/test/
+        expected_blob_path = str(db_path.parent / "blobs" / db_path.stem)
         MockCreateStorage.assert_called_once_with(expected_blob_path)
         assert isinstance(svc, MaintenanceService)

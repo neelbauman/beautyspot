@@ -5,6 +5,7 @@ import hashlib
 import logging
 import functools
 import inspect
+import threading
 import warnings
 import weakref
 from concurrent.futures import ThreadPoolExecutor, Executor, wait
@@ -126,13 +127,20 @@ class Spot:
                 self, self._shutdown_executor, self.executor
             )
 
-        # 実行中のタスクを管理するセット
-        self._active_futures = set()
+        # 実行中のタスクを管理するセット (ロックで保護)
+        self._active_futures: set = set()
+        self._futures_lock = threading.Lock()
 
     def _track_future(self, future: Any):
         """Futureを追跡セットに加え、完了したら削除する"""
-        self._active_futures.add(future)
-        future.add_done_callback(self._active_futures.discard)
+        with self._futures_lock:
+            self._active_futures.add(future)
+
+        def _on_done(f):
+            with self._futures_lock:
+                self._active_futures.discard(f)
+
+        future.add_done_callback(_on_done)
 
     @staticmethod
     def _setup_workspace(workspace_dir: Path):
@@ -161,10 +169,10 @@ class Spot:
         Executorは停止させず、現在実行中のバックグラウンドタスクの完了だけを待つ。
         これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
         """
-        if self._active_futures:
-            # アクティブなFutureのリストを作成して完了を待機
-            # concurrent.futures.wait を使用
-            wait(list(self._active_futures))
+        with self._futures_lock:
+            snapshot = list(self._active_futures)
+        if snapshot:
+            wait(snapshot)
 
     def _resolve_key_fn(
         self,
