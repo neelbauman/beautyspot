@@ -1,7 +1,7 @@
 # 14. Strict Scoping for Imperative Execution (Runtime Guard)
 
 Date: 2026-02-01
-Status: Accepted
+Status: Superseded by [ADR-0032](0032-relax-cached-run-scoping.md)
 
 ## Context
 
