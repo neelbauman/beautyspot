@@ -33,12 +33,13 @@ def heavy_task(data):
 
 ### 局所的なキャッシュ実行 (cached_run)
 
-特定のコンテキスト内でのみ関数をキャッシュ化し、終了後に元の状態に戻したい場合に使用します。
+デコレートせずに関数を一時的にキャッシュ化したい場合に使用します。`with` ブロックを使うと変数スコープを明確にできますが、返されたラッパーはブロック外でも有効です。
 
 ```python
-with spot.cached_run(my_func) as task:
+with spot.cached_run(my_func, version="v1") as task:
     result = task(arg)
 
+# task はブロック外でも @spot.mark(version="v1") 相当のラッパーとして有効
 ```
 
 ### バックグラウンド保存の制御

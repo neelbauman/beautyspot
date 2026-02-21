@@ -49,13 +49,13 @@ spot = bs.Spot("experiment")
 # 単一の関数を渡すと、そのままラッパーが返ってきます
 # version="v1" などのオプションは、このブロック内での実行にのみ適用されます
 with spot.cached_run(simulation, version="test-v1") as sim:
-    
+
     # ここでは sim(arg) はキャッシュ機能付きで実行されます
     # IDEの型補完や静的解析も（元の関数のシグネチャに従い）機能しやすくなります
     results = [sim(x) for x in range(10)]
 
-# ブロックを抜けると、sim の効力は消えますが、
-# spot 自体（DB接続やExecutor）は生きたままで、再利用可能です
+# ブロックを抜けた後も、sim は @spot.mark() 相当のラッパーとして有効です
+# ブロック外からも呼び出し可能ですが、意図せず使い回さないよう注意してください
 
 ```
 
@@ -74,13 +74,10 @@ with spot.cached_run(task_a, task_b, save_blob=True) as (run_a, run_b):
 ```
 
 !!! note "Smart Return Policy"
-`cached_run` の戻り値は、渡された関数の数によって変化します：
+    `cached_run` の戻り値は、渡された関数の数によって変化します：
 
-```
-* **引数が1つの場合:** `Wrapper` オブジェクトを単体で返します。（アンパック不要）
-* **引数が複数の場合:** `(Wrapper, Wrapper, ...)` のタプルを返します。
-
-```
+    * **引数が1つの場合:** `Wrapper` オブジェクトを単体で返します。（アンパック不要）
+    * **引数が複数の場合:** `(Wrapper, Wrapper, ...)` のタプルを返します。
 
 ---
 
