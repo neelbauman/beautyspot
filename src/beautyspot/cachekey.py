@@ -321,10 +321,17 @@ class KeyGen:
     @staticmethod
     def hash_items(items: list) -> str:
         """Helper to hash a list of canonicalized items."""
-        packed = msgpack.packb(items)
-        if packed is None:
-            raise ValueError("msgpack.packb returned None")
-        return hashlib.sha256(packed).hexdigest()
+        try:
+            packed = msgpack.packb(items)
+            if packed is None:
+                raise ValueError("msgpack.packb returned None")
+            return hashlib.sha256(packed).hexdigest()
+        except Exception:
+            logger.warning(
+                "Failed to pack canonicalized items; falling back to str-based hash. "
+                "This may cause unexpected cache misses if argument repr is not stable."
+            )
+            return hashlib.sha256(str(items).encode()).hexdigest()
 
     # --- Factory Methods for Policies ---
 

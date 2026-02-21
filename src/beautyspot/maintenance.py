@@ -41,20 +41,23 @@ class MaintenanceService:
 
         path = Path(db_path)
 
-        # Blobディレクトリの推論ロジック (旧 Spot.from_path より移植)
+        # Blobディレクトリの推論ロジック
         if blob_dir:
             b_path = Path(blob_dir)
         else:
-            # .beautyspot/project.db -> .beautyspot/project/blobs/
-            # または兄弟ディレクトリ: .beautyspot/blobs/
+            # bs.Spot(name="foo") のデフォルト配置:
+            #   .beautyspot/foo.db -> .beautyspot/blobs/foo/
             parent = path.parent
             stem = path.stem
 
-            candidate = parent / stem / "blobs"
+            # 現行レイアウト優先: .beautyspot/blobs/{name}/
+            candidate = parent / "blobs" / stem
             if candidate.exists():
                 b_path = candidate
             else:
-                b_path = parent / "blobs"
+                # 旧レイアウトへのフォールバック: .beautyspot/{name}/blobs/
+                legacy = parent / stem / "blobs"
+                b_path = legacy if legacy.exists() else candidate
 
         db = SQLiteTaskDB(path)
         try:
