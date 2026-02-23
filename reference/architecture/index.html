@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -397,6 +397,34 @@
     
   
     Data Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
   
 
     
@@ -929,6 +957,34 @@
     
   
     Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
   
 
     
@@ -1623,23 +1679,28 @@ v2.0 以降も互換性維持のため、内部テーブル名は <code>tasks</c
 <hr />
 <h3 id="5-execution-flow-mark-decorator">5. Execution Flow (<code>@mark</code> Decorator)</h3>
 <ol>
-<li><strong>Hash Generation:</strong> 引数 (<code>args</code>, <code>kwargs</code>) と <code>version</code> から一意な <code>cache_key</code> を生成。</li>
-<li><strong>Cache Check:</strong> SQLiteを参照。</li>
-<li>Hit -&gt; <code>result_type</code> に応じてデータを復元（<code>msgpack.unpack</code>）して即座に return。</li>
-<li>
-<p>Miss -&gt; 次へ進む。</p>
+<li><strong>Hash Generation:</strong> 引数 (<code>args</code>, <code>kwargs</code>) と <code>version</code> から一意な <code>cache_key</code> を生成。<ul>
+<li>🔌 <strong>Hook:</strong> ここで <code>pre_execute</code> フックが発火します。</li>
+</ul>
 </li>
-<li>
-<p><strong>Execution:</strong> ユーザー関数を実行。</p>
+<li><strong>Cache Check:</strong> SQLiteを参照。<ul>
+<li><strong>Hit</strong> -&gt; <code>result_type</code> に応じてデータを復元（<code>msgpack.unpack</code>）します。<ul>
+<li>🔌 <strong>Hook:</strong> <code>on_cache_hit</code> フックが発火し、即座に結果を return します。</li>
+</ul>
 </li>
-<li>
-<p><strong>Exception:</strong> 例外が発生した場合、<strong>キャッシュは行わず</strong> そのまま例外を上位へ伝播させる（バグの永続化防止）。</p>
+<li><strong>Miss</strong> -&gt; 次へ進む。</li>
+</ul>
 </li>
-<li>
-<p><strong>Persistence:</strong></p>
+<li><strong>Execution:</strong> ユーザー関数を実際に実行します。<ul>
+<li>🔌 <strong>Hook:</strong> 実行完了の直後、結果を伴って <code>on_cache_miss</code> フックが発火します。</li>
+<li><strong>Exception:</strong> 例外が発生した場合、キャッシュやフックはスキップされ、そのまま例外を上位へ伝播させます（バグの永続化防止）。</li>
+</ul>
 </li>
+<li><strong>Persistence:</strong><ul>
 <li>Small Data -&gt; <code>DIRECT_BLOB</code> モードでSQLiteにバイナリ保存。</li>
 <li>Large Data (<code>save_blob=True</code>) -&gt; <code>FILE</code> モードでStorageに保存し、パスのみをSQLiteに記録。</li>
+</ul>
+</li>
 </ol>
 <hr />
 <h3 id="6-key-technical-decisions-adr-summary">6. Key Technical Decisions (ADR Summary)</h3>

@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0004-io-executor-lifecyle-management/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0034-background-loop-lifecycle-and-gc/">
       
       
       
@@ -21,7 +21,7 @@
     
     
       
-        <title>Executor Lifecycle Management - beautyspot</title>
+        <title>ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策 - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#manage-executor-lifecycle-via-instance-ownership-and-weak-references" class="md-skip">
+        <a href="#adr-0034-gc" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Executor Lifecycle Management
+              ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策
             
           </span>
         </div>
@@ -1282,10 +1282,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context-and-problem-statement" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        背景と課題
       
     </span>
   </a>
@@ -1293,10 +1293,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision-drivers" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers
+        決定事項
       
     </span>
   </a>
@@ -1304,49 +1304,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-options" class="md-nav__link">
+  <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered Options
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision-outcome" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision Outcome
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Decision Outcome">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#technical-details-why-weakreffinalize-instead-of-atexit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Technical Details: Why weakref.finalize instead of atexit?
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        結果
       
     </span>
   </a>
@@ -1373,82 +1334,23 @@
   
 
 
-<h1 id="manage-executor-lifecycle-via-instance-ownership-and-weak-references">Manage Executor Lifecycle via Instance Ownership and Weak References</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p><code>src/beautyspot/core.py</code> において、非同期タスクのIOオフロード用に <code>ThreadPoolExecutor</code> がグローバル変数 <code>_io_executor</code> として定義されている。</p>
-<p>この実装には以下の課題がある：</p>
+<h1 id="adr-0034-gc">ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策</h1>
+<h2 id="_1">背景と課題</h2>
+<p><code>Spot</code> クラスは非同期のキャッシュ保存を構造的に直列化するため、内部で専用の <code>asyncio</code> ループを実行するスレッド (<code>_BackgroundLoop</code>) を保持している。
+インスタンスがガベージコレクション (GC) によって破棄される際、未保存のキャッシュデータを待機 (<code>wait=True</code>) してしまうと、メインスレッド（アプリのメイン処理）を予測不能なタイミングでフリーズさせたり、デッドロックを引き起こす危険性がある。
+そのため、<code>weakref.finalize</code> による GC 処理では安全を優先し、<code>wait=False</code> で即座にタスクをキャンセルしてリソースを解放する設計となっている。</p>
+<p>しかし、この設計では「関数内で一時的に <code>Spot</code> をインスタンス化し、バックグラウンド保存を投入してすぐに関数を抜ける」ような使い方をされた場合、GC のタイミングによってキャッシュデータが失われる（データロスト）という課題があった。</p>
+<h2 id="_2">決定事項</h2>
 <ol>
-<li><strong>リソース制御の欠如</strong>: スレッド数（<code>max_workers=4</code>）がハードコードされており、ユーザーが実行環境（AWS Lambda、強力なサーバー等）に合わせて調整できない。</li>
-<li><strong>ゾンビプロセス</strong>: プロセス終了時に明示的なシャットダウンが行われないため、環境によってはゾンビプロセス化するリスクがある。</li>
-<li><strong>テスト困難性</strong>: グローバル変数はモック化が難しく、ユニットテストの分離を妨げる。</li>
+<li><strong><code>atexit</code> によるグローバルな安全網の追加</strong>: 
+   <code>weakref.WeakSet</code> を用いて起動中のバックグラウンドループを追跡し、プロセス終了時 (<code>atexit</code>) に <code>wait=True</code> でドレインを行うフックを実装する。プロセス終了時であれば、メインスレッドをブロックしてもデッドロックの危険性が低いためである。</li>
+<li><strong>明示的なリソース管理の推奨</strong>: 
+   Docstring に警告を追記し、<code>Spot</code> インスタンスは長寿命なオブジェクトとして扱うか、コンテキストマネージャ (<code>with</code>) または <code>shutdown(wait=True)</code> による明示的なライフサイクル管理を行うべきであることをユーザーに周知する。</li>
 </ol>
-<p>代替案として <code>with</code> 文（Context Manager）による管理も検討されたが、<code>beautyspot</code> の「デコレータを付与するだけで動作する」という簡易な利用体験（DX）を損なうため、採用には至らなかった。ユーザーコードを変更させずに、安全にリソースをクリーンアップする仕組みが必要である。</p>
-<h2 id="decision-drivers">Decision Drivers</h2>
+<h2 id="_3">結果</h2>
 <ul>
-<li><strong>Developer Experience (DX)</strong>: ユーザーに <code>shutdown()</code> の呼び出しや <code>with</code> 文を強制したくない。</li>
-<li><strong>Configurability</strong>: スレッド数や Executor の実装をユーザーが制御できるようにしたい。</li>
-<li><strong>Safety</strong>: プロセス終了時やインスタンス破棄時に、確実にスレッドプールを閉じたい。</li>
-<li><strong>Memory Safety</strong>: クリーンアップ処理の登録によって、メモリリーク（循環参照）を引き起こしてはならない。</li>
-</ul>
-<h2 id="considered-options">Considered Options</h2>
-<ul>
-<li><strong>Option 1</strong>: 現状維持（グローバル変数のまま）。</li>
-<li><strong>Option 2</strong>: <code>Project</code> を Context Manager 化し、<code>__exit__</code> で <code>shutdown()</code> を呼ぶ。</li>
-<li><strong>Option 3</strong>: <code>atexit</code> モジュールを使い、終了時に <code>shutdown()</code> を呼ぶ。</li>
-<li><strong>Option 4</strong>: インスタンス管理に変更し、<code>weakref.finalize</code> で自動クリーンアップを行う。</li>
-</ul>
-<h2 id="decision-outcome">Decision Outcome</h2>
-<p>Chosen option: <strong>Option 4</strong>.</p>
-<p><code>Project</code> クラスの設計を以下のように変更する：</p>
-<ol>
-<li><strong>Executorのインスタンス化</strong>:
-    グローバル変数を廃止し、<code>Project</code> インスタンスごとに <code>ThreadPoolExecutor</code> を保持する。</li>
-<li><strong>Dependency Injection (DI)</strong>:
-    コンストラクタで外部 <code>Executor</code> の注入を許可する。</li>
-<li><strong>所有権と責任の分離</strong>:<ul>
-<li><strong>外部注入 (<code>executor</code> 引数あり)</strong>: <code>Project</code> はそれを借用するのみ。シャットダウンの責任はユーザー（呼び出し元）にあるため、自動クリーンアップは行わない。</li>
-<li><strong>内部生成 (<code>executor</code> 引数なし)</strong>: <code>Project</code> がライフサイクルを管理する責任を持つ。</li>
-</ul>
-</li>
-<li><strong>自動クリーンアップ</strong>:
-    内部生成した場合に限り、<code>weakref.finalize</code> を使用してシャットダウンを自動化する。</li>
-</ol>
-<h3 id="technical-details-why-weakreffinalize-instead-of-atexit">Technical Details: Why <code>weakref.finalize</code> instead of <code>atexit</code>?</h3>
-<p>単純な <code>atexit.register(self.shutdown)</code> を採用しなかった理由は、<strong>メモリリーク（循環参照）のリスク</strong> である。</p>
-<ul>
-<li><strong>問題点</strong>: <code>atexit</code> レジストリにインスタンスメソッド（<code>self.shutdown</code>）を登録すると、<code>atexit</code> が <code>self</code> への強参照（Strong Reference）を保持し続ける。これにより、アプリケーション実行中に <code>Project</code> インスタンスが不要になってもガベージコレクション（GC）されず、メモリリークを引き起こす。これを防ぐには <code>atexit.unregister</code> が必要になるが、管理が複雑になる。</li>
-<li><strong>解決策</strong>: <code>weakref.finalize(self, func, *args)</code> を採用する。<ul>
-<li><code>self</code> がGCされた時点で、即座に <code>func</code>（クリーンアップ処理）が実行される。</li>
-<li>プログラム終了時まで <code>self</code> が生存していた場合も、<code>atexit</code> 相当のタイミングで <code>func</code> が実行される。</li>
-<li><strong>重要</strong>: クリーンアップ関数 <code>_shutdown_executor</code> は <code>staticmethod</code> とし、引数には <code>self</code> ではなく <code>self.executor</code> のみを渡す。これにより、ファイナライザが <code>self</code> を参照し続けて寿命を延ばしてしまう事故を防ぐ。</li>
-</ul>
-</li>
-</ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Implementation Sketch</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="c1"># ...</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="c1"># self を参照しないよう、executor オブジェクトだけを渡す</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_finalizer</span> <span class="o">=</span> <span class="n">weakref</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown_executor</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="p">)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_shutdown_executor</span><span class="p">(</span><span class="n">executor</span><span class="p">):</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</code></pre></div>
-<h2 id="consequences">Consequences</h2>
-<ul>
-<li><strong>Positive</strong>:<ul>
-<li>ユーザーはリソース管理を意識する必要がなくなり、APIもシンプルに保たれる。</li>
-<li><code>Project</code> インスタンスがGCされたタイミングでスレッドプールも回収されるため、リソース効率が良い。</li>
-<li>DIにより、テスト時にモックExecutorを差し込むことが容易になる。</li>
-</ul>
-</li>
-<li><strong>Negative</strong>:<ul>
-<li><code>core.py</code> の実装において、GCの挙動と <code>weakref</code> の仕様を理解したコーディングが必要になり、内部的な複雑性が若干増す。</li>
-<li><code>Project</code> インスタンスを大量に生成・破棄するような特殊な使い方をした場合、スレッドプールの生成コストがオーバーヘッドになる可能性がある（ドキュメントでシングルトン的な利用を推奨することで緩和する）。</li>
-</ul>
-</li>
+<li>ユーザーが一時的なスコープで <code>Spot</code> を使ってしまった場合でも、アプリ終了時まではGCで破棄されない限りデータが救済される可能性が高まる。</li>
+<li>メインスレッドの安全性（GC時のフリーズ回避）と、キャッシュ保存の確実性のバランスを取ることができた。</li>
 </ul>
 
 
@@ -1456,9 +1358,6 @@
 
 
 
-
-  
-  
 
 
 

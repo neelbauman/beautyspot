@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -399,6 +399,34 @@
     
   
     Data Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
   
 
     
@@ -942,6 +970,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#6-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 6. トークン消費量と節約量のトラッキング (Hooksの活用)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1050,6 +1089,34 @@
     
   
     Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
   
 
     
@@ -1420,6 +1487,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#6-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 6. トークン消費量と節約量のトラッキング (Hooksの活用)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1476,10 +1554,10 @@
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">embeddings</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_text_embedding</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">my_documents</span><span class="p">]</span>
 </code></pre></div>
 <h2 id="3">⏳ 3. レート制限とコスト管理</h2>
-<p>多くの LLM プロバイダーには TPM (Tokens Per Minute) や RPM (Requests Per Minute) の制限があります。<code>@spot.limiter</code> を使うことで、これらの制限を超えないように自動調整できます。</p>
+<p>多くの LLM プロバイダーには TPM (Tokens Per Minute) や RPM (Requests Per Minute) の制限があります。<code>@spot.consume</code> を使うことで、これらの制限を超えないように自動調整できます。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 1分間に 20 リクエストに制限</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">limiter</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">consume</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">safe_llm_call</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="c1"># API 呼び出し</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="o">...</span>
@@ -1489,7 +1567,7 @@
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">safe_llm_call</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="4">📝 4. プロンプトのバージョン管理</h2>
-<p>LLM アプリケーションにおいて、プロンプトは「コード」の一部です。プロンプトを微調整した際に古いキャッシュが返されないよう、<code>version</code> 引数を活用します。</p>
+<p>LLM アプリケーションにおいて、プロンプトは「コード」の一部です。プロンプトを微調整した際に古いキャッシュが返されないよう、<code>version</code> 引活用します。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">PROMPT_TEMPLATE</span> <span class="o">=</span> <span class="s2">&quot;あなたは誠実なアシスタントです。質問に答えてください: </span><span class="si">{query}</span><span class="s2">&quot;</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">PROMPT_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2024-05-20-v1&quot;</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
@@ -1507,6 +1585,46 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># 保存をバックグラウンドスレッドへオフロード</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;chat_app&quot;</span><span class="p">,</span> <span class="n">default_wait</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">io_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 </code></pre></div>
+<h2 id="6-hooks">📊 6. トークン消費量と節約量のトラッキング (Hooksの活用)</h2>
+<p>LLMアプリにおいて「キャッシュによってどれだけのトークン（コスト）を節約できたか」を計測することは非常に重要です。<code>beautyspot</code> のフックシステム（<code>HookBase</code>）を使うと、実関数のロジックを汚すことなくメトリクスを収集できます。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.hooks</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookBase</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">TokenTracker</span><span class="p">(</span><span class="n">HookBase</span><span class="p">):</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">consumed_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">saved_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_miss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="c1"># APIが実際に呼ばれた場合（消費）</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="c1"># ※実際のアプリでは tiktoken 等で文字列からトークン数を計算します</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="n">tokens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">result</span><span class="p">)</span> 
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">consumed_tokens</span> <span class="o">+=</span> <span class="n">tokens</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[API使用] </span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2"> トークン消費&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_hit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="c1"># キャッシュがヒットした場合（節約）</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="n">tokens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">saved_tokens</span> <span class="o">+=</span> <span class="n">tokens</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[キャッシュヒット] </span><span class="si">{</span><span class="n">tokens</span><span class="si">}</span><span class="s2"> トークン節約！&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">TokenTracker</span><span class="p">()</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;llm_metrics_app&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">hooks</span><span class="o">=</span><span class="p">[</span><span class="n">tracker</span><span class="p">])</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">call_expensive_llm</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>    <span class="c1"># LLMの呼び出しをシミュレート</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>    <span class="k">return</span> <span class="s2">&quot;AIからの回答です。&quot;</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="c1"># 初回実行（キャッシュミス）</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="n">call_expensive_llm</span><span class="p">(</span><span class="s2">&quot;こんにちは&quot;</span><span class="p">)</span> 
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a><span class="c1"># 2回目実行（キャッシュヒット）</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="n">call_expensive_llm</span><span class="p">(</span><span class="s2">&quot;こんにちは&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;累計消費: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">consumed_tokens</span><span class="si">}</span><span class="s2">, 累計節約: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">saved_tokens</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>このプラグイン設計により、状態（<code>tracker.consumed_tokens</code> など）を維持したまま、複数のタスクを横断してコストを監視することが可能になります。</p>
 
 
 

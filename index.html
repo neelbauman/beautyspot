@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -630,6 +630,34 @@
   
   
     <li class="md-nav__item">
+      <a href="guides/lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="guides/custom_backend/" class="md-nav__link">
         
   
@@ -1142,6 +1170,34 @@
     
   
     Spot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
   
 
     
@@ -1736,7 +1792,7 @@
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;api_client&quot;</span><span class="p">,</span> <span class="n">tpm</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">limiter</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># 1回の実行で1トークン消費</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">consume</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># 1回の実行で1トークン消費</span>
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">call_api</span><span class="p">():</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="o">...</span>
 </code></pre></div>
@@ -1770,7 +1826,7 @@
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">storage</span> <span class="k">as</span> <span class="n">gcs</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
 <a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskDB</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskDBBase</span>
 <a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.storage</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlobStorageBase</span>
 <a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.cachekey</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyGen</span>
 <a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
@@ -1796,7 +1852,7 @@
 <a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span>
 <a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;production_pipeline&quot;</span><span class="p">,</span>
 <a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    <span class="n">db</span><span class="o">=</span><span class="n">my_db</span><span class="p">,</span>
-<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    <span class="n">storage</span><span class="o">=</span><span class="n">my_storage</span><span class="p">,</span>
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    <span class="n">storage_backend</span><span class="o">=</span><span class="n">my_storage</span><span class="p">,</span>
 <a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>    <span class="n">tpm</span><span class="o">=</span><span class="mi">60</span>
 <a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a><span class="p">)</span>
 <a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>
@@ -1812,11 +1868,11 @@
 <a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a>
 <a id="__codelineno-6-50" name="__codelineno-6-50" href="#__codelineno-6-50"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span>
 <a id="__codelineno-6-51" name="__codelineno-6-51" href="#__codelineno-6-51"></a>    <span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                     <span class="c1"># 1. 結果はGCSへ (Blob)</span>
-<a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a>    <span class="n">input_key_fn</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_path_stat</span><span class="p">,</span> <span class="c1"># 2. ファイルのタイムスタンプを見てキャッシュ判定</span>
+<a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a>    <span class="n">keygen</span><span class="o">=</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">path_stat</span><span class="p">,</span>            <span class="c1"># 2. ファイルのタイムスタンプを見てキャッシュ判定</span>
 <a id="__codelineno-6-53" name="__codelineno-6-53" href="#__codelineno-6-53"></a>    <span class="n">version</span><span class="o">=</span><span class="s2">&quot;v2.0.1&quot;</span><span class="p">,</span>                   <span class="c1"># 3. ロジック変更時はここを変えてキャッシュ無効化</span>
 <a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a>    <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;application/json&quot;</span>     <span class="c1"># 4. ダッシュボード表示用ヒント</span>
 <a id="__codelineno-6-55" name="__codelineno-6-55" href="#__codelineno-6-55"></a><span class="p">)</span>
-<a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">limiter</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                   <span class="c1"># 5. レート制限を適用</span>
+<a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">consume</span><span class="p">(</span><span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                   <span class="c1"># 5. レート制限を適用</span>
 <a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a><span class="k">def</span><span class="w"> </span><span class="nf">analyze_log_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
 <a id="__codelineno-6-58" name="__codelineno-6-58" href="#__codelineno-6-58"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-6-59" name="__codelineno-6-59" href="#__codelineno-6-59"></a><span class="sd">    重い処理の実体。</span>

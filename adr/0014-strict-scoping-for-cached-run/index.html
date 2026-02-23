@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -395,6 +395,34 @@
     
   
     Data Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
   
 
     
@@ -947,6 +975,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1308,7 +1364,7 @@
 
 <h1 id="14-strict-scoping-for-imperative-execution-runtime-guard">14. Strict Scoping for Imperative Execution (Runtime Guard)</h1>
 <p>Date: 2026-02-01
-Status: Accepted</p>
+Status: Superseded by <a href="../0032-relax-cached-run-scoping/">ADR-0032</a></p>
 <h2 id="context">Context</h2>
 <p>The <code>spot.cached_run()</code> context manager allows users to temporarily apply caching behavior to functions. 
 However, due to Python's scoping rules for <code>with</code> statements, variables bound within the block (e.g., <code>with ... as task:</code>) remain accessible after the block exits.</p>

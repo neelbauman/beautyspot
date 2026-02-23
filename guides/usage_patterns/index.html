@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -397,11 +397,28 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#multiple-functions" class="md-nav__link">
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-parallel-execution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        複数の関数をまとめてキャッシュ (Multiple Functions)
+        3. Parallel Execution (並列実行と共有フック)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Parallel Execution (並列実行と共有フック)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thread-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread-Safe な集計パターン
       
     </span>
   </a>
@@ -414,15 +431,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flush" class="md-nav__link">
+  <a href="#4-flush" class="md-nav__link">
     <span class="md-ellipsis">
       
-        コンテキストマネージャによる同期 (Flush)
+        4. コンテキストマネージャによる同期 (Flush)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="コンテキストマネージャによる同期 (Flush)">
+    <nav class="md-nav" aria-label="4. コンテキストマネージャによる同期 (Flush)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -541,6 +558,34 @@
     
   
     Data Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
   
 
     
@@ -1093,6 +1138,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1422,11 +1495,28 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#multiple-functions" class="md-nav__link">
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-parallel-execution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        複数の関数をまとめてキャッシュ (Multiple Functions)
+        3. Parallel Execution (並列実行と共有フック)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Parallel Execution (並列実行と共有フック)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#thread-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread-Safe な集計パターン
       
     </span>
   </a>
@@ -1439,15 +1529,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flush" class="md-nav__link">
+  <a href="#4-flush" class="md-nav__link">
     <span class="md-ellipsis">
       
-        コンテキストマネージャによる同期 (Flush)
+        4. コンテキストマネージャによる同期 (Flush)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="コンテキストマネージャによる同期 (Flush)">
+    <nav class="md-nav" aria-label="4. コンテキストマネージャによる同期 (Flush)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1487,7 +1577,7 @@
 
 
 <h1 id="usage-patterns">Usage Patterns</h1>
-<p><code>beautyspot</code> は、関数のキャッシュ化を「いつ」行いたいかに応じて、主に2つのアプローチを提供します。</p>
+<p><code>beautyspot</code> は、関数のキャッシュ化を「いつ」行いたいか、また「どのように」実行したいかに応じて、柔軟な実行パターンを提供します。</p>
 <h2 id="1-definition-time-spotmark">1. Definition Time (<code>@spot.mark</code>)</h2>
 <p><strong>「この関数は常にキャッシュされるべきである」</strong> という設計の場合に使用します。
 主にアプリケーションのコアロジックや、データパイプラインの定義に適しています。</p>
@@ -1522,54 +1612,58 @@ v2.0 から推奨される、柔軟かつモダンな実行パターンです。
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;experiment&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># 単一の関数を渡すと、そのままラッパーが返ってきます</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># version=&quot;v1&quot; などのオプションは、このブロック内での実行にのみ適用されます</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">simulation</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;test-v1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="c1"># ここでは sim(arg) はキャッシュ機能付きで実行されます</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="c1"># IDEの型補完や静的解析も（元の関数のシグネチャに従い）機能しやすくなります</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># ブロックを抜けると、sim の効力は消えますが、</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># spot 自体（DB接続やExecutor）は生きたままで、再利用可能です</span>
-</code></pre></div>
-<h3 id="multiple-functions">複数の関数をまとめてキャッシュ (Multiple Functions)</h3>
-<p>複数の関数を渡すと、タプルとして受け取れます。指定したオプション（<code>version</code> など）は、渡したすべての関数に一律で適用されます。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">task_a</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="o">...</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">task_b</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="o">...</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">task_a</span><span class="p">,</span> <span class="n">task_b</span><span class="p">,</span> <span class="n">save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="p">(</span><span class="n">run_a</span><span class="p">,</span> <span class="n">run_b</span><span class="p">):</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">run_a</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">run_b</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Smart Return Policy</p>
-</div>
-<p><code>cached_run</code> の戻り値は、渡された関数の数によって変化します：</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>* **引数が1つの場合:** `Wrapper` オブジェクトを単体で返します。（アンパック不要）
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>* **引数が複数の場合:** `(Wrapper, Wrapper, ...)` のタプルを返します。
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">simulation</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;test-v1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="c1"># IDEの型補完や静的解析も機能します</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
 </code></pre></div>
 <hr />
-<h2 id="flush">コンテキストマネージャによる同期 (Flush)</h2>
-<p><code>wait=False</code> を使用している場合、アプリケーションが急に終了すると、バックグラウンドで走っている保存処理が中断されるリスクがあります。<code>beautyspot</code> の <code>with</code> ブロックは、<strong>「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」</strong> として機能します。</p>
-<h3 id="_2">推奨されるパターン：バッチ処理の区切り</h3>
-<p><code>Spot</code> インスタンスはグローバルに定義し、同期が必要な区切りで <code>with</code> を使用します。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">,</span> <span class="n">default_wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_experiment</span><span class="p">():</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">with</span> <span class="n">spot</span><span class="p">:</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="c1"># このブロック内で行われる保存はすべてバックグラウンドで行われる</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            <span class="n">process_data</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="c1"># with ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機する</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="c1"># ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれていることが保証される</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="c1"># Spot インスタンスは再利用可能なため、次の処理でも使用可能</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">process_summary</span><span class="p">()</span>
+<h2 id="3-parallel-execution">3. Parallel Execution (並列実行と共有フック)</h2>
+<p><code>beautyspot</code> は、<code>ThreadPoolExecutor</code> などを用いた並列タスク実行をネイティブにサポートしています。
+複数のスレッドから同じフックインスタンスを共有してメトリクス（進捗、トークン数など）を収集する場合、<strong><code>ThreadSafeHookBase</code></strong> を使用することで、競合状態（Race Condition）を防ぎつつ安全に集計を行えます。</p>
+<h3 id="thread-safe">Thread-Safe な集計パターン</h3>
+<p>以下の例では、5つのスレッドで並列にタスクを実行し、共通のカウンタを安全に更新しています。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">concurrent.futures</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.hooks</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadSafeHookBase</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConcurrentCounterHook</span><span class="p">(</span><span class="n">ThreadSafeHookBase</span><span class="p">):</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>  <span class="c1"># ⚠️ 必須：内部ロックの初期化</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_hit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># ロックは自動適用されます</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_miss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">counter</span> <span class="o">=</span> <span class="n">ConcurrentCounterHook</span><span class="p">()</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="c1"># 複数のタスクに同じ counter インスタンスを渡す</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>        <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">heavy_task</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="p">[</span><span class="n">counter</span><span class="p">]),</span> <span class="n">i</span><span class="p">)</span> 
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    <span class="p">]</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>    <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total processed: </span><span class="si">{</span><span class="n">counter</span><span class="o">.</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> <code>with spot:</code> を抜けても Executor はシャットダウンされません。インスタンスは引き続き再利用可能です。完全に終了させる場合は <code>spot.shutdown()</code> を呼び出してください。</p>
-</blockquote>
+<hr />
+<h2 id="4-flush">4. コンテキストマネージャによる同期 (Flush)</h2>
+<p><code>wait=False</code>（非同期保存）を使用している場合、アプリケーションが終了する前にバックグラウンドの保存処理を完了させる必要があります。<code>with spot:</code> ブロックは、<strong>「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」</strong> として機能します。</p>
+<h3 id="_2">推奨されるパターン：バッチ処理の区切り</h3>
+<p>大量の並列処理やループ処理の後に <code>with</code> ブロックを抜けることで、全データの永続化を保証します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">,</span> <span class="n">default_wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_experiment</span><span class="p">():</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">with</span> <span class="n">spot</span><span class="p">:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="c1"># このブロック内の保存はバックグラウンドで行われる</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>            <span class="n">process_data</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="c1"># ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機します</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="c1"># ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれています</span>
+</code></pre></div>
 
 
 

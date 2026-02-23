@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
     
     
       
@@ -399,6 +399,34 @@
     
   
     Data Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Lifecycle
   
 
     
@@ -1083,6 +1111,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/hooks.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1481,14 +1537,14 @@
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>spot = bs.Spot(&quot;api_client&quot;, tpm=60)
 </code></pre></div>
 <h4 id="2">2. 関数にコストを設定する</h4>
-<p><code>@spot.limiter</code>  デコレータを使用して、その関数を実行するのに必要な「コスト（トークン消費量）」を定義します。</p>
+<p><code>@spot.consume</code>  デコレータを使用して、その関数を実行するのに必要な「コスト（トークン消費量）」を定義します。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>@spot.mark
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>@spot.limiter(cost=1)  # 1回の実行で1トークン消費
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>@spot.consume(cost=1)  # 1回の実行で1トークン消費
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>def call_api_endpoint_a():
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    ...
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>@spot.mark
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>@spot.limiter(cost=5)  # 重いエンドポイントは5トークン消費
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>@spot.consume(cost=5)  # 重いエンドポイントは5トークン消費
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>def call_heavy_endpoint():
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    ...
 </code></pre></div>
@@ -1501,7 +1557,7 @@
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    return len(text_list)
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>@spot.mark
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>@spot.limiter(cost=calculate_cost)
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>@spot.consume(cost=calculate_cost)
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>def batch_process(text_list):
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    ...
 </code></pre></div>
@@ -1509,7 +1565,7 @@
 <p><code>async</code> 関数に対しても、同様に動作します。</p>
 <p>この場合、スレッドをブロックするのではなく、非同期に <code>await asyncio.sleep(...)</code> します。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>@spot.mark
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>@spot.limiter(cost=1)
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>@spot.consume(cost=1)
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>async def fetch_data():
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    # レート制限にかかった場合、ここで非同期に待機します
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    await client.get(...)
