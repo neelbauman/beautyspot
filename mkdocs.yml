@@ -60,7 +60,7 @@ nav:
   - User Guides:
       - Caching Strategy: guides/caching.md
       - Data Serialization: guides/serialization.md
-      - Data Lifecycle: guides/lifecycle.md      # 追加: ライフサイクル管理
+      - Data Lifecycle: guides/lifecycle.md
       - Custom Backends (DI): guides/custom_backend.md
       - Rate Limiting: guides/rate_limiting.md
       - CLI & Dashboard: guides/cli.md
@@ -78,7 +78,7 @@ nav:
       - Testing: cookbooks/testing.md
   - Reference:
       - Spot: reference/core.md
-      - Hooks: reference/hooks.md                # 追加: フックシステムのAPIリファレンス
+      - Hooks: reference/hooks.md
       - CacheKey: reference/cachekey.md
       - CacheDB: reference/db.md
       - Storage: reference/storage.md
@@ -86,4 +86,4 @@ nav:
       - MaintenanceService: reference/maintenance.md
   - Topics:
       - Philosophy: reference/philosophy.md
-      - Architecture: reference/architecture.md
+      - Architecture: quality_report.md

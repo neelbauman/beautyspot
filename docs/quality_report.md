@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-23 16:28:48
+**最終更新:** 2026-02-23 19:33:45
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -22,13 +22,13 @@ db              | 2   | 0   | 0.00
 exceptions      | 4   | 0   | 0.00
 lifecycle       | 1   | 1   | 0.50
 serializer      | 2   | 1   | 0.33
-storage         | 2   | 1   | 0.33
 _version        | 0   | 0   | 0.00
-cachekey        | 1   | 0   | 0.00
 maintenance     | 2   | 3   | 0.60
 types           | 2   | 0   | 0.00
-hooks           | 1   | 1   | 0.50
 content_types   | 2   | 0   | 0.00
+cachekey        | 1   | 0   | 0.00
+hooks           | 1   | 1   | 0.50
+storage         | 2   | 1   | 0.33
 core            | 0   | 10  | 1.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
@@ -45,12 +45,9 @@ src/beautyspot/cli.py
     F 303:0 show_cmd - C
     F 555:0 gc_cmd - C
     F 670:0 prune_cmd - C
-src/beautyspot/core.py
-    M 303:4 Spot._execute_sync - C
-    M 396:4 Spot._execute_async - C
 
-5 blocks (classes, functions, methods) analyzed.
-Average complexity: C (13.8)
+3 blocks (classes, functions, methods) analyzed.
+Average complexity: C (15.0)
 ```
 
 <details>
@@ -66,8 +63,6 @@ src/beautyspot/limiter.py
     M 92:4 TokenBucket.consume_async - A
     M 11:4 LimiterProtocol.consume - A
     M 13:4 LimiterProtocol.consume_async - A
-src/beautyspot/__init__.py
-    F 37:0 Spot - B
 src/beautyspot/cli.py
     F 303:0 show_cmd - C
     F 555:0 gc_cmd - C
@@ -148,61 +143,6 @@ src/beautyspot/serializer.py
     M 28:4 SerializerProtocol.loads - A
     M 37:4 TypeRegistryProtocol.register - A
     M 54:4 MsgpackSerializer.__init__ - A
-src/beautyspot/storage.py
-    M 204:4 LocalStorage.prune_empty_dirs - B
-    M 260:4 S3Storage._parse_s3_uri - A
-    C 118:0 LocalStorage - A
-    M 124:4 LocalStorage._validate_key - A
-    M 150:4 LocalStorage.load - A
-    M 190:4 LocalStorage.list_keys - A
-    C 243:0 S3Storage - A
-    M 244:4 S3Storage.__init__ - A
-    C 49:0 WarningOnlyPolicy - A
-    M 171:4 LocalStorage.delete - A
-    M 293:4 S3Storage.list_keys - A
-    F 301:0 create_storage - A
-    C 26:0 StoragePolicyProtocol - A
-    C 36:0 ThresholdStoragePolicy - A
-    M 58:4 WarningOnlyPolicy.should_save_as_blob - A
-    C 68:0 AlwaysBlobPolicy - A
-    C 80:0 BlobStorageBase - A
-    M 278:4 S3Storage.load - A
-    M 286:4 S3Storage.delete - A
-    M 32:4 StoragePolicyProtocol.should_save_as_blob - A
-    M 44:4 ThresholdStoragePolicy.should_save_as_blob - A
-    M 74:4 AlwaysBlobPolicy.should_save_as_blob - A
-    M 86:4 BlobStorageBase.save - A
-    M 94:4 BlobStorageBase.load - A
-    M 101:4 BlobStorageBase.delete - A
-    M 109:4 BlobStorageBase.list_keys - A
-    M 119:4 LocalStorage.__init__ - A
-    M 131:4 LocalStorage.save - A
-    M 272:4 S3Storage.save - A
-src/beautyspot/cachekey.py
-    F 126:0 _canonicalize_type - B
-    F 64:0 canonicalize - B
-    F 41:0 _canonicalize_instance - A
-    M 272:4 KeyGen.from_file_content - A
-    M 290:4 KeyGen._default - A
-    F 53:0 _is_ndarray_like - A
-    C 251:0 KeyGen - A
-    M 322:4 KeyGen.hash_items - A
-    F 20:0 _safe_sort_key - A
-    F 91:0 _canonicalize_dict - A
-    F 101:0 _canonicalize_sequence - A
-    F 108:0 _canonicalize_set - A
-    C 194:0 KeyGenPolicy - A
-    M 263:4 KeyGen.from_path_stat - A
-    M 339:4 KeyGen.ignore - A
-    M 354:4 KeyGen.file_content - A
-    M 362:4 KeyGen.path_stat - A
-    F 36:0 _canonicalize_ndarray - A
-    F 115:0 _canonicalize_enum - A
-    F 169:4 _canonicalize_np_ndarray - A
-    C 181:0 Strategy - A
-    M 200:4 KeyGenPolicy.__init__ - A
-    M 208:4 KeyGenPolicy.bind - A
-    M 347:4 KeyGen.map - A
 src/beautyspot/maintenance.py
     M 184:4 MaintenanceService.clean_garbage - B
     M 82:4 MaintenanceService.get_task_detail - B
@@ -225,43 +165,115 @@ src/beautyspot/types.py
     C 50:0 PreExecuteContext - A
     C 55:0 CacheHitContext - A
     C 61:0 CacheMissContext - A
-src/beautyspot/hooks.py
-    C 5:0 HookBase - A
-    M 11:4 HookBase.pre_execute - A
-    M 15:4 HookBase.on_cache_hit - A
-    M 19:4 HookBase.on_cache_miss - A
 src/beautyspot/content_types.py
     C 6:0 ContentType - A
+src/beautyspot/__init__.py
+    F 43:0 Spot - B
+src/beautyspot/cachekey.py
+    F 124:0 _canonicalize_type - B
+    F 63:0 canonicalize - B
+    F 41:0 _canonicalize_instance - A
+    M 269:4 KeyGen.from_file_content - A
+    M 287:4 KeyGen._default - A
+    F 53:0 _is_ndarray_like - A
+    C 248:0 KeyGen - A
+    M 319:4 KeyGen.hash_items - A
+    F 20:0 _safe_sort_key - A
+    F 90:0 _canonicalize_dict - A
+    F 100:0 _canonicalize_sequence - A
+    F 107:0 _canonicalize_set - A
+    C 191:0 KeyGenPolicy - A
+    M 260:4 KeyGen.from_path_stat - A
+    M 336:4 KeyGen.ignore - A
+    M 351:4 KeyGen.file_content - A
+    M 359:4 KeyGen.path_stat - A
+    F 36:0 _canonicalize_ndarray - A
+    F 114:0 _canonicalize_enum - A
+    F 167:4 _canonicalize_np_ndarray - A
+    C 178:0 Strategy - A
+    M 197:4 KeyGenPolicy.__init__ - A
+    M 205:4 KeyGenPolicy.bind - A
+    M 344:4 KeyGen.map - A
+src/beautyspot/hooks.py
+    C 42:0 ThreadSafeHookBase - A
+    M 64:4 ThreadSafeHookBase.__init_subclass__ - A
+    C 12:0 HookBase - A
+    F 33:0 _wrap_with_lock - A
+    M 23:4 HookBase.pre_execute - A
+    M 26:4 HookBase.on_cache_hit - A
+    M 29:4 HookBase.on_cache_miss - A
+    M 70:4 ThreadSafeHookBase.__init__ - A
+src/beautyspot/storage.py
+    M 213:4 LocalStorage.prune_empty_dirs - B
+    M 269:4 S3Storage._parse_s3_uri - A
+    C 119:0 LocalStorage - A
+    M 125:4 LocalStorage._validate_key - A
+    M 159:4 LocalStorage.load - A
+    M 199:4 LocalStorage.list_keys - A
+    C 252:0 S3Storage - A
+    M 253:4 S3Storage.__init__ - A
+    C 50:0 WarningOnlyPolicy - A
+    M 132:4 LocalStorage.save - A
+    M 180:4 LocalStorage.delete - A
+    M 302:4 S3Storage.list_keys - A
+    F 310:0 create_storage - A
+    C 27:0 StoragePolicyProtocol - A
+    C 37:0 ThresholdStoragePolicy - A
+    M 59:4 WarningOnlyPolicy.should_save_as_blob - A
+    C 69:0 AlwaysBlobPolicy - A
+    C 81:0 BlobStorageBase - A
+    M 287:4 S3Storage.load - A
+    M 295:4 S3Storage.delete - A
+    M 33:4 StoragePolicyProtocol.should_save_as_blob - A
+    M 45:4 ThresholdStoragePolicy.should_save_as_blob - A
+    M 75:4 AlwaysBlobPolicy.should_save_as_blob - A
+    M 87:4 BlobStorageBase.save - A
+    M 95:4 BlobStorageBase.load - A
+    M 102:4 BlobStorageBase.delete - A
+    M 110:4 BlobStorageBase.list_keys - A
+    M 120:4 LocalStorage.__init__ - A
+    M 281:4 S3Storage.save - A
 src/beautyspot/core.py
-    M 303:4 Spot._execute_sync - C
-    M 396:4 Spot._execute_async - C
-    M 491:4 Spot._check_cache_sync - B
-    M 747:4 Spot.cached_run - B
-    M 180:4 Spot._resolve_key_fn - A
-    C 56:0 Spot - A
-    M 161:4 Spot.shutdown - A
-    M 246:4 Spot._resolve_settings - A
-    M 532:4 Spot._save_result_safe - A
-    M 566:4 Spot._save_result_sync - A
-    M 82:4 Spot.__init__ - A
-    M 207:4 Spot.register - A
-    M 265:4 Spot._make_cache_key - A
-    M 287:4 Spot._calculate_expires_at - A
-    M 650:4 Spot.mark - A
-    M 149:4 Spot._setup_workspace - A
-    M 169:4 Spot.__exit__ - A
-    M 230:4 Spot.register_type - A
-    M 137:4 Spot._track_future - A
-    M 158:4 Spot._shutdown_executor - A
-    M 166:4 Spot.__enter__ - A
-    M 612:4 Spot.consume - A
-    M 633:4 Spot.mark - A
-    M 636:4 Spot.mark - A
-    M 717:4 Spot.cached_run - A
-    M 733:4 Spot.cached_run - A
+    M 651:4 Spot._check_cache_sync - B
+    M 314:4 Spot.shutdown - B
+    M 928:4 Spot.cached_run - B
+    M 332:4 Spot._drain_futures - A
+    M 360:4 Spot._resolve_key_fn - A
+    M 132:4 _BackgroundLoop.stop - A
+    C 181:0 Spot - A
+    M 444:4 Spot._dispatch_hooks - A
+    M 462:4 Spot._resolve_settings - A
+    M 502:4 Spot._execute_sync - A
+    M 573:4 Spot._execute_async - A
+    M 692:4 Spot._submit_background_save - A
+    M 711:4 Spot._save_result_safe - A
+    M 745:4 Spot._save_result_sync - A
+    F 61:0 _shutdown_all_loops - A
+    C 75:0 _BackgroundLoop - A
+    M 228:4 Spot.__init__ - A
+    M 387:4 Spot.register - A
+    M 426:4 Spot._calculate_expires_at - A
+    M 481:4 Spot._make_cache_key - A
+    M 829:4 Spot.mark - A
+    M 104:4 _BackgroundLoop.stop_gracefully_no_wait - A
+    M 306:4 Spot._setup_workspace - A
+    M 410:4 Spot.register_type - A
+    M 83:4 _BackgroundLoop.__init__ - A
+    M 92:4 _BackgroundLoop._run - A
+    M 100:4 _BackgroundLoop.submit - A
+    M 223:4 Spot._shutdown_resources - A
+    M 294:4 Spot._track_future - A
+    M 349:4 Spot.__enter__ - A
+    M 352:4 Spot.__exit__ - A
+    M 706:4 Spot._save_result_async - A
+    M 791:4 Spot.consume - A
+    M 812:4 Spot.mark - A
+    M 815:4 Spot.mark - A
+    M 896:4 Spot.cached_run - A
+    M 913:4 Spot.cached_run - A
 
-187 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.9037433155080214)
+202 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.8168316831683167)
 ```
 </details>
 
@@ -278,20 +290,20 @@ Average complexity: A (2.9037433155080214)
 
 ```text
 src/beautyspot/limiter.py - A
-src/beautyspot/__init__.py - A
 src/beautyspot/cli.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/db.py - A
 src/beautyspot/exceptions.py - A
 src/beautyspot/lifecycle.py - A
 src/beautyspot/serializer.py - A
-src/beautyspot/storage.py - A
 src/beautyspot/_version.py - A
-src/beautyspot/cachekey.py - A
 src/beautyspot/maintenance.py - A
 src/beautyspot/types.py - A
-src/beautyspot/hooks.py - A
 src/beautyspot/content_types.py - A
+src/beautyspot/__init__.py - A
+src/beautyspot/cachekey.py - A
+src/beautyspot/hooks.py - A
+src/beautyspot/storage.py - A
 src/beautyspot/core.py - A
 ```
 </details>
