@@ -22,6 +22,7 @@ def inspect_db():
 
     return _fetch_all
 
+
 @pytest.fixture
 def spot(tmp_path):
     # DBもBlobも一時ディレクトリに作成
@@ -30,4 +31,3 @@ def spot(tmp_path):
         db=SQLiteTaskDB(tmp_path / "test.db"),
         storage_backend=LocalStorage(tmp_path / "blobs"),
     )
-

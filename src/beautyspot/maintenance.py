@@ -4,6 +4,7 @@ import logging
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import threading
 from typing import Optional, Any
 
 from beautyspot.db import TaskDBBase
@@ -25,6 +26,7 @@ class MaintenanceService:
         self.db = db
         self.storage = storage
         self.serializer = serializer
+        self._cleaning_lock = threading.Lock()
 
     @classmethod
     def from_path(
@@ -182,30 +184,63 @@ class MaintenanceService:
         return orphans
 
     def clean_garbage(self, orphans: Optional[list[str]] = None) -> tuple[int, int]:
-        if orphans is None:
-            orphans = self.scan_garbage()
+        """
+        期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。
 
-        deleted_count = 0
+        この処理はファイルI/OとDBアクセスを伴うため重くなる可能性があります。
+        複数スレッドから同時に呼び出された場合、最初のスレッドのみが実行し、
+        後続のスレッドは即座に(0, 0)を返してスキップします(Try-Lockパターン)。
 
-        # Phase 1: ファイル削除
-        if orphans:
-            for location in orphans:
+        Args:
+            orphans: 事前にスキャンされた孤立ファイルのリスト。指定がない場合は自動でスキャンします。
+
+        Returns:
+            tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)
+        """
+        # Try-Lock: 既に他のスレッドが掃除中ならブロックせずに諦める
+        if not self._cleaning_lock.acquire(blocking=False):
+            logger.debug("Another eviction task is currently running. Skipping.")
+            return 0, 0
+
+        try:
+            # Phase 0: 期限切れタスクの削除 (DBから TTL 切れのレコードを消す)
+            # これを先に実行することで、後続の scan_garbage で正しく「孤立した」ファイルとして認識させます
+            deleted_expired_count = self.delete_expired_tasks()
+            if deleted_expired_count > 0:
+                logger.info(f"Deleted {deleted_expired_count} expired tasks from DB.")
+
+            # Phase 1: 孤立したファイルの特定
+            if orphans is None:
+                orphans = self.scan_garbage()
+
+            deleted_orphan_count = 0
+
+            # Phase 2: ファイルの実体削除
+            if orphans:
+                for location in orphans:
+                    try:
+                        self.storage.delete(location)
+                        deleted_orphan_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to delete orphan blob {location}: {e}")
+
+                if deleted_orphan_count > 0:
+                    logger.info(f"Deleted {deleted_orphan_count} orphaned blob files.")
+
+            # Phase 3: 空ディレクトリ掃除 (LocalStorage等の特定のバックエンドのみ)
+            if hasattr(self.storage, "prune_empty_dirs"):
                 try:
-                    self.storage.delete(location)
-                    deleted_count += 1
+                    dir_count = self.storage.prune_empty_dirs()  # type: ignore
+                    if dir_count > 0:
+                        logger.info(f"Removed {dir_count} empty directories.")
                 except Exception as e:
-                    logger.warning(f"Failed to delete orphan {location}: {e}")
+                    logger.warning(f"Failed to prune empty directories: {e}")
 
-        # Phase 2: 空ディレクトリ掃除 (LocalStorageのみ)
-        if hasattr(self.storage, "prune_empty_dirs"):
-            try:
-                dir_count = self.storage.prune_empty_dirs()  # type: ignore
-                if dir_count > 0:
-                    logger.info(f"Removed {dir_count} empty directories.")
-            except Exception as e:
-                logger.warning(f"Failed to prune empty directories: {e}")
+            return deleted_expired_count, deleted_orphan_count
 
-        return deleted_count, 0
+        finally:
+            # 処理が完了、あるいは例外が発生した場合でも確実にロックを解放する
+            self._cleaning_lock.release()
 
     def resolve_key_prefix(self, prefix: str) -> str | list[str] | None:
         """

@@ -7,6 +7,7 @@ import hashlib
 import logging
 import functools
 import inspect
+import random
 import threading
 import warnings
 import weakref
@@ -29,6 +30,7 @@ from typing import (
     Sequence,
 )
 
+from beautyspot.maintenance import MaintenanceService
 from beautyspot.limiter import LimiterProtocol
 from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
 from beautyspot.types import SaveErrorContext
@@ -36,7 +38,11 @@ from beautyspot.lifecycle import LifecyclePolicy, parse_retention
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
-from beautyspot.exceptions import CacheCorruptedError, IncompatibleProviderError, ValidationError
+from beautyspot.exceptions import (
+    CacheCorruptedError,
+    IncompatibleProviderError,
+    ValidationError,
+)
 from beautyspot.hooks import HookBase
 from beautyspot.types import PreExecuteContext, CacheHitContext, CacheMissContext
 from beautyspot.content_types import ContentType
@@ -58,6 +64,7 @@ logger.addHandler(logging.NullHandler())
 # --- プロセス終了時のドレイン ---
 _active_loops: weakref.WeakSet["_BackgroundLoop"] = weakref.WeakSet()
 
+
 def _shutdown_all_loops():
     """プロセス終了時に未完了のバックグラウンドタスクを安全にドレインする安全網。"""
     for loop in list(_active_loops):
@@ -67,6 +74,7 @@ def _shutdown_all_loops():
             loop.stop(wait=True, timeout=5.0)
         except Exception as e:
             logger.error(f"Error shutting down background loop during exit: {e}")
+
 
 # プロセス終了時のフックとして登録
 atexit.register(_shutdown_all_loops)
@@ -112,9 +120,12 @@ class _BackgroundLoop:
 
         def _drain_and_stop():
             # 自分自身（このシャットダウン処理）以外の全タスクを取得
-            tasks = [t for t in asyncio.all_tasks(self._loop) 
-                     if t is not asyncio.current_task(self._loop)]
-            
+            tasks = [
+                t
+                for t in asyncio.all_tasks(self._loop)
+                if t is not asyncio.current_task(self._loop)
+            ]
+
             if not tasks:
                 self._loop.stop()
                 return
@@ -123,7 +134,7 @@ class _BackgroundLoop:
             async def _wait_for_completion():
                 await asyncio.gather(*tasks, return_exceptions=True)
                 self._loop.stop()
-            
+
             self._loop.create_task(_wait_for_completion())
 
         # スレッドセーフにシャットダウンシーケンスを投入（メインスレッドは即座にリターン）
@@ -133,9 +144,9 @@ class _BackgroundLoop:
         """
         ループを安全に停止する (Graceful Shutdown)。
 
-        wait=True の場合、実行中のタスクに対してキャンセル要求 (asyncio.CancelledError) 
+        wait=True の場合、実行中のタスクに対してキャンセル要求 (asyncio.CancelledError)
         を送信し、それらが安全に終了するのを待機してからループを閉じます。
-        
+
         Args:
             wait: True の場合、タスクのキャンセルとスレッドの終了を待機する。
             timeout: スレッド終了待機の最大時間（秒）。
@@ -146,9 +157,12 @@ class _BackgroundLoop:
 
         def _cancel_tasks_and_stop():
             # 現在のループで実行中の全タスクを取得（自分自身は除く）
-            tasks = [t for t in asyncio.all_tasks(self._loop) 
-                     if t is not asyncio.current_task(self._loop)]
-            
+            tasks = [
+                t
+                for t in asyncio.all_tasks(self._loop)
+                if t is not asyncio.current_task(self._loop)
+            ]
+
             if not tasks:
                 self._loop.stop()
                 return
@@ -161,7 +175,7 @@ class _BackgroundLoop:
             async def _wait_for_cancellation():
                 await asyncio.gather(*tasks, return_exceptions=True)
                 self._loop.stop()  # これにより run_forever() が終了し、finallyブロックへ進む
-            
+
             self._loop.create_task(_wait_for_cancellation())
 
         # スレッドセーフにシャットダウンシーケンスを開始
@@ -194,7 +208,7 @@ class Spot:
         1. アプリケーションのライフサイクル全体で1つの `Spot` インスタンスを使い回す（シングルトン的利用）。
         2. コンテキストマネージャ (`with Spot(...) as spot:`) を使用し、スコープを抜ける際に確実にリソースをドレインする。
         3. 利用終了時に明示的に `spot.shutdown(wait=True)` を呼び出す。
-        
+
         ※ プロセス終了時 (`atexit`) には安全網として未完了タスクのドレインを試みますが、
            GCによる破棄に対しては無力であることに注意してください。
 
@@ -211,6 +225,11 @@ class Spot:
         default_version: Default version string for cache entries.
         default_content_type: Default content type string.
         lifecycle_policy: The lifecycle retention policy.
+        eviction_rate: float, optional
+            The probability (0.0 to 1.0) of triggering an automatic background
+            cleanup of expired cache entries and orphaned blob files after a cache miss.
+            Defaults to 0.0 (disabled). Set to a small value (e.g., 0.01) for
+            long-running applications to prevent storage bloat without blocking the main thread.
         on_background_error: バックグラウンドでのキャッシュ保存 (wait=False) 時に
             例外が発生した際に呼び出されるコールバック関数。
             メインスレッドの処理を阻害することなく、保存失敗のログ収集や
@@ -218,12 +237,6 @@ class Spot:
             コールバックには、発生した `Exception` と詳細な `SaveErrorContext` が渡されます。
             この関数内で発生した例外は安全にキャッチされ、アプリケーションはクラッシュしません。
     """
-
-    @staticmethod
-    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
-        """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
-        bg_loop.stop_gracefully_no_wait()
-        executor.shutdown(wait=False)
 
     def __init__(
         self,
@@ -242,9 +255,15 @@ class Spot:
         default_version: Optional[str] = None,
         default_content_type: Optional[str | ContentType] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
-        on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
+        eviction_rate: float = 0.0,
+        on_background_error: Optional[
+            Callable[[Exception, SaveErrorContext], None]
+        ] = None,
     ) -> None:
         self.name = name
+        if not (0.0 <= eviction_rate <= 1.0):
+            raise ValueError("eviction_rate must be between 0.0 and 1.0")
+        self.eviction_rate = eviction_rate
 
         # --- 依存オブジェクトの注入 ---
         self.db = db
@@ -291,6 +310,17 @@ class Spot:
         self._active_futures: set = set()
         self._futures_lock = threading.Lock()
 
+    def __enter__(self) -> "Spot":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        コンテキストを抜ける際の処理。
+        バックグラウンドループは停止させず、現在実行中のタスクの完了だけを待つ。
+        これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
+        """
+        self._drain_futures()
+
     def _track_future(self, future: Any):
         """Futureを追跡セットに加え、完了したら削除する"""
         with self._futures_lock:
@@ -302,6 +332,20 @@ class Spot:
 
         future.add_done_callback(_on_done)
 
+    @property
+    def maintenance(self) -> MaintenanceService:
+        """
+        MaintenanceService を遅延評価で生成・取得します。
+        Spot初期化時の循環参照や不要なインポートを防ぎます。
+        """
+        if getattr(self, "_maintenance_service", None) is None:
+            self._maintenance_service = MaintenanceService(
+                db=self.db,
+                storage=self.storage_backend,
+                serializer=self.serializer,
+            )
+        return self._maintenance_service
+
     @staticmethod
     def _setup_workspace(workspace_dir: Path):
         """Ensure the workspace directory and .gitignore exist."""
@@ -310,6 +354,12 @@ class Spot:
         gitignore_path = workspace_dir / ".gitignore"
         if not gitignore_path.exists():
             gitignore_path.write_text("*\n")
+
+    @staticmethod
+    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
+        """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
+        bg_loop.stop_gracefully_no_wait()
+        executor.shutdown(wait=False)
 
     def shutdown(self, wait: bool = True):
         """バックグラウンド IO を停止する。
@@ -346,16 +396,30 @@ class Spot:
                     f"with {remaining} futures still pending."
                 )
 
-    def __enter__(self) -> "Spot":
-        return self
+    def _trigger_auto_eviction(self) -> None:
+        """確率に応じてバックグラウンドで自動クリーンアップ(エビクション)をエンキューする"""
+        if self.eviction_rate <= 0.0:
+            return
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        """
-        コンテキストを抜ける際の処理。
-        バックグラウンドループは停止させず、現在実行中のタスクの完了だけを待つ。
-        これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
-        """
-        self._drain_futures()
+        if random.random() < self.eviction_rate:
+            logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
+
+            maintenance = self.maintenance
+
+            if self._bg_loop is not None:
+                # _bg_loop.submit はコルーチンを受け取るため、同期関数をラップする
+                async def _run_clean():
+                    loop = asyncio.get_running_loop()
+                    # デフォルトエグゼキュータ（別スレッド）でI/Oブロッキングな掃除処理を実行
+                    await loop.run_in_executor(None, maintenance.clean_garbage)
+
+                future = self._bg_loop.submit(_run_clean())
+                self._track_future(future)
+
+            elif self._executor is not None:
+                # レガシーパス用
+                future = self._executor.submit(maintenance.clean_garbage)
+                self._track_future(future)
 
     def _resolve_key_fn(
         self,
@@ -392,7 +456,9 @@ class Spot:
         decoder_factory: Optional[Callable[[Type[T]], Callable[[Any], T]]] = None,
     ) -> Callable[[Type[T]], Type[T]]:
         if decoder is None and decoder_factory is None:
-            raise IncompatibleProviderError("Must provide either `decoder` or `decoder_factory`.")
+            raise IncompatibleProviderError(
+                "Must provide either `decoder` or `decoder_factory`."
+            )
 
         def decorator(cls: Type) -> Type:
             actual_decoder = decoder
@@ -505,7 +571,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
+        effective_key_fn: Optional[Callable],
         version: str | None,
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
@@ -526,28 +592,53 @@ class Spot:
         hook_kwargs = dict(kwargs) if hooks else kwargs
 
         # === 1. フック: pre_execute ===
-        self._dispatch_hooks(hooks, "pre_execute", PreExecuteContext(
-            func_name=func.__name__, input_id=str(iid), cache_key=ck,
-            args=args, kwargs=hook_kwargs,
-        ))
+        self._dispatch_hooks(
+            hooks,
+            "pre_execute",
+            PreExecuteContext(
+                func_name=func.__name__,
+                input_id=str(iid),
+                cache_key=ck,
+                args=args,
+                kwargs=hook_kwargs,
+            ),
+        )
 
         # === 2. Check Cache ===
         cached = self._check_cache_sync(ck, serializer)
         if cached is not CACHE_MISS:
-            self._dispatch_hooks(hooks, "on_cache_hit", CacheHitContext(
-                func_name=func.__name__, input_id=str(iid), cache_key=ck,
-                args=args, kwargs=hook_kwargs, result=cached, version=s_ver,
-            ))
+            self._dispatch_hooks(
+                hooks,
+                "on_cache_hit",
+                CacheHitContext(
+                    func_name=func.__name__,
+                    input_id=str(iid),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=hook_kwargs,
+                    result=cached,
+                    version=s_ver,
+                ),
+            )
             return cached
 
         # === 3. Execute ===
         res = func(*args, **kwargs)
 
         # === 4. フック: on_cache_miss ===
-        self._dispatch_hooks(hooks, "on_cache_miss", CacheMissContext(
-            func_name=func.__name__, input_id=str(iid), cache_key=ck,
-            args=args, kwargs=hook_kwargs, result=res, version=s_ver,
-        ))
+        self._dispatch_hooks(
+            hooks,
+            "on_cache_miss",
+            CacheMissContext(
+                func_name=func.__name__,
+                input_id=str(iid),
+                cache_key=ck,
+                args=args,
+                kwargs=hook_kwargs,
+                result=res,
+                version=s_ver,
+            ),
+        )
 
         # === 5. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
@@ -567,6 +658,9 @@ class Spot:
             self._save_result_sync(**save_kwargs)
         else:
             self._submit_background_save(**save_kwargs)
+
+        # [ADD] 保存後に自動クリーンアップのトリガー判定
+        self._trigger_auto_eviction()
 
         return res
 
@@ -598,30 +692,55 @@ class Spot:
         hook_kwargs = dict(kwargs) if hooks else kwargs
 
         # === 1. フック: pre_execute ===
-        self._dispatch_hooks(hooks, "pre_execute", PreExecuteContext(
-            func_name=func.__name__, input_id=str(iid), cache_key=ck,
-            args=args, kwargs=hook_kwargs,
-        ))
+        self._dispatch_hooks(
+            hooks,
+            "pre_execute",
+            PreExecuteContext(
+                func_name=func.__name__,
+                input_id=str(iid),
+                cache_key=ck,
+                args=args,
+                kwargs=hook_kwargs,
+            ),
+        )
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
             self._executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
-            self._dispatch_hooks(hooks, "on_cache_hit", CacheHitContext(
-                func_name=func.__name__, input_id=str(iid), cache_key=ck,
-                args=args, kwargs=hook_kwargs, result=cached, version=s_ver,
-            ))
+            self._dispatch_hooks(
+                hooks,
+                "on_cache_hit",
+                CacheHitContext(
+                    func_name=func.__name__,
+                    input_id=str(iid),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=hook_kwargs,
+                    result=cached,
+                    version=s_ver,
+                ),
+            )
             return cached
 
         # === 3. Execute (async) ===
         res = await func(*args, **kwargs)
 
         # === 4. フック: on_cache_miss ===
-        self._dispatch_hooks(hooks, "on_cache_miss", CacheMissContext(
-            func_name=func.__name__, input_id=str(iid), cache_key=ck,
-            args=args, kwargs=hook_kwargs, result=res, version=s_ver,
-        ))
+        self._dispatch_hooks(
+            hooks,
+            "on_cache_miss",
+            CacheMissContext(
+                func_name=func.__name__,
+                input_id=str(iid),
+                cache_key=ck,
+                args=args,
+                kwargs=hook_kwargs,
+                result=res,
+                version=s_ver,
+            ),
+        )
 
         # === 5. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
@@ -645,6 +764,9 @@ class Spot:
             )
         else:
             self._submit_background_save(**save_kwargs)
+
+        # [ADD] 保存後に自動クリーンアップのトリガー判定
+        self._trigger_auto_eviction()
 
         return res
 
@@ -683,7 +805,9 @@ class Spot:
                     data_bytes = self.storage_backend.load(r_val)
                     return use_serializer.loads(data_bytes)
                 except CacheCorruptedError as e:
-                    logger.debug(f"Cache corrupted or lost for {cache_key}, falling back to CACHE_MISS: {e}")
+                    logger.debug(
+                        f"Cache corrupted or lost for {cache_key}, falling back to CACHE_MISS: {e}"
+                    )
                     return CACHE_MISS
 
         return CACHE_MISS
@@ -739,7 +863,7 @@ class Spot:
                 except Exception as cb_err:
                     logger.error(
                         f"Error occurred within the 'on_background_error' callback: {cb_err}",
-                        exc_info=True
+                        exc_info=True,
                     )
 
     def _save_result_sync(
@@ -891,7 +1015,7 @@ class Spot:
         if _func is not None and callable(_func):
             return decorator(_func)
         return decorator
-    
+
     @overload
     def cached_run(
         self,
@@ -939,7 +1063,9 @@ class Spot:
         hooks: Optional[Sequence[HookBase]] = None,
     ):
         if not funcs:
-            raise ValidationError("At least one function must be provided to cached_run.")
+            raise ValidationError(
+                "At least one function must be provided to cached_run."
+            )
 
         for f in funcs:
             if not callable(f):
@@ -966,4 +1092,3 @@ class Spot:
             yield wrappers[0]
         else:
             yield tuple(wrappers)
-

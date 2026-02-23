@@ -28,6 +28,7 @@ SKIP_MODULES = {"_version", "dashboard", "__init__"}
 # AST helpers
 # ---------------------------------------------------------------------------
 
+
 def _first_docline(node: ast.AST) -> str:
     doc = ast.get_docstring(node)  # type: ignore[arg-type]
     if doc:
@@ -91,6 +92,7 @@ def _public_exports(filepath: Path) -> list[str]:
 # Section builders
 # ---------------------------------------------------------------------------
 
+
 def _section_modules() -> list[str]:
     lines = ["### Modules", "", "| Module | Key classes |", "|---|---|"]
     for fp in sorted(SRC.glob("*.py")):
@@ -152,6 +154,7 @@ def _section_public_api() -> list[str]:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def generate_section() -> str:
     parts: list[str] = [

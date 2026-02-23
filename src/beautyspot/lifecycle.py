@@ -41,7 +41,9 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
         elif unit == "m":
             return timedelta(minutes=amount)
 
-    raise ValidationError(f"Retention must be str, int, or timedelta, got {type(value)}")
+    raise ValidationError(
+        f"Retention must be str, int, or timedelta, got {type(value)}"
+    )
 
 
 class Retention:
@@ -83,4 +85,3 @@ class LifecyclePolicy:
     def default(cls) -> "LifecyclePolicy":
         """Default policy: Everything is kept indefinitely."""
         return cls(rules=[])
-

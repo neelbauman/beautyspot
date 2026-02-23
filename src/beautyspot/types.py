@@ -1,8 +1,9 @@
-# src/beautyspot/types.py 
+# src/beautyspot/types.py
 
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
+
 
 @dataclass(frozen=True)
 class SaveErrorContext:
@@ -19,7 +20,7 @@ class SaveErrorContext:
         save_blob: Blobストレージへの保存が指定/判定されていたか
         expires_at: 計算されたキャッシュの有効期限
         result: キャッシュしようとした実際の戻り値のオブジェクト
-        
+
     Warning:
         `result` には評価済みのオブジェクトがそのまま格納されます。
         巨大なデータ（例: 数GBのDataFrameやテンソル）を返す関数の場合、
@@ -27,6 +28,7 @@ class SaveErrorContext:
         保持し続けると、メモリリークの原因となる可能性があります。
         エラーハンドラー内でのログ出力や一時的な検査のみに留めることを強く推奨します。
     """
+
     func_name: str
     cache_key: str
     input_id: str
@@ -40,26 +42,32 @@ class SaveErrorContext:
 @dataclass(frozen=True)
 class HookContextBase:
     """すべてのフックに共通する基本コンテキスト情報。"""
+
     func_name: str
     input_id: str
     cache_key: str
     args: tuple
     kwargs: dict
 
+
 @dataclass(frozen=True)
 class PreExecuteContext(HookContextBase):
     """関数実行前、またはキャッシュ確認前に渡されるコンテキスト。"""
+
     pass
+
 
 @dataclass(frozen=True)
 class CacheHitContext(HookContextBase):
     """キャッシュから正常に結果が取得された際に渡されるコンテキスト。"""
+
     result: Any
     version: Optional[str]
+
 
 @dataclass(frozen=True)
 class CacheMissContext(HookContextBase):
     """キャッシュミスとなり、元の関数が実行された後に渡されるコンテキスト。"""
+
     result: Any
     version: Optional[str]
-

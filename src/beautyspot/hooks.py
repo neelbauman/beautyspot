@@ -32,10 +32,12 @@ class HookBase:
 
 def _wrap_with_lock(fn: Callable[..., Any]) -> Callable[..., Any]:
     """インスタンスの ``_lock`` で ``fn`` を保護するラッパーを返す。"""
+
     @functools.wraps(fn)
     def wrapper(self: Any, context: Any) -> None:
         with self._lock:
             fn(self, context)
+
     return wrapper
 
 
@@ -58,7 +60,9 @@ class ThreadSafeHookBase(HookBase):
     """
 
     _HOOK_METHODS: frozenset[str] = frozenset(
-        name for name, _ in inspect.getmembers(HookBase, predicate=inspect.isfunction) if not name.startswith("__")
+        name
+        for name, _ in inspect.getmembers(HookBase, predicate=inspect.isfunction)
+        if not name.startswith("__")
     )
 
     def __init_subclass__(cls, **kwargs: object) -> None:
@@ -69,4 +73,3 @@ class ThreadSafeHookBase(HookBase):
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-

@@ -22,7 +22,9 @@ def test_concurrent_writes_no_corruption(tmp_path):
         except Exception as e:
             errors.append(e)
 
-    threads = [threading.Thread(target=write_blob, args=(i,)) for i in range(num_threads)]
+    threads = [
+        threading.Thread(target=write_blob, args=(i,)) for i in range(num_threads)
+    ]
     for t in threads:
         t.start()
     for t in threads:
@@ -44,7 +46,9 @@ def test_concurrent_writes_same_key(tmp_path):
         except Exception as e:
             errors.append(e)
 
-    threads = [threading.Thread(target=write_same_key, args=(i,)) for i in range(num_threads)]
+    threads = [
+        threading.Thread(target=write_same_key, args=(i,)) for i in range(num_threads)
+    ]
     for t in threads:
         t.start()
     for t in threads:

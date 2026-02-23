@@ -50,6 +50,7 @@ def Spot(
     executor: Optional[Any] = None,
     # --- Configuration Options ---
     lifecycle_policy: Optional[LifecyclePolicy] = None,
+    eviction_rate: float = 0.0,
     blob_warning_threshold: int = 1024 * 1024,
     default_save_blob: bool = False,
     tpm: int = 10000,
@@ -105,6 +106,7 @@ def Spot(
         limiter=resolved_limiter,
         # その他のオプション
         lifecycle_policy=lifecycle_policy,
+        eviction_rate=eviction_rate,
         executor=executor,
         io_workers=io_workers,
         default_version=default_version,

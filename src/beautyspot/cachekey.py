@@ -59,6 +59,7 @@ def _is_ndarray_like(obj: Any) -> bool:
 # singledispatch canonicalize
 # ---------------------------------------------------------------------------
 
+
 @singledispatch
 def canonicalize(obj: Any) -> Any:
     """
@@ -120,6 +121,7 @@ def _canonicalize_enum(obj: Enum) -> Any:
         canonicalize(obj.value),
     )
 
+
 @canonicalize.register(type)
 def _canonicalize_type(obj: type) -> Any:
     """Type / Class handling (structure awareness)."""
@@ -174,6 +176,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Strategy & Policy
 # ---------------------------------------------------------------------------
+
 
 class Strategy(Enum):
     """
@@ -362,4 +365,3 @@ class KeyGen:
         """
         strategies = {name: Strategy.PATH_STAT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
-

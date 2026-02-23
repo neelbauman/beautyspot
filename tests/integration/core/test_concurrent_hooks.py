@@ -37,8 +37,11 @@ def test_threadsafe_hook_concurrent_calls():
     def call_hooks():
         for _ in range(calls_per_thread):
             ctx = PreExecuteContext(
-                func_name="f", input_id="id", cache_key="ck",
-                args=(), kwargs={},
+                func_name="f",
+                input_id="id",
+                cache_key="ck",
+                args=(),
+                kwargs={},
             )
             hook.pre_execute(ctx)
 

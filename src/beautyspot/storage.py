@@ -78,6 +78,7 @@ class AlwaysBlobPolicy(StoragePolicyProtocol):
 
 # --- Blob Storage Implementations ---
 
+
 class BlobStorageBase(ABC):
     """
     Abstract base class for large object storage (BLOBs).
@@ -180,10 +181,10 @@ class LocalStorage(BlobStorageBase):
     def delete(self, location: str) -> None:
         """
         Delete the file at the given location.
-        
+
         Note:
-            For performance reasons, this method does not synchronously remove 
-            empty parent directories. Directory cleanup is deferred to the 
+            For performance reasons, this method does not synchronously remove
+            empty parent directories. Directory cleanup is deferred to the
             asynchronous maintenance task (`prune_empty_dirs` / `beautyspot gc`).
         """
         full_path = (self.base_dir / location).resolve()
@@ -270,7 +271,7 @@ class S3Storage(BlobStorageBase):
         """Parse an s3:// URI into (bucket, key). Raises ValueError for invalid URIs."""
         if not location.startswith("s3://"):
             raise ValidationError(f"Expected an s3:// URI, got: {location!r}")
-        path = location[len("s3://"):]
+        path = location[len("s3://") :]
         parts = path.split("/", 1)
         if len(parts) != 2 or not parts[0] or not parts[1]:
             raise ValidationError(

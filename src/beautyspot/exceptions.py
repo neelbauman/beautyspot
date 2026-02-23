@@ -1,5 +1,6 @@
 # src/beautyspot/exceptions.py
 
+
 class BeautySpotError(Exception):
     """
     Base exception for all beautyspot errors.
@@ -10,7 +11,7 @@ class BeautySpotError(Exception):
 
 class CacheCorruptedError(BeautySpotError):
     """
-    Raised when cache data (DB record or Blob file) is lost, 
+    Raised when cache data (DB record or Blob file) is lost,
     unreadable, or logically corrupted.
     """
 
@@ -27,11 +28,13 @@ class ConfigurationError(BeautySpotError):
     (e.g., invalid retention policy, incompatible storage options).
     """
 
+
 class ValidationError(ConfigurationError, ValueError):
     """
     メソッド呼び出し時の引数やバリデーションエラー。
     ValueError のサブクラスでもあるため、既存の `except ValueError:` でも捕捉できます。
     """
+
 
 class IncompatibleProviderError(ConfigurationError, ValueError):
     """
