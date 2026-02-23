@@ -85,3 +85,4 @@ class LifecyclePolicy:
     def default(cls) -> "LifecyclePolicy":
         """Default policy: Everything is kept indefinitely."""
         return cls(rules=[])
+

@@ -19,6 +19,7 @@ uv add beautyspot
 # or
 pip install beautyspot
 
+
 ```
 
 ## ✨ Key Features
@@ -28,6 +29,7 @@ pip install beautyspot
 * **Smart Lifecycle Management**: `with` ブロック（コンテキストマネージャ）を使用することで、バックグラウンドの保存タスクの完了を確実に同期し、データロストを防ぎます。
 * **Rate Limiting (GCRA)**: APIコールなどの実行頻度を、厳密なトークンバケットアルゴリズムで制御します。
 * **Extensible Hooks**: 実行前、キャッシュヒットやミス時に介入できるクラスベースのフックシステム。関数のロジックを汚すことなく、LLMのトークン消費量や実行時間の計測メトリクスを収集できます。
+* **Automated Garbage Collection**: 確率的エビクション（Probabilistic Auto-Eviction）により、メインスレッドのレイテンシを一切犠牲にすることなく、ストレージの肥大化を自動的に防ぎます。
 
 ## 🚀 Quick Start
 
@@ -59,6 +61,7 @@ with spot:
     
     # ブロックを抜ける際、未完了のバックグラウンド保存タスクが完了するのを待機（Flush）します
 
+
 ```
 
 ## 🔌 Advanced: Tracking LLM Tokens with Hooks
@@ -81,17 +84,26 @@ class TokenTracker(HookBase):
 def call_llm(prompt: str):
     return "AI response..."
 
+
 ```
 
-## 🛠 Maintenance Service
+## 🛠 Maintenance Service & Auto Eviction
 
-キャッシュの削除やクリーンアップは、実行担当の `Spot` から切り離され、独立したサービスとして提供されます。
+キャッシュの削除やクリーンアップは、手動で行うことも、バックグラウンドで自動化することも可能です。
 
 ```python
+import beautyspot as bs
 from beautyspot.maintenance import MaintenanceService
 
+# 1. 自動エビクション (Spot初期化時に 1% の確率で自動掃除を設定)
+spot = bs.Spot("my_app", eviction_rate=0.01)
+
+# 2. 手動メンテナンス (バッチスクリプト等で明示的に実行する場合)
 admin = MaintenanceService(spot.db, spot.storage, spot.serializer)
-# 古いキャッシュや特定のキーを削除
+# 期限切れデータや孤立したファイルを一括削除
+deleted_db, deleted_blob = admin.clean_garbage()
+
+# 古いキャッシュや特定のキーを個別に削除
 admin.delete_task(cache_key="...")
 
 ```
@@ -123,5 +135,5 @@ PandasやNumPyなどのデータサイエンスライブラリのサポートを
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License。
 
