@@ -3,7 +3,8 @@
 import logging
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
-from typing import Optional, Any, Callable
+from typing import Optional, Callable
+from concurrent.futures import Executor
 
 from beautyspot.core import Spot as _Spot
 from beautyspot.types import (
@@ -47,7 +48,7 @@ def Spot(
     limiter: Optional[LimiterProtocol] = None,
     storage_backend: Optional[BlobStorageBase] = None,
     storage_policy: Optional[StoragePolicyProtocol] = None,
-    executor: Optional[Any] = None,
+    executor: Optional[Executor] = None,
     # --- Configuration Options ---
     lifecycle_policy: Optional[LifecyclePolicy] = None,
     eviction_rate: float = 0.0,

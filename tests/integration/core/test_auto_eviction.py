@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 import beautyspot as bs
+from beautyspot.db import SQLiteTaskDB
 
 
 def test_eviction_rate_validation(tmp_path):
@@ -113,7 +114,7 @@ def test_auto_eviction_with_wait_false(tmp_path):
     正しく自動エビクションがバックグラウンドでエンキューされ、処理されるかをテストする。
     """
     # 確実にトリガーさせるために eviction_rate=1.0 に設定
-    spot = bs.Spot("test_bg", eviction_rate=1.0)
+    spot = bs.Spot("test_bg_with_wait_false", db=SQLiteTaskDB(tmp_path / "test_bg_with_fait_false"), eviction_rate=1.0)
 
     # wait=False でマーク
     @spot.mark(wait=False)
