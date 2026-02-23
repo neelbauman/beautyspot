@@ -204,11 +204,11 @@ class LocalStorage(BlobStorageBase):
         if not self.base_dir.exists():
             return
 
-        # [変更] rglob で再帰的に探索
+        # rglob で再帰的に探索
         for entry in self.base_dir.rglob("*.bin"):
             if entry.is_file():
-                # [変更] base_dir からの相対パスを返す
-                yield str(entry.relative_to(self.base_dir))
+                # base_dir からの相対パスを返す
+                yield str(entry.relative_to(self.base_dir).as_posix())
 
     def prune_empty_dirs(self) -> int:
         """

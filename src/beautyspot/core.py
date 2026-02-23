@@ -70,22 +70,63 @@ class _BackgroundLoop:
 
     def _run(self) -> None:
         asyncio.set_event_loop(self._loop)
-        self._loop.run_forever()
+        try:
+            self._loop.run_forever()
+        finally:
+            # メインスレッドからではなく、スレッドの終了直前に自身で確実にループを閉じる
+            self._loop.close()
 
     def submit(self, coro) -> concurrent.futures.Future:
         """コルーチンをループに投入し、concurrent.futures.Future を返す。"""
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
 
-    def stop(self, wait: bool = True) -> None:
-        """ループを停止し、オプションでスレッドの終了を待つ。"""
+    def stop(self, wait: bool = True, timeout: float = 10.0) -> None:
+        """
+        ループを安全に停止する (Graceful Shutdown)。
+
+        wait=True の場合、実行中のタスクに対してキャンセル要求 (asyncio.CancelledError) 
+        を送信し、それらが安全に終了するのを待機してからループを閉じます。
+        
+        Args:
+            wait: True の場合、タスクのキャンセルとスレッドの終了を待機する。
+            timeout: スレッド終了待機の最大時間（秒）。
+        """
         if self._stopped:
             return
         self._stopped = True
-        self._loop.call_soon_threadsafe(self._loop.stop)
+
+        def _cancel_tasks_and_stop():
+            # 現在のループで実行中の全タスクを取得（自分自身は除く）
+            tasks = [t for t in asyncio.all_tasks(self._loop) 
+                     if t is not asyncio.current_task(self._loop)]
+            
+            if not tasks:
+                self._loop.stop()
+                return
+
+            # 各タスクにキャンセルを要求
+            for task in tasks:
+                task.cancel()
+
+            # タスクのキャンセル処理（例外の送出と捕捉）が完了するのを待機してから停止
+            async def _wait_for_cancellation():
+                await asyncio.gather(*tasks, return_exceptions=True)
+                self._loop.stop()  # これにより run_forever() が終了し、finallyブロックへ進む
+            
+            self._loop.create_task(_wait_for_cancellation())
+
+        # スレッドセーフにシャットダウンシーケンスを開始
+        self._loop.call_soon_threadsafe(_cancel_tasks_and_stop)
+
+        # wait=True の場合のみスレッド終了を待つ。
+        # Spot.shutdown(wait=False) や GCからの呼び出しではメインスレッドをブロックしない。
         if wait:
-            self._thread.join(timeout=10)
-        if not self._thread.is_alive():
-            self._loop.close()
+            self._thread.join(timeout=timeout)
+            if self._thread.is_alive():
+                logger.warning(
+                    f"Background loop thread did not terminate within {timeout} seconds. "
+                    "Some IO tasks might be stuck."
+                )
 
 
 class Spot:
