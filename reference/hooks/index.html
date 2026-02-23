@@ -8,9 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/hooks/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/hooks/">
       
       
+        <link rel="prev" href="../core/">
+      
+      
+        <link rel="next" href="../cachekey/">
       
       
         
@@ -21,7 +25,7 @@
     
     
       
-        <title>🔌 Hooks - beautyspot</title>
+        <title>Hooks - beautyspot</title>
       
     
     
@@ -110,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              🔌 Hooks
+              Hooks
             
           </span>
         </div>
@@ -283,7 +287,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../usage_patterns/" class="md-nav__link">
+      <a href="../../guides/usage_patterns/" class="md-nav__link">
         
   
   
@@ -359,7 +363,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../caching/" class="md-nav__link">
+      <a href="../../guides/caching/" class="md-nav__link">
         
   
   
@@ -387,7 +391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../serialization/" class="md-nav__link">
+      <a href="../../guides/serialization/" class="md-nav__link">
         
   
   
@@ -415,7 +419,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../lifecycle/" class="md-nav__link">
+      <a href="../../guides/lifecycle/" class="md-nav__link">
         
   
   
@@ -443,7 +447,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom_backend/" class="md-nav__link">
+      <a href="../../guides/custom_backend/" class="md-nav__link">
         
   
   
@@ -471,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rate_limiting/" class="md-nav__link">
+      <a href="../../guides/rate_limiting/" class="md-nav__link">
         
   
   
@@ -499,7 +503,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
+      <a href="../../guides/cli/" class="md-nav__link">
         
   
   
@@ -895,20 +899,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
@@ -929,7 +933,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -947,7 +951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/core/" class="md-nav__link">
+      <a href="../core/" class="md-nav__link">
         
   
   
@@ -972,10 +976,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../reference/hooks.md" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -991,6 +1022,248 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🏗 基本的な使い方
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎯 フックのタイミングとコンテキスト
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🎯 フックのタイミングとコンテキスト">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-pre_executeself-context-preexecutecontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. pre_execute(self, context: PreExecuteContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-on_cache_hitself-context-cachehitcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. on_cache_hit(self, context: CacheHitContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-on_cache_missself-context-cachemisscontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. on_cache_miss(self, context: CacheMissContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        💡 実践レシピ：LLMのトークン節約トラッカー
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔒 並列実行とスレッドセーフなフック
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔒 並列実行とスレッドセーフなフック">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#threadsafehookbase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        なぜ ThreadSafeHookBase が必要なのか？
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        実装例：並列タスクの進捗トラッカー
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        自動ロック機構の仕組み
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fail-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ⚠️ 重要な設計と安全機構（Fail-Safe）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📚 API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#beautyspot.hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.hooks.HookBase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HookBase
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HookBase">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.hooks.HookBase.on_cache_hit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_cache_hit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.hooks.HookBase.on_cache_miss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_cache_miss
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.hooks.HookBase.pre_execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pre_execute
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.hooks.ThreadSafeHookBase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ThreadSafeHookBase
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1003,7 +1276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cachekey/" class="md-nav__link">
+      <a href="../cachekey/" class="md-nav__link">
         
   
   
@@ -1031,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/db/" class="md-nav__link">
+      <a href="../db/" class="md-nav__link">
         
   
   
@@ -1059,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/storage/" class="md-nav__link">
+      <a href="../storage/" class="md-nav__link">
         
   
   
@@ -1087,7 +1360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/types/" class="md-nav__link">
+      <a href="../types/" class="md-nav__link">
         
   
   
@@ -1115,7 +1388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/maintenance/" class="md-nav__link">
+      <a href="../maintenance/" class="md-nav__link">
         
   
   
@@ -1199,7 +1472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/philosophy/" class="md-nav__link">
+      <a href="../philosophy/" class="md-nav__link">
         
   
   
@@ -1227,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   

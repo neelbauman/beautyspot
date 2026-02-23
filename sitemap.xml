@@ -217,10 +217,6 @@
          <lastmod>2026-02-23</lastmod>
     </url>
     <url>
-         <loc>https://neelbauman.github.io/beautyspot/guides/hooks/</loc>
-         <lastmod>2026-02-23</lastmod>
-    </url>
-    <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/lifecycle/</loc>
          <lastmod>2026-02-23</lastmod>
     </url>
@@ -250,6 +246,10 @@
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/reference/db/</loc>
+         <lastmod>2026-02-23</lastmod>
+    </url>
+    <url>
+         <loc>https://neelbauman.github.io/beautyspot/reference/hooks/</loc>
          <lastmod>2026-02-23</lastmod>
     </url>
     <url>
