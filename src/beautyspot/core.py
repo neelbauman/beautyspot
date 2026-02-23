@@ -727,6 +727,7 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[T]: ...
 
     @overload
@@ -741,6 +742,7 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[tuple[Unpack[Ts]]]: ...
 
     @contextmanager
@@ -755,6 +757,7 @@ class Spot:
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ):
         if not funcs:
             raise ValidationError("At least one function must be provided to cached_run.")
@@ -775,6 +778,7 @@ class Spot:
                 serializer=serializer,
                 wait=wait,
                 retention=retention,
+                hooks=hooks,
             )
             return cache_decorator(func)
 
