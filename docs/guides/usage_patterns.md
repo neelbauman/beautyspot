@@ -1,6 +1,6 @@
 # Usage Patterns
 
-`beautyspot` は、関数のキャッシュ化を「いつ」行いたいかに応じて、主に2つのアプローチを提供します。
+`beautyspot` は、関数のキャッシュ化を「いつ」行いたいか、また「どのように」実行したいかに応じて、柔軟な実行パターンを提供します。
 
 ## 1. Definition Time (`@spot.mark`)
 
@@ -47,65 +47,73 @@ import beautyspot as bs
 spot = bs.Spot("experiment")
 
 # 単一の関数を渡すと、そのままラッパーが返ってきます
-# version="v1" などのオプションは、このブロック内での実行にのみ適用されます
 with spot.cached_run(simulation, version="test-v1") as sim:
-
-    # ここでは sim(arg) はキャッシュ機能付きで実行されます
-    # IDEの型補完や静的解析も（元の関数のシグネチャに従い）機能しやすくなります
+    # IDEの型補完や静的解析も機能します
     results = [sim(x) for x in range(10)]
 
-# ブロックを抜けた後も、sim は @spot.mark() 相当のラッパーとして有効です
-# ブロック外からも呼び出し可能ですが、意図せず使い回さないよう注意してください
-
 ```
-
-### 複数の関数をまとめてキャッシュ (Multiple Functions)
-
-複数の関数を渡すと、タプルとして受け取れます。指定したオプション（`version` など）は、渡したすべての関数に一律で適用されます。
-
-```python
-def task_a(x): ...
-def task_b(x): ...
-
-with spot.cached_run(task_a, task_b, save_blob=True) as (run_a, run_b):
-    run_a(data)
-    run_b(data)
-
-```
-
-!!! note "Smart Return Policy"
-    `cached_run` の戻り値は、渡された関数の数によって変化します：
-
-    * **引数が1つの場合:** `Wrapper` オブジェクトを単体で返します。（アンパック不要）
-    * **引数が複数の場合:** `(Wrapper, Wrapper, ...)` のタプルを返します。
 
 ---
 
-## コンテキストマネージャによる同期 (Flush)
+## 3. Parallel Execution (並列実行と共有フック)
 
-`wait=False` を使用している場合、アプリケーションが急に終了すると、バックグラウンドで走っている保存処理が中断されるリスクがあります。`beautyspot` の `with` ブロックは、**「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」** として機能します。
+`beautyspot` は、`ThreadPoolExecutor` などを用いた並列タスク実行をネイティブにサポートしています。
+複数のスレッドから同じフックインスタンスを共有してメトリクス（進捗、トークン数など）を収集する場合、**`ThreadSafeHookBase`** を使用することで、競合状態（Race Condition）を防ぎつつ安全に集計を行えます。
 
-### 推奨されるパターン：バッチ処理の区切り
+### Thread-Safe な集計パターン
 
-`Spot` インスタンスはグローバルに定義し、同期が必要な区切りで `with` を使用します。
+以下の例では、5つのスレッドで並列にタスクを実行し、共通のカウンタを安全に更新しています。
 
 ```python
-spot = Spot("my_app", default_wait=False)
+import concurrent.futures
+from beautyspot.hooks import ThreadSafeHookBase
 
-def run_experiment():
-    with spot:
-        # このブロック内で行われる保存はすべてバックグラウンドで行われる
-        for i in range(100):
-            process_data(i)
-            
-    # with ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機する
-    # ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれていることが保証される
-    
-    # Spot インスタンスは再利用可能なため、次の処理でも使用可能
-    process_summary()
+class ConcurrentCounterHook(ThreadSafeHookBase):
+    def __init__(self):
+        super().__init__()  # ⚠️ 必須：内部ロックの初期化
+        self.count = 0
+
+    def on_cache_hit(self, context):
+        self.count += 1  # ロックは自動適用されます
+
+    def on_cache_miss(self, context):
+        self.count += 1
+
+counter = ConcurrentCounterHook()
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    # 複数のタスクに同じ counter インスタンスを渡す
+    futures = [
+        executor.submit(spot.cached_run(heavy_task, hooks=[counter]), i) 
+        for i in range(20)
+    ]
+    concurrent.futures.wait(futures)
+
+print(f"Total processed: {counter.count}")
 
 ```
 
-> **Note:** `with spot:` を抜けても Executor はシャットダウンされません。インスタンスは引き続き再利用可能です。完全に終了させる場合は `spot.shutdown()` を呼び出してください。
+---
 
+## 4. コンテキストマネージャによる同期 (Flush)
+
+`wait=False`（非同期保存）を使用している場合、アプリケーションが終了する前にバックグラウンドの保存処理を完了させる必要があります。`with spot:` ブロックは、**「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」** として機能します。
+
+### 推奨されるパターン：バッチ処理の区切り
+
+大量の並列処理やループ処理の後に `with` ブロックを抜けることで、全データの永続化を保証します。
+
+```python
+spot = bs.Spot("my_app", default_wait=False)
+
+def run_experiment():
+    with spot:
+        # このブロック内の保存はバックグラウンドで行われる
+        for i in range(100):
+            process_data(i)
+            
+    # ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機します
+    # ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれています
+
+```
 

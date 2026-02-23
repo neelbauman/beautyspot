@@ -116,31 +116,66 @@ tracker.print_report()
 
 ---
 
-## 🔒 スレッドセーフなフック
+`ThreadSafeHookBase` を活用した並列実行のサポート、非常に心強いアップデートですね。
+OSSのメンテナーとして、この変更がユーザーにとって「どのようなメリットがあるのか」「どう使い分けるべきか」を明確に伝えるため、ドキュメントを更新しましょう。
 
-`HookBase` はスレッドセーフではありません。**同一フックインスタンスを複数のスレッドが同時に呼び出す可能性がある場合**（例：`ThreadPoolExecutor` で並列タスクを実行し、共有のカウンタを持つフックを使う場合）は、`ThreadSafeHookBase` を使用してください。
+まず、関連するドキュメントを特定しました：
+
+1. **`docs/guides/hooks.md`**: フックのメインガイド。並列実行に関するセクションを強化する必要があります。
+2. **`docs/guides/usage_patterns.md`**: 並列処理（並列タスク実行）におけるフックの利用パターンを追記すべきです。
+3. **`docs/adr/0033-class-based-hook-system.md`**: 決定事項として、並列実行時の安全性を保証することを追記（またはステータス更新）します。
+
+ここでは、最も重要となる **`docs/guides/hooks.md`** の更新案を提案します。
+
+---
+
+## 🔒 並列実行とスレッドセーフなフック
+
+`beautyspot` は、`ThreadPoolExecutor` や `asyncio` を利用したタスクの並列実行をネイティブにサポートしています。複数のスレッドから同時に同じフックインスタンスが呼び出される可能性がある場合、状態（カウンターや累計値など）を安全に更新するために `ThreadSafeHookBase` を使用してください。
+
+### なぜ ThreadSafeHookBase が必要なのか？
+
+標準の `HookBase` はパフォーマンスを最優先しており、内部的なロックを持ちません。
+以下のようなケースでは、`ThreadSafeHookBase` が必須となります。
+
+* **共有メトリクス**: 複数のタスクで共通の `tracker` インスタンスを使用し、合計トークン数をカウントする場合。
+* **外部リソースへのアクセス**: フック内蔵のバッファにログを溜め込み、一定量で一括送信する場合。
+
+### 実装例：並列タスクの進捗トラッカー
 
 ```python
 from beautyspot.hooks import ThreadSafeHookBase
+import concurrent.futures
 
-class SharedMetricsHook(ThreadSafeHookBase):
+class ParallelProgressHook(ThreadSafeHookBase):
     def __init__(self):
-        super().__init__()   # ← threading.Lock を初期化するために必須
-        self.hit_count = 0
-        self.miss_count = 0
+        super().__init__()  # ⚠️ 必須：内部ロックの初期化
+        self.completed_count = 0
 
     def on_cache_hit(self, context):
-        self.hit_count += 1   # ロックは自動適用される
+        self.completed_count += 1
+        print(f"Progress: {self.completed_count} (Cache Hit!)")
 
     def on_cache_miss(self, context):
-        self.miss_count += 1  # ロックは自動適用される
+        self.completed_count += 1
+        print(f"Progress: {self.completed_count} (Executed)")
+
+progress = ParallelProgressHook()
+
+# 並列実行の例
+with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    tasks = [executor.submit(heavy_task, i, hooks=[progress]) for i in range(10)]
+
 ```
 
-`HookBase` と **完全に同じメソッド名** をオーバーライドするだけです。
-ロックは `__init_subclass__` の仕組みにより、サブクラス定義時に自動で適用されます。
+### 自動ロック機構の仕組み
 
-!!! warning "super().__init__() を忘れずに"
-    `ThreadSafeHookBase` を継承したクラスで `__init__` を定義する場合は、必ず `super().__init__()` を呼び出してください。呼び忘れると `threading.Lock` が初期化されず、`AttributeError` が発生します。
+`ThreadSafeHookBase` は、Python の `__init_subclass__` フックを利用して、サブクラスでオーバーライドされた `pre_execute`, `on_cache_hit`, `on_cache_miss` メソッドを**定義時に自動でロックラッパーで包みます。**
+
+これにより、ユーザーは明示的に `with self._lock:` を書く必要がなく、ロジックだけに集中できるクリーンなコードを維持できます。
+
+!!! warning "super().**init**() の呼び出し"
+`ThreadSafeHookBase` を継承したクラスで `__init__` を定義する場合は、必ず `super().__init__()` を呼び出してください。呼び忘れるとロックオブジェクトが生成されず、実行時に `AttributeError` が発生します。
 
 ---
 
