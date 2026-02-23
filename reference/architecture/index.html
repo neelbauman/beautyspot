@@ -11,8 +11,6 @@
         <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/architecture/">
       
       
-        <link rel="prev" href="../philosophy/">
-      
       
       
         
@@ -23,7 +21,7 @@
     
     
       
-        <title>Architecture - beautyspot</title>
+        <title>Architecture & Design - beautyspot</title>
       
     
     
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              Architecture &amp; Design
             
           </span>
         </div>
@@ -1149,20 +1147,20 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -1183,7 +1181,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1226,37 +1224,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../quality_report/" class="md-nav__link">
         
   
   
@@ -1272,148 +1243,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🏗️ Architecture &amp; Design Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2. Blob Storage (Storage Strategy)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3. Rate Limiter (GCRA)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Class Diagram
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Database Schema (ER Diagram)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
