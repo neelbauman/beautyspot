@@ -9,7 +9,7 @@ import inspect
 import threading
 import warnings
 import weakref
-from concurrent.futures import Executor, wait
+from concurrent.futures import Executor, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -114,6 +114,12 @@ class Spot:
             この関数内で発生した例外は安全にキャッチされ、アプリケーションはクラッシュしません。
     """
 
+    @staticmethod
+    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
+        """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
+        bg_loop.stop(wait=False)
+        executor.shutdown(wait=False)
+
     def __init__(
         self,
         name: str,
@@ -166,13 +172,14 @@ class Spot:
             self._own_executor = False
             self._finalizer = None
         else:
-            # 新パス: 専用 asyncio ループ
+            # 新パス: 専用 asyncio ループ (wait=False 保存用) +
+            # スレッドプール (async パスの run_in_executor 用)
             self._bg_loop = _BackgroundLoop()
-            self._executor = None
+            self._executor = ThreadPoolExecutor(max_workers=io_workers)
             self._own_executor = True
             # GC時の安全なシャットダウン
             self._finalizer = weakref.finalize(
-                self, _BackgroundLoop.stop, self._bg_loop, False
+                self, Spot._shutdown_resources, self._bg_loop, self._executor
             )
 
         # 実行中のタスクを管理するセット (ロックで保護)
@@ -212,19 +219,27 @@ class Spot:
             self._drain_futures()
         if self._bg_loop is not None:
             self._bg_loop.stop(wait=wait)
-        elif self._executor is not None:
+        if self._executor is not None:
             self._executor.shutdown(wait=wait)
 
     _MAX_DRAIN_ITERATIONS = 10
 
     def _drain_futures(self) -> None:
         """保留中のすべての Future が完了するまで待機するドレインループ。"""
-        for _ in range(self._MAX_DRAIN_ITERATIONS):
+        for i in range(self._MAX_DRAIN_ITERATIONS):
             with self._futures_lock:
                 snapshot = list(self._active_futures)
             if not snapshot:
                 break
             wait(snapshot)
+        else:
+            with self._futures_lock:
+                remaining = len(self._active_futures)
+            if remaining:
+                logger.warning(
+                    f"Drain loop reached max iterations ({self._MAX_DRAIN_ITERATIONS}) "
+                    f"with {remaining} futures still pending."
+                )
 
     def __enter__(self) -> "Spot":
         return self
@@ -319,6 +334,24 @@ class Spot:
 
         return datetime.now(timezone.utc) + retention
 
+    # --- Hook ディスパッチヘルパー ---
+    @staticmethod
+    def _dispatch_hooks(
+        hooks: Optional[Sequence[HookBase]],
+        method_name: str,
+        context: Any,
+    ) -> None:
+        """フックのコールバックを安全に呼び出す。例外はログに記録し、呼び出し元には伝播しない。"""
+        if not hooks:
+            return
+        for hook in hooks:
+            try:
+                getattr(hook, method_name)(context)
+            except Exception as e:
+                logger.error(
+                    f"Error in hook '{type(hook).__name__}.{method_name}': {e}",
+                    exc_info=True,
+                )
 
     # --- Core Logic (Sync) ---
     def _resolve_settings(
@@ -384,56 +417,35 @@ class Spot:
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
 
+        # kwargs をコピーしてフックからの変更を防止
+        hook_kwargs = dict(kwargs) if hooks else kwargs
+
         # === 1. フック: pre_execute ===
-        if hooks:
-            pre_ctx = PreExecuteContext(
-                func_name=func.__name__,
-                input_id=str(iid),
-                cache_key=ck,
-                args=args,
-                kwargs=kwargs,
-            )
-            for hook in hooks:
-                try:
-                    hook.pre_execute(pre_ctx)
-                except Exception as e:
-                    logger.error(f"Error in hook '{type(hook).__name__}.pre_execute': {e}", exc_info=True)
+        self._dispatch_hooks(hooks, "pre_execute", PreExecuteContext(
+            func_name=func.__name__, input_id=str(iid), cache_key=ck,
+            args=args, kwargs=hook_kwargs,
+        ))
 
         # === 2. Check Cache ===
         cached = self._check_cache_sync(ck, serializer)
         if cached is not CACHE_MISS:
-            # === フック: on_cache_hit ===
-            if hooks:
-                hit_ctx = CacheHitContext(
-                    func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
-                    result=cached, version=s_ver
-                )
-                for hook in hooks:
-                    try:
-                        hook.on_cache_hit(hit_ctx)
-                    except Exception as e:
-                        logger.error(f"Error in hook '{type(hook).__name__}.on_cache_hit': {e}")
+            self._dispatch_hooks(hooks, "on_cache_hit", CacheHitContext(
+                func_name=func.__name__, input_id=str(iid), cache_key=ck,
+                args=args, kwargs=hook_kwargs, result=cached, version=s_ver,
+            ))
             return cached
 
         # === 3. Execute ===
         res = func(*args, **kwargs)
 
-        # === フック: on_cache_miss ===
-        if hooks:
-            miss_ctx = CacheMissContext(
-                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
-                result=res, version=s_ver
-            )
-            for hook in hooks:
-                try:
-                    hook.on_cache_miss(miss_ctx)
-                except Exception as e:
-                    logger.error(f"Error in hook '{type(hook).__name__}.on_cache_miss': {e}")
+        # === 4. フック: on_cache_miss ===
+        self._dispatch_hooks(hooks, "on_cache_miss", CacheMissContext(
+            func_name=func.__name__, input_id=str(iid), cache_key=ck,
+            args=args, kwargs=hook_kwargs, result=res, version=s_ver,
+        ))
 
-        # === 4. Calculate Expiration & Save ===
+        # === 5. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
-
-        # 4. Save
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
@@ -472,57 +484,41 @@ class Spot:
             save_blob, version, content_type, wait
         )
 
-        # [MOD] ここでの _resolve_key_fn の呼び出しを削除
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
         loop = asyncio.get_running_loop()
 
+        # kwargs をコピーしてフックからの変更を防止
+        hook_kwargs = dict(kwargs) if hooks else kwargs
+
         # === 1. フック: pre_execute ===
-        if hooks:
-            pre_ctx = PreExecuteContext(
-                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs
-            )
-            for hook in hooks:
-                try:
-                    hook.pre_execute(pre_ctx)
-                except Exception as e:
-                    logger.error(f"Error in hook '{type(hook).__name__}.pre_execute': {e}", exc_info=True)
+        self._dispatch_hooks(hooks, "pre_execute", PreExecuteContext(
+            func_name=func.__name__, input_id=str(iid), cache_key=ck,
+            args=args, kwargs=hook_kwargs,
+        ))
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
             self._executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
-            # === フック: on_cache_hit ===
-            if hooks:
-                hit_ctx = CacheHitContext(
-                    func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
-                    result=cached, version=s_ver
-                )
-                for hook in hooks:
-                    try:
-                        hook.on_cache_hit(hit_ctx)
-                    except Exception as e:
-                        logger.error(f"Error in hook '{type(hook).__name__}.on_cache_hit': {e}")
+            self._dispatch_hooks(hooks, "on_cache_hit", CacheHitContext(
+                func_name=func.__name__, input_id=str(iid), cache_key=ck,
+                args=args, kwargs=hook_kwargs, result=cached, version=s_ver,
+            ))
             return cached
 
-        # === 3. Execute  (async) ===
+        # === 3. Execute (async) ===
         res = await func(*args, **kwargs)
 
-        # === フック: on_cache_miss ===
-        if hooks:
-            miss_ctx = CacheMissContext(
-                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
-                result=res, version=s_ver
-            )
-            for hook in hooks:
-                try:
-                    hook.on_cache_miss(miss_ctx)
-                except Exception as e:
-                    logger.error(f"Error in hook '{type(hook).__name__}.on_cache_miss': {e}")
+        # === 4. フック: on_cache_miss ===
+        self._dispatch_hooks(hooks, "on_cache_miss", CacheMissContext(
+            func_name=func.__name__, input_id=str(iid), cache_key=ck,
+            args=args, kwargs=hook_kwargs, result=res, version=s_ver,
+        ))
 
-        # === 4. Calculate Expiration & Save ===
+        # === 5. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
         save_kwargs = {

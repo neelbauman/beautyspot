@@ -1,5 +1,6 @@
 # src/beautyspot/hooks.py
 
+import inspect
 import functools
 import threading
 from collections.abc import Callable
@@ -57,7 +58,7 @@ class ThreadSafeHookBase(HookBase):
     """
 
     _HOOK_METHODS: frozenset[str] = frozenset(
-        {"pre_execute", "on_cache_hit", "on_cache_miss"}
+        name for name, _ in inspect.getmembers(HookBase, predicate=inspect.isfunction) if not name.startswith("__")
     )
 
     def __init_subclass__(cls, **kwargs: object) -> None:
@@ -69,11 +70,3 @@ class ThreadSafeHookBase(HookBase):
     def __init__(self) -> None:
         self._lock = threading.Lock()
 
-    def pre_execute(self, context: PreExecuteContext) -> None:
-        """関数実行（およびキャッシュ確認）の直前に呼び出されます。"""
-
-    def on_cache_hit(self, context: CacheHitContext) -> None:
-        """キャッシュから値が正常に取得され、元の関数実行がスキップされた直後に呼び出されます。"""
-
-    def on_cache_miss(self, context: CacheMissContext) -> None:
-        """キャッシュが存在せず、元の関数が実行され結果が得られた直後に呼び出されます。"""

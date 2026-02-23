@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Optional, Any, Callable
 
 from beautyspot.core import Spot as _Spot
-from beautyspot.types import SaveErrorContext
+from beautyspot.types import (
+    SaveErrorContext,
+    PreExecuteContext,
+    CacheHitContext,
+    CacheMissContext,
+)
 from beautyspot.cachekey import KeyGen
 from beautyspot.lifecycle import LifecyclePolicy, Rule, Retention
 from beautyspot.limiter import TokenBucket, LimiterProtocol
@@ -141,4 +146,7 @@ __all__ = [
     # --- Hooks ---
     "HookBase",
     "ThreadSafeHookBase",
+    "PreExecuteContext",
+    "CacheHitContext",
+    "CacheMissContext",
 ]

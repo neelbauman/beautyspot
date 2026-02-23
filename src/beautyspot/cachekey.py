@@ -32,6 +32,7 @@ def _safe_sort_key(obj: Any):
 # Canonicalization helpers (extracted to reduce CC of the default handler)
 # ---------------------------------------------------------------------------
 
+
 def _canonicalize_ndarray(obj: Any) -> tuple:
     """Numpy-like array → tagged tuple with raw bytes (efficient & exact)."""
     return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
@@ -47,6 +48,7 @@ def _canonicalize_instance(obj: Any) -> Any:
         for k in sorted(obj.__slots__)
         if hasattr(obj, k)
     ]
+
 
 def _is_ndarray_like(obj: Any) -> bool:
     """Duck-type check for numpy-like arrays (avoids hard dependency)."""
