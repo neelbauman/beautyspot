@@ -161,6 +161,10 @@
          <lastmod>2026-02-23</lastmod>
     </url>
     <url>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0036-probabilistic-auto-eviction/</loc>
+         <lastmod>2026-02-23</lastmod>
+    </url>
+    <url>
          <loc>https://neelbauman.github.io/beautyspot/cookbooks/</loc>
          <lastmod>2026-02-23</lastmod>
     </url>
@@ -230,10 +234,6 @@
     </url>
     <url>
          <loc>https://neelbauman.github.io/beautyspot/guides/usage_patterns/</loc>
-         <lastmod>2026-02-23</lastmod>
-    </url>
-    <url>
-         <loc>https://neelbauman.github.io/beautyspot/reference/architecture/</loc>
          <lastmod>2026-02-23</lastmod>
     </url>
     <url>

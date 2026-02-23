@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/architecture/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0036-probabilistic-auto-eviction/">
       
       
       
@@ -21,7 +21,7 @@
     
     
       
-        <title>Architecture & Design - beautyspot</title>
+        <title>ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture-design" class="md-skip">
+        <a href="#adr-0034-probabilistic-auto-eviction-for-storage-maintenance" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture &amp; Design
+              ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance
             
           </span>
         </div>
@@ -947,7 +947,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../core/" class="md-nav__link">
+      <a href="../../reference/core/" class="md-nav__link">
         
   
   
@@ -975,7 +975,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../hooks/" class="md-nav__link">
+      <a href="../../reference/hooks/" class="md-nav__link">
         
   
   
@@ -1003,7 +1003,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cachekey/" class="md-nav__link">
+      <a href="../../reference/cachekey/" class="md-nav__link">
         
   
   
@@ -1031,7 +1031,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../db/" class="md-nav__link">
+      <a href="../../reference/db/" class="md-nav__link">
         
   
   
@@ -1059,7 +1059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../storage/" class="md-nav__link">
+      <a href="../../reference/storage/" class="md-nav__link">
         
   
   
@@ -1087,7 +1087,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../types/" class="md-nav__link">
+      <a href="../../reference/types/" class="md-nav__link">
         
   
   
@@ -1115,7 +1115,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../maintenance/" class="md-nav__link">
+      <a href="../../reference/maintenance/" class="md-nav__link">
         
   
   
@@ -1199,7 +1199,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../philosophy/" class="md-nav__link">
+      <a href="../../reference/philosophy/" class="md-nav__link">
         
   
   
@@ -1282,124 +1282,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture-design-overview" class="md-nav__link">
+  <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        🏗️ Architecture &amp; Design Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🏗️ Architecture &amp; Design Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-core-philosophy-the-kuroko-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Core Philosophy: "The Kuroko (黒子) Pattern"
+        Status
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#2-system-components-code-mapping" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. System Components &amp; Code Mapping
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. System Components &amp; Code Mapping">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-metadata-store-sqlite" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1. Metadata Store (SQLite)
+        Context
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#22-blob-storage-storage-strategy" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#options-considered" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2. Blob Storage (Storage Strategy)
+        Options Considered
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#23-rate-limiter-gcra" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.3. Rate Limiter (GCRA)
+        Decision
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-class-diagram" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Class Diagram
+        Consequences
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-database-schema-er-diagram" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Database Schema (ER Diagram)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-execution-flow-mark-decorator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Execution Flow (@mark Decorator)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-key-technical-decisions-adr-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Key Technical Decisions (ADR Summary)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1423,138 +1356,51 @@
   
 
 
-<h1 id="architecture-design">Architecture &amp; Design</h1>
-<h2 id="architecture-design-overview">🏗️ Architecture &amp; Design Overview</h2>
-<p><code>beautyspot</code> は、関数デコレータを通じて「実行制御（Caching, Rate Limiting, Persistence）」を既存のロジックに注入する、<strong>非侵入型（Non-intrusive）</strong> のミドルウェアライブラリです。</p>
-<h3 id="1-core-philosophy-the-kuroko-pattern">1. Core Philosophy: "The Kuroko (黒子) Pattern"</h3>
-<p>ユーザーのビジネスロジック（関数）を汚染せず、インフラストラクチャの複雑性を隠蔽することを設計の主眼としています。</p>
-<ul>
-<li><strong>No Inheritance:</strong> ユーザーは特定のクラスを継承する必要がない。</li>
-<li><strong>No Global State:</strong> <code>Spot</code> インスタンスごとに独立した状態（DB, TokenBucket）を持つ。</li>
-<li><strong>Fail-Safe:</strong> ライブラリ内部の整合性エラーが、ユーザーのアプリケーションをクラッシュさせてはならない。</li>
-</ul>
-<hr />
-<h3 id="2-system-components-code-mapping">2. System Components &amp; Code Mapping</h3>
-<p>各コンポーネントが、コードベース上のどのクラス・モジュールに対応するかを明記したシステム図です。</p>
-<pre class="mermaid"><code>graph TD
-    UserFunc[User Function] --&gt;|Decorated by| MarkWrapper
-
-    subgraph "Spot Context (src/beautyspot/core.py)"
-        MarkWrapper["Mark Wrapper&lt;br/&gt;&lt;code&gt;@Spot.mark&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Check/Save Cache| SQLite["Metadata Store&lt;br/&gt;&lt;code&gt;sqlite3 (tasks table)&lt;/code&gt;"]
-        MarkWrapper --&gt;|Rate Limit| Limiter["Rate Limiter&lt;br/&gt;&lt;code&gt;limiter.TokenBucket&lt;/code&gt;"]
-        MarkWrapper --&gt;|Execute| Executor["Async/Thread Executor&lt;br/&gt;&lt;code&gt;concurrent.futures.Executor&lt;/code&gt;"]
-
-        MarkWrapper --&gt;|Save Large Data| StorageInt["Storage Interface&lt;br/&gt;&lt;code&gt;storage.BlobStorageBase&lt;/code&gt;"]
-    end
-
-    subgraph "Storage Backends (src/beautyspot/storage.py)"
-        StorageInt -.-&gt;|Inheritance| LocalStore["&lt;code&gt;class LocalStorage&lt;/code&gt;"]
-        StorageInt -.-&gt;|Inheritance| S3Store["&lt;code&gt;class S3Storage&lt;/code&gt;"]
-    end
-
-    LocalStore --&gt;|File I/O| LocalDisk[("Local Disk")]
-    S3Store --&gt;|boto3| S3Bucket[("AWS S3 / MinIO")]
-</code></pre>
-<h4 id="21-metadata-store-sqlite">2.1. Metadata Store (SQLite)</h4>
-<p>タスクの実行履歴と「データの在り処（ポインタ）」を管理します。
-WAL (Write-Ahead Logging) モードを採用し、並行読み書き性能を確保しています。
-v2.0 以降も互換性維持のため、内部テーブル名は <code>tasks</code> のまま使用されています。</p>
-<h4 id="22-blob-storage-storage-strategy">2.2. Blob Storage (Storage Strategy)</h4>
-<p>画像、音声、長文テキストなどの巨大なデータをDBから分離する <strong>"Claim Check Pattern"</strong> を採用しています。
-抽象基底クラス <code>BlobStorageBase</code> により、バックエンドの差し替えが可能です。</p>
-<blockquote>
-<p><strong>Note on Multi-modal Support:</strong>
-現在は <code>LocalStorage</code> と <code>S3Storage</code> を提供しています。
-設計上はバイナリデータを透過的に扱うため、将来的な <strong>Audio (WAV/MP3)</strong> や <strong>Video (MP4)</strong> などのマルチメディアデータ、およびそれらに特化したストレージバックエンドの拡張を見据えています。</p>
-</blockquote>
-<h4 id="23-rate-limiter-gcra">2.3. Rate Limiter (GCRA)</h4>
-<p><strong>GCRA (Generic Cell Rate Algorithm)</strong> を採用しています。
-通常のトークンバケットと異なり、<strong>"Theoretical Arrival Time (TAT)"</strong> を管理することで、長時間アイドル後のバースト（集中アクセス）を物理的に防ぎます。</p>
-<hr />
-<h3 id="3-class-diagram">3. Class Diagram</h3>
-<p>主要クラスの依存関係と責務の構造です。<code>Spot</code> クラスが <code>Facade</code> として機能し、各コンポーネントを統括しています。</p>
-<p><img alt="Class Diagram" src="../../statics/img/generated/classes_beautyspot.png" /></p>
-<hr />
-<h3 id="4-database-schema-er-diagram">4. Database Schema (ER Diagram)</h3>
-<p>SQLite内部の <code>tasks</code> テーブルのスキーマ定義です。
-マイグレーションは <code>Spot</code> 初期化時に動的チェック（Auto-Migration）によって行われます。</p>
-<pre class="mermaid"><code>erDiagram
-    tasks {
-        TEXT cache_key PK "MD5 Hash of (func_name + input_args + version)"
-        TEXT func_name "Name of the decorated function"
-        TEXT input_id "User-defined ID or Argument Hash"
-        TEXT version "Schema version of the task logic"
-        TEXT result_type "Storage mode: 'DIRECT_BLOB' or 'FILE'"
-        TEXT content_type "MIME type for Dashboard rendering (e.g., 'image/png')"
-        TEXT result_value "Path/URI (only for FILE)"
-        BLOB result_data "Msgpack bytes (only for DIRECT_BLOB)"
-        TIMESTAMP updated_at "Last execution timestamp"
-    }
-
-</code></pre>
-<ul>
-<li><strong><code>result_type</code></strong>:</li>
-<li><code>DIRECT_BLOB</code>: 小さいデータ。<code>result_data</code> カラムに Msgpack バイナリとして直接格納。</li>
-<li>
-<p><code>FILE</code>: 大きいデータ (<code>save_blob=True</code>)。<code>result_value</code> にファイルパスまたは S3 URI を格納。</p>
-</li>
-<li>
-<p><strong><code>content_type</code></strong>:</p>
-</li>
-<li>ダッシュボードでの可視化に使用（例: <code>text/vnd.mermaid</code>, <code>image/png</code>）。</li>
-</ul>
-<hr />
-<h3 id="5-execution-flow-mark-decorator">5. Execution Flow (<code>@mark</code> Decorator)</h3>
+<h1 id="adr-0034-probabilistic-auto-eviction-for-storage-maintenance">ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance</h1>
+<h2 id="status">Status</h2>
+<p>Accepted</p>
+<h2 id="context">Context</h2>
+<p><code>beautyspot</code> は、キャッシュのTTL (Time-To-Live) をサポートしており、期限切れのデータは論理的に無効化され、次回のアクセス時に関数が再実行されます。
+しかし、ユーザーが明示的に <code>MaintenanceService.clean_garbage()</code> を呼び出さない限り、有効期限切れのメタデータ（SQLite内のレコード）や、巨大な孤立したBlobファイル（S3やLocal Storage）は物理的に削除されず、長期間稼働するアプリケーションにおいてストレージが肥大化し続けるという問題がありました。</p>
+<p>この問題を解決するため、ユーザーにインフラ管理を意識させない「黒子」としての哲学を維持しつつ、自動でガベージコレクション（エビクション）を行う仕組みが必要になりました。</p>
+<h2 id="options-considered">Options Considered</h2>
+<p>自動エビクションを実装するにあたり、以下の3つのアプローチを検討しました。</p>
 <ol>
-<li><strong>Hash Generation:</strong> 引数 (<code>args</code>, <code>kwargs</code>) と <code>version</code> から一意な <code>cache_key</code> を生成。<ul>
-<li>🔌 <strong>Hook:</strong> ここで <code>pre_execute</code> フックが発火します。</li>
+<li>
+<p><strong>Capacity-based LRU (Least Recently Used) Policy:</strong></p>
+<ul>
+<li><strong>概要:</strong> ストレージ容量やDBの最大レコード数を設定し、上限に達した際に最も古いアクセス履歴を持つデータを削除する。</li>
+<li><strong>評価:</strong> 棄却。キャッシュヒットのたびに <code>last_accessed_at</code> などのタイムスタンプをDBに書き込む (UPDATE) 必要があり、メインスレッドのレイテンシ低下や SQLite の Write-Lock 競合を引き起こします。また、S3などのクラウドストレージにおける総容量の計算はAPIコールのコストが高すぎます。</li>
 </ul>
 </li>
-<li><strong>Cache Check:</strong> SQLiteを参照。<ul>
-<li><strong>Hit</strong> -&gt; <code>result_type</code> に応じてデータを復元（<code>msgpack.unpack</code>）します。<ul>
-<li>🔌 <strong>Hook:</strong> <code>on_cache_hit</code> フックが発火し、即座に結果を return します。</li>
+<li>
+<p><strong>Load-Adaptive Background Eviction:</strong></p>
+<ul>
+<li><strong>概要:</strong> バックグラウンドの保存キューの長さを監視し、システムが完全にアイドル状態のときにのみクリーンアップタスクを投入する。</li>
+<li><strong>評価:</strong> 棄却。実装が複雑になる（オーバーエンジニアリング）。<code>beautyspot</code> の主なユースケースにおいて、キューの厳密な状態管理を作り込むコストに見合うほどのメリットが得られないと判断しました。</li>
 </ul>
 </li>
-<li><strong>Miss</strong> -&gt; 次へ進む。</li>
-</ul>
-</li>
-<li><strong>Execution:</strong> ユーザー関数を実際に実行します。<ul>
-<li>🔌 <strong>Hook:</strong> 実行完了の直後、結果を伴って <code>on_cache_miss</code> フックが発火します。</li>
-<li><strong>Exception:</strong> 例外が発生した場合、キャッシュやフックはスキップされ、そのまま例外を上位へ伝播させます（バグの永続化防止）。</li>
-</ul>
-</li>
-<li><strong>Persistence:</strong><ul>
-<li>Small Data -&gt; <code>DIRECT_BLOB</code> モードでSQLiteにバイナリ保存。</li>
-<li>Large Data (<code>save_blob=True</code>) -&gt; <code>FILE</code> モードでStorageに保存し、パスのみをSQLiteに記録。</li>
+<li>
+<p><strong>Probabilistic Auto-Eviction (確率的自動実行):</strong></p>
+<ul>
+<li><strong>概要:</strong> キャッシュミスに伴う新しい結果の保存処理が発生した直後、設定された確率（例: 1%）に基づいて、バックグラウンドでクリーンアップタスクをエンキューする。</li>
+<li><strong>評価:</strong> <strong>採用。</strong></li>
 </ul>
 </li>
 </ol>
-<hr />
-<h3 id="6-key-technical-decisions-adr-summary">6. Key Technical Decisions (ADR Summary)</h3>
-<p>この設計に至った重要な意思決定の履歴です。</p>
+<h2 id="decision">Decision</h2>
+<p><strong>Option 3 (Probabilistic Auto-Eviction)</strong> を採用します。</p>
 <ul>
-<li><strong>ADR-0001: Stable Hashing</strong></li>
-<li>
-<p><code>json</code> ベースの正規化を採用し、異なる環境間でのキーの一致率を向上させた。</p>
-</li>
-<li>
-<p><strong>ADR-0002: GCRA Rate Limiter</strong></p>
-</li>
-<li>
-<p>単純なトークンバケットの「バースト問題」を解決するために、TATベースのアルゴリズムを採用した。</p>
-</li>
-<li>
-<p><strong>ADR-0007: Msgpack Serialization (v2.0)</strong></p>
-</li>
-<li>
-<p><code>pickle</code> のセキュリティリスク（RCE）を排除するため、デフォルトのシリアライザを <code>msgpack</code> に変更した。</p>
-</li>
-<li>
-<p><strong>ADR-0011: Rename Project to Spot (v2.0)</strong></p>
-</li>
-<li>ライブラリ名および "Beauty Spot"（ほくろ）というコンセプトとの整合性を高めるため、管理クラスを <code>Spot</code>、デコレータを <code>mark</code> に変更した。</li>
+<li><code>Spot</code> の初期化パラメータに <code>eviction_rate: float = 0.0</code> を追加します。</li>
+<li>デフォルト値は <code>0.0</code>（無効）とし、意図しないデータの消失を防ぐオプトイン方式とします。</li>
+<li>エビクション処理（<code>clean_garbage</code>）はファイルI/Oを伴うため、メインスレッドや <code>asyncio</code> ループをブロックしないよう、別スレッドにオフロードして <code>_BackgroundLoop</code> に投入します。</li>
+<li>マルチスレッド環境での SQLite のロック競合や無駄な同時実行を防ぐため、<code>MaintenanceService.clean_garbage</code> の内部に非ブロッキングロック（Try-Lock）を導入し、既に他の掃除タスクが実行中の場合は安全にスキップ（無視）させます。</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<ul>
+<li><strong>Positive:</strong> ユーザーは <code>eviction_rate=0.01</code> のように設定するだけで、アプリケーションのメインロジックの応答速度（レイテンシ）を一切犠牲にすることなく、ストレージの肥大化を自動で防ぐことができます。</li>
+<li><strong>Positive:</strong> 実装が極めてシンプルであり、バグの混入リスクや保守コストを低く抑えることができます。</li>
+<li><strong>Negative:</strong> エビクションは確率に依存するため、「この関数を1回呼べば確実にストレージ容量が空く」といった決定論的な保証はありません。厳密な容量管理が必要なユーザーは、引き続き定期的なバッチスクリプト等で <code>clean_garbage()</code> を明示的に呼び出す必要があります。</li>
 </ul>
 
 
