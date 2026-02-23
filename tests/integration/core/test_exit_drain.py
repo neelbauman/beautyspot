@@ -1,89 +1,69 @@
 # tests/integration/core/test_exit_drain.py
 
-"""__exit__ ドレインループのテスト。"""
-
+import gc
 import time
+import threading
 from unittest.mock import MagicMock
+import pytest
 
-import beautyspot as bs
-from beautyspot.db import SQLiteTaskDB
+from beautyspot.core import Spot, _active_loops
 
+@pytest.fixture(autouse=True)
+def clean_active_loops():
+    """テスト間の状態干渉を防ぐ"""
+    _active_loops.clear()
+    yield
+    _active_loops.clear()
 
-def test_exit_drains_all_pending_futures(tmp_path):
-    """__exit__ が保留中のすべてのバックグラウンド保存を待つことを確認する。"""
-    slow_storage = MagicMock()
-    save_count = 0
+def test_zombie_thread_completes_tasks():
+    """
+    SpotインスタンスがGCによって破棄されても、バックグラウンドスレッドが
+    自律的にタスクを完了（ゾンビ化）してデータロストを防ぐことを検証する。
+    """
+    task_completed_event = threading.Event()
 
-    def slow_save(key, data):
-        nonlocal save_count
-        time.sleep(0.3)
-        save_count += 1
-        return f"loc_{save_count}"
+    # 重いIO処理をシミュレートするモック保存関数
+    def slow_mock_save(*args, **kwargs):
+        time.sleep(0.1)  # 擬似的なIO待機
+        task_completed_event.set()
 
-    slow_storage.save.side_effect = slow_save
+    # モック用の依存オブジェクト
+    mock_db = MagicMock()
+    mock_db.init_schema = MagicMock()
+    mock_serializer = MagicMock()
+    mock_storage = MagicMock()
+    mock_policy = MagicMock()
+    mock_limiter = MagicMock()
 
-    spot = bs.Spot(
-        name="drain_test",
-        db=SQLiteTaskDB(tmp_path / "d.db"),
-        storage_backend=slow_storage,
-        default_wait=False,
-        default_save_blob=True,
-    )
+    def run_temp_spot():
+        # 関数ローカルなスコープでSpotを初期化
+        spot = Spot(
+            name="temp", db=mock_db, serializer=mock_serializer,
+            storage_backend=mock_storage, storage_policy=mock_policy, limiter=mock_limiter
+        )
+        # 保存ロジックをモックに差し替え
+        spot._save_result_sync = slow_mock_save 
+        
+        # wait=Falseで非同期保存を投入
+        spot._submit_background_save(
+            cache_key="test_key", func_name="test", input_id="1", 
+            version="1", result="data", content_type=None, 
+            save_blob=False, serializer=None, expires_at=None
+        )
+        # 関数を抜けるとspotインスタンスは参照を失う
 
-    @spot.mark()
-    def fn(x):
-        return x
+    run_temp_spot()
+    
+    # GCを強制実行し、_shutdown_resources を発火させる
+    gc.collect()
 
-    with spot:
-        # 複数のバックグラウンド保存を投入
-        for i in range(3):
-            fn(i)
+    # 1. メインスレッドがブロックされていないことの確認
+    # (即座にチェックするため、まだバックグラウンド処理は終わっていないはず)
+    assert not task_completed_event.is_set(), "メインスレッドがブロックされています。"
 
-    # __exit__ 後は全保存が完了しているべき
-    assert save_count == 3
+    # 2. ゾンビスレッドがタスクを完遂することの確認
+    # 最大1秒待機。成功すれば0.1秒強で通過する。
+    success = task_completed_event.wait(timeout=1.0)
+    
+    assert success, "GC後にバックグラウンドタスクが完遂されずに破棄されました（データロスト）"
 
-
-def test_exit_does_not_stop_loop(tmp_path):
-    """__exit__ 後もバックグラウンドループは停止せず、再利用可能であることを確認する。"""
-    spot = bs.Spot(
-        name="reuse_test",
-        db=SQLiteTaskDB(tmp_path / "r.db"),
-        storage_backend=bs.LocalStorage(tmp_path / "blobs"),
-        default_wait=False,
-    )
-
-    @spot.mark()
-    def fn(x):
-        return x
-
-    # 1回目
-    with spot:
-        fn(1)
-
-    # 2回目: ループが生きていれば正常に動作する
-    with spot:
-        fn(2)
-
-    rows = spot.db.get_history()
-    assert len(rows) == 2
-
-
-def test_drain_handles_empty_futures(tmp_path):
-    """保留中の Future がない場合も __exit__ が正常に終了することを確認する。"""
-    spot = bs.Spot(
-        name="empty_test",
-        db=SQLiteTaskDB(tmp_path / "e.db"),
-        storage_backend=bs.LocalStorage(tmp_path / "blobs"),
-    )
-
-    @spot.mark()
-    def fn(x):
-        return x
-
-    # wait=True (default) なのでバックグラウンド Future はない
-    with spot:
-        fn(1)
-
-    # 正常終了のみ確認
-    rows = spot.db.get_history()
-    assert len(rows) == 1

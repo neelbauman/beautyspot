@@ -1,5 +1,6 @@
 # src/beautyspot/core.py
 
+import atexit
 import asyncio
 import concurrent.futures
 import hashlib
@@ -46,12 +47,29 @@ R = TypeVar("R")
 T = TypeVar("T")
 Ts = TypeVarTuple("Ts")
 
+# --- キャッシュミスを表す番兵オブジェクト ---
+CACHE_MISS = object()
+
+# --- ロガー ---
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-# --- キャッシュミスを表す番兵オブジェクト ---
-CACHE_MISS = object()
+# --- プロセス終了時のドレイン ---
+_active_loops: weakref.WeakSet["_BackgroundLoop"] = weakref.WeakSet()
+
+def _shutdown_all_loops():
+    """プロセス終了時に未完了のバックグラウンドタスクを安全にドレインする安全網。"""
+    for loop in list(_active_loops):
+        try:
+            # atexitのタイミングではプロセスが終了するため、wait=Trueで確実にデータを保存する
+            # ただし無制限に待たないようタイムアウトを設定
+            loop.stop(wait=True, timeout=5.0)
+        except Exception as e:
+            logger.error(f"Error shutting down background loop during exit: {e}")
+
+# プロセス終了時のフックとして登録
+atexit.register(_shutdown_all_loops)
 
 
 class _BackgroundLoop:
@@ -68,6 +86,9 @@ class _BackgroundLoop:
         self._stopped = False
         self._thread.start()
 
+        # 自身をトラッキングセットに追加
+        _active_loops.add(self)
+
     def _run(self) -> None:
         asyncio.set_event_loop(self._loop)
         try:
@@ -79,6 +100,34 @@ class _BackgroundLoop:
     def submit(self, coro) -> concurrent.futures.Future:
         """コルーチンをループに投入し、concurrent.futures.Future を返す。"""
         return asyncio.run_coroutine_threadsafe(coro, self._loop)
+
+    def stop_gracefully_no_wait(self) -> None:
+        """
+        GC発生時など、メインスレッドをブロックせずに残りのタスクを完了させてから
+        ループを終了するためのメソッド。
+        """
+        if self._stopped:
+            return
+        self._stopped = True
+
+        def _drain_and_stop():
+            # 自分自身（このシャットダウン処理）以外の全タスクを取得
+            tasks = [t for t in asyncio.all_tasks(self._loop) 
+                     if t is not asyncio.current_task(self._loop)]
+            
+            if not tasks:
+                self._loop.stop()
+                return
+
+            # タスクをキャンセルするのではなく、完了を待機する
+            async def _wait_for_completion():
+                await asyncio.gather(*tasks, return_exceptions=True)
+                self._loop.stop()
+            
+            self._loop.create_task(_wait_for_completion())
+
+        # スレッドセーフにシャットダウンシーケンスを投入（メインスレッドは即座にリターン）
+        self._loop.call_soon_threadsafe(_drain_and_stop)
 
     def stop(self, wait: bool = True, timeout: float = 10.0) -> None:
         """
@@ -134,6 +183,21 @@ class Spot:
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
 
+    .. warning::
+        **リソース管理とデータロストに関する注意**
+        `Spot` インスタンスは内部でバックグラウンドIO用の専用スレッドを起動します。
+        関数内で一時的にインスタンスを生成して破棄するような使い方をした場合、
+        ガベージコレクション(GC)時にメインスレッドのフリーズを防ぐため、未完了の保存タスクが
+        **強制キャンセル（データロスト）** される可能性があります。
+
+        安全に利用するためには、以下のいずれかのアプローチを推奨します。
+        1. アプリケーションのライフサイクル全体で1つの `Spot` インスタンスを使い回す（シングルトン的利用）。
+        2. コンテキストマネージャ (`with Spot(...) as spot:`) を使用し、スコープを抜ける際に確実にリソースをドレインする。
+        3. 利用終了時に明示的に `spot.shutdown(wait=True)` を呼び出す。
+        
+        ※ プロセス終了時 (`atexit`) には安全網として未完了タスクのドレインを試みますが、
+           GCによる破棄に対しては無力であることに注意してください。
+
     Args:
         name: The name of the Spot instance.
         db: The database backend for task tracking.
@@ -158,7 +222,7 @@ class Spot:
     @staticmethod
     def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
         """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
-        bg_loop.stop(wait=False)
+        bg_loop.stop_gracefully_no_wait()
         executor.shutdown(wait=False)
 
     def __init__(
