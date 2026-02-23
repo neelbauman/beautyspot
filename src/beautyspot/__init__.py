@@ -27,6 +27,7 @@ from beautyspot.storage import (
     AlwaysBlobPolicy,
 )
 from beautyspot.serializer import SerializerProtocol, MsgpackSerializer
+from beautyspot.hooks import HookBase, ThreadSafeHookBase
 
 try:
     __version__ = version("beautyspot")
@@ -137,4 +138,7 @@ __all__ = [
     "LifecyclePolicy",
     "Rule",
     "Retention",
+    # --- Hooks ---
+    "HookBase",
+    "ThreadSafeHookBase",
 ]

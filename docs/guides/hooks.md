@@ -116,6 +116,34 @@ tracker.print_report()
 
 ---
 
+## 🔒 スレッドセーフなフック
+
+`HookBase` はスレッドセーフではありません。**同一フックインスタンスを複数のスレッドが同時に呼び出す可能性がある場合**（例：`ThreadPoolExecutor` で並列タスクを実行し、共有のカウンタを持つフックを使う場合）は、`ThreadSafeHookBase` を使用してください。
+
+```python
+from beautyspot.hooks import ThreadSafeHookBase
+
+class SharedMetricsHook(ThreadSafeHookBase):
+    def __init__(self):
+        super().__init__()   # ← threading.Lock を初期化するために必須
+        self.hit_count = 0
+        self.miss_count = 0
+
+    def on_cache_hit(self, context):
+        self.hit_count += 1   # ロックは自動適用される
+
+    def on_cache_miss(self, context):
+        self.miss_count += 1  # ロックは自動適用される
+```
+
+`HookBase` と **完全に同じメソッド名** をオーバーライドするだけです。
+ロックは `__init_subclass__` の仕組みにより、サブクラス定義時に自動で適用されます。
+
+!!! warning "super().__init__() を忘れずに"
+    `ThreadSafeHookBase` を継承したクラスで `__init__` を定義する場合は、必ず `super().__init__()` を呼び出してください。呼び忘れると `threading.Lock` が初期化されず、`AttributeError` が発生します。
+
+---
+
 ## ⚠️ 重要な設計と安全機構（Fail-Safe）
 
 OSSツールとして、ユーザーのアプリケーションを落とさないための安全機構が備わっています。

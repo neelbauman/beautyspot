@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import msgpack
+import pytest
 from typing import Iterator
 from beautyspot import Spot
 from beautyspot.storage import BlobStorageBase, LocalStorage, ReadableBuffer
@@ -130,15 +131,15 @@ def test_custom_db_injection(tmp_path):
 
 
 def test_custom_executor_injection(tmp_path):
-    """Test injecting a custom executor."""
-    # Use a single worker to ensure sequential execution (though hard to prove without timing)
+    """Test injecting a custom executor (deprecated, but still functional)."""
     executor = ThreadPoolExecutor(max_workers=1)
-    project = Spot(
-        name="di_test",
-        db=SQLiteTaskDB(tmp_path / "test.db"),
-        storage_backend=LocalStorage(str(tmp_path / "blobs")),
-        executor=executor,
-    )
+    with pytest.warns(DeprecationWarning, match="executor.*deprecated"):
+        project = Spot(
+            name="di_test",
+            db=SQLiteTaskDB(tmp_path / "test.db"),
+            storage_backend=LocalStorage(str(tmp_path / "blobs")),
+            executor=executor,
+        )
 
     @project.mark
     def task_a():

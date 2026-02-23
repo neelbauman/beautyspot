@@ -3,6 +3,7 @@
 import os
 import io
 import logging
+import tempfile
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
@@ -133,15 +134,23 @@ class LocalStorage(BlobStorageBase):
         filename = f"{key}.bin"
         filepath = self.base_dir / filename
 
-        # Atomic write: flush + fsync ensures data reaches disk before rename,
+        # Atomic write: mkstemp generates a unique temp file to avoid collisions
+        # when multiple threads/processes write concurrently.
+        # flush + fsync ensures data reaches disk before rename,
         # so a crash between write and rename never leaves a corrupt file.
-        temp_path = self.base_dir / f"{filename}.tmp"
-        with open(temp_path, "wb") as f:
-            f.write(data)
-            f.flush()
-            os.fsync(f.fileno())
-
-        temp_path.replace(filepath)
+        fd, temp_path_str = tempfile.mkstemp(dir=self.base_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(data)
+                f.flush()
+                os.fsync(f.fileno())
+            Path(temp_path_str).replace(filepath)
+        except BaseException:
+            try:
+                os.unlink(temp_path_str)
+            except OSError:
+                pass
+            raise
 
         # [CHANGED] Return filename (relative path) instead of absolute path
         # This enables portability of the DB/Blob set across different environments.

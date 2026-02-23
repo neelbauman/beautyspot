@@ -1,6 +1,7 @@
 # src/beautyspot/core.py
 
 import asyncio
+import concurrent.futures
 import hashlib
 import logging
 import functools
@@ -8,7 +9,7 @@ import inspect
 import threading
 import warnings
 import weakref
-from concurrent.futures import ThreadPoolExecutor, Executor, wait
+from concurrent.futures import Executor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -51,6 +52,40 @@ logger.addHandler(logging.NullHandler())
 
 # --- キャッシュミスを表す番兵オブジェクト ---
 CACHE_MISS = object()
+
+
+class _BackgroundLoop:
+    """バックグラウンドで asyncio イベントループを実行するヘルパー。
+
+    専用スレッドで asyncio ループを動かし、保存処理を構造的に直列化する。
+    ``submit()`` で投入されたコルーチンは FIFO 順に逐次実行されるため、
+    ロックなしでスレッド安全性を確保できる。
+    """
+
+    def __init__(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._stopped = False
+        self._thread.start()
+
+    def _run(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def submit(self, coro) -> concurrent.futures.Future:
+        """コルーチンをループに投入し、concurrent.futures.Future を返す。"""
+        return asyncio.run_coroutine_threadsafe(coro, self._loop)
+
+    def stop(self, wait: bool = True) -> None:
+        """ループを停止し、オプションでスレッドの終了を待つ。"""
+        if self._stopped:
+            return
+        self._stopped = True
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        if wait:
+            self._thread.join(timeout=10)
+        if not self._thread.is_alive():
+            self._loop.close()
 
 
 class Spot:
@@ -117,17 +152,27 @@ class Spot:
         # --- DBの初期化 ---
         self.db.init_schema()
 
-        # --- Executor管理 ---
+        # --- バックグラウンド IO 管理 ---
         if executor is not None:
-            self.executor = executor
+            warnings.warn(
+                "The 'executor' parameter is deprecated. "
+                "beautyspot now uses an internal asyncio event loop for background IO.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # レガシーパス: 従来の ThreadPoolExecutor 動作
+            self._bg_loop: _BackgroundLoop | None = None
+            self._executor: Executor | None = executor
             self._own_executor = False
             self._finalizer = None
         else:
-            self.executor = ThreadPoolExecutor(max_workers=io_workers)
+            # 新パス: 専用 asyncio ループ
+            self._bg_loop = _BackgroundLoop()
+            self._executor = None
             self._own_executor = True
             # GC時の安全なシャットダウン
             self._finalizer = weakref.finalize(
-                self, self._shutdown_executor, self.executor
+                self, _BackgroundLoop.stop, self._bg_loop, False
             )
 
         # 実行中のタスクを管理するセット (ロックで保護)
@@ -154,14 +199,32 @@ class Spot:
         if not gitignore_path.exists():
             gitignore_path.write_text("*\n")
 
-    @staticmethod
-    def _shutdown_executor(executor: Executor):
-        executor.shutdown(wait=False)
-
     def shutdown(self, wait: bool = True):
-        if self._own_executor and self._finalizer is not None and self._finalizer.alive:
+        """バックグラウンド IO を停止する。
+
+        wait=True の場合、保留中のすべての Future を先にドレインしてから停止する。
+        """
+        if not self._own_executor:
+            return
+        if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
-            self.executor.shutdown(wait=wait)
+        if wait:
+            self._drain_futures()
+        if self._bg_loop is not None:
+            self._bg_loop.stop(wait=wait)
+        elif self._executor is not None:
+            self._executor.shutdown(wait=wait)
+
+    _MAX_DRAIN_ITERATIONS = 10
+
+    def _drain_futures(self) -> None:
+        """保留中のすべての Future が完了するまで待機するドレインループ。"""
+        for _ in range(self._MAX_DRAIN_ITERATIONS):
+            with self._futures_lock:
+                snapshot = list(self._active_futures)
+            if not snapshot:
+                break
+            wait(snapshot)
 
     def __enter__(self) -> "Spot":
         return self
@@ -169,13 +232,10 @@ class Spot:
     def __exit__(self, exc_type, exc_value, traceback):
         """
         コンテキストを抜ける際の処理。
-        Executorは停止させず、現在実行中のバックグラウンドタスクの完了だけを待つ。
+        バックグラウンドループは停止させず、現在実行中のタスクの完了だけを待つ。
         これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
         """
-        with self._futures_lock:
-            snapshot = list(self._active_futures)
-        if snapshot:
-            wait(snapshot)
+        self._drain_futures()
 
     def _resolve_key_fn(
         self,
@@ -242,6 +302,24 @@ class Spot:
                 "The `@spot.register` decorator is only compatible with the default MsgpackSerializer."
             )
 
+    # --- ヘルパーメソッド: 有効期限の計算 ---
+    def _calculate_expires_at(
+        self, func_name: str, local_retention: Union[str, timedelta, None]
+    ) -> Optional[datetime]:
+
+        # 1. ローカル指定 (優先度: 高)
+        retention = parse_retention(local_retention)
+
+        # 2. ポリシー指定 (優先度: 低)
+        if retention is None:
+            retention = self.lifecycle_policy.resolve(func_name)
+
+        if retention is None:
+            return None  # 無期限
+
+        return datetime.now(timezone.utc) + retention
+
+
     # --- Core Logic (Sync) ---
     def _resolve_settings(
         self,
@@ -282,23 +360,6 @@ class Spot:
 
         ck = hashlib.sha256(key_source.encode()).hexdigest()
         return iid, ck
-
-    # --- ヘルパーメソッド: 有効期限の計算 ---
-    def _calculate_expires_at(
-        self, func_name: str, local_retention: Union[str, timedelta, None]
-    ) -> Optional[datetime]:
-
-        # 1. ローカル指定 (優先度: 高)
-        retention = parse_retention(local_retention)
-
-        # 2. ポリシー指定 (優先度: 低)
-        if retention is None:
-            retention = self.lifecycle_policy.resolve(func_name)
-
-        if retention is None:
-            return None  # 無期限
-
-        return datetime.now(timezone.utc) + retention
 
     def _execute_sync(
         self,
@@ -388,8 +449,7 @@ class Spot:
         if s_wait:
             self._save_result_sync(**save_kwargs)
         else:
-            future = self.executor.submit(self._save_result_safe, **save_kwargs)
-            self._track_future(future)
+            self._submit_background_save(**save_kwargs)
 
         return res
 
@@ -399,7 +459,7 @@ class Spot:
         args: tuple,
         kwargs: dict,
         save_blob: bool | None,
-        effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
+        effective_key_fn: Optional[Callable],
         version: str | None,
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
@@ -431,7 +491,7 @@ class Spot:
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
-            self.executor, self._check_cache_sync, ck, serializer
+            self._executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
             # === フック: on_cache_hit ===
@@ -479,12 +539,11 @@ class Spot:
 
         if s_wait:
             await loop.run_in_executor(
-                self.executor,
+                self._executor,
                 functools.partial(self._save_result_sync, **save_kwargs),
             )
         else:
-            future = self.executor.submit(self._save_result_safe, **save_kwargs)
-            self._track_future(future)
+            self._submit_background_save(**save_kwargs)
 
         return res
 
@@ -527,6 +586,25 @@ class Spot:
                     return CACHE_MISS
 
         return CACHE_MISS
+
+    # --- バックグラウンド保存の投入 ---
+    def _submit_background_save(self, **save_kwargs) -> None:
+        """wait=False 時にバックグラウンドへ保存処理を投入する。"""
+        if self._bg_loop is not None:
+            coro = self._save_result_async(**save_kwargs)
+            try:
+                future = self._bg_loop.submit(coro)
+            except RuntimeError:
+                coro.close()  # コルーチンを安全にクリーンアップ
+                raise
+        else:
+            assert self._executor is not None
+            future = self._executor.submit(self._save_result_safe, **save_kwargs)
+        self._track_future(future)
+
+    async def _save_result_async(self, /, **kwargs) -> None:
+        """バックグラウンドループで実行される保存コルーチン。"""
+        self._save_result_safe(**kwargs)
 
     # --- 安全なバックグラウンド実行用ラッパー ---
     def _save_result_safe(self, /, **kwargs):

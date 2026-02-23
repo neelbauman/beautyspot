@@ -32,7 +32,6 @@ def _safe_sort_key(obj: Any):
 # Canonicalization helpers (extracted to reduce CC of the default handler)
 # ---------------------------------------------------------------------------
 
-
 def _canonicalize_ndarray(obj: Any) -> tuple:
     """Numpy-like array → tagged tuple with raw bytes (efficient & exact)."""
     return ("__numpy__", obj.shape, str(obj.dtype), obj.tobytes())
@@ -49,7 +48,6 @@ def _canonicalize_instance(obj: Any) -> Any:
         if hasattr(obj, k)
     ]
 
-
 def _is_ndarray_like(obj: Any) -> bool:
     """Duck-type check for numpy-like arrays (avoids hard dependency)."""
     return hasattr(obj, "shape") and hasattr(obj, "dtype") and hasattr(obj, "tobytes")
@@ -58,7 +56,6 @@ def _is_ndarray_like(obj: Any) -> bool:
 # ---------------------------------------------------------------------------
 # singledispatch canonicalize
 # ---------------------------------------------------------------------------
-
 
 @singledispatch
 def canonicalize(obj: Any) -> Any:
@@ -121,7 +118,6 @@ def _canonicalize_enum(obj: Enum) -> Any:
         canonicalize(obj.value),
     )
 
-
 @canonicalize.register(type)
 def _canonicalize_type(obj: type) -> Any:
     """Type / Class handling (structure awareness)."""
@@ -176,7 +172,6 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Strategy & Policy
 # ---------------------------------------------------------------------------
-
 
 class Strategy(Enum):
     """
@@ -365,3 +360,4 @@ class KeyGen:
         """
         strategies = {name: Strategy.PATH_STAT for name in arg_names}
         return KeyGenPolicy(strategies, default_strategy=Strategy.DEFAULT)
+
