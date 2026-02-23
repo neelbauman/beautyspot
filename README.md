@@ -8,7 +8,9 @@
 
 ---
 
-`beautyspot` は、Python 関数の実行結果を透過的にキャッシュし、複雑なデータパイプラインや実験の再実行を高速化するための OSS ライブラリです。v2.0 では、インフラのオーバーヘッドを最小化する非同期保存機能と、柔軟なコンポーネント構成を可能にする DI（依存性注入）アーキテクチャが導入されました。
+`beautyspot` は、Python 関数の実行結果を透過的にキャッシュし、複雑なデータパイプラインや実験の再実行を高速化するための OSS ライブラリです。
+
+生成AIの呼び出しや重い計算処理を行う際、API制限の管理、データの永続化、エラーからのリカバリなどを自前で実装するのは大変です。`beautyspot` は、あなたの関数の「黒子（くろこ）」として振る舞い、これらのインフラ制御をすべて引き受けます。あなたは「純粋なロジック」を書くことだけに集中できます。
 
 ## 📦 Installation
 
@@ -21,71 +23,75 @@ pip install beautyspot
 
 ## ✨ Key Features
 
-* **Non-blocking Caching**: キャッシュの保存をバックグラウンドで実行し、メイン処理のレイテンシを排除します。
-* **Dependency Injection**: DB、ストレージ、シリアライザを自由に入れ替え可能な柔軟な設計。
-* **Smart Lifecycle Management**: `with` ブロックを使用して、バックグラウンドタスクの完了を確実に同期できます。
-* **Type-safe Serialization**: `msgpack` をベースとした、カスタムクラス対応の高速なシリアライズ。
-* **Rate Limiting**: API コールなどの実行頻度をトークンバケットアルゴリズムで制御。
+* **Non-blocking Caching**: キャッシュの保存処理をバックグラウンドスレッドにオフロードし、メインの関数の応答速度（レイテンシ）を劇的に向上させます。
+* **Dependency Injection (DI)**: DB（SQLite/Redis等）、ストレージ（Local/S3等）、シリアライザを自由に入れ替え可能な柔軟なアーキテクチャ。
+* **Smart Lifecycle Management**: `with` ブロック（コンテキストマネージャ）を使用することで、バックグラウンドの保存タスクの完了を確実に同期し、データロストを防ぎます。
+* **Rate Limiting (GCRA)**: APIコールなどの実行頻度を、厳密なトークンバケットアルゴリズムで制御します。
+* **Extensible Hooks**: 実行前、キャッシュヒットやミス時に介入できるクラスベースのフックシステム。関数のロジックを汚すことなく、LLMのトークン消費量や実行時間の計測メトリクスを収集できます。
 
-## 🚀 Quick Start (v2.0)
+## 🚀 Quick Start
 
-v2.0 からは `Spot` インスタンスにコンポーネントを注入して使用します。
+v2.0 からは `Spot` インスタンスに依存コンポーネントを注入して使用する設計になりました。
 
 ```python
 import beautyspot as bs
 
-# カスタム
-# from beautyspot.db import SQLiteTaskDB
-# from beautyspot.storage import LocalStorage
-# from beautyspot.serializer import MsgpackSerializer
-
-# 1. コンポーネントの準備
-# db = SQLiteTaskDB(".beautyspot/tasks.db")
-# storage = LocalStorage(".beautyspot/blobs")
-# serializer = MsgpackSerializer()
-
-# 2. Spot の初期化 (default_wait=False で高速化)
+# 1. Spot の初期化
+# default_wait=False を指定すると、保存を待たずに即座に結果を返します
 spot = bs.Spot(
     name="my_app",
-#    db=db,
-#    storage=storage,
-#    serializer=serializer,
-    default_wait=False  # 保存を待たずに次へ進む
+    default_wait=False
 )
 
-# 3. タスクの登録
+# 2. タスクの登録（Marking）
 @spot.mark(version="v1")
 def heavy_computation(x: int):
-    # 重い処理...
+    # 重い処理やAPIコール...
     return x * 10
 
-# 4. 実行
+# 3. 実行と同期
 with spot:
-    result = heavy_computation(5)
-    # ブロックを抜ける際、未完了の保存タスクが完了するのを待機します
+    # 1回目の呼び出し（実際に実行され、裏でキャッシュが保存される）
+    result1 = heavy_computation(5) 
+    
+    # 2回目の呼び出し（キャッシュから即座に返却される）
+    result2 = heavy_computation(5)
+    
+    # ブロックを抜ける際、未完了のバックグラウンド保存タスクが完了するのを待機（Flush）します
 
 ```
 
-## ⚡ Performance & Lifecycle
+## 🔌 Advanced: Tracking LLM Tokens with Hooks
 
-### Non-blocking Persistence
+LLMアプリにおいて、キャッシュでどれだけのトークンを節約できたかを知ることは重要です。フックシステムを使えば、簡単に計測できます。
 
-`wait=False` オプションを使用すると、計算が終了した瞬間に結果が返されます。シリアライズやクラウドストレージへのアップロードは裏側で並列実行されるため、関数の応答速度が劇的に向上します。
+```python
+from beautyspot.hooks import HookBase
 
-### Context-based Flush
+class TokenTracker(HookBase):
+    def __init__(self):
+        self.saved_tokens = 0
 
-`with spot:` ブロックは同期ポイントとして機能します。ブロックを抜ける際に、そのインスタンスが抱えているすべてのバックグラウンドタスクが完了するのを待機するため、データロストを防げます。また、一度抜けても `Spot` インスタンスは再利用可能です。
+    def on_cache_hit(self, context):
+        # キャッシュヒット時に節約できたトークン（文字数）をカウント
+        self.saved_tokens += len(context.result)
+        print(f"Total saved: {self.saved_tokens} tokens")
 
-## 🛠 Advanced Usage
+@spot.mark(hooks=[TokenTracker()])
+def call_llm(prompt: str):
+    return "AI response..."
 
-### Maintenance Service
+```
 
-キャッシュの削除やクリーンアップは、実行担当の `Spot` から切り離され、`MaintenanceService` に集約されました。
+## 🛠 Maintenance Service
+
+キャッシュの削除やクリーンアップは、実行担当の `Spot` から切り離され、独立したサービスとして提供されます。
 
 ```python
 from beautyspot.maintenance import MaintenanceService
 
 admin = MaintenanceService(spot.db, spot.storage, spot.serializer)
+# 古いキャッシュや特定のキーを削除
 admin.delete_task(cache_key="...")
 
 ```
@@ -98,167 +104,24 @@ v2.0 は破壊的変更を含むメジャーアップデートです。
 * **`@task` -> `@mark**`: デコレータ名が変更されました。
 * **`run()` メソッドの廃止**: 今後は `@mark` または `cached_run()` を使用してください。
 
+## 🗺️ What's Next? (Roadmap)
+
+現在、`beautyspot` の開発チームは以下の課題と機能拡張に取り組んでいます。コントリビューションも大歓迎です！
+
+1. **Declarative Configuration**:
+`Spot.from_profile("local-dev")` のように、`beautyspot.yml` 等を用いたインフラ設定の宣言的な注入。
+2. **Smart Content Negotiation**:
+`@spot.mark(content_type="dataframe")` のように宣言するだけで、Pandas/Polars等の最適なシリアライザ（Parquet等）を自動選択する仕組み。
+3. **Cache Tagging**:
+タグベースでのキャッシュのグルーピングと一括無効化 (`spot.invalidate(tags=["experiment_A"])`)。
+4. **Soft Dependency Strategy**:
+PandasやNumPyなどのデータサイエンスライブラリのサポートを、コアの依存関係を増やさない「オプショナルな拡張機能 (`pip install beautyspot[data]`)」として提供するアーキテクチャの導入。
+
 ## 📖 Documentation
 
-詳細なガイドや API リファレンスについては、[Documentation (MkDocs)](https://www.google.com/search?q=mkdocs.yml) を参照してください。
+詳細なガイド、アーキテクチャの哲学、APIリファレンスについては、[公式ドキュメント](https://neelbauman.github.io/beautyspot/) を参照してください。
 
 ## 📄 License
 
 This project is licensed under the MIT License.
-
----
-
-# What's next ?
-
-### 1. 依存性の注入（DI）の「設定」の宣言化
-
-現在、`Spot` インスタンスの初期化は非常に命令的（Imperative）です。
-`README.md` の例 を見ると、ユーザーは以下のようにコンポーネントを自分で組み立てて注入する必要があります。
-
-```python
-# 現在の "How" アプローチ
-db = SQLiteTaskDB(".beautyspot/tasks.db")
-storage = LocalStorage(".beautyspot/blobs")
-serializer = MsgpackSerializer()
-
-spot = bs.Spot(name="my_app", db=db, storage=storage, serializer=serializer, ...)
-
-```
-
-これだと、ユーザーは「ローカル環境で動かしたい」という意図（What）を実現するために、具体的なクラスの組み立て方（How）を知っていなければなりません。
-
-**改善案: Configuration Profiles**
-設定ファイル（`pyproject.toml` や `beautyspot.yml`）や、プリセットを用いた宣言的な初期化を導入するのはどうでしょうか？
-
-```python
-# 改善後の "What" アプローチ（イメージ）
-# "local-dev" というプロファイルを指定するだけ
-spot = bs.Spot.from_profile("local-dev")
-
-```
-
-これにより、ユーザーはインフラの詳細から解放されます。
-
-### 2. シリアライザ選択の自動ネゴシエーション (Content Negotiation)
-
-現在、`core.py` では `serializer` を一つ受け取っています。
-ユーザーは特定の型を扱うために `@spot.register` で手動でエンコーダ/デコーダを登録するか、カスタムシリアライザを実装する必要があります。これは「How」の負担が大きいです。
-
-**改善案: Semantic Content Type**
-ユーザーは「この関数は画像を返す」「これはPandas DataFrameを返す」という事実（What）だけを宣言し、最適なシリアライズ方式（msgpack なのか、parquet なのか、png なのか）は `beautyspot` が自動で決定する仕組みです。
-
-```python
-# ユーザーは "dataframe" であることだけを宣言
-@spot.mark(content_type="dataframe")
-def process_data(df):
-    ...
-
-```
-
-システム側で「DataFrameならParquetで保存するのが効率的だ」と判断し、適切なバックエンド処理を行います。これは `core.py` の `_save_result_sync` 内のロジックを拡張することで実現できそうです。
-
-### 3. キャッシュ無効化の「タグベース」管理
-
-現在の `MaintenanceService` では、削除のために `cache_key` を指定するか、ADR 30 のように時間の経過（Retention）を待つしかありません。
-
-「特定のデータセットに関連するキャッシュをすべて消したい」という要求（What）に対し、現在はユーザーが関連するキーを自力で管理・検索する（How）必要があります。
-
-**改善案: Cache Tagging**
-タスク定義時にタグを宣言できるようにします。
-
-```python
-@spot.mark(tags=["dataset_v1", "experiment_A"])
-def train_model(): ...
-
-```
-
-そして、削除時はタグを指定します。
-`spot.invalidate(tags=["experiment_A"])`
-
-これにより、依存関係やグルーピングの管理という「How」をツール側に移譲できます。
-
-
-## Smart Serializerの依存拡大問題
-
-この課題に対して、以下の **「Soft Dependency（緩やかな依存）」パターン** で解決することを提案します。
-
-### 解決策: "Soft Dependency" と "Extra Modules"
-
-依存ライブラリを強制せず、**「ユーザーの環境にそのライブラリが存在する場合のみ、拡張機能を有効化する」** というアプローチです。
-
-#### 1. 実装イメージ: 実行時の動的検出 (Lazy Import)
-
-`beautyspot` 本体は、これらのライブラリを import しません。シリアライザの解決時にのみ、環境をチェックします。
-
-```python
-# src/beautyspot/serializers/negotiator.py (仮)
-
-class SmartSerializer:
-    def resolve(self, data: Any) -> str:
-        # 1. Pandas DataFrame の検出
-        # try-except ブロックで囲むことで、pandas がない環境でもクラッシュしない
-        try:
-            import pandas as pd
-            if isinstance(data, pd.DataFrame):
-                return "parquet"  # pandas がある場合のみ Parquet などを選択
-        except ImportError:
-            pass
-
-        # 2. NumPy Array の検出
-        try:
-            import numpy as np
-            if isinstance(data, np.ndarray):
-                return "numpy_bytes"
-        except ImportError:
-            pass
-
-        # デフォルト
-        return "msgpack"
-
-```
-
-これにより、コアライブラリの依存は増えません。
-
-#### 2. パッケージング: `pyproject.toml` での管理
-
-`uv` や `pip` でインストールする際、ユーザーが必要な機能だけを選べるように `optional-dependencies` (extras) を定義します。
-
-`pyproject.toml`:
-
-```toml
-[project]
-name = "beautyspot"
-dependencies = [
-    "msgpack>=1.0.0",
-    # pandas や numpy はここには書かない！
-]
-
-[project.optional-dependencies]
-# ユーザーが明示的に選ぶ
-data = ["pandas", "pyarrow", "numpy"]
-image = ["pillow"]
-all = ["pandas", "pyarrow", "numpy", "pillow"]
-
-```
-
-ユーザーは以下のようにインストールします（Whatの宣言）：
-
-* データ分析をする人: `uv add beautyspot[data]`
-* Web開発だけの人: `uv add beautyspot` （余計なものは入らない）
-
-### メンテナンスコストへの対策
-
-「対応型が増え続ける」というメンテナの負担に対しては、**「Extension Protocol（プラグイン機構）」** を導入し、コア機能と拡張機能を分離することで対処します。
-
-* **Core (`beautyspot`):** 基本的な Python 型 (dict, list, int, str) のみをサポート。
-* **Extensions:** `beautyspot.ext.pandas` や `beautyspot.ext.torch` のような別モジュール（あるいは別ファイル）に切り出し、それぞれ独立して開発・テストする。
-
-### 結論と提案
-
-「依存地獄」を避けるために、この機能は **「オプショナルな拡張」** として設計すべきだという点に同意します。
-
-もしよろしければ、次の ADR として **「Optional Dependency Strategy（依存関係の疎結合戦略）」** を作成し、以下のルールを明文化するのはいかがでしょうか？
-
-1. **Core Minimal:** `core` モジュールはサードパーティ製ライブラリ（標準ライブラリ以外）を import してはならない。
-2. **Detection over Dependency:** ライブラリの存在は `try-import` で検出し、ない場合は優雅にフォールバック（または明確なエラーメッセージ「この機能を使うには pip install beautyspot[data] してね」を表示）する。
 

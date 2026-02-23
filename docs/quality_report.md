@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-20 17:56:17
+**最終更新:** 2026-02-23 16:28:48
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -15,20 +15,21 @@
 ```text
 Module          | Ca  | Ce  | I (Instability)
 ---------------------------------------------
-_version        | 0   | 0   | 0.00
 limiter         | 1   | 0   | 0.00
-cachekey        | 1   | 0   | 0.00
 cli             | 0   | 1   | 1.00
-content_types   | 1   | 0   | 0.00
-core            | 0   | 8   | 1.00
 dashboard       | 0   | 2   | 1.00
 db              | 2   | 0   | 0.00
 exceptions      | 4   | 0   | 0.00
 lifecycle       | 1   | 1   | 0.50
-maintenance     | 2   | 3   | 0.60
 serializer      | 2   | 1   | 0.33
 storage         | 2   | 1   | 0.33
-types           | 1   | 0   | 0.00
+_version        | 0   | 0   | 0.00
+cachekey        | 1   | 0   | 0.00
+maintenance     | 2   | 3   | 0.60
+types           | 2   | 0   | 0.00
+hooks           | 1   | 1   | 0.50
+content_types   | 2   | 0   | 0.00
+core            | 0   | 10  | 1.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -44,9 +45,12 @@ src/beautyspot/cli.py
     F 303:0 show_cmd - C
     F 555:0 gc_cmd - C
     F 670:0 prune_cmd - C
+src/beautyspot/core.py
+    M 303:4 Spot._execute_sync - C
+    M 396:4 Spot._execute_async - C
 
-3 blocks (classes, functions, methods) analyzed.
-Average complexity: C (15.0)
+5 blocks (classes, functions, methods) analyzed.
+Average complexity: C (13.8)
 ```
 
 <details>
@@ -64,31 +68,6 @@ src/beautyspot/limiter.py
     M 13:4 LimiterProtocol.consume_async - A
 src/beautyspot/__init__.py
     F 37:0 Spot - B
-src/beautyspot/cachekey.py
-    F 126:0 _canonicalize_type - B
-    F 64:0 canonicalize - B
-    F 41:0 _canonicalize_instance - A
-    M 272:4 KeyGen.from_file_content - A
-    M 290:4 KeyGen._default - A
-    F 53:0 _is_ndarray_like - A
-    C 251:0 KeyGen - A
-    F 20:0 _safe_sort_key - A
-    F 91:0 _canonicalize_dict - A
-    F 101:0 _canonicalize_sequence - A
-    F 108:0 _canonicalize_set - A
-    C 194:0 KeyGenPolicy - A
-    M 263:4 KeyGen.from_path_stat - A
-    M 322:4 KeyGen.hash_items - A
-    M 332:4 KeyGen.ignore - A
-    M 347:4 KeyGen.file_content - A
-    M 355:4 KeyGen.path_stat - A
-    F 36:0 _canonicalize_ndarray - A
-    F 115:0 _canonicalize_enum - A
-    F 169:4 _canonicalize_np_ndarray - A
-    C 181:0 Strategy - A
-    M 200:4 KeyGenPolicy.__init__ - A
-    M 208:4 KeyGenPolicy.bind - A
-    M 340:4 KeyGen.map - A
 src/beautyspot/cli.py
     F 303:0 show_cmd - C
     F 555:0 gc_cmd - C
@@ -108,35 +87,6 @@ src/beautyspot/cli.py
     F 45:0 _is_port_in_use - A
     F 68:0 _format_timestamp - A
     F 787:0 main - A
-src/beautyspot/content_types.py
-    C 4:0 ContentType - A
-src/beautyspot/core.py
-    M 408:4 Spot._check_cache_sync - B
-    M 660:4 Spot.cached_run - B
-    M 169:4 Spot._resolve_key_fn - A
-    M 150:4 Spot.shutdown - A
-    M 235:4 Spot._resolve_settings - A
-    M 449:4 Spot._save_result_safe - A
-    M 483:4 Spot._save_result_sync - A
-    C 52:0 Spot - A
-    M 78:4 Spot.__init__ - A
-    M 196:4 Spot.register - A
-    M 254:4 Spot._make_cache_key - A
-    M 276:4 Spot._calculate_expires_at - A
-    M 292:4 Spot._execute_sync - A
-    M 347:4 Spot._execute_async - A
-    M 566:4 Spot.mark - A
-    M 138:4 Spot._setup_workspace - A
-    M 158:4 Spot.__exit__ - A
-    M 219:4 Spot.register_type - A
-    M 132:4 Spot._track_future - A
-    M 147:4 Spot._shutdown_executor - A
-    M 155:4 Spot.__enter__ - A
-    M 529:4 Spot.consume - A
-    M 550:4 Spot.mark - A
-    M 553:4 Spot.mark - A
-    M 630:4 Spot.cached_run - A
-    M 646:4 Spot.cached_run - A
 src/beautyspot/dashboard.py
     F 54:0 load_data - A
     F 14:0 get_args - A
@@ -185,22 +135,6 @@ src/beautyspot/lifecycle.py
     C 54:0 Rule - A
     M 68:4 LifecyclePolicy.__init__ - A
     M 83:4 LifecyclePolicy.default - A
-src/beautyspot/maintenance.py
-    M 181:4 MaintenanceService.clean_garbage - B
-    M 79:4 MaintenanceService.get_task_detail - B
-    M 159:4 MaintenanceService.scan_garbage - B
-    M 118:4 MaintenanceService.delete_task - A
-    M 235:4 MaintenanceService.scan_orphan_projects - A
-    C 17:0 MaintenanceService - A
-    M 30:4 MaintenanceService.from_path - A
-    M 207:4 MaintenanceService.resolve_key_prefix - A
-    M 255:4 MaintenanceService.delete_project_storage - A
-    M 22:4 MaintenanceService.__init__ - A
-    M 75:4 MaintenanceService.get_history - A
-    M 113:4 MaintenanceService.delete_expired_tasks - A
-    M 140:4 MaintenanceService.get_prunable_tasks - A
-    M 146:4 MaintenanceService.prune - A
-    M 153:4 MaintenanceService.clear - A
 src/beautyspot/serializer.py
     M 92:4 MsgpackSerializer._default_packer - B
     C 46:0 MsgpackSerializer - A
@@ -244,11 +178,90 @@ src/beautyspot/storage.py
     M 119:4 LocalStorage.__init__ - A
     M 131:4 LocalStorage.save - A
     M 272:4 S3Storage.save - A
+src/beautyspot/cachekey.py
+    F 126:0 _canonicalize_type - B
+    F 64:0 canonicalize - B
+    F 41:0 _canonicalize_instance - A
+    M 272:4 KeyGen.from_file_content - A
+    M 290:4 KeyGen._default - A
+    F 53:0 _is_ndarray_like - A
+    C 251:0 KeyGen - A
+    M 322:4 KeyGen.hash_items - A
+    F 20:0 _safe_sort_key - A
+    F 91:0 _canonicalize_dict - A
+    F 101:0 _canonicalize_sequence - A
+    F 108:0 _canonicalize_set - A
+    C 194:0 KeyGenPolicy - A
+    M 263:4 KeyGen.from_path_stat - A
+    M 339:4 KeyGen.ignore - A
+    M 354:4 KeyGen.file_content - A
+    M 362:4 KeyGen.path_stat - A
+    F 36:0 _canonicalize_ndarray - A
+    F 115:0 _canonicalize_enum - A
+    F 169:4 _canonicalize_np_ndarray - A
+    C 181:0 Strategy - A
+    M 200:4 KeyGenPolicy.__init__ - A
+    M 208:4 KeyGenPolicy.bind - A
+    M 347:4 KeyGen.map - A
+src/beautyspot/maintenance.py
+    M 184:4 MaintenanceService.clean_garbage - B
+    M 82:4 MaintenanceService.get_task_detail - B
+    M 162:4 MaintenanceService.scan_garbage - B
+    M 30:4 MaintenanceService.from_path - A
+    M 121:4 MaintenanceService.delete_task - A
+    M 238:4 MaintenanceService.scan_orphan_projects - A
+    C 17:0 MaintenanceService - A
+    M 210:4 MaintenanceService.resolve_key_prefix - A
+    M 258:4 MaintenanceService.delete_project_storage - A
+    M 22:4 MaintenanceService.__init__ - A
+    M 78:4 MaintenanceService.get_history - A
+    M 116:4 MaintenanceService.delete_expired_tasks - A
+    M 143:4 MaintenanceService.get_prunable_tasks - A
+    M 149:4 MaintenanceService.prune - A
+    M 156:4 MaintenanceService.clear - A
 src/beautyspot/types.py
     C 8:0 SaveErrorContext - A
+    C 41:0 HookContextBase - A
+    C 50:0 PreExecuteContext - A
+    C 55:0 CacheHitContext - A
+    C 61:0 CacheMissContext - A
+src/beautyspot/hooks.py
+    C 5:0 HookBase - A
+    M 11:4 HookBase.pre_execute - A
+    M 15:4 HookBase.on_cache_hit - A
+    M 19:4 HookBase.on_cache_miss - A
+src/beautyspot/content_types.py
+    C 6:0 ContentType - A
+src/beautyspot/core.py
+    M 303:4 Spot._execute_sync - C
+    M 396:4 Spot._execute_async - C
+    M 491:4 Spot._check_cache_sync - B
+    M 747:4 Spot.cached_run - B
+    M 180:4 Spot._resolve_key_fn - A
+    C 56:0 Spot - A
+    M 161:4 Spot.shutdown - A
+    M 246:4 Spot._resolve_settings - A
+    M 532:4 Spot._save_result_safe - A
+    M 566:4 Spot._save_result_sync - A
+    M 82:4 Spot.__init__ - A
+    M 207:4 Spot.register - A
+    M 265:4 Spot._make_cache_key - A
+    M 287:4 Spot._calculate_expires_at - A
+    M 650:4 Spot.mark - A
+    M 149:4 Spot._setup_workspace - A
+    M 169:4 Spot.__exit__ - A
+    M 230:4 Spot.register_type - A
+    M 137:4 Spot._track_future - A
+    M 158:4 Spot._shutdown_executor - A
+    M 166:4 Spot.__enter__ - A
+    M 612:4 Spot.consume - A
+    M 633:4 Spot.mark - A
+    M 636:4 Spot.mark - A
+    M 717:4 Spot.cached_run - A
+    M 733:4 Spot.cached_run - A
 
-179 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.8659217877094973)
+187 blocks (classes, functions, methods) analyzed.
+Average complexity: A (2.9037433155080214)
 ```
 </details>
 
@@ -264,21 +277,22 @@ Average complexity: A (2.8659217877094973)
 <summary>📄 すべての MI メトリクス一覧を表示</summary>
 
 ```text
-src/beautyspot/_version.py - A
 src/beautyspot/limiter.py - A
 src/beautyspot/__init__.py - A
-src/beautyspot/cachekey.py - A
 src/beautyspot/cli.py - A
-src/beautyspot/content_types.py - A
-src/beautyspot/core.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/db.py - A
 src/beautyspot/exceptions.py - A
 src/beautyspot/lifecycle.py - A
-src/beautyspot/maintenance.py - A
 src/beautyspot/serializer.py - A
 src/beautyspot/storage.py - A
+src/beautyspot/_version.py - A
+src/beautyspot/cachekey.py - A
+src/beautyspot/maintenance.py - A
 src/beautyspot/types.py - A
+src/beautyspot/hooks.py - A
+src/beautyspot/content_types.py - A
+src/beautyspot/core.py - A
 ```
 </details>
 
@@ -314,13 +328,14 @@ graph LR
     S3Storage -- "creates" --> ValidationError
     SQLiteTaskDB -- "creates" --> ImportError
     SQLiteTaskDB -- "creates" --> Path
-    Spot -- "creates" --> ContextVar
+    Spot -- "creates" --> CacheHitContext
+    Spot -- "creates" --> CacheMissContext
     Spot -- "creates" --> IncompatibleProviderError
     Spot -. "uses" .-> KeyGen._default
     Spot -. "uses" .-> LifecyclePolicy.default
     Spot -. "implements" .-> LimiterProtocol
     Spot -- "creates" --> NotImplementedError
-    Spot -- "creates" --> RuntimeError
+    Spot -- "creates" --> PreExecuteContext
     Spot -- "creates" --> SaveErrorContext
     Spot -- "creates" --> ThreadPoolExecutor
     Spot -. "implements" .-> TypeRegistryProtocol

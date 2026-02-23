@@ -8,7 +8,7 @@
 
 ### 1. タスクの登録と実行
 
-`@spot.mark` デコレータを使用、または `spot.cached_run()`  で関数を登録することで、その関数は自動的にキャッシュ対応となります。入力引数に基づいて一意のキャッシュキーが生成され、同じ引数での呼び出しはストレージから結果を復元します。
+`@spot.mark` デコレータを使用、または `spot.cached_run()` で関数を登録することで、その関数は自動的にキャッシュ対応となります。入力引数に基づいて一意のキャッシュキーが生成され、同じ引数での呼び出しはストレージから結果を復元します。
 
 ### 2. 非ブロッキング保存 (Non-blocking Persistence)
 
@@ -19,6 +19,10 @@ v2.0 では、`Spot` 初期化時に `default_wait=False` を設定するか、`
 `with spot:` ブロック（コンテキストマネージャ）を使用すると、そのブロックを抜ける際に、実行中のすべてのバックグラウンド保存タスクの完了を待機（Flush）します。
 これは、プログラムの終了前やバッチ処理の区切りでデータの整合性を保証するために重要です。
 
+### 4. ライフサイクルフック (Lifecycle Hooks)
+
+v2.0から、関数の実行パイプラインに介入できるクラスベースのフックシステム (`HookBase`) が導入されました。`@spot.mark(hooks=[...])` を指定することで、関数の実行前 (`pre_execute`)、キャッシュヒット時 (`on_cache_hit`)、キャッシュミス時 (`on_cache_miss`) にカスタムロジックを差し込めます。これにより、レイテンシ計測やAPIコスト計算などを容易に実装できます。
+
 ## 使用例
 
 ### 基本的なデコレータの使用
@@ -28,6 +32,7 @@ v2.0 では、`Spot` 初期化時に `default_wait=False` を設定するか、`
 def heavy_task(data):
     # 重い処理
     return result
+
 
 ```
 
@@ -40,6 +45,7 @@ with spot.cached_run(my_func, version="v1") as task:
     result = task(arg)
 
 # task はブロック外でも @spot.mark(version="v1") 相当のラッパーとして有効
+
 ```
 
 ### バックグラウンド保存の制御
@@ -54,6 +60,25 @@ with spot:
     async_save_task(1)
     async_save_task(2)
 # ここを抜ける時に 1 と 2 の保存完了が保証される
+
+
+```
+
+### メトリクス収集フックの使用
+
+```python
+from beautyspot.hooks import HookBase
+
+class MetricsHook(HookBase):
+    def on_cache_miss(self, context):
+        print(f"[{context.func_name}] 実関数が実行されました。")
+    
+    def on_cache_hit(self, context):
+        print(f"[{context.func_name}] キャッシュが利用されました！")
+
+@spot.mark(hooks=[MetricsHook()])
+def fetch_data(query: str):
+    return "Result"
 
 ```
 

@@ -103,27 +103,22 @@ erDiagram
 * **`content_type`**:
 * ダッシュボードでの可視化に使用（例: `text/vnd.mermaid`, `image/png`）。
 
-
-
 ---
 
 ### 5. Execution Flow (`@mark` Decorator)
 
 1. **Hash Generation:** 引数 (`args`, `kwargs`) と `version` から一意な `cache_key` を生成。
+    * 🔌 **Hook:** ここで `pre_execute` フックが発火します。
 2. **Cache Check:** SQLiteを参照。
-* Hit -> `result_type` に応じてデータを復元（`msgpack.unpack`）して即座に return。
-* Miss -> 次へ進む。
-
-
-3. **Execution:** ユーザー関数を実行。
-* **Exception:** 例外が発生した場合、**キャッシュは行わず** そのまま例外を上位へ伝播させる（バグの永続化防止）。
-
-
+    * **Hit** -> `result_type` に応じてデータを復元（`msgpack.unpack`）します。
+        * 🔌 **Hook:** `on_cache_hit` フックが発火し、即座に結果を return します。
+    * **Miss** -> 次へ進む。
+3. **Execution:** ユーザー関数を実際に実行します。
+    * 🔌 **Hook:** 実行完了の直後、結果を伴って `on_cache_miss` フックが発火します。
+    * **Exception:** 例外が発生した場合、キャッシュやフックはスキップされ、そのまま例外を上位へ伝播させます（バグの永続化防止）。
 4. **Persistence:**
-* Small Data -> `DIRECT_BLOB` モードでSQLiteにバイナリ保存。
-* Large Data (`save_blob=True`) -> `FILE` モードでStorageに保存し、パスのみをSQLiteに記録。
-
-
+    * Small Data -> `DIRECT_BLOB` モードでSQLiteにバイナリ保存。
+    * Large Data (`save_blob=True`) -> `FILE` モードでStorageに保存し、パスのみをSQLiteに記録。
 
 ---
 

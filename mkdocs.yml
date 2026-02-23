@@ -60,9 +60,10 @@ nav:
   - User Guides:
       - Caching Strategy: guides/caching.md
       - Data Serialization: guides/serialization.md
-      - Custom Backends (DI): guides/custom_backend.md # 復活
-      - Rate Limiting: guides/rate_limiting.md   # リネーム反映
-      - CLI & Dashboard: guides/cli.md           # 新規追加
+      - Data Lifecycle: guides/lifecycle.md      # 追加: ライフサイクル管理
+      - Custom Backends (DI): guides/custom_backend.md
+      - Rate Limiting: guides/rate_limiting.md
+      - CLI & Dashboard: guides/cli.md
   - Cookbooks:
       - Overview: cookbooks/index.md
       - Custom Types: cookbooks/custom_types.md
@@ -77,6 +78,7 @@ nav:
       - Testing: cookbooks/testing.md
   - Reference:
       - Spot: reference/core.md
+      - Hooks: reference/hooks.md                # 追加: フックシステムのAPIリファレンス
       - CacheKey: reference/cachekey.md
       - CacheDB: reference/db.md
       - Storage: reference/storage.md

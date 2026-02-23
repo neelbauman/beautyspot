@@ -1,7 +1,9 @@
 # src/beautyspot/content_types.py
 
+from enum import StrEnum
 
-class ContentType:
+
+class ContentType(StrEnum):
     """
     Supported semantic content types for beautyspot tasks.
     Used by the dashboard to determine the appropriate rendering widget.

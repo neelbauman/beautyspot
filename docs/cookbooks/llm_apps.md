@@ -24,6 +24,7 @@ def get_llm_response(query: str):
 # 2回目以降は API を叩かずにキャッシュから返却
 response = get_llm_response("富士山の高さは？")
 
+
 ```
 
 ## 🗂️ 2. LlamaIndex でのデータ埋め込み（Embeddings）のキャッシュ
@@ -45,6 +46,7 @@ def get_text_embedding(text: str):
 # 大量のテキストを処理しても、一度計算したものは永続化される
 embeddings = [get_text_embedding(t) for t in my_documents]
 
+
 ```
 
 ## ⏳ 3. レート制限とコスト管理
@@ -63,11 +65,12 @@ def safe_llm_call(prompt: str):
 for p in heavy_prompts:
     safe_llm_call(p)
 
+
 ```
 
 ## 📝 4. プロンプトのバージョン管理
 
-LLM アプリケーションにおいて、プロンプトは「コード」の一部です。プロンプトを微調整した際に古いキャッシュが返されないよう、`version` 引数を活用します。
+LLM アプリケーションにおいて、プロンプトは「コード」の一部です。プロンプトを微調整した際に古いキャッシュが返されないよう、`version` 引活用します。
 
 ```python
 PROMPT_TEMPLATE = "あなたは誠実なアシスタントです。質問に答えてください: {query}"
@@ -78,6 +81,7 @@ def ask_assistant(query: str):
     prompt = PROMPT_TEMPLATE.format(query=query)
     # LLM 呼び出し...
     ...
+
 
 ```
 
@@ -91,5 +95,53 @@ def ask_assistant(query: str):
 # 保存をバックグラウンドスレッドへオフロード
 spot = bs.Spot("chat_app", default_wait=False, io_workers=4)
 
+
 ```
+
+## 📊 6. トークン消費量と節約量のトラッキング (Hooksの活用)
+
+LLMアプリにおいて「キャッシュによってどれだけのトークン（コスト）を節約できたか」を計測することは非常に重要です。`beautyspot` のフックシステム（`HookBase`）を使うと、実関数のロジックを汚すことなくメトリクスを収集できます。
+
+```python
+import beautyspot as bs
+from beautyspot.hooks import HookBase
+
+class TokenTracker(HookBase):
+    def __init__(self):
+        self.consumed_tokens = 0
+        self.saved_tokens = 0
+
+    def on_cache_miss(self, context):
+        # APIが実際に呼ばれた場合（消費）
+        # ※実際のアプリでは tiktoken 等で文字列からトークン数を計算します
+        tokens = len(context.result) 
+        self.consumed_tokens += tokens
+        print(f"[API使用] {tokens} トークン消費")
+
+    def on_cache_hit(self, context):
+        # キャッシュがヒットした場合（節約）
+        tokens = len(context.result)
+        self.saved_tokens += tokens
+        print(f"[キャッシュヒット] {tokens} トークン節約！")
+
+tracker = TokenTracker()
+spot = bs.Spot("llm_metrics_app")
+
+@spot.mark(hooks=[tracker])
+def call_expensive_llm(prompt: str):
+    # LLMの呼び出しをシミュレート
+    return "AIからの回答です。"
+
+# 初回実行（キャッシュミス）
+call_expensive_llm("こんにちは") 
+
+# 2回目実行（キャッシュヒット）
+call_expensive_llm("こんにちは")
+
+print(f"累計消費: {tracker.consumed_tokens}, 累計節約: {tracker.saved_tokens}")
+
+```
+
+このプラグイン設計により、状態（`tracker.consumed_tokens` など）を維持したまま、複数のタスクを横断してコストを監視することが可能になります。
+
 

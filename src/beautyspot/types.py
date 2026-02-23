@@ -35,3 +35,31 @@ class SaveErrorContext:
     save_blob: Optional[bool]
     expires_at: Optional[datetime]
     result: Any
+
+
+@dataclass(frozen=True)
+class HookContextBase:
+    """すべてのフックに共通する基本コンテキスト情報。"""
+    func_name: str
+    input_id: str
+    cache_key: str
+    args: tuple
+    kwargs: dict
+
+@dataclass(frozen=True)
+class PreExecuteContext(HookContextBase):
+    """関数実行前、またはキャッシュ確認前に渡されるコンテキスト。"""
+    pass
+
+@dataclass(frozen=True)
+class CacheHitContext(HookContextBase):
+    """キャッシュから正常に結果が取得された際に渡されるコンテキスト。"""
+    result: Any
+    version: Optional[str]
+
+@dataclass(frozen=True)
+class CacheMissContext(HookContextBase):
+    """キャッシュミスとなり、元の関数が実行された後に渡されるコンテキスト。"""
+    result: Any
+    version: Optional[str]
+

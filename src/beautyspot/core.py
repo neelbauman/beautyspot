@@ -24,6 +24,7 @@ from typing import (
     Unpack,
     ParamSpec,
     ContextManager,
+    Sequence,
 )
 
 from beautyspot.limiter import LimiterProtocol
@@ -34,6 +35,9 @@ from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 from beautyspot.exceptions import CacheCorruptedError, IncompatibleProviderError, ValidationError
+from beautyspot.hooks import HookBase
+from beautyspot.types import PreExecuteContext, CacheHitContext, CacheMissContext
+from beautyspot.content_types import ContentType
 
 # ジェネリクスの定義
 P = ParamSpec("P")
@@ -90,7 +94,7 @@ class Spot:
         default_wait: bool = True,
         # デフォルト動作設定
         default_version: Optional[str] = None,
-        default_content_type: Optional[str] = None,
+        default_content_type: Optional[str | ContentType] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
         on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
     ) -> None:
@@ -243,7 +247,7 @@ class Spot:
         self,
         save_blob: bool | None,
         version: str | None,
-        content_type: str | None,
+        content_type: str | ContentType | None,
         wait: bool | None,
     ) -> tuple[bool | None, str | None, str | None, bool]:
         # [CHANGED] save_blob が None の場合、ここで False に解決せず None のまま通す。
@@ -304,30 +308,68 @@ class Spot:
         save_blob: bool | None,
         effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
         version: str | None,
-        content_type: Optional[str],
+        content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
         retention: Union[str, timedelta, None],
         wait: bool | None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         # Resolve Defaults (wait もここで解決)
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
             save_blob, version, content_type, wait
         )
 
-        # [MOD] ここでの _resolve_key_fn の呼び出しを削除し、直接 effective_key_fn を使用
         iid, ck = self._make_cache_key(
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
 
-        # 1. Check Cache
+        # === 1. フック: pre_execute ===
+        if hooks:
+            pre_ctx = PreExecuteContext(
+                func_name=func.__name__,
+                input_id=str(iid),
+                cache_key=ck,
+                args=args,
+                kwargs=kwargs,
+            )
+            for hook in hooks:
+                try:
+                    hook.pre_execute(pre_ctx)
+                except Exception as e:
+                    logger.error(f"Error in hook '{type(hook).__name__}.pre_execute': {e}", exc_info=True)
+
+        # === 2. Check Cache ===
         cached = self._check_cache_sync(ck, serializer)
         if cached is not CACHE_MISS:
+            # === フック: on_cache_hit ===
+            if hooks:
+                hit_ctx = CacheHitContext(
+                    func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
+                    result=cached, version=s_ver
+                )
+                for hook in hooks:
+                    try:
+                        hook.on_cache_hit(hit_ctx)
+                    except Exception as e:
+                        logger.error(f"Error in hook '{type(hook).__name__}.on_cache_hit': {e}")
             return cached
 
-        # 2. Execute
+        # === 3. Execute ===
         res = func(*args, **kwargs)
 
-        # 3. Calculate Expiration
+        # === フック: on_cache_miss ===
+        if hooks:
+            miss_ctx = CacheMissContext(
+                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
+                result=res, version=s_ver
+            )
+            for hook in hooks:
+                try:
+                    hook.on_cache_miss(miss_ctx)
+                except Exception as e:
+                    logger.error(f"Error in hook '{type(hook).__name__}.on_cache_miss': {e}")
+
+        # === 4. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
         # 4. Save
@@ -359,10 +401,11 @@ class Spot:
         save_blob: bool | None,
         effective_key_fn: Optional[Callable],  # [MOD] 解決済みの関数を受け取る
         version: str | None,
-        content_type: Optional[str],
+        content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
         retention: Union[str, timedelta, None],
         wait: bool | None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         # Resolve Defaults
         s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
@@ -375,20 +418,53 @@ class Spot:
         )
         loop = asyncio.get_running_loop()
 
-        # 1. Check Cache (Offload IO)
+        # === 1. フック: pre_execute ===
+        if hooks:
+            pre_ctx = PreExecuteContext(
+                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs
+            )
+            for hook in hooks:
+                try:
+                    hook.pre_execute(pre_ctx)
+                except Exception as e:
+                    logger.error(f"Error in hook '{type(hook).__name__}.pre_execute': {e}", exc_info=True)
+
+        # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
             self.executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
+            # === フック: on_cache_hit ===
+            if hooks:
+                hit_ctx = CacheHitContext(
+                    func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
+                    result=cached, version=s_ver
+                )
+                for hook in hooks:
+                    try:
+                        hook.on_cache_hit(hit_ctx)
+                    except Exception as e:
+                        logger.error(f"Error in hook '{type(hook).__name__}.on_cache_hit': {e}")
             return cached
 
-        # 2. Execute (Async)
+        # === 3. Execute  (async) ===
         res = await func(*args, **kwargs)
 
-        # 3. Calculate Expiration
+        # === フック: on_cache_miss ===
+        if hooks:
+            miss_ctx = CacheMissContext(
+                func_name=func.__name__, input_id=str(iid), cache_key=ck, args=args, kwargs=kwargs,
+                result=res, version=s_ver
+            )
+            for hook in hooks:
+                try:
+                    hook.on_cache_miss(miss_ctx)
+                except Exception as e:
+                    logger.error(f"Error in hook '{type(hook).__name__}.on_cache_miss': {e}")
+
+        # === 4. Calculate Expiration & Save ===
         expires_at = self._calculate_expires_at(func.__name__, retention)
 
-        # 4. Save (Offload IO)
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
@@ -494,7 +570,7 @@ class Spot:
         input_id: str,
         version: str | None,
         result: Any,
-        content_type: str | None,
+        content_type: str | ContentType | None,
         save_blob: bool | None,
         serializer: Optional[SerializerProtocol] = None,
         expires_at: Optional[datetime] = None,
@@ -564,10 +640,11 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
-        content_type: Optional[str] = None,
+        content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     def mark(
@@ -578,10 +655,11 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
-        content_type: Optional[str] = None,
+        content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
+        hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         """
         Decorator to mark a function for caching and persistence.
@@ -610,6 +688,7 @@ class Spot:
                     serializer=serializer,
                     wait=wait,  # None のまま渡す
                     retention=retention,
+                    hooks=hooks,
                 )
 
             @functools.wraps(func)
@@ -625,6 +704,7 @@ class Spot:
                     serializer=serializer,
                     wait=wait,  # None のまま渡す
                     retention=retention,
+                    hooks=hooks,
                 )
 
             return async_wrapper if is_async else sync_wrapper
@@ -643,7 +723,7 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
-        content_type: Optional[str] = None,
+        content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
@@ -657,7 +737,7 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
-        content_type: Optional[str] = None,
+        content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
@@ -671,7 +751,7 @@ class Spot:
         keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
         version: str | None = None,
-        content_type: Optional[str] = None,
+        content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         wait: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
