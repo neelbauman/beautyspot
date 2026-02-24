@@ -3,12 +3,15 @@
 import sqlite3
 import os
 import logging
+import queue
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING, TypedDict
+from typing import Optional, TYPE_CHECKING, TypedDict, Any, Callable
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -31,6 +34,17 @@ class TaskRecord(TypedDict):
     result_value: Optional[str]
     result_data: Optional[bytes]
     expires_at: Optional[str]
+
+
+@dataclass
+class _WriteTask:
+    fn: Callable[[sqlite3.Connection], Any]
+    event: threading.Event
+    result: Any = None
+    error: Exception | None = None
+
+
+_STOP = object()
 
 
 class TaskDBBase(ABC):
@@ -103,6 +117,10 @@ class TaskDBBase(ABC):
         """Retrieve cache keys that start with the given prefix."""
         return []
 
+    def shutdown(self, wait: bool = True) -> None:
+        """Gracefully shut down the database backend."""
+        return None
+
 
 class SQLiteTaskDB(TaskDBBase):
     """
@@ -112,14 +130,25 @@ class SQLiteTaskDB(TaskDBBase):
     def __init__(self, db_path: str | Path, timeout: float = 30.0):
         self.db_path = Path(db_path).resolve()
         self.timeout = timeout
+        self._write_queue: queue.Queue[object] = queue.Queue()
+        self._shutdown_lock = threading.Lock()
+        self._shutdown_requested = False
+        self._writer_ready = threading.Event()
+        self._writer_error: Exception | None = None
+        self._writer_thread = threading.Thread(
+            target=self._writer_loop, daemon=True, name="BeautySpot-SQLiteWriter"
+        )
+        self._writer_thread.start()
+        self._writer_ready.wait()
+        if self._writer_error:
+            raise self._writer_error
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
         """
-        Thread-safe connection context manager for write operations.
-        Each call creates a new connection (one per operation), ensuring that
-        concurrent callers from different threads never share a connection.
-        Commits on success, rolls back on exception, and always closes.
+        Connection context manager for schema/maintenance operations.
+        Each call creates a new connection, commits on success, rolls back on
+        exception, and always closes.
         """
         conn = sqlite3.connect(self.db_path, timeout=self.timeout)
         try:
@@ -142,6 +171,73 @@ class SQLiteTaskDB(TaskDBBase):
             yield conn
         finally:
             conn.close()
+
+    def _writer_loop(self) -> None:
+        conn: sqlite3.Connection | None = None
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+            conn.execute("PRAGMA journal_mode=WAL;")
+        except Exception as e:
+            self._writer_error = e
+            self._writer_ready.set()
+            return
+
+        self._writer_ready.set()
+        try:
+            while True:
+                task = self._write_queue.get()
+                if task is _STOP:
+                    self._write_queue.task_done()
+                    break
+                assert isinstance(task, _WriteTask)
+                try:
+                    task.result = task.fn(conn)
+                    conn.commit()
+                except Exception as e:
+                    conn.rollback()
+                    task.error = e
+                finally:
+                    task.event.set()
+                    self._write_queue.task_done()
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def _enqueue_write(self, fn: Callable[[sqlite3.Connection], Any]) -> Any:
+        self._writer_ready.wait()
+        if self._writer_error:
+            raise RuntimeError("SQLite writer thread failed to start.") from self._writer_error
+
+        with self._shutdown_lock:
+            if self._shutdown_requested:
+                raise RuntimeError("SQLiteTaskDB is shutting down.")
+            if not self._writer_thread.is_alive():
+                raise RuntimeError("SQLite writer thread is not running.")
+            task = _WriteTask(fn=fn, event=threading.Event())
+            self._write_queue.put(task)
+
+        task.event.wait()
+        if task.error:
+            raise task.error
+        return task.result
+
+    def shutdown(self, wait: bool = True) -> None:
+        with self._shutdown_lock:
+            if self._shutdown_requested:
+                return
+            self._shutdown_requested = True
+
+        if not self._writer_thread.is_alive():
+            logger.error(
+                "SQLite writer thread is not running; pending writes may be lost."
+            )
+            return
+
+        if wait:
+            self._write_queue.join()
+        self._write_queue.put(_STOP)
+        if wait:
+            self._writer_thread.join()
 
     def init_schema(self):
         with self._connect() as conn:
@@ -225,7 +321,7 @@ class SQLiteTaskDB(TaskDBBase):
         result_data: Optional[bytes] = None,
         expires_at: Optional[datetime] = None,  # [ADD] Added argument
     ):
-        with self._connect() as conn:
+        def _op(conn: sqlite3.Connection) -> None:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO tasks 
@@ -244,6 +340,8 @@ class SQLiteTaskDB(TaskDBBase):
                     _ensure_utc_isoformat(expires_at),
                 ),
             )
+
+        self._enqueue_write(_op)
 
     def get_history(self, limit: int = 1000) -> "pd.DataFrame":
         try:
@@ -265,12 +363,14 @@ class SQLiteTaskDB(TaskDBBase):
             return pd.read_sql_query(query, conn, params=[limit])
 
     def delete(self, cache_key: str) -> bool:
-        with self._connect() as conn:
+        def _op(conn: sqlite3.Connection) -> bool:
             cursor = conn.execute("DELETE FROM tasks WHERE cache_key=?", (cache_key,))
             return cursor.rowcount > 0
 
+        return bool(self._enqueue_write(_op))
+
     def delete_all(self, func_name: Optional[str] = None) -> int:
-        with self._connect() as conn:
+        def _op(conn: sqlite3.Connection) -> int:
             if func_name:
                 cursor = conn.execute(
                     "DELETE FROM tasks WHERE func_name = ?", (func_name,)
@@ -279,9 +379,11 @@ class SQLiteTaskDB(TaskDBBase):
                 cursor = conn.execute("DELETE FROM tasks")
             return cursor.rowcount
 
+        return int(self._enqueue_write(_op))
+
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
         cutoff_str = _ensure_utc_isoformat(older_than)
-        with self._connect() as conn:
+        def _op(conn: sqlite3.Connection) -> int:
             if func_name:
                 cursor = conn.execute(
                     "DELETE FROM tasks WHERE updated_at < ? AND func_name = ?",
@@ -293,6 +395,8 @@ class SQLiteTaskDB(TaskDBBase):
                     (cutoff_str,),
                 )
             return cursor.rowcount
+
+        return int(self._enqueue_write(_op))
 
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
@@ -318,12 +422,14 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return 0
 
-        with self._connect() as conn:
+        def _op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute(
                 "DELETE FROM tasks WHERE expires_at IS NOT NULL AND expires_at < ?",
                 (datetime.now(timezone.utc).isoformat(" "),),
             )
             return cursor.rowcount
+
+        return int(self._enqueue_write(_op))
 
     def get_blob_refs(self) -> Optional[set[str]]:
         if not os.path.exists(self.db_path):

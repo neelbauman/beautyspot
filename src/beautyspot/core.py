@@ -198,7 +198,7 @@ class Spot:
             cleanup of expired cache entries and orphaned blob files after a cache miss.
             Defaults to 0.0 (disabled). Set to a small value (e.g., 0.01) for
             long-running applications to prevent storage bloat without blocking the main thread.
-        on_background_error: バックグラウンドでのキャッシュ保存 (wait=False) 時に
+        on_background_error: キャッシュ保存 (wait=False/True) 時に
             例外が発生した際に呼び出されるコールバック関数。
             メインスレッドの処理を阻害することなく、保存失敗のログ収集や
             監視ツールへの通知を行うために使用します。
@@ -386,6 +386,10 @@ class Spot:
         # executor は自身が所有する場合のみシャットダウン
         if self._own_executor and self._executor is not None:
             self._executor.shutdown(wait=wait)
+        try:
+            self.db.shutdown(wait=wait)
+        except Exception as e:
+            logger.error(f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True)
 
     _MAX_DRAIN_ITERATIONS = 10
 
@@ -687,9 +691,20 @@ class Spot:
         }
 
         if s_wait:
-            self._save_result_sync(**save_kwargs)
+            try:
+                self._save_result_sync(**save_kwargs)
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
         else:
-            self._submit_background_save(**save_kwargs)
+            try:
+                self._submit_background_save(**save_kwargs)
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+                raise
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
         # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
@@ -796,12 +811,27 @@ class Spot:
         }
 
         if s_wait:
-            await loop.run_in_executor(
-                executor,
-                functools.partial(self._save_result_sync, **save_kwargs),
-            )
+            try:
+                await loop.run_in_executor(
+                    executor,
+                    functools.partial(self._save_result_sync, **save_kwargs),
+                )
+            except Exception as e:
+                if isinstance(e, asyncio.CancelledError):
+                    raise
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
         else:
-            self._submit_background_save(**save_kwargs)
+            try:
+                self._submit_background_save(**save_kwargs)
+            except Exception as e:
+                if isinstance(e, asyncio.CancelledError):
+                    raise
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+                raise
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
         # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
@@ -905,6 +935,31 @@ class Spot:
                     ),
                     context,
                 )
+            except Exception as cb_err:
+                logger.error(
+                    f"Error in 'on_background_error' callback: {cb_err}",
+                    exc_info=True,
+                )
+
+    def _handle_save_error(self, err: Exception, save_kwargs: dict) -> None:
+        """保存失敗をログし、必要ならコールバックで通知する。"""
+        func_name = save_kwargs.get("func_name", "unknown")
+        logger.error(
+            f"Cache save failed for '{func_name}' (ignored): {err}", exc_info=True
+        )
+        if self.on_background_error:
+            try:
+                context = SaveErrorContext(
+                    func_name=func_name,
+                    cache_key=save_kwargs.get("cache_key", ""),
+                    input_id=save_kwargs.get("input_id", ""),
+                    version=save_kwargs.get("version"),
+                    content_type=save_kwargs.get("content_type"),
+                    save_blob=save_kwargs.get("save_blob"),
+                    expires_at=save_kwargs.get("expires_at"),
+                    result=save_kwargs.get("result"),
+                )
+                self.on_background_error(err, context)
             except Exception as cb_err:
                 logger.error(
                     f"Error in 'on_background_error' callback: {cb_err}",

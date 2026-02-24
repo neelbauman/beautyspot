@@ -8,7 +8,7 @@ from typing import Any, Optional
 @dataclass(frozen=True)
 class SaveErrorContext:
     """
-    バックグラウンドでのキャッシュ保存処理 (wait=False) が失敗した際に、
+    キャッシュ保存処理 (wait=False/True) が失敗した際に、
     エラーハンドラーへ渡されるコンテキスト情報です。
 
     Attributes:
