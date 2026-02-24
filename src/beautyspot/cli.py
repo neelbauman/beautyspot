@@ -74,17 +74,11 @@ def _format_timestamp(timestamp: float) -> str:
 
 def _get_task_count(db_path: Path) -> int:
     """
-    Get task count using a lightweight sqlite3 connection.
+    Get task count using SQLiteTaskDB.count_tasks (no writer thread started).
     """
-    try:
-        import sqlite3
+    from beautyspot.db import SQLiteTaskDB
 
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.execute("SELECT COUNT(*) FROM tasks")
-            result = cursor.fetchone()
-            return result[0] if result else 0
-    except Exception:
-        return -1
+    return SQLiteTaskDB.count_tasks(db_path)
 
 
 def _list_databases():
@@ -585,9 +579,6 @@ def _clean_cmd_inner(service: MaintenanceService, dry_run: bool, force: bool):
 
 @app.command("gc")
 def gc_cmd(
-    all: bool = typer.Option(
-        False, "--all", help="Scan all projects (currently the only mode)"
-    ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",

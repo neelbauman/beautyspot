@@ -16,7 +16,8 @@ def db(tmp_path):
 
 def test_init_schema(db):
     """スキーマが正しく初期化されているか"""
-    with db._connect() as conn:
+    # _connect() は削除されたため、読み取り専用の _read_connect() を使用する
+    with db._read_connect() as conn:
         # テーブルが存在するか確認
         cursor = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='tasks';"

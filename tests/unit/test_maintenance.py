@@ -1,4 +1,5 @@
 import pytest
+import time
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 
@@ -181,3 +182,39 @@ class TestMaintenanceFactory:
         expected_blob_path = str(db_path.parent / "blobs" / db_path.stem)
         MockCreateStorage.assert_called_once_with(expected_blob_path)
         assert isinstance(svc, MaintenanceService)
+
+
+class TestMaintenanceGarbageScan:
+    def test_scan_garbage_with_grace_period(self, service, mock_db, mock_storage):
+        """猶予期間（grace_period）内の孤立ファイルが削除対象から除外されること"""
+        # Setup: DBは "ref1.bin" のみを参照している
+        mock_db.get_blob_refs.return_value = {"ref1.bin"}
+
+        # ストレージには "ref1.bin" (参照あり), "old_orphan.bin", "new_orphan.bin" がある
+        mock_storage.list_keys.return_value = [
+            "ref1.bin",
+            "old_orphan.bin",
+            "new_orphan.bin",
+        ]
+
+        now = time.time()
+
+        # old_orphan.bin は2分前 (猶予期間外)
+        # new_orphan.bin は10秒前 (猶予期間内)
+        def get_mtime_mock(loc):
+            if loc == "old_orphan.bin":
+                return now - 120
+            if loc == "new_orphan.bin":
+                return now - 10
+            return now
+
+        mock_storage.get_mtime.side_effect = get_mtime_mock
+
+        # ケース1: 猶予期間なし -> 両方の孤立ファイルが検出されること
+        assert set(service.scan_garbage(grace_period=0)) == {
+            "old_orphan.bin",
+            "new_orphan.bin",
+        }
+
+        # ケース2: 60秒の猶予期間 -> 2分前のファイルのみ検出され、10秒前のファイルは無視されること
+        assert set(service.scan_garbage(grace_period=60)) == {"old_orphan.bin"}

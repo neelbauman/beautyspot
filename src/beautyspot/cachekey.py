@@ -129,10 +129,24 @@ def _canonicalize_dict(obj: dict) -> list:
 
 
 @canonicalize.register(list)
+def _canonicalize_list(obj: list) -> tuple:
+    """List → type-tagged recursive canonicalization.
+
+    Note:
+        型タグ ``"__list__"`` を付与することで ``tuple`` との衝突を防ぐ。
+        既存キャッシュとの互換性は意図的に切る（list/tuple の混同はバグ）。
+    """
+    return ("__list__", [canonicalize(x) for x in obj])
+
+
 @canonicalize.register(tuple)
-def _canonicalize_sequence(obj: Union[list, tuple]) -> list:
-    """List / Tuple → recursive canonicalization."""
-    return [canonicalize(x) for x in obj]
+def _canonicalize_tuple(obj: tuple) -> tuple:
+    """Tuple → type-tagged recursive canonicalization.
+
+    Note:
+        型タグ ``"__tuple__"`` を付与することで ``list`` との衝突を防ぐ。
+    """
+    return ("__tuple__", [canonicalize(x) for x in obj])
 
 
 @canonicalize.register(set)
@@ -156,9 +170,18 @@ def _canonicalize_defaultdict(obj: defaultdict) -> list:
 
 
 @canonicalize.register(OrderedDict)
-def _canonicalize_ordereddict(obj: OrderedDict) -> list:
-    """OrderedDict → canonical dict (sorted by key, order-insensitive)."""
-    return _canonicalize_dict(obj)
+def _canonicalize_ordereddict(obj: OrderedDict) -> tuple:
+    """OrderedDict → order-preserving representation with type tag.
+
+    Note:
+        ``OrderedDict`` の意味的本質は挿入順序であるため、
+        キーをソートせず挿入順のまま保持する。
+        型タグ ``"__ordered_dict__"`` で通常の ``dict`` と区別する。
+    """
+    return (
+        "__ordered_dict__",
+        [[canonicalize(k), canonicalize(v)] for k, v in obj.items()],
+    )
 
 
 @canonicalize.register(Enum)

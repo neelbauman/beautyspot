@@ -34,6 +34,12 @@ class MockStorage(BlobStorageBase):
         for key in self.data:
             yield f"mock://{key}"
 
+    def get_mtime(self, location: str) -> float:
+        """Required by BlobStorageBase interface."""
+        import time
+
+        return time.time()
+
 
 class MockDB(TaskDBBase):
     def __init__(self):

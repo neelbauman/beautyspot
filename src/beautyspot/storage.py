@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from beautyspot.exceptions import CacheCorruptedError, ValidationError
 
 try:
@@ -55,7 +55,13 @@ class WarningOnlyPolicy(StoragePolicyProtocol):
     """
 
     warning_threshold: int
-    logger: logging.Logger
+    # logger は比較・repr 対象外にする。
+    # dataclass の自動生成 __eq__ に logger インスタンスが混入するのを防ぐ。
+    logger: logging.Logger = field(
+        default_factory=lambda: logging.getLogger("beautyspot"),
+        compare=False,
+        repr=False,
+    )
 
     def should_save_as_blob(self, data: bytes) -> bool:
         if len(data) > self.warning_threshold:
@@ -117,6 +123,14 @@ class BlobStorageBase(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_mtime(self, location: str) -> float:
+        """
+        Get the last modified time of the blob as a POSIX timestamp.
+        Used to prevent race conditions during Garbage Collection.
+        """
+        pass
+
     def prune_empty_dirs(self) -> int:
         """
         Remove empty directories left after blob deletion.
@@ -155,6 +169,14 @@ class LocalStorage(BlobStorageBase):
                 logging.warning(f"Failed to create .gitignore in {directory}: {e}")
 
     def _validate_key(self, key: str):
+        """save() に渡されるキャッシュキーを検証する。
+
+        Note:
+            この検証は save() の引数（通常は SHA-256 ハッシュ）にのみ適用される。
+            list_keys() が返すロケーション文字列（例: 'subdir/hash.bin'）は
+            レガシーデータとの互換性のためにパス区切り文字を含む場合があり、
+            load() / delete() では別途パストラバーサルチェックを行う。
+        """
         # Prevent Path Traversal
         if ".." in key or "/" in key or "\\" in key:
             raise ValidationError(
@@ -245,6 +267,15 @@ class LocalStorage(BlobStorageBase):
             if entry.is_file():
                 # base_dir からの相対パスを返す
                 yield str(entry.relative_to(self.base_dir).as_posix())
+
+    def get_mtime(self, location: str) -> float:
+        full_path = (self.base_dir / location).resolve()
+        if not full_path.is_relative_to(self.base_dir):
+            raise ValueError(f"Access denied: {location}")
+        try:
+            return full_path.stat().st_mtime
+        except OSError as e:
+            raise CacheCorruptedError(f"Failed to get mtime for blob: {e}")
 
     def clean_temp_files(self, max_age_seconds: int = 86400) -> int:
         """
@@ -366,8 +397,25 @@ class S3Storage(BlobStorageBase):
         bucket, key = self._parse_s3_uri(location)
         try:
             self.s3.delete_object(Bucket=bucket, Key=key)
-        except ClientError:
-            pass
+        except ClientError as e:
+            # S3 の delete_object は存在しないオブジェクトに対してもエラーを返さないため、
+            # ここに到達するのは権限エラーやネットワーク障害などの深刻なケース。
+            # 握り潰さずにログへ記録し、GC が後続で回収できるようにする。
+            logging.warning(
+                f"Failed to delete S3 object {location}: {e}. "
+                "It will be handled by subsequent GC."
+            )
+
+    def get_mtime(self, location: str) -> float:
+        bucket, key = self._parse_s3_uri(location)
+        try:
+            resp = self.s3.head_object(Bucket=bucket, Key=key)
+            # LastModified is a datetime object, convert to POSIX timestamp
+            return resp["LastModified"].timestamp()
+        except ClientError as e:
+            raise CacheCorruptedError(
+                f"S3 blob lost or inaccessible: {location}"
+            ) from e
 
     def list_keys(self) -> Iterator[str]:
         """Yields s3:// URIs for all objects in the prefix."""

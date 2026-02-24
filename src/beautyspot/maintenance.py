@@ -2,6 +2,7 @@
 
 import logging
 import shutil
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import threading
@@ -184,7 +185,15 @@ class MaintenanceService:
         logger.info(f"Cleared {count} tasks.")
         return count
 
-    def scan_garbage(self) -> list[str]:
+    def scan_garbage(self, grace_period: float = 0.0) -> list[str]:
+        """
+        Scan for orphaned blob files that are not referenced in the database.
+
+        Args:
+            grace_period: Minimum age of a blob (in seconds) to be considered an orphan.
+                         This prevents deleting blobs that were just created but
+                         not yet registered in the database (background saves).
+        """
         ref_filenames = self.db.get_blob_refs()
         if ref_filenames is None:
             return []
@@ -201,6 +210,7 @@ class MaintenanceService:
             _basename(loc) for loc in ref_locations if Path(loc).is_absolute()
         }
 
+        now = time.time()
         orphans = []
         for location in self.storage.list_keys():
             norm = _normalize_location(location)
@@ -208,12 +218,28 @@ class MaintenanceService:
                 continue
             if _basename(norm) in ref_basenames:
                 continue
+
+            # Check grace period
+            if grace_period > 0:
+                try:
+                    mtime = self.storage.get_mtime(location)
+                    if now - mtime < grace_period:
+                        # Too new; potentially in-flight background save.
+                        continue
+                except Exception as e:
+                    logger.debug(f"Failed to check mtime for {location} (ignored): {e}")
+                    # Skip files that we can't check, to be safe.
+                    continue
+
             orphans.append(location)
 
         return orphans
 
     def clean_garbage(
-        self, orphans: Optional[list[str]] = None, tmp_max_age_seconds: int = 86400
+        self,
+        orphans: Optional[list[str]] = None,
+        tmp_max_age_seconds: int = 86400,
+        orphan_grace_seconds: float = 60.0,
     ) -> tuple[int, int]:
         """
         期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。
@@ -223,6 +249,7 @@ class MaintenanceService:
         Args:
             orphans: 事前にスキャンされた孤立ファイルのリスト。
             tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。
+            orphan_grace_seconds: 孤立ファイルを判定する際の猶予期間（秒）。デフォルトは60秒。
 
         Returns:
             tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)
@@ -248,7 +275,7 @@ class MaintenanceService:
 
             # Phase 1: 孤立したファイルの特定
             if orphans is None:
-                orphans = self.scan_garbage()
+                orphans = self.scan_garbage(grace_period=orphan_grace_seconds)
 
             deleted_orphan_count = 0
 

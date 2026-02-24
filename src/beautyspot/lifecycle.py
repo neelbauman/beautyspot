@@ -54,9 +54,15 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
         return None
 
     if isinstance(value, timedelta):
+        if value.total_seconds() <= 0:
+            raise ValidationError(f"Retention timedelta must be positive, got {value}.")
         return value
 
     if isinstance(value, int):
+        if value <= 0:
+            raise ValidationError(
+                f"Retention must be a positive integer (seconds), got {value}."
+            )
         return timedelta(seconds=value)
 
     if isinstance(value, str):
@@ -67,6 +73,10 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
             )
 
         amount, unit = int(match.group(1)), match.group(2)
+        if amount <= 0:
+            raise ValidationError(
+                f"Retention duration must be positive, got '{value}'."
+            )
         if unit == "d":
             return timedelta(days=amount)
         elif unit == "h":

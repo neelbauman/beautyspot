@@ -293,6 +293,11 @@ class Spot:
         self._eviction_lock = threading.Lock()
         self._last_eviction_time = 0.0
 
+        # サンダリングハード対策: 同一キーの並行実行を直列化する
+        # キャッシュミスを検出した複数スレッドが同時に同じ関数を実行するのを防ぐ。
+        self._inflight: dict[str, threading.Event] = {}
+        self._inflight_lock = threading.Lock()
+
     def __enter__(self) -> "Spot":
         return self
 
@@ -459,8 +464,7 @@ class Spot:
     def _drain_futures(self) -> None:
         self.flush()
 
-    @staticmethod
-    def _get_func_identifier(func: Callable) -> str:
+    def _get_func_identifier(self, func: Callable) -> str:
         """Derive a fully-qualified identifier for cache key namespacing."""
         module = getattr(func, "__module__", None) or func.__class__.__module__
         qualname = getattr(func, "__qualname__", None) or func.__class__.__qualname__
@@ -503,7 +507,12 @@ class Spot:
         # バックグラウンド実行用の安全なラッパー
         def _run_clean_safe():
             try:
-                self.maintenance.clean_garbage()
+                # 1. 保存タスクの完了を待機 (レースコンディション防止)
+                # このエビクションがスケジュールされた時点までの保存がDBに反映されるのを保証する
+                self.flush()
+
+                # 2. クリーンアップ実行 (猶予期間 60秒)
+                self.maintenance.clean_garbage(orphan_grace_seconds=60.0)
             except Exception as e:
                 logger.error(
                     f"Auto-eviction failed during background execution: {e}",
@@ -757,55 +766,95 @@ class Spot:
             )
             return cached
 
-        # === 3. Execute ===
-        res = func(*args, **kwargs)
+        # === 2.5 Thundering Herd Protection ===
+        event = None
+        while True:
+            with self._inflight_lock:
+                if ck not in self._inflight:
+                    # 自分が実行者になる
+                    event = threading.Event()
+                    self._inflight[ck] = event
+                    break
+                # 他の実行者がいる場合はその完了を待つ
+                wait_event = self._inflight[ck]
 
-        # === 4. フック: on_cache_miss ===
-        self._dispatch_hooks(
-            hooks,
-            "on_cache_miss",
-            CacheMissContext(
-                func_name=func.__name__,
-                input_id=str(iid),
-                cache_key=ck,
-                args=args,
-                kwargs=hook_kwargs,
-                result=res,
-                version=s_ver,
-            ),
-        )
+            # ロックの外側で待機
+            wait_event.wait()
 
-        # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(
-            func_identifier, func.__name__, retention
-        )
-        save_kwargs = {
-            "cache_key": ck,
-            "func_name": func.__name__,
-            "func_identifier": func_identifier,
-            "input_id": str(iid),
-            "version": s_ver,
-            "result": res,
-            "content_type": s_ct,
-            "save_blob": s_blob,
-            "serializer": serializer,
-            "expires_at": expires_at,
-        }
+            # 再度キャッシュをチェック
+            cached = self._check_cache_sync(ck, serializer)
+            if cached is not CACHE_MISS:
+                self._dispatch_hooks(
+                    hooks,
+                    "on_cache_hit",
+                    CacheHitContext(
+                        func_name=func.__name__,
+                        input_id=str(iid),
+                        cache_key=ck,
+                        args=args,
+                        kwargs=hook_kwargs,
+                        result=cached,
+                        version=s_ver,
+                    ),
+                )
+                return cached
+            # キャッシュがまだない（失敗したなど）場合はループして自分が実行者になることを試みる
 
-        if s_save_sync:
-            try:
-                self._save_result_sync(**save_kwargs)
-            except Exception as e:
-                self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
-        else:
-            try:
-                self._submit_background_save(**save_kwargs)
-            except Exception as e:
-                self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
+        try:
+            # === 3. Execute ===
+            res = func(*args, **kwargs)
+
+            # === 4. フック: on_cache_miss ===
+            self._dispatch_hooks(
+                hooks,
+                "on_cache_miss",
+                CacheMissContext(
+                    func_name=func.__name__,
+                    input_id=str(iid),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=hook_kwargs,
+                    result=res,
+                    version=s_ver,
+                ),
+            )
+
+            # === 5. Calculate Expiration & Save ===
+            expires_at = self._calculate_expires_at(
+                func_identifier, func.__name__, retention
+            )
+            save_kwargs = {
+                "cache_key": ck,
+                "func_name": func.__name__,
+                "func_identifier": func_identifier,
+                "input_id": str(iid),
+                "version": s_ver,
+                "result": res,
+                "content_type": s_ct,
+                "save_blob": s_blob,
+                "serializer": serializer,
+                "expires_at": expires_at,
+            }
+
+            if s_save_sync:
+                try:
+                    self._save_result_sync(**save_kwargs)
+                except Exception as e:
+                    self._handle_save_error(e, save_kwargs)
+                    if self.on_background_error is None:
+                        raise
+            else:
+                try:
+                    self._submit_background_save(**save_kwargs)
+                except Exception as e:
+                    self._handle_save_error(e, save_kwargs)
+                    if self.on_background_error is None:
+                        raise
+        finally:
+            with self._inflight_lock:
+                if self._inflight.get(ck) is event:
+                    del self._inflight[ck]
+            event.set()
 
         self._trigger_auto_eviction()
 
@@ -874,59 +923,100 @@ class Spot:
             )
             return cached
 
-        # === 3. Execute (async) ===
-        res = await func(*args, **kwargs)
+        # === 2.5 Thundering Herd Protection ===
+        event = None
+        while True:
+            with self._inflight_lock:
+                if ck not in self._inflight:
+                    # 自分が実行者になる
+                    event = threading.Event()
+                    self._inflight[ck] = event
+                    break
+                # 他の実行者がいる場合はその完了を待つ
+                wait_event = self._inflight[ck]
 
-        # === 4. フック: on_cache_miss ===
-        self._dispatch_hooks(
-            hooks,
-            "on_cache_miss",
-            CacheMissContext(
-                func_name=func.__name__,
-                input_id=str(iid),
-                cache_key=ck,
-                args=args,
-                kwargs=hook_kwargs,
-                result=res,
-                version=s_ver,
-            ),
-        )
+            # ロックの外側で、イベントループをブロックせずに待機
+            await loop.run_in_executor(None, wait_event.wait)
 
-        # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(
-            func_identifier, func.__name__, retention
-        )
-
-        save_kwargs = {
-            "cache_key": ck,
-            "func_name": func.__name__,
-            "func_identifier": func_identifier,
-            "input_id": str(iid),
-            "version": s_ver,
-            "result": res,
-            "content_type": s_ct,
-            "save_blob": s_blob,
-            "serializer": serializer,
-            "expires_at": expires_at,
-        }
-
-        if s_save_sync:
-            try:
-                await loop.run_in_executor(
-                    executor,
-                    functools.partial(self._save_result_sync, **save_kwargs),
+            # 再度キャッシュをチェック
+            cached = await loop.run_in_executor(
+                executor, self._check_cache_sync, ck, serializer
+            )
+            if cached is not CACHE_MISS:
+                self._dispatch_hooks(
+                    hooks,
+                    "on_cache_hit",
+                    CacheHitContext(
+                        func_name=func.__name__,
+                        input_id=str(iid),
+                        cache_key=ck,
+                        args=args,
+                        kwargs=hook_kwargs,
+                        result=cached,
+                        version=s_ver,
+                    ),
                 )
-            except Exception as e:
-                self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
-        else:
-            try:
-                self._submit_background_save(**save_kwargs)
-            except Exception as e:
-                self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
+                return cached
+
+        try:
+            # === 3. Execute (async) ===
+            res = await func(*args, **kwargs)
+
+            # === 4. フック: on_cache_miss ===
+            self._dispatch_hooks(
+                hooks,
+                "on_cache_miss",
+                CacheMissContext(
+                    func_name=func.__name__,
+                    input_id=str(iid),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=hook_kwargs,
+                    result=res,
+                    version=s_ver,
+                ),
+            )
+
+            # === 5. Calculate Expiration & Save ===
+            expires_at = self._calculate_expires_at(
+                func_identifier, func.__name__, retention
+            )
+
+            save_kwargs = {
+                "cache_key": ck,
+                "func_name": func.__name__,
+                "func_identifier": func_identifier,
+                "input_id": str(iid),
+                "version": s_ver,
+                "result": res,
+                "content_type": s_ct,
+                "save_blob": s_blob,
+                "serializer": serializer,
+                "expires_at": expires_at,
+            }
+
+            if s_save_sync:
+                try:
+                    await loop.run_in_executor(
+                        executor,
+                        functools.partial(self._save_result_sync, **save_kwargs),
+                    )
+                except Exception as e:
+                    self._handle_save_error(e, save_kwargs)
+                    if self.on_background_error is None:
+                        raise
+            else:
+                try:
+                    self._submit_background_save(**save_kwargs)
+                except Exception as e:
+                    self._handle_save_error(e, save_kwargs)
+                    if self.on_background_error is None:
+                        raise
+        finally:
+            with self._inflight_lock:
+                if self._inflight.get(ck) is event:
+                    del self._inflight[ck]
+            event.set()
 
         self._trigger_auto_eviction()
 
@@ -1098,29 +1188,45 @@ class Spot:
         else:
             should_use_blob = self.storage_policy.should_save_as_blob(data_bytes)
 
-        r_val = None
-        r_blob = None
-        r_type = "DIRECT_BLOB"
-
         if should_use_blob:
             r_val = self.storage_backend.save(cache_key, data_bytes)
-            r_type = "FILE"
+            try:
+                self.db.save(
+                    cache_key=cache_key,
+                    func_name=func_name,
+                    func_identifier=func_identifier,
+                    input_id=input_id,
+                    version=version,
+                    result_type="FILE",
+                    content_type=content_type,
+                    result_value=r_val,
+                    result_data=None,
+                    expires_at=expires_at,
+                )
+            except Exception:
+                # DB 書き込み失敗時、Blob が孤立しないようベストエフォートでロールバックする。
+                # 削除にも失敗した場合は GC (scan_garbage) が最終的に回収する。
+                try:
+                    self.storage_backend.delete(r_val)
+                except Exception as rollback_err:
+                    logger.warning(
+                        f"Failed to rollback blob '{r_val}' after DB save failure: {rollback_err}. "
+                        "The blob may be orphaned and will be collected by GC."
+                    )
+                raise
         else:
-            r_blob = data_bytes
-            r_type = "DIRECT_BLOB"
-
-        self.db.save(
-            cache_key=cache_key,
-            func_name=func_name,
-            func_identifier=func_identifier,
-            input_id=input_id,
-            version=version,
-            result_type=r_type,
-            content_type=content_type,
-            result_value=r_val,
-            result_data=r_blob,
-            expires_at=expires_at,
-        )
+            self.db.save(
+                cache_key=cache_key,
+                func_name=func_name,
+                func_identifier=func_identifier,
+                input_id=input_id,
+                version=version,
+                result_type="DIRECT_BLOB",
+                content_type=content_type,
+                result_value=None,
+                result_data=data_bytes,
+                expires_at=expires_at,
+            )
 
     def consume(self, cost: Union[int, Callable] = 1):
         def decorator(func):
@@ -1129,12 +1235,20 @@ class Spot:
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
+                if not isinstance(c, int):
+                    raise TypeError(
+                        f"cost function must return an int, got {type(c).__name__}"
+                    )
                 self.limiter.consume(c)
                 return func(*args, **kwargs)
 
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 c = cost(*args, **kwargs) if callable(cost) else cost
+                if not isinstance(c, int):
+                    raise TypeError(
+                        f"cost function must return an int, got {type(c).__name__}"
+                    )
                 await self.limiter.consume_async(c)
                 return await func(*args, **kwargs)
 

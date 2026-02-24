@@ -27,12 +27,26 @@ class TestParseRetention:
             ("7d", timedelta(days=7)),
             ("12h", timedelta(hours=12)),
             ("30m", timedelta(minutes=30)),
-            ("0d", timedelta(days=0)),
         ],
     )
     def test_parse_str_valid(self, input_str, expected):
         """有効なフォーマット文字列のパース"""
         assert parse_retention(input_str) == expected
+
+    @pytest.mark.parametrize(
+        "non_positive_value",
+        [
+            "0d",
+            0,
+            -10,
+            timedelta(seconds=0),
+            timedelta(seconds=-1),
+        ],
+    )
+    def test_parse_non_positive(self, non_positive_value):
+        """0以下の値は ValueError を送出すること"""
+        with pytest.raises(ValueError, match="positive"):
+            parse_retention(non_positive_value)
 
     @pytest.mark.parametrize(
         "invalid_str",

@@ -1,6 +1,7 @@
 # type: ignore
 # src/beautyspot/dashboard.py
 
+import atexit
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -29,6 +30,9 @@ except Exception:
 # --- Service Initialization ---
 # UIレイヤーは具体的なDBクラスやStorageクラスを知る必要がない
 service = MaintenanceService.from_path(DB_PATH)
+# from_path で生成した service は Writer Thread を所有するため、
+# プロセス終了時に確実に close() して Thread リークを防ぐ。
+atexit.register(service.close)
 
 
 # --- Helper: Mermaid Renderer ---

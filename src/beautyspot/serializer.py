@@ -77,6 +77,14 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         with self._lock:
             if code in self._decoders:
                 raise ValueError(f"ExtCode {code} is already registered.")
+            if type_class in self._encoders:
+                existing_code = self._encoders[type_class][0]
+                raise ValueError(
+                    f"Type '{type_class.__name__}' is already registered "
+                    f"(code={existing_code}). "
+                    "Registering the same type twice would silently overwrite the "
+                    "encoder while leaving the old decoder orphaned."
+                )
             self._encoders[type_class] = (code, encoder)
             self._decoders[code] = decoder
             self._subclass_cache.clear()
@@ -144,11 +152,15 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         )
 
     def _ext_hook(self, code: int, data: bytes) -> Any:
-        # デコード処理は状態の変更(書き込み)を伴わないため、ロックは不要です
-        if code in self._decoders:
+        # _default_packer と同様に、ロック内でレジストリを参照し、
+        # ユーザーのデコーダ関数はロックの外側で実行する。
+        with self._lock:
+            decoder = self._decoders.get(code)
+
+        if decoder is not None:
             try:
                 intermediate = msgpack.unpackb(data, ext_hook=self._ext_hook, raw=False)
-                return self._decoders[code](intermediate)
+                return decoder(intermediate)
             except Exception as e:
                 raise SerializationError(
                     f"CRITICAL: Failed to decode custom type (ExtCode={code}).\n"

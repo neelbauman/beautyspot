@@ -32,13 +32,6 @@ def _ensure_utc_isoformat(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat(" ")
 
 
-def _ensure_utc_isoformat_naive(dt: datetime) -> str:
-    """UTCに揃えたタイムゾーンなしの ISO 8601 文字列に変換する。"""
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt.isoformat(" ")
-
-
 class TaskRecord(TypedDict):
     result_type: str
     result_value: Optional[str]
@@ -173,30 +166,15 @@ class SQLiteTaskDB(TaskDBBase):
                 logging.warning(f"Failed to create .gitignore in {directory}: {e}")
 
     @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        """
-        Connection context manager for schema/maintenance operations.
-        Each call creates a new connection, commits on success, rolls back on
-        exception, and always closes.
-        """
-        conn = sqlite3.connect(self.db_path, timeout=self.timeout)
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-
-    @contextmanager
     def _read_connect(self) -> Iterator[sqlite3.Connection]:
         """
         Thread-safe connection context manager for read-only operations.
         Skips commit/rollback since no data is modified.
+        PRAGMA query_only = ON により、誤った書き込みを接続レベルで防止する。
         """
         conn = sqlite3.connect(self.db_path, timeout=self.timeout)
         try:
+            conn.execute("PRAGMA query_only = ON;")
             yield conn
         finally:
             conn.close()
@@ -280,16 +258,10 @@ class SQLiteTaskDB(TaskDBBase):
             self._writer_thread.join()
 
     def init_schema(self):
-        # 1. ライタースレッドの疎通確認
-        # ディスクフルや権限エラーなどでライタースレッドが停止している場合、
-        # ここで早期に例外を発生させることで、後の「黙って保存されない」事態を防ぐ。
-        if not self.flush(timeout=self.timeout):
-            raise RuntimeError(
-                f"SQLiteTaskDB writer thread is not responding within {self.timeout}s during initialization. "
-                "Check file permissions and disk space."
-            )
-
-        with self._connect() as conn:
+        # スキーマ初期化および全マイグレーションを Writer Thread の接続で実行する。
+        # _connect() による別コネクション経由の DDL は、Writer Thread が保持する
+        # WAL ライターロックと競合するリスクがあるため、_enqueue_write に委譲する。
+        def _op(conn: sqlite3.Connection) -> None:
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -306,7 +278,7 @@ class SQLiteTaskDB(TaskDBBase):
                 )
             """)
 
-            # [ADD] Auto Migration for expires_at
+            # Auto Migration
             cursor = conn.execute("PRAGMA table_info(tasks)")
             columns = [row[1] for row in cursor.fetchall()]
 
@@ -328,6 +300,8 @@ class SQLiteTaskDB(TaskDBBase):
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);"
                 )
+
+        self._enqueue_write(_op)
 
     def get(
         self, cache_key: str, *, include_expired: bool = False
@@ -381,10 +355,10 @@ class SQLiteTaskDB(TaskDBBase):
         def _op(conn: sqlite3.Connection) -> None:
             effective_identifier = func_identifier or func_name
             # updated_at を明示的に設定し、expires_at と同じ形式
-            # (_ensure_utc_isoformat_naive) で統一する。
+            # (_ensure_utc_isoformat) で統一する。
             # SQLite の DEFAULT CURRENT_TIMESTAMP は秒精度でフォーマットが異なるため、
             # prune/get_outdated_tasks との比較精度を揃える。
-            now_str = _ensure_utc_isoformat_naive(datetime.now(timezone.utc))
+            now_str = _ensure_utc_isoformat(datetime.now(timezone.utc))
             conn.execute(
                 """
                 INSERT OR REPLACE INTO tasks
@@ -448,7 +422,7 @@ class SQLiteTaskDB(TaskDBBase):
         return int(self._enqueue_write(_op))
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
-        cutoff_str = _ensure_utc_isoformat_naive(older_than)
+        cutoff_str = _ensure_utc_isoformat(older_than)
 
         def _op(conn: sqlite3.Connection) -> int:
             if func_name:
@@ -468,7 +442,7 @@ class SQLiteTaskDB(TaskDBBase):
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        cutoff_str = _ensure_utc_isoformat_naive(older_than)
+        cutoff_str = _ensure_utc_isoformat(older_than)
         if not os.path.exists(self.db_path):
             return []
 
@@ -528,6 +502,24 @@ class SQLiteTaskDB(TaskDBBase):
             )
             return [row[0] for row in cursor.fetchall()]
 
+    @staticmethod
+    def count_tasks(db_path: Path, timeout: float = 5.0) -> int:
+        """
+        Writer Thread を起動せずに tasks テーブルの件数を返す軽量ユーティリティ。
+        CLI の一覧表示など、読み込みのみを目的とした用途向け。
+        エラー時は -1 を返す。
+        """
+        try:
+            conn = sqlite3.connect(str(db_path), timeout=timeout)
+            try:
+                cursor = conn.execute("SELECT COUNT(*) FROM tasks")
+                result = cursor.fetchone()
+                return result[0] if result else 0
+            finally:
+                conn.close()
+        except Exception:
+            return -1
+
     def flush(self, timeout: Optional[float] = None) -> bool:
         """
         キューに溜まっているすべての書き込み操作が完了するまで待機します。
@@ -537,6 +529,8 @@ class SQLiteTaskDB(TaskDBBase):
 
         Args:
             timeout: 待機する最大秒数。タイムアウトした場合は False を返します。
+                     None の場合は無期限に待機しますが、ライタースレッドの
+                     死活監視ループにより永久ハングは防止されます。
         """
         self._writer_ready.wait()
 
@@ -552,5 +546,26 @@ class SQLiteTaskDB(TaskDBBase):
                 return False
             self._write_queue.put(task)
 
-        # ダミータスクの完了を待機
-        return task.event.wait(timeout=timeout)
+        # ライタースレッドの死活を定期確認しながら待機する。
+        # timeout=None で event.wait() を直接呼ぶとスレッド死亡時に永久ハングするため、
+        # ポーリングループで代替する。
+        _POLL = 0.5
+        deadline = (time.monotonic() + timeout) if timeout is not None else None
+
+        while True:
+            remaining = (
+                max(0.0, deadline - time.monotonic()) if deadline is not None else None
+            )
+            wait_time = _POLL if remaining is None else min(_POLL, remaining)
+
+            if task.event.wait(timeout=wait_time):
+                return True
+
+            if not self._writer_thread.is_alive():
+                logger.error(
+                    "SQLite writer thread died unexpectedly while waiting for flush."
+                )
+                return False
+
+            if deadline is not None and time.monotonic() >= deadline:
+                return False
