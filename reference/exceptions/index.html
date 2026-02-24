@@ -8,9 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0018-per-task-serializer-override/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/exceptions/">
       
       
+        <link rel="prev" href="../db/">
+      
+      
+        <link rel="next" href="../hooks/">
       
       
         
@@ -21,7 +25,7 @@
     
     
       
-        <title>18. Per-Task Serializer Override - beautyspot</title>
+        <title>Exceptions - beautyspot</title>
       
     
     
@@ -74,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#18-per-task-serializer-override" class="md-skip">
+        <a href="#exceptions" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              18. Per-Task Serializer Override
+              Exceptions
             
           </span>
         </div>
@@ -867,20 +871,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
@@ -901,7 +905,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -919,7 +923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/cachekey/" class="md-nav__link">
+      <a href="../cachekey/" class="md-nav__link">
         
   
   
@@ -947,7 +951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/core/" class="md-nav__link">
+      <a href="../core/" class="md-nav__link">
         
   
   
@@ -975,7 +979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/content_types/" class="md-nav__link">
+      <a href="../content_types/" class="md-nav__link">
         
   
   
@@ -1003,7 +1007,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/db/" class="md-nav__link">
+      <a href="../db/" class="md-nav__link">
         
   
   
@@ -1028,10 +1032,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../reference/exceptions/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1047,6 +1078,159 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#beautyspot.exceptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exceptions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exceptions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.BeautySpotError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BeautySpotError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.CacheCorruptedError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CacheCorruptedError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.ConfigurationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigurationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.IncompatibleProviderError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IncompatibleProviderError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.SerializationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SerializationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.ValidationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValidationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        例外の階層構造
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        設計の意図
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="設計の意図">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        標準例外との親和性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        粒度の高いエラーハンドリング
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1059,7 +1243,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/hooks/" class="md-nav__link">
+      <a href="../hooks/" class="md-nav__link">
         
   
   
@@ -1087,7 +1271,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/lifecycle/" class="md-nav__link">
+      <a href="../lifecycle/" class="md-nav__link">
         
   
   
@@ -1115,7 +1299,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/limiter/" class="md-nav__link">
+      <a href="../limiter/" class="md-nav__link">
         
   
   
@@ -1143,7 +1327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/maintenance/" class="md-nav__link">
+      <a href="../maintenance/" class="md-nav__link">
         
   
   
@@ -1171,7 +1355,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/serializer/" class="md-nav__link">
+      <a href="../serializer/" class="md-nav__link">
         
   
   
@@ -1199,7 +1383,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/storage/" class="md-nav__link">
+      <a href="../storage/" class="md-nav__link">
         
   
   
@@ -1227,7 +1411,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/types/" class="md-nav__link">
+      <a href="../types/" class="md-nav__link">
         
   
   
@@ -1394,10 +1578,93 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#beautyspot.exceptions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        exceptions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exceptions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.BeautySpotError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BeautySpotError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.CacheCorruptedError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CacheCorruptedError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.ConfigurationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigurationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.IncompatibleProviderError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IncompatibleProviderError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.SerializationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SerializationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.exceptions.ValidationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValidationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        例外の階層構造
       
     </span>
   </a>
@@ -1405,24 +1672,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        設計の意図
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="設計の意図">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        標準例外との親和性
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        粒度の高いエラーハンドリング
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1446,29 +1730,336 @@
   
 
 
-<h1 id="18-per-task-serializer-override">18. Per-Task Serializer Override</h1>
-<h2 id="context">Context</h2>
-<p>プロジェクト全体としては安全性と互換性の観点から <code>msgpack</code> を標準シリアライザとしている。
-しかし、探索的データ分析（EDA）やプロトタイピング、あるいは <code>msgpack</code> でのシリアライズが困難なサードパーティ製オブジェクトを扱う特定のタスクにおいては、Python標準の <code>pickle</code> のような柔軟なシリアライザを局所的に使用したいというニーズがある。</p>
-<h2 id="decision">Decision</h2>
-<ol>
-<li><strong>Override Mechanism:</strong> <code>Spot.mark()</code> および <code>Spot.cached_run()</code> に、オプショナル引数 <code>serializer</code> を追加する。</li>
-<li><strong>Protocol:</strong> ユーザーは <code>dumps(obj) -&gt; bytes</code> および <code>loads(bytes) -&gt; obj</code> メソッドを持つ任意のオブジェクトを渡すことができる。</li>
-<li><strong>Fallback Behavior:</strong> 指定されたシリアライザでデシリアライズに失敗した場合（例: <code>pickle.UnpicklingError</code>, <code>AttributeError</code>）、ADR-0003 の方針に従い、キャッシュ破損として扱い、タスクを再実行する。</li>
-</ol>
-<h2 id="consequences">Consequences</h2>
+<h1 id="exceptions">exceptions</h1>
+<p><code>beautyspot</code> が送出するすべての例外クラスを定義します。ユーザーは <code>BeautySpotError</code> を捕捉することで、ライブラリ起因のエラーを一括でハンドリングできます。</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="beautyspot.exceptions" class="doc doc-heading">
+            <code>beautyspot.exceptions</code>
+
+
+</h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.BeautySpotError" class="doc doc-heading">
+            <code>BeautySpotError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="Exception">Exception</span></code></p>
+
+
+
+        <p>Base exception for all beautyspot errors.
+ユーザーが <code>except BeautySpotError:</code> でライブラリ起因のエラーを
+一括キャッチできるようにするための基底クラスです。</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-4">4</a></span>
+<span class="normal"><a href="#__codelineno-0-5">5</a></span>
+<span class="normal"><a href="#__codelineno-0-6">6</a></span>
+<span class="normal"><a href="#__codelineno-0-7">7</a></span>
+<span class="normal"><a href="#__codelineno-0-8">8</a></span>
+<span class="normal"><a href="#__codelineno-0-9">9</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">BeautySpotError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Base exception for all beautyspot errors.</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    ユーザーが `except BeautySpotError:` でライブラリ起因のエラーを</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="sd">    一括キャッチできるようにするための基底クラスです。</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.CacheCorruptedError" class="doc doc-heading">
+            <code>CacheCorruptedError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BeautySpotError (beautyspot.exceptions.BeautySpotError)" href="#beautyspot.exceptions.BeautySpotError">BeautySpotError</a></code></p>
+
+
+
+        <p>Raised when cache data (DB record or Blob file) is lost,
+unreadable, or logically corrupted.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">CacheCorruptedError</span><span class="p">(</span><span class="n">BeautySpotError</span><span class="p">):</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    Raised when cache data (DB record or Blob file) is lost,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    unreadable, or logically corrupted.</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.ConfigurationError" class="doc doc-heading">
+            <code>ConfigurationError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BeautySpotError (beautyspot.exceptions.BeautySpotError)" href="#beautyspot.exceptions.BeautySpotError">BeautySpotError</a></code></p>
+
+
+
+        <p>Raised when there is a logical error in the user's configuration
+(e.g., invalid retention policy, incompatible storage options).</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConfigurationError</span><span class="p">(</span><span class="n">BeautySpotError</span><span class="p">):</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    Raised when there is a logical error in the user&#39;s configuration</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    (e.g., invalid retention policy, incompatible storage options).</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.IncompatibleProviderError" class="doc doc-heading">
+            <code>IncompatibleProviderError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ConfigurationError (beautyspot.exceptions.ConfigurationError)" href="#beautyspot.exceptions.ConfigurationError">ConfigurationError</a></code>, <code><span title="ValueError">ValueError</span></code></p>
+
+
+
+        <p>注入された依存オブジェクト（Serializer, Storage, DB）が
+要求された機能を提供していない場合のエラー。
+ValueError のサブクラスでもあるため、既存の <code>except ValueError:</code> でも捕捉できます。</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="k">class</span><span class="w"> </span><span class="nc">IncompatibleProviderError</span><span class="p">(</span><span class="n">ConfigurationError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    注入された依存オブジェクト（Serializer, Storage, DB）が</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">    要求された機能を提供していない場合のエラー。</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    ValueError のサブクラスでもあるため、既存の `except ValueError:` でも捕捉できます。</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.SerializationError" class="doc doc-heading">
+            <code>SerializationError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BeautySpotError (beautyspot.exceptions.BeautySpotError)" href="#beautyspot.exceptions.BeautySpotError">BeautySpotError</a></code></p>
+
+
+
+        <p>Raised when the serializer fails to encode or decode data.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="k">class</span><span class="w"> </span><span class="nc">SerializationError</span><span class="p">(</span><span class="n">BeautySpotError</span><span class="p">):</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    Raised when the serializer fails to encode or decode data.</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.exceptions.ValidationError" class="doc doc-heading">
+            <code>ValidationError</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ConfigurationError (beautyspot.exceptions.ConfigurationError)" href="#beautyspot.exceptions.ConfigurationError">ConfigurationError</a></code>, <code><span title="ValueError">ValueError</span></code></p>
+
+
+
+        <p>メソッド呼び出し時の引数やバリデーションエラー。
+ValueError のサブクラスでもあるため、既存の <code>except ValueError:</code> でも捕捉できます。</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/exceptions.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">class</span><span class="w"> </span><span class="nc">ValidationError</span><span class="p">(</span><span class="n">ConfigurationError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    メソッド呼び出し時の引数やバリデーションエラー。</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    ValueError のサブクラスでもあるため、既存の `except ValueError:` でも捕捉できます。</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="_1">例外の階層構造</h2>
+<p><code>beautyspot</code> の例外は、発生の文脈に応じて以下のように階層化されています。</p>
 <ul>
-<li><strong>Pros:</strong><ul>
-<li>ユーザーはプロジェクト全体の設定を変更することなく、必要な箇所だけで <code>pickle</code> 等の強力なシリアライズ機能を利用できる。</li>
-<li>クラス定義の変更などでキャッシュが読み込めなくなった場合も、自動的に再計算されるため、開発体験（DX）が損なわれない。</li>
+<li><strong>BeautySpotError</strong>: すべての例外の基底クラス。</li>
+<li><strong>CacheCorruptedError</strong>: キャッシュデータ（DBレコードまたはBlobファイル）の消失、読み取り不能、または論理的な破損が発生した際に送出されます。</li>
+<li><strong>SerializationError</strong>: シリアライザーによるエンコードまたはデコードが失敗した際に送出されます。</li>
+<li><strong>ConfigurationError</strong>: ユーザーの設定（無効な保持ポリシー、互換性のないストレージオプションなど）に論理的なエラーがある際に送出されます。</li>
+<li><strong>ValidationError</strong>: メソッド呼び出し時の引数チェックやバリデーションエラー。</li>
+<li><strong>IncompatibleProviderError</strong>: 注入された依存オブジェクト（Serializer, Storage, DBなど）が要求された機能を提供していない場合のエラー。</li>
 </ul>
-</li>
-<li><strong>Cons:</strong><ul>
-<li><code>pickle</code> を使用したタスクは、異なるPython環境間や長期間の保存において互換性が保証されない（ユーザー責任となる）。</li>
-<li><code>Spot.register()</code> で登録したカスタム型変換は、オーバーライドされたシリアライザ（例: <code>pickle</code>）には適用されない。</li>
-</ul>
-</li>
-</ul>
+<h2 id="_2">設計の意図</h2>
+<h3 id="_3">標準例外との親和性</h3>
+<p><code>ValidationError</code> および <code>IncompatibleProviderError</code> は、Python標準の <code>ValueError</code> を継承しています。これにより、既存のコードで <code>except ValueError:</code> を使用してバリデーションエラーを捕捉している場合でも、コードを修正することなく <code>beautyspot</code> のエラーを適切に処理できます。</p>
+<h3 id="_4">粒度の高いエラーハンドリング</h3>
+<p>設定ミス（<code>ConfigurationError</code>）とデータの破損（<code>CacheCorruptedError</code>）を明確に区別することで、アプリケーション側で「設定を修正して再起動すべきか」あるいは「キャッシュをクリアして再試行すべきか」といった回復戦略を立てやすくしています。</p>
 
 
 
