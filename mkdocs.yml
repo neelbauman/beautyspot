@@ -57,15 +57,7 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: guides/usage_patterns.md
-  - User Guides:
-      - Caching Strategy: guides/caching.md
-      - Data Serialization: guides/serialization.md
-      - Data Lifecycle: guides/lifecycle.md
-      - Custom Backends (DI): guides/custom_backend.md
-      - Rate Limiting: guides/rate_limiting.md
-      - CLI & Dashboard: guides/cli.md
   - Cookbooks:
-      - Overview: cookbooks/index.md
       - Custom Types: cookbooks/custom_types.md
       - Imperative Caching: cookbooks/imperative_caching.md
       - Advanced Key Generation: cookbooks/key_generation.md
@@ -76,15 +68,26 @@ nav:
       - Web Applications (FastAPI): cookbooks/web_apps.md
       - LLM Ecosystem: cookbooks/llm_apps.md
       - Testing: cookbooks/testing.md
+  - User Guides:
+      - Caching Strategy: guides/caching.md
+      - Data Serialization: guides/serialization.md
+      - Data Lifecycle: guides/lifecycle.md
+      - Custom Backends (DI): guides/custom_backend.md
+      - Rate Limiting: guides/rate_limiting.md
+      - CLI & Dashboard: guides/cli.md
   - Reference:
-      - Spot: reference/core.md
       - CacheKey: reference/cachekey.md
-      - Lifecycle: reference/lifecycle.md
+      - Spot (Core): reference/core.md
+      - Content Types: reference/content_types.md
       - CacheDB: reference/db.md
+      - Exceptions: reference/exceptions.md
+      - Hooks: reference/hooks.md
+      - Lifecycle: reference/lifecycle.md
+      - Limiter: reference/limiter.md
+      - Maintenance Service: reference/maintenance.md
+      - Serializer: reference/serializer.md
       - Storage: reference/storage.md
       - Types: reference/types.md
-      - Hooks: reference/hooks.md
-      - MaintenanceService: reference/maintenance.md
   - Topics:
-      - Philosophy: reference/philosophy.md
+      - Philosophy: philosophy.md
       - Architecture: quality_report.md

@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-24 13:35:13
+**最終更新:** 2026-02-24 14:16:25
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -27,9 +27,9 @@ db              | 2   | 0   | 0.00
 cli             | 0   | 1   | 1.00
 dashboard       | 0   | 2   | 1.00
 maintenance     | 3   | 3   | 0.50
-core            | 0   | 11  | 1.00
 serializer      | 2   | 1   | 0.33
 storage         | 2   | 1   | 0.33
+core            | 0   | 11  | 1.00
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -193,47 +193,6 @@ src/beautyspot/maintenance.py
     M 150:4 MaintenanceService.get_prunable_tasks - A
     M 156:4 MaintenanceService.prune - A
     M 163:4 MaintenanceService.clear - A
-src/beautyspot/core.py
-    M 778:4 Spot._check_cache_sync - B
-    M 365:4 Spot.shutdown - B
-    M 323:4 Spot._ensure_bg_resources - B
-    M 1068:4 Spot.cached_run - B
-    M 126:4 _BackgroundLoop.stop - A
-    M 384:4 Spot._drain_futures - A
-    M 401:4 Spot._trigger_auto_eviction - A
-    M 427:4 Spot._resolve_key_fn - A
-    M 826:4 Spot._submit_background_save - A
-    C 160:0 Spot - A
-    M 206:4 Spot.__init__ - A
-    M 307:4 Spot.maintenance - A
-    M 513:4 Spot._dispatch_hooks - A
-    M 531:4 Spot._resolve_settings - A
-    M 571:4 Spot._execute_sync - A
-    M 670:4 Spot._execute_async - A
-    M 851:4 Spot._save_result_safe - A
-    M 885:4 Spot._save_result_sync - A
-    C 64:0 _BackgroundLoop - A
-    M 95:4 _BackgroundLoop._task_wrapper - A
-    M 106:4 _BackgroundLoop.submit - A
-    M 454:4 Spot.register - A
-    M 495:4 Spot._calculate_expires_at - A
-    M 550:4 Spot._make_cache_key - A
-    M 969:4 Spot.mark - A
-    M 293:4 Spot._track_future - A
-    M 351:4 Spot._setup_workspace - A
-    M 479:4 Spot.register_type - A
-    M 70:4 _BackgroundLoop.__init__ - A
-    M 87:4 _BackgroundLoop._run_event_loop - A
-    M 152:4 _BackgroundLoop._shutdown - A
-    M 282:4 Spot.__enter__ - A
-    M 285:4 Spot.__exit__ - A
-    M 360:4 Spot._shutdown_resources - A
-    M 843:4 Spot._save_result_async - A
-    M 931:4 Spot.consume - A
-    M 952:4 Spot.mark - A
-    M 955:4 Spot.mark - A
-    M 1036:4 Spot.cached_run - A
-    M 1053:4 Spot.cached_run - A
 src/beautyspot/serializer.py
     M 95:4 MsgpackSerializer._default_packer - B
     C 38:0 MsgpackSerializer - A
@@ -281,9 +240,50 @@ src/beautyspot/storage.py
     M 128:4 BlobStorageBase.clean_temp_files - A
     M 138:4 LocalStorage.__init__ - A
     M 327:4 S3Storage.save - A
+src/beautyspot/core.py
+    M 795:4 Spot._check_cache_sync - B
+    M 366:4 Spot.shutdown - B
+    M 403:4 Spot._trigger_auto_eviction - B
+    M 324:4 Spot._ensure_bg_resources - B
+    M 1085:4 Spot.cached_run - B
+    M 126:4 _BackgroundLoop.stop - A
+    M 385:4 Spot._drain_futures - A
+    M 444:4 Spot._resolve_key_fn - A
+    M 843:4 Spot._submit_background_save - A
+    C 160:0 Spot - A
+    M 206:4 Spot.__init__ - A
+    M 308:4 Spot.maintenance - A
+    M 530:4 Spot._dispatch_hooks - A
+    M 548:4 Spot._resolve_settings - A
+    M 588:4 Spot._execute_sync - A
+    M 687:4 Spot._execute_async - A
+    M 868:4 Spot._save_result_safe - A
+    M 902:4 Spot._save_result_sync - A
+    C 64:0 _BackgroundLoop - A
+    M 95:4 _BackgroundLoop._task_wrapper - A
+    M 106:4 _BackgroundLoop.submit - A
+    M 471:4 Spot.register - A
+    M 512:4 Spot._calculate_expires_at - A
+    M 567:4 Spot._make_cache_key - A
+    M 986:4 Spot.mark - A
+    M 294:4 Spot._track_future - A
+    M 352:4 Spot._setup_workspace - A
+    M 496:4 Spot.register_type - A
+    M 70:4 _BackgroundLoop.__init__ - A
+    M 87:4 _BackgroundLoop._run_event_loop - A
+    M 152:4 _BackgroundLoop._shutdown - A
+    M 283:4 Spot.__enter__ - A
+    M 286:4 Spot.__exit__ - A
+    M 361:4 Spot._shutdown_resources - A
+    M 860:4 Spot._save_result_async - A
+    M 948:4 Spot.consume - A
+    M 969:4 Spot.mark - A
+    M 972:4 Spot.mark - A
+    M 1053:4 Spot.cached_run - A
+    M 1070:4 Spot.cached_run - A
 
 210 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.9)
+Average complexity: A (2.9095238095238094)
 ```
 </details>
 
@@ -312,9 +312,9 @@ src/beautyspot/db.py - A
 src/beautyspot/cli.py - A
 src/beautyspot/dashboard.py - A
 src/beautyspot/maintenance.py - A
-src/beautyspot/core.py - A
 src/beautyspot/serializer.py - A
 src/beautyspot/storage.py - A
+src/beautyspot/core.py - A
 ```
 </details>
 
