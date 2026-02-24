@@ -11,11 +11,44 @@ from beautyspot.exceptions import ValidationError
 _TIME_PATTERN = re.compile(r"^(\d+)([dhm])$")
 
 
+class _ForeverSentinel:
+    """ライフサイクルポリシーを明示的にバイパスし、無期限保持を指定するセンチネル。
+
+    ``Retention.FOREVER`` として公開され、``@spot.mark(retention=Retention.FOREVER)``
+    のようにデコレータに渡すことで、グローバルなライフサイクルポリシーが設定されていても
+    そのキャッシュエントリを無期限に保持できます。
+    """
+
+    _instance: "_ForeverSentinel | None" = None
+
+    def __new__(cls) -> "_ForeverSentinel":
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "Retention.FOREVER"
+
+    def __bool__(self) -> bool:
+        return True
+
+
+_FOREVER = _ForeverSentinel()
+
+
+# parse_retention の受け取り可能な型 (FOREVER sentinel を含む)
+RetentionSpec = Union[str, timedelta, int, _ForeverSentinel, None]
+
+
 def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedelta]:
     """
     Helper function to normalize retention specification to timedelta.
-    None means 'indefinite'.
+    None means 'indefinite' (defers to lifecycle policy).
     int is treated as 'seconds'.
+
+    Note:
+        ``_ForeverSentinel`` (``Retention.FOREVER``) は本関数では処理しません。
+        呼び出し元 (``Spot._calculate_expires_at``) で事前にチェックしてください。
     """
     if value is None:
         return None
@@ -47,9 +80,19 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
 
 
 class Retention:
-    """Constants for retention policies."""
+    """Constants for retention policies.
+
+    Attributes:
+        INDEFINITE: ライフサイクルポリシーに委ねるデフォルト値 (None)。
+            ポリシーが設定されている場合はそのルールに従い、
+            未設定の場合は無期限保持となります。
+        FOREVER: ライフサイクルポリシーを明示的にバイパスし、
+            このキャッシュエントリを常に無期限保持することを宣言します。
+            ``@spot.mark(retention=Retention.FOREVER)`` で使用します。
+    """
 
     INDEFINITE = None
+    FOREVER: _ForeverSentinel = _FOREVER
 
 
 @dataclass

@@ -170,7 +170,7 @@ def test_db_flush_waits_for_pending_writes(tmp_path):
     # 内部の _enqueue_write は完了を同期で待つため、今回はキューに直接タスクを入れます
     from beautyspot.db import _WriteTask
     import threading
-    
+
     task = _WriteTask(fn=_slow_op, event=threading.Event())
     db._write_queue.put(task)
 
@@ -181,6 +181,7 @@ def test_db_flush_waits_for_pending_writes(tmp_path):
 
     assert success is True
     assert elapsed >= 0.5  # 少なくとも遅延させた分は待っていること
+
 
 def test_db_flush_timeout(tmp_path):
     """
@@ -194,7 +195,7 @@ def test_db_flush_timeout(tmp_path):
 
     from beautyspot.db import _WriteTask
     import threading
-    
+
     task = _WriteTask(fn=_very_slow_op, event=threading.Event())
     db._write_queue.put(task)
 

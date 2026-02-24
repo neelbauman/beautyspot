@@ -127,5 +127,3 @@ def test_custom_db_injection(tmp_path):
     # result_value (Base64) ではなく result_data (Bytes) を確認
     stored_bytes = db.store[key]["result_data"]
     assert msgpack.unpackb(stored_bytes) == 123
-
-

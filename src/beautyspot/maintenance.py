@@ -27,6 +27,22 @@ class MaintenanceService:
         self.storage = storage
         self.serializer = serializer
         self._cleaning_lock = threading.Lock()
+        self._owns_db = False  # from_path で作成した場合のみ True
+
+    def close(self) -> None:
+        """DB バックエンドをシャットダウンする。
+
+        ``from_path`` で作成された場合のみ DB をシャットダウンします。
+        外部から注入された DB は呼び出し元の責務でシャットダウンしてください。
+        """
+        if self._owns_db:
+            self.db.shutdown(wait=True)
+
+    def __enter__(self) -> "MaintenanceService":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
 
     @classmethod
     def from_path(
@@ -69,11 +85,13 @@ class MaintenanceService:
                 f"Failed to initialize schema for {path}: {e}. Proceeding with existing schema."
             )
 
-        return cls(
+        service = cls(
             db=db,
             storage=create_storage(str(b_path)),
             serializer=MsgpackSerializer(),
         )
+        service._owns_db = True
+        return service
 
     # --- Dashboard Support ---
 
@@ -180,9 +198,7 @@ class MaintenanceService:
         ref_locations = {_normalize_location(loc) for loc in ref_filenames}
         # Legacy support: DBに絶対パスが保存されていた場合のみbasenameを許容
         ref_basenames = {
-            _basename(loc)
-            for loc in ref_locations
-            if Path(loc).is_absolute()
+            _basename(loc) for loc in ref_locations if Path(loc).is_absolute()
         }
 
         orphans = []
@@ -216,6 +232,15 @@ class MaintenanceService:
             return 0, 0
 
         try:
+            # Phase -1: DBの書き込みキューをフラッシュ
+            # save_sync=False で投入された書き込みが未コミットの場合、
+            # 直後の scan_garbage() がその blob を孤立ファイルと誤判定して
+            # 削除してしまうレースコンディションを防ぐ。
+            try:
+                self.db.flush(timeout=10.0)
+            except Exception as e:
+                logger.warning(f"DB flush before garbage scan failed: {e}")
+
             # Phase 0: 期限切れタスクの削除
             deleted_expired_count = self.delete_expired_tasks()
             if deleted_expired_count > 0:

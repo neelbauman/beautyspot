@@ -13,7 +13,7 @@ import weakref
 import time
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import (
     Any,
     Coroutine,
@@ -34,7 +34,13 @@ from beautyspot.maintenance import MaintenanceService
 from beautyspot.limiter import LimiterProtocol
 from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
 from beautyspot.types import SaveErrorContext
-from beautyspot.lifecycle import LifecyclePolicy, parse_retention
+from beautyspot.lifecycle import (
+    LifecyclePolicy,
+    RetentionSpec,
+    _ForeverSentinel,
+    parse_retention,
+    _FOREVER,
+)
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
@@ -128,7 +134,10 @@ class _BackgroundLoop:
                 self._active_tasks -= 1
                 # シャットダウン中かつ最後のタスクだった場合、ループ停止を通知する
                 if self._is_shutting_down and self._active_tasks == 0:
-                    self._loop.call_soon_threadsafe(self._loop.stop)
+                    try:
+                        self._loop.call_soon_threadsafe(self._loop.stop)
+                    except RuntimeError:
+                        pass  # ループは既に停止/クローズ済み
             raise
 
     def stop(self, save_sync: bool = True):
@@ -136,6 +145,9 @@ class _BackgroundLoop:
         ループに対して新規タスクの受付停止を通知し、シャットダウンシーケンスを開始する。
         Spot.shutdown() や GCの _shutdown_resources() から呼び出される統一されたAPI。
         """
+        # atexit ハンドラの蓄積を防止
+        atexit.unregister(self._shutdown)
+
         with self._lock:
             # 既にシャットダウン中であれば二重実行を避ける
             if self._is_shutting_down:
@@ -349,12 +361,18 @@ class Spot:
                     self._executor = ThreadPoolExecutor()
                 if self._finalizer is None:
                     self._finalizer = weakref.finalize(
-                        self, Spot._shutdown_resources, self._bg_loop, self._executor, self.db
+                        self,
+                        Spot._shutdown_resources,
+                        self._bg_loop,
+                        self._executor,
+                        self.db,
                     )
             return self._bg_loop, self._executor
 
     @staticmethod
-    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase) -> None:
+    def _shutdown_resources(
+        bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase
+    ) -> None:
         """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False)
@@ -370,32 +388,35 @@ class Spot:
         save_sync=True の場合、保留中のすべての Future を先にドレインしてから停止する。
         _bg_loop と executor は Spot 自身が所有するため、常にシャットダウンする。
         """
-        self._shutdown_called = True
+        with self._bg_init_lock:
+            self._shutdown_called = True
         if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
         if save_sync:
             self._drain_futures()
-            
+
         if self._bg_loop is not None:
             self._bg_loop.stop(save_sync=save_sync)
-            
+
         if self._executor is not None:
             self._executor.shutdown(wait=save_sync)
-            
+
         try:
             self.db.shutdown(wait=save_sync)
         except Exception as e:
-            logger.error(f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True)
+            logger.error(
+                f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True
+            )
 
     def flush(self, timeout: Optional[float] = None) -> None:
         """
         バックグラウンドで実行中のすべての保存タスクが完了するまで待機します。
-        
+
         バッチ処理や単発のスクリプトにおいて、プログラムが終了する前に
         キャッシュが確実に永続化されることを保証するために使用します。
 
         Args:
-            timeout: 待機する最大秒数。指定しない場合は Spot 初期化時の 
+            timeout: 待機する最大秒数。指定しない場合は Spot 初期化時の
                      drain_timeout が使用されます。
         """
         timeout_val = timeout if timeout is not None else self._drain_timeout
@@ -426,10 +447,14 @@ class Spot:
         if db_remaining > 0:
             success = self.db.flush(timeout=db_remaining)
             if not success:
-                logger.warning("DB flush timed out. Pending writes may still be in the queue.")
+                logger.warning(
+                    "DB flush timed out. Pending writes may still be in the queue."
+                )
         else:
             # 既にタイムアウト時間を使い切っている場合
-            logger.warning("DB flush skipped due to overall timeout. Pending writes may exist.")
+            logger.warning(
+                "DB flush skipped due to overall timeout. Pending writes may exist."
+            )
 
     def _drain_futures(self) -> None:
         self.flush()
@@ -474,13 +499,16 @@ class Spot:
             return
 
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
-        
+
         # バックグラウンド実行用の安全なラッパー
         def _run_clean_safe():
             try:
                 self.maintenance.clean_garbage()
             except Exception as e:
-                logger.error(f"Auto-eviction failed during background execution: {e}", exc_info=True)
+                logger.error(
+                    f"Auto-eviction failed during background execution: {e}",
+                    exc_info=True,
+                )
 
         # スケジュールフェーズの保護
         is_scheduled = False
@@ -493,26 +521,26 @@ class Spot:
 
             coro = _run_clean_coro()
             future = bg_loop.submit(coro)
-            
+
             if future is None:
                 # シャットダウン中などでタスクが拒否された場合
-                coro.close()
+                # submit() 内で coro.close() は実行済み
                 logger.debug("Auto-eviction task rejected (shutting down).")
             else:
                 self._track_future(future)
-                
+
                 # タスクが完了・失敗・キャンセルされた際に確実にロックを解放する
                 def _on_eviction_done(fut):
                     self._last_eviction_time = time.monotonic()
                     self._eviction_lock.release()
-                    
+
                 future.add_done_callback(_on_eviction_done)
                 is_scheduled = True
 
         except Exception as e:
             # スケジュール自体（リソース初期化など）に失敗した場合
             logger.warning(f"Failed to schedule auto-eviction task: {e}")
-            
+
         finally:
             # スケジュールに至らなかった場合のみ、ここで直ちに解放する
             if not is_scheduled:
@@ -590,10 +618,16 @@ class Spot:
         self,
         func_identifier: str,
         func_name: str,
-        local_retention: Union[str, timedelta, None],
+        local_retention: RetentionSpec,
     ) -> Optional[datetime]:
 
+        # 0. FOREVER: ライフサイクルポリシーを明示的にバイパスして無期限保持
+        if local_retention is _FOREVER:
+            return None
+
         # 1. ローカル指定 (優先度: 高)
+        # _FOREVER は上で除外済みなので、parse_retention の受け入れ型に安全にキャスト
+        assert not isinstance(local_retention, _ForeverSentinel)
         retention = parse_retention(local_retention)
 
         # 2. ポリシー指定 (優先度: 低)
@@ -639,7 +673,7 @@ class Spot:
         final_save_blob = save_blob
 
         final_version = version
-        final_content_type = content_type 
+        final_content_type = content_type
         final_save_sync = save_sync if save_sync is not None else self._save_sync
 
         return final_save_blob, final_version, final_content_type, final_save_sync
@@ -675,7 +709,7 @@ class Spot:
         version: str | None,
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
-        retention: Union[str, timedelta, None],
+        retention: RetentionSpec,
         save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
@@ -742,7 +776,9 @@ class Spot:
         )
 
         # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(func_identifier, func.__name__, retention)
+        expires_at = self._calculate_expires_at(
+            func_identifier, func.__name__, retention
+        )
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
@@ -785,7 +821,7 @@ class Spot:
         version: str | None,
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
-        retention: Union[str, timedelta, None],
+        retention: RetentionSpec,
         save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
@@ -857,7 +893,9 @@ class Spot:
         )
 
         # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(func_identifier, func.__name__, retention)
+        expires_at = self._calculate_expires_at(
+            func_identifier, func.__name__, retention
+        )
 
         save_kwargs = {
             "cache_key": ck,
@@ -879,8 +917,6 @@ class Spot:
                     functools.partial(self._save_result_sync, **save_kwargs),
                 )
             except Exception as e:
-                if isinstance(e, asyncio.CancelledError):
-                    raise
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
                     raise
@@ -888,8 +924,6 @@ class Spot:
             try:
                 self._submit_background_save(**save_kwargs)
             except Exception as e:
-                if isinstance(e, asyncio.CancelledError):
-                    raise
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
                     raise
@@ -948,24 +982,51 @@ class Spot:
     # --- バックグラウンド保存の投入 ---
     def _submit_background_save(self, **save_kwargs) -> None:
         """save_sync=False 時にバックグラウンドへ保存処理を投入する。"""
-        bg_loop, _ = self._ensure_bg_resources()
-        coro = self._save_result_async(**save_kwargs)
+        bg_loop, executor = self._ensure_bg_resources()
+        coro = self._save_result_async(executor=executor, **save_kwargs)
         try:
             future = bg_loop.submit(coro)
             if future is None:
-                coro.close()
+                # submit() 内で coro.close() は実行済み
                 self._notify_save_discarded(save_kwargs)
                 return
         except RuntimeError:
+            # submit() がスケジュール前に例外を投げた場合、coro は未消費のまま
             coro.close()
             raise
-            
+
         self._track_future(future)
+
+    @staticmethod
+    def _build_save_error_context(save_kwargs: dict) -> SaveErrorContext:
+        """save_kwargs から SaveErrorContext を構築する共通ヘルパー。"""
+        return SaveErrorContext(
+            func_name=save_kwargs.get("func_name", "unknown"),
+            cache_key=save_kwargs.get("cache_key", ""),
+            input_id=save_kwargs.get("input_id", ""),
+            version=save_kwargs.get("version"),
+            content_type=save_kwargs.get("content_type"),
+            save_blob=save_kwargs.get("save_blob"),
+            expires_at=save_kwargs.get("expires_at"),
+            result=save_kwargs.get("result"),
+        )
+
+    def _invoke_error_callback(self, err: Exception, save_kwargs: dict) -> None:
+        """on_background_error コールバックを安全に呼び出す。"""
+        if self.on_background_error:
+            try:
+                context = self._build_save_error_context(save_kwargs)
+                self.on_background_error(err, context)
+            except Exception as cb_err:
+                logger.error(
+                    f"Error occurred within the 'on_background_error' callback: {cb_err}",
+                    exc_info=True,
+                )
 
     def _notify_save_discarded(self, save_kwargs: dict) -> None:
         """シャットダウンにより破棄された保存の警告ログとコールバック通知。"""
         func_name = save_kwargs.get("func_name", "unknown")
-        
+
         # ユーザーに解決策（with句の利用）を提示する親切なエラーメッセージ
         msg = (
             f"Background save for task '{func_name}' was discarded because the Spot instance "
@@ -973,34 +1034,10 @@ class Spot:
             "To prevent data loss, always use the Spot instance as a context manager "
             "(`with spot:`) or call `spot.shutdown(save_sync=True)` explicitly."
         )
-        
-        # 1. ロガーへの出力 (既存)
-        logger.warning(msg)
-        
-        # 2. ResourceWarning の発行 (新規追加)
-        # stacklevel=2 (または適宜調整) にして、ライブラリ内部ではなく
-        # ユーザーの呼び出し元のコードに近い場所を指し示すようにします。
-        warnings.warn(msg, ResourceWarning, stacklevel=2)
 
-        # 3. コールバック処理 (既存)
-        if self.on_background_error:
-            try:
-                context = SaveErrorContext(
-                    func_name=func_name,
-                    cache_key=save_kwargs.get("cache_key", ""),
-                    input_id=save_kwargs.get("input_id", ""),
-                    version=save_kwargs.get("version"),
-                    content_type=save_kwargs.get("content_type"),
-                    save_blob=save_kwargs.get("save_blob"),
-                    expires_at=save_kwargs.get("expires_at"),
-                    result=save_kwargs.get("result"),
-                )
-                self.on_background_error(RuntimeError(msg), context)
-            except Exception as cb_err:
-                logger.error(
-                    f"Error in 'on_background_error' callback: {cb_err}",
-                    exc_info=True,
-                )
+        logger.warning(msg)
+        warnings.warn(msg, ResourceWarning, stacklevel=2)
+        self._invoke_error_callback(RuntimeError(msg), save_kwargs)
 
     def _handle_save_error(self, err: Exception, save_kwargs: dict) -> None:
         """保存失敗をログし、必要ならコールバックで通知する。"""
@@ -1008,30 +1045,19 @@ class Spot:
         logger.error(
             f"Cache save failed for '{func_name}' (ignored): {err}", exc_info=True
         )
-        if self.on_background_error:
-            try:
-                context = SaveErrorContext(
-                    func_name=func_name,
-                    cache_key=save_kwargs.get("cache_key", ""),
-                    input_id=save_kwargs.get("input_id", ""),
-                    version=save_kwargs.get("version"),
-                    content_type=save_kwargs.get("content_type"),
-                    save_blob=save_kwargs.get("save_blob"),
-                    expires_at=save_kwargs.get("expires_at"),
-                    result=save_kwargs.get("result"),
-                )
-                self.on_background_error(err, context)
-            except Exception as cb_err:
-                logger.error(
-                    f"Error in 'on_background_error' callback: {cb_err}",
-                    exc_info=True,
-                )
+        self._invoke_error_callback(err, save_kwargs)
 
-    async def _save_result_async(self, /, **kwargs) -> None:
-        """バックグラウンドループで実行される保存コルーチン。"""
+    async def _save_result_async(self, /, executor: Executor, **kwargs) -> None:
+        """バックグラウンドループで実行される保存コルーチン。
+
+        Args:
+            executor: 呼び出し元 (_submit_background_save) で確保済みの Executor。
+                      コルーチン内で _ensure_bg_resources() を再度呼ぶことを避け、
+                      シャットダウン中の RuntimeError を防止する。
+        """
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
-            self._executor, functools.partial(self._save_result_safe, **kwargs)
+            executor, functools.partial(self._save_result_safe, **kwargs)
         )
 
     # --- 安全なバックグラウンド実行用ラッパー ---
@@ -1046,28 +1072,7 @@ class Spot:
             logger.error(
                 f"Background save failed for task '{func_name}': {e}", exc_info=True
             )
-            # [追加] コールバックが設定されていれば呼び出す
-            if self.on_background_error:
-                try:
-                    # ユーザーのコールバック内でのエラーがスレッドをクラッシュさせないように保護
-                    # kwargs から SaveErrorContext を構築して渡す
-                    # serializer 等の内部オブジェクトは除外してユーザーに必要なものだけを渡す
-                    context = SaveErrorContext(
-                        func_name=func_name,
-                        cache_key=kwargs.get("cache_key", ""),
-                        input_id=kwargs.get("input_id", ""),
-                        version=kwargs.get("version"),
-                        content_type=kwargs.get("content_type"),
-                        save_blob=kwargs.get("save_blob"),
-                        expires_at=kwargs.get("expires_at"),
-                        result=kwargs.get("result"),
-                    )
-                    self.on_background_error(e, context)
-                except Exception as cb_err:
-                    logger.error(
-                        f"Error occurred within the 'on_background_error' callback: {cb_err}",
-                        exc_info=True,
-                    )
+            self._invoke_error_callback(e, kwargs)
 
     def _save_result_sync(
         self,
@@ -1151,7 +1156,7 @@ class Spot:
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         save_sync: Optional[bool] = None,
-        retention: Union[str, timedelta, None] = None,
+        retention: RetentionSpec = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
@@ -1166,7 +1171,7 @@ class Spot:
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         save_sync: Optional[bool] = None,
-        retention: Union[str, timedelta, None] = None,
+        retention: RetentionSpec = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         """
@@ -1234,7 +1239,7 @@ class Spot:
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         save_sync: Optional[bool] = None,
-        retention: Union[str, timedelta, None] = None,
+        retention: RetentionSpec = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[T]: ...
 
@@ -1249,7 +1254,7 @@ class Spot:
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         save_sync: Optional[bool] = None,
-        retention: Union[str, timedelta, None] = None,
+        retention: RetentionSpec = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[tuple[Unpack[Ts]]]: ...
 
@@ -1264,7 +1269,7 @@ class Spot:
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
         save_sync: Optional[bool] = None,
-        retention: Union[str, timedelta, None] = None,
+        retention: RetentionSpec = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ):
         if not funcs:

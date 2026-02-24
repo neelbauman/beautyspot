@@ -235,7 +235,9 @@ class SQLiteTaskDB(TaskDBBase):
     def _enqueue_write(self, fn: Callable[[sqlite3.Connection], Any]) -> Any:
         self._writer_ready.wait()
         if self._writer_error:
-            raise RuntimeError("SQLite writer thread failed to start.") from self._writer_error
+            raise RuntimeError(
+                "SQLite writer thread failed to start."
+            ) from self._writer_error
 
         with self._shutdown_lock:
             if self._shutdown_requested:
@@ -378,11 +380,16 @@ class SQLiteTaskDB(TaskDBBase):
     ):
         def _op(conn: sqlite3.Connection) -> None:
             effective_identifier = func_identifier or func_name
+            # updated_at を明示的に設定し、expires_at と同じ形式
+            # (_ensure_utc_isoformat_naive) で統一する。
+            # SQLite の DEFAULT CURRENT_TIMESTAMP は秒精度でフォーマットが異なるため、
+            # prune/get_outdated_tasks との比較精度を揃える。
+            now_str = _ensure_utc_isoformat_naive(datetime.now(timezone.utc))
             conn.execute(
                 """
-                INSERT OR REPLACE INTO tasks 
-                (cache_key, func_name, func_identifier, input_id, version, result_type, content_type, result_value, result_data, expires_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO tasks
+                (cache_key, func_name, func_identifier, input_id, version, result_type, content_type, result_value, result_data, expires_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     cache_key,
@@ -395,6 +402,7 @@ class SQLiteTaskDB(TaskDBBase):
                     result_value,
                     result_data,
                     _ensure_utc_isoformat(expires_at),
+                    now_str,
                 ),
             )
 
@@ -441,6 +449,7 @@ class SQLiteTaskDB(TaskDBBase):
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
         cutoff_str = _ensure_utc_isoformat_naive(older_than)
+
         def _op(conn: sqlite3.Connection) -> int:
             if func_name:
                 cursor = conn.execute(
@@ -481,10 +490,13 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return 0
 
+        # save() と同じ _ensure_utc_isoformat を使い、フォーマットを統一する
+        now_str = _ensure_utc_isoformat(datetime.now(timezone.utc))
+
         def _op(conn: sqlite3.Connection) -> int:
             cursor = conn.execute(
                 "DELETE FROM tasks WHERE expires_at IS NOT NULL AND expires_at < ?",
-                (datetime.now(timezone.utc).isoformat(" "),),
+                (now_str,),
             )
             return cursor.rowcount
 
@@ -519,26 +531,26 @@ class SQLiteTaskDB(TaskDBBase):
     def flush(self, timeout: Optional[float] = None) -> bool:
         """
         キューに溜まっているすべての書き込み操作が完了するまで待機します。
-        
+
         No-op（何もしない）タスクをキューの末尾に挿入し、そのタスクが処理されるまで
         待機することで、先行するすべてのタスクの完了を保証します。
-        
+
         Args:
             timeout: 待機する最大秒数。タイムアウトした場合は False を返します。
         """
         self._writer_ready.wait()
-        
-        with self._shutdown_lock:
-            if self._shutdown_requested or not self._writer_thread.is_alive():
-                return False
 
         # キューをフラッシュするためのダミータスク
         def _noop_op(conn: sqlite3.Connection) -> None:
             pass
 
         task = _WriteTask(fn=_noop_op, event=threading.Event())
-        self._write_queue.put(task)
-        
+
+        # shutdown との TOCTOU を防ぐため、ロック内でチェックと put を原子的に行う
+        with self._shutdown_lock:
+            if self._shutdown_requested or not self._writer_thread.is_alive():
+                return False
+            self._write_queue.put(task)
+
         # ダミータスクの完了を待機
         return task.event.wait(timeout=timeout)
-

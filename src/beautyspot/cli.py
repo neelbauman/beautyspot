@@ -148,7 +148,11 @@ def _list_databases():
 
 
 def _list_tasks(db: str, limit: int, func: Optional[str]):
-    spot = get_service(db)
+    with get_service(db) as spot:
+        _list_tasks_inner(spot, limit, func)
+
+
+def _list_tasks_inner(spot: MaintenanceService, limit: int, func: Optional[str]):
     df = spot.db.get_history(limit=limit)
 
     if df.empty:
@@ -198,7 +202,9 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
 
         cache_key_short = str(row["cache_key"])[:8]
 
-        func_identifier = row.get("func_identifier") if "func_identifier" in row else None
+        func_identifier = (
+            row.get("func_identifier") if "func_identifier" in row else None
+        )
         if isinstance(func_identifier, str) and func_identifier:
             func_display = func_identifier
         else:
@@ -319,8 +325,11 @@ def show_cmd(
     """
     🔍 Show details of a specific cached task.
     """
-    service = get_service(db)
+    with get_service(db) as service:
+        _show_cmd_inner(service, cache_key)
 
+
+def _show_cmd_inner(service: MaintenanceService, cache_key: str):
     # Prefix-based key resolution
     resolved = service.resolve_key_prefix(cache_key)
 
@@ -409,8 +418,11 @@ def stats_cmd(
     """
     📊 Show cache statistics.
     """
-    service = get_service(db)
+    with get_service(db) as service:
+        _stats_cmd_inner(service)
 
+
+def _stats_cmd_inner(service: MaintenanceService):
     try:
         df = service.get_history(limit=10000)
     except ImportError as e:
@@ -486,8 +498,8 @@ def clear_cmd(
             console.print("[yellow]Aborted.[/yellow]")
             raise typer.Exit(0)
 
-    service = get_service(db)
-    deleted = service.clear(func)
+    with get_service(db) as service:
+        deleted = service.clear(func)
     console.print(f"[green]✓ Deleted {deleted} tasks.[/green]")
 
 
@@ -514,7 +526,11 @@ def clean_cmd(
     Removes files in the storage directory that are NOT referenced by any task in the database.
     Use this to clean up leftover files after manual DB operations or errors.
     """
-    service = get_service(db, blob_dir)
+    with get_service(db, blob_dir) as service:
+        _clean_cmd_inner(service, dry_run, force)
+
+
+def _clean_cmd_inner(service: MaintenanceService, dry_run: bool, force: bool):
     orphans = service.scan_garbage()
 
     if not orphans:
@@ -612,18 +628,56 @@ def gc_cmd(
                 total_expired = 0
                 for db_path in db_files:
                     try:
-                        service = get_service(str(db_path))
-                        count = service.delete_expired_tasks()
-                        if count > 0:
-                            console.print(
-                                f"  [green]✓ {db_path.stem}: Removed {count} expired tasks[/green]"
-                            )
-                            total_expired += count
+                        with get_service(str(db_path)) as service:
+                            count = service.delete_expired_tasks()
+                            if count > 0:
+                                console.print(
+                                    f"  [green]✓ {db_path.stem}: Removed {count} expired tasks[/green]"
+                                )
+                                total_expired += count
                     except Exception as e:
                         console.print(f"  [red]x {db_path.stem}: Error ({e})[/red]")
 
                 if total_expired == 0:
                     console.print("  [dim]No expired tasks found.[/dim]")
+
+            # --- 1.5. Per-project orphan blob cleanup ---
+            console.print()
+            console.print("[bold]Cleaning orphan blobs per project...[/bold]")
+
+            total_orphan_blobs = 0
+            for db_path in db_files:
+                try:
+                    with get_service(str(db_path)) as service:
+                        # タスクが存在しないDBはスキップ
+                        # (空DBに対して scan_garbage を走らせると、
+                        #  全blobが孤立と誤判定される)
+                        try:
+                            df = service.get_history(limit=1)
+                            if df.empty:
+                                continue
+                        except Exception:
+                            continue
+
+                        if dry_run:
+                            orphan_blobs = service.scan_garbage()
+                            if orphan_blobs:
+                                console.print(
+                                    f"  [yellow]{db_path.stem}: {len(orphan_blobs)} orphan blobs (dry run)[/yellow]"
+                                )
+                                total_orphan_blobs += len(orphan_blobs)
+                        else:
+                            _, deleted_blobs = service.clean_garbage()
+                            if deleted_blobs > 0:
+                                console.print(
+                                    f"  [green]✓ {db_path.stem}: Removed {deleted_blobs} orphan blobs[/green]"
+                                )
+                                total_orphan_blobs += deleted_blobs
+                except Exception as e:
+                    console.print(f"  [red]x {db_path.stem}: Error ({e})[/red]")
+
+            if total_orphan_blobs == 0:
+                console.print("  [dim]No orphan blobs found.[/dim]")
 
     console.print()
 
@@ -714,7 +768,18 @@ def prune_cmd(
         console.print("[red]Error:[/red] --days must be at least 1")
         raise typer.Exit(1)
 
-    service = get_service(db)
+    with get_service(db) as service:
+        _prune_cmd_inner(service, days, func, dry_run, force, clean_blobs)
+
+
+def _prune_cmd_inner(
+    service: MaintenanceService,
+    days: int,
+    func: Optional[str],
+    dry_run: bool,
+    force: bool,
+    clean_blobs: bool,
+):
     tasks_to_delete = service.get_prunable_tasks(days, func)
 
     if not tasks_to_delete:

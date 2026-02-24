@@ -272,9 +272,13 @@ class LocalStorage(BlobStorageBase):
 
     def prune_empty_dirs(self) -> int:
         """
-        Recursively remove empty directories under base_dir (including base_dir itself).
+        Recursively remove empty directories under base_dir.
         Also removes directories containing only system generated files (.DS_Store, etc).
         Returns the count of removed directories.
+
+        Note:
+            base_dir 自体は削除しません。base_dir が削除されると以降の
+            save() で FileNotFoundError が発生するためです。
         """
         if not self.base_dir.exists():
             return 0
@@ -285,6 +289,10 @@ class LocalStorage(BlobStorageBase):
         # os.walk(topdown=False) で深い階層から順に処理
         for root, dirs, files in os.walk(self.base_dir, topdown=False):
             path = Path(root)
+
+            # base_dir 自体は絶対に削除しない
+            if path == self.base_dir:
+                continue
 
             existing_files = set(files)
 
@@ -341,7 +349,9 @@ class S3Storage(BlobStorageBase):
     def save(self, key: str, data: ReadableBuffer) -> str:
         s3_key = f"{self.prefix}/{key}.bin"
         buffer = io.BytesIO(data)
-        self.s3.put_object(Bucket=self.bucket_name, Key=s3_key, Body=buffer)
+        # upload_fileobj は大容量データ(>5GB)に対してマルチパートアップロードを
+        # 自動的に使用し、put_object の 5GB 上限を回避する。
+        self.s3.upload_fileobj(buffer, self.bucket_name, s3_key)
         return f"s3://{self.bucket_name}/{s3_key}"
 
     def load(self, location: str) -> bytes:

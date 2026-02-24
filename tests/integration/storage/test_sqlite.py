@@ -60,8 +60,26 @@ def test_get_non_existent(db):
 def test_get_history(db):
     """履歴の取得 (Pandas)"""
     # データを投入
-    db.save("k1", "f1", "tests.integration.storage.test_sqlite.f1", "i1", "v1", "DIRECT", "text", '"v1"')
-    db.save("k2", "f1", "tests.integration.storage.test_sqlite.f1", "i2", "v1", "DIRECT", "text", '"v2"')
+    db.save(
+        "k1",
+        "f1",
+        "tests.integration.storage.test_sqlite.f1",
+        "i1",
+        "v1",
+        "DIRECT",
+        "text",
+        '"v1"',
+    )
+    db.save(
+        "k2",
+        "f1",
+        "tests.integration.storage.test_sqlite.f1",
+        "i2",
+        "v1",
+        "DIRECT",
+        "text",
+        '"v2"',
+    )
 
     df = db.get_history()
     assert len(df) == 2

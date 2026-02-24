@@ -14,33 +14,33 @@ def test_auto_eviction_lock_released_on_future_cancel(tmp_path):
     """
     # 確実にエビクションがトリガーされるよう eviction_rate=1.0 に設定
     spot = bs.Spot("test_app", eviction_rate=1.0)
-    
+
     # 実行前の状態: ロックは解放されている
     assert not spot._eviction_lock.locked()
 
     # 内部リソースを初期化して取得
     bg_loop, _ = spot._ensure_bg_resources()
-    
+
     # 手動で制御可能な concurrent.futures.Future を用意
     mock_future = concurrent.futures.Future()
-    
+
     # RuntimeWarning(coroutine never awaited) 対策:
     # モックに渡されたコルーチンを明示的にクローズする
     def mock_submit(coro):
         coro.close()
         return mock_future
-    
+
     # bg_loop.submit をモックに差し替え
-    with patch.object(bg_loop, 'submit', side_effect=mock_submit):
+    with patch.object(bg_loop, "submit", side_effect=mock_submit):
         spot._trigger_auto_eviction()
-        
+
         # タスクが submit された直後。
         # まだ Future は完了していないため、多重起動防止ロックは「取得中」になっているべき
         assert spot._eviction_lock.locked() is True
-        
+
         # エッジケースのシミュレート: イベントループ停止により Future がキャンセルされた
         mock_future.cancel()
-        
+
         # cancel() によって add_done_callback が発火し、ロックが解放されているはず
         assert spot._eviction_lock.locked() is False
 
@@ -52,15 +52,15 @@ def test_auto_eviction_lock_released_on_task_rejection(tmp_path):
     """
     spot = bs.Spot("test_app", eviction_rate=1.0)
     bg_loop, _ = spot._ensure_bg_resources()
-    
+
     # RuntimeWarning対策: コルーチンを閉じてから None を返す
     def mock_submit_reject(coro):
         coro.close()
         return None
-    
+
     # submit がタスクを拒否（Noneを返す）ケースをシミュレート
-    with patch.object(bg_loop, 'submit', side_effect=mock_submit_reject):
+    with patch.object(bg_loop, "submit", side_effect=mock_submit_reject):
         spot._trigger_auto_eviction()
-        
+
         # スケジュール自体に失敗したので、ロックは関数内で即座に解放されていなければならない
         assert spot._eviction_lock.locked() is False

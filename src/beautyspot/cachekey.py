@@ -5,6 +5,7 @@ import logging
 import os
 import msgpack
 import inspect
+from collections import deque, OrderedDict, defaultdict
 from enum import Enum, auto
 from functools import singledispatch
 from typing import Any, Union, Callable, Dict, ParamSpec
@@ -39,24 +40,46 @@ def _canonicalize_ndarray(obj: Any) -> tuple:
 
 
 def _canonicalize_instance(obj: Any) -> Any:
-    """Custom object instance → canonical form via __dict__ or __slots__."""
-    if hasattr(obj, "__dict__"):
-        return canonicalize(obj.__dict__)
-    # __slots__ path
-    slots = getattr(obj, "__slots__", [])
-    if isinstance(slots, str):
-        slots = [slots]
-    else:
-        try:
-            slots = list(slots)
-        except TypeError:
-            slots = []
+    """Custom object instance → canonical form via __dict__ or __slots__.
 
-    return [
-        [k, canonicalize(getattr(obj, k))]
-        for k in sorted(slots)
-        if hasattr(obj, k)
-    ]
+    型名 (module + qualname) を含めることで、同じ属性構造を持つ
+    異なる型のインスタンス同士のキャッシュ衝突を防ぐ。
+    """
+    obj_type = type(obj)
+    type_tag = ("__instance__", obj_type.__module__, obj_type.__qualname__)
+
+    if hasattr(obj, "__dict__"):
+        return (*type_tag, canonicalize(obj.__dict__))
+
+    # __slots__ path: MRO を辿って全階層の __slots__ を収集する
+    all_slots: list[str] = []
+    for klass in obj_type.__mro__:
+        cls_slots = getattr(klass, "__slots__", [])
+        if isinstance(cls_slots, str):
+            cls_slots = [cls_slots]
+        else:
+            try:
+                cls_slots = list(cls_slots)
+            except TypeError:
+                cls_slots = []
+        all_slots.extend(cls_slots)
+
+    # 重複排除しつつ安定したソート順を保証
+    seen: set[str] = set()
+    unique_slots: list[str] = []
+    for s in all_slots:
+        if s not in seen:
+            seen.add(s)
+            unique_slots.append(s)
+
+    return (
+        *type_tag,
+        [
+            [k, canonicalize(getattr(obj, k))]
+            for k in sorted(unique_slots)
+            if hasattr(obj, k)
+        ],
+    )
 
 
 def _is_ndarray_like(obj: Any) -> bool:
@@ -120,6 +143,24 @@ def _canonicalize_set(obj: Union[set, frozenset]) -> list:
     return sorted(normalized_items, key=_safe_sort_key)
 
 
+@canonicalize.register(deque)
+def _canonicalize_deque(obj: deque) -> list:
+    """Deque → recursive canonicalization (element-aware)."""
+    return [canonicalize(x) for x in obj]
+
+
+@canonicalize.register(defaultdict)
+def _canonicalize_defaultdict(obj: defaultdict) -> list:
+    """defaultdict → canonical dict (ignores default_factory)."""
+    return _canonicalize_dict(obj)
+
+
+@canonicalize.register(OrderedDict)
+def _canonicalize_ordereddict(obj: OrderedDict) -> list:
+    """OrderedDict → canonical dict (sorted by key, order-insensitive)."""
+    return _canonicalize_dict(obj)
+
+
 @canonicalize.register(Enum)
 def _canonicalize_enum(obj: Enum) -> Any:
     """Enum member → canonical value (stable across sessions)."""
@@ -140,8 +181,8 @@ def _canonicalize_type(obj: type) -> Any:
             return ("__pydantic_v2__", canonicalize(obj.model_json_schema()))
         except Exception:
             pass
-    # Pydantic v1
-    if hasattr(obj, "schema"):
+    # Pydantic v1 (schema + __fields__ で誤検出を防ぐ)
+    if hasattr(obj, "schema") and hasattr(obj, "__fields__"):
         try:
             return ("__pydantic_v1__", canonicalize(obj.schema()))
         except Exception:
