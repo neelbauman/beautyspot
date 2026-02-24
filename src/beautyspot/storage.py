@@ -138,7 +138,21 @@ class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str | Path):
         # Resolve to absolute path explicitly on init
         self.base_dir = Path(base_dir).resolve()
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_cache_dir(self.base_dir)
+
+    @staticmethod
+    def _ensure_cache_dir(directory: Path) -> None:
+        """
+        ディレクトリを作成し、Gitの管理下に入らないよう .gitignore を配置する。
+        """
+        directory.mkdir(parents=True, exist_ok=True)
+        gitignore_path = directory / ".gitignore"
+        if not gitignore_path.exists():
+            try:
+                gitignore_path.write_text("*\n")
+            except OSError as e:
+                # 権限問題などで書けない場合は処理を続行（ログのみ）
+                logging.warning(f"Failed to create .gitignore in {directory}: {e}")
 
     def _validate_key(self, key: str):
         # Prevent Path Traversal

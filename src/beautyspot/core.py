@@ -14,7 +14,6 @@ import time
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import (
     Any,
     Coroutine,
@@ -354,15 +353,6 @@ class Spot:
             return self._bg_loop, self._executor
 
     @staticmethod
-    def _setup_workspace(workspace_dir: Path):
-        """Ensure the workspace directory and .gitignore exist."""
-        workspace_dir.mkdir(parents=True, exist_ok=True)
-
-        gitignore_path = workspace_dir / ".gitignore"
-        if not gitignore_path.exists():
-            gitignore_path.write_text("*\n")
-
-    @staticmethod
     def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
         """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
         bg_loop.stop(save_sync=False)
@@ -453,10 +443,11 @@ class Spot:
         の設計思想に基づいています。そのため、スケジュールの失敗やバックグラウンド
         実行中のエラーはログに記録されるのみで、呼び出し元には伝播（raise）しません。
 
-        スレッドセーフティ:
+        スレッドセーフティとデッドロック防止:
             多重起動を防ぐため、ノンブロッキングロック (`_eviction_lock`) を使用します。
-            スケジュールに失敗した場合や、タスクが完了/失敗した場合には、
-            確実にロックを解放し、次回以降のエビクションがデッドロックするのを防ぎます。
+            タスクのスケジュールに失敗した場合、あるいはタスクが完了・失敗・キャンセル
+            された場合のいずれにおいても、Futureのコールバックを用いて確実にロックを解放し、
+            次回以降のエビクションがデッドロックするのを防ぎます。
         """
         if self.eviction_rate <= 0.0:
             return
@@ -471,15 +462,12 @@ class Spot:
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
         
         # バックグラウンド実行用の安全なラッパー
+        # (ロックの解放はここでは行わず、コールバックに委譲します)
         def _run_clean_safe():
             try:
                 self.maintenance.clean_garbage()
             except Exception as e:
-                # 実行中のエラーは記録するが、クラッシュはさせない
                 logger.error(f"Auto-eviction failed during background execution: {e}", exc_info=True)
-            finally:
-                # 成功・失敗に関わらず確実にロックを解放
-                self._eviction_lock.release()
 
         # スケジュールフェーズの保護
         is_scheduled = False
@@ -499,6 +487,12 @@ class Spot:
                 logger.debug("Auto-eviction task rejected (shutting down).")
             else:
                 self._track_future(future)
+                
+                # タスクが完了・失敗・キャンセルされた際に確実にロックを解放する
+                def _release_lock(fut):
+                    self._eviction_lock.release()
+                    
+                future.add_done_callback(_release_lock)
                 is_scheduled = True
 
         except Exception as e:
@@ -506,8 +500,7 @@ class Spot:
             logger.warning(f"Failed to schedule auto-eviction task: {e}")
             
         finally:
-            # スケジュールされなかった場合（拒否、または例外発生時）は、
-            # バックグラウンドタスク内でロックが解放されることはないため、ここで直ちに解放する
+            # スケジュールに至らなかった場合のみ、ここで直ちに解放する
             if not is_scheduled:
                 self._eviction_lock.release()
 

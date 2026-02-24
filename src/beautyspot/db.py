@@ -144,6 +144,7 @@ class SQLiteTaskDB(TaskDBBase):
 
     def __init__(self, db_path: str | Path, timeout: float = 30.0):
         self.db_path = Path(db_path).resolve()
+        self._ensure_cache_dir(self.db_path.parent)
         self.timeout = timeout
         self._write_queue: queue.Queue[object] = queue.Queue()
         self._shutdown_lock = threading.Lock()
@@ -157,6 +158,19 @@ class SQLiteTaskDB(TaskDBBase):
         self._writer_ready.wait()
         if self._writer_error:
             raise self._writer_error
+
+    @staticmethod
+    def _ensure_cache_dir(directory: Path) -> None:
+        """
+        データベース格納用の親ディレクトリを作成し、.gitignore を配置する。
+        """
+        directory.mkdir(parents=True, exist_ok=True)
+        gitignore_path = directory / ".gitignore"
+        if not gitignore_path.exists():
+            try:
+                gitignore_path.write_text("*\n")
+            except OSError as e:
+                logging.warning(f"Failed to create .gitignore in {directory}: {e}")
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:

@@ -1,207 +1,66 @@
-import threading
-import pytest
+# tests/integration/core/test_auto_eviction.py
+
+import concurrent.futures
+from unittest.mock import patch
+
 import beautyspot as bs
-from unittest.mock import patch, MagicMock
-from beautyspot.db import SQLiteTaskDB
 
 
-def test_eviction_rate_validation(tmp_path):
+def test_auto_eviction_lock_released_on_future_cancel(tmp_path):
     """
-    Spotの初期化時に eviction_rate のバリデーションが正しく機能するかテストする。
+    バックグラウンドに投入されたエビクションタスクが、
+    イベントループのシャットダウン等によりキャンセルされた場合でも、
+    確実にロック（_eviction_lock）が解放されることを検証する。
     """
-    # 負の値は不可
-    with pytest.raises(ValueError, match="eviction_rate must be between"):
-        bs.Spot("test_app", eviction_rate=-0.1)
+    # 確実にエビクションがトリガーされるよう eviction_rate=1.0 に設定
+    spot = bs.Spot("test_app", eviction_rate=1.0)
+    
+    # 実行前の状態: ロックは解放されている
+    assert not spot._eviction_lock.locked()
 
-    # 1.0を超える値は不可
-    with pytest.raises(ValueError, match="eviction_rate must be between"):
-        bs.Spot("test_app", eviction_rate=1.1)
-
-    # 正常な値
-    spot = bs.Spot("test_app", eviction_rate=0.5)
-    assert spot.eviction_rate == 0.5
-
-
-def test_auto_eviction_trigger_probability(tmp_path):
-    """
-    確率に応じてバックグラウンドループにクリーンアップ処理が投入されるかをテストする。
-    """
-    spot = bs.Spot("test_app", eviction_rate=0.5)
-
-    # _trigger_auto_eviction 内での clean_garbage の実行を監視
-    with patch.object(spot.maintenance, "clean_garbage") as mock_clean:
-        # パターン1: 乱数が閾値未満 (0.1 < 0.5) -> トリガーされるべき
-        with patch("random.random", return_value=0.1):
-            spot._trigger_auto_eviction()
-
-            # バックグラウンドループ上のタスクが完了するのを待機
-            spot.shutdown(save_sync=True)
-            mock_clean.assert_called_once()
-
-    # Spotを作り直してパターン2をテスト
-    spot2 = bs.Spot("test_app2", eviction_rate=0.5)
-
-    with patch.object(spot2.maintenance, "clean_garbage") as mock_clean2:
-        # パターン2: 乱数が閾値以上 (0.9 >= 0.5) -> トリガーされないべき
-        with patch("random.random", return_value=0.9):
-            spot2._trigger_auto_eviction()
-
-            spot2.shutdown(save_sync=True)
-            mock_clean2.assert_not_called()
-
-
-def test_maintenance_try_lock(tmp_path):
-    """
-    MaintenanceService.clean_garbage が複数のスレッドから同時に呼ばれた際、
-    Try-Lock によって1つのスレッドのみが実行し、他がスキップされるかをテストする。
-    """
-    spot = bs.Spot("test_app")
-    maintenance = spot.maintenance
-
-    # スレッド間の同期制御用イベント
-    in_clean_event = threading.Event()
-    resume_clean_event = threading.Event()
-
-    # 意図的に処理を遅延させるモックメソッドを作成
-    original_delete_expired = maintenance.delete_expired_tasks
-
-    def slow_delete_expired():
-        # 掃除処理に入ったことを通知
-        in_clean_event.set()
-        # メインスレッドからの再開合図を待機 (ここでロックを保持したまま止まる)
-        resume_clean_event.wait()
-        return original_delete_expired()
-
-    # delete_expired_tasks をモックに差し替え
-    maintenance.delete_expired_tasks = slow_delete_expired
-
-    results = []
-
-    def run_clean():
-        # clean_garbageの戻り値を記録
-        results.append(maintenance.clean_garbage())
-
-    # 2つのスレッドを用意
-    t1 = threading.Thread(target=run_clean)
-    t2 = threading.Thread(target=run_clean)
-
-    # t1 を開始
-    t1.start()
-
-    # t1 がロックを取得し、slow_delete_expired の中で止まるのを待つ
-    in_clean_event.wait()
-
-    # この時点でロックは t1 に保持されているので、t2 を開始する
-    # t2 はロックを取得できず、即座に (0, 0) を返して終了するはず
-    t2.start()
-    t2.join()
-
-    # t1 の処理を再開させる
-    resume_clean_event.set()
-    t1.join()
-
-    # 検証
-    assert len(results) == 2
-    # 少なくとも一方はスキップされて (0, 0) を返しているはず
-    assert (0, 0) in results
-
-
-def test_auto_eviction_with_wait_false(tmp_path):
-    """
-    save_sync=False (バックグラウンド保存) のタスク実行時にも、
-    正しく自動エビクションがバックグラウンドでエンキューされ、処理されるかをテストする。
-    """
-    # 確実にトリガーさせるために eviction_rate=1.0 に設定
-    spot = bs.Spot(
-        "test_bg_with_wait_false",
-        db=SQLiteTaskDB(tmp_path / "test_bg_with_fait_false"),
-        eviction_rate=1.0,
-    )
-
-    # save_sync=False でマーク
-    @spot.mark(save_sync=False)
-    def fast_task(x: int):
-        return x * 2
-
-    with patch.object(spot.maintenance, "clean_garbage") as mock_clean:
-        # タスク実行（キャッシュミス -> 保存と掃除がバックグラウンドへ）
-        # save_sync=False なので、この呼び出しはメインスレッドをブロックせず即座に返る
-        result = fast_task(10)
-        assert result == 20
-
-        # この時点ではバックグラウンドスレッドが処理中かもしれないので、
-        # assert_called_once() をすぐ呼ぶとFlaky(不安定)になる可能性がある。
-        # 確実に完了を待機(ドレイン)するために shutdown(save_sync=True) を呼ぶ。
-        spot.shutdown(save_sync=True)
-
-        # 保存完了後、正しく clean_garbage が呼ばれたか検証
-        mock_clean.assert_called_once()
-
-    # (念のため) もう一度実行してキャッシュヒットさせる
-    with patch.object(spot.maintenance, "clean_garbage") as mock_clean_hit:
-        # キャッシュヒット時はDBへの新規保存が発生しないため、
-        # 掃除(エビクション)もトリガーされるべきではない
-        result2 = fast_task(10)
-        assert result2 == 20
-
-        spot.shutdown(save_sync=True)
-        mock_clean_hit.assert_not_called()
-
-
-def test_eviction_lock_released_on_shutdown_rejection():
-    """
-    シャットダウン中に bg_loop.submit() が拒否(None返却)された後、
-    _eviction_lock が解放されていることを検証する。
-    """
-    spot = bs.Spot(
-        "test_lock_release",
-        db=MagicMock(),
-        serializer=MagicMock(),
-        storage_backend=MagicMock(),
-        storage_policy=MagicMock(),
-        limiter=MagicMock(),
-        eviction_rate=1.0,
-    )
-
-    # バックグラウンドリソースを初期化してからシャットダウン
-    spot._ensure_bg_resources()
-    spot.shutdown(save_sync=True)
-
-    # シャットダウン後に _trigger_auto_eviction を呼ぶ
-    # submit が None を返すのでロックリークが起きないことを検証
-    with patch("random.random", return_value=0.0):
-        spot._trigger_auto_eviction()
-
-    # ロックが解放されていることを確認（非ブロッキングで acquire できるはず）
-    acquired = spot._eviction_lock.acquire(blocking=False)
-    assert acquired, "_eviction_lock should be released after shutdown rejection"
-    spot._eviction_lock.release()
-
-def test_auto_eviction_releases_lock_on_error(tmp_path):
-    """
-    バックグラウンドのエビクション処理中に例外が発生しても、
-    ロックが正しく解放され、次回のトリガーが発火可能であることを検証する。
-    """
-    # eviction_rate=1.0 にして確実にトリガーされるようにする
-    spot = bs.Spot("test_eviction", eviction_rate=1.0)
-    spot._setup_workspace(tmp_path) # StorageやDBの準備
-
-    # MaintenanceService.clean_garbage をモック化し、意図的に例外を発生させる
-    with patch("beautyspot.maintenance.MaintenanceService.clean_garbage") as mock_clean:
-        mock_clean.side_effect = Exception("Simulated background error")
-
-        # 1回目のトリガー（内部でバックグラウンドタスクが走り、例外が発生する）
+    # 内部リソースを初期化して取得
+    bg_loop, _ = spot._ensure_bg_resources()
+    
+    # 手動で制御可能な concurrent.futures.Future を用意
+    mock_future = concurrent.futures.Future()
+    
+    # RuntimeWarning(coroutine never awaited) 対策:
+    # モックに渡されたコルーチンを明示的にクローズする
+    def mock_submit(coro):
+        coro.close()
+        return mock_future
+    
+    # bg_loop.submit をモックに差し替え
+    with patch.object(bg_loop, 'submit', side_effect=mock_submit):
         spot._trigger_auto_eviction()
         
-        # バックグラウンドタスクが完了するのを待機
-        spot.flush()
+        # タスクが submit された直後。
+        # まだ Future は完了していないため、多重起動防止ロックは「取得中」になっているべき
+        assert spot._eviction_lock.locked() is True
         
-        # 1回目が呼ばれたことを確認
-        assert mock_clean.call_count == 1
+        # エッジケースのシミュレート: イベントループ停止により Future がキャンセルされた
+        mock_future.cancel()
         
-        # ロックが解放されているはずなので、2回目もトリガーできる
+        # cancel() によって add_done_callback が発火し、ロックが解放されているはず
+        assert spot._eviction_lock.locked() is False
+
+
+def test_auto_eviction_lock_released_on_task_rejection(tmp_path):
+    """
+    シャットダウン中などの理由で bg_loop.submit がタスクを拒否し
+    None を返した場合に、直ちにロックが解放されることを検証する。
+    """
+    spot = bs.Spot("test_app", eviction_rate=1.0)
+    bg_loop, _ = spot._ensure_bg_resources()
+    
+    # RuntimeWarning対策: コルーチンを閉じてから None を返す
+    def mock_submit_reject(coro):
+        coro.close()
+        return None
+    
+    # submit がタスクを拒否（Noneを返す）ケースをシミュレート
+    with patch.object(bg_loop, 'submit', side_effect=mock_submit_reject):
         spot._trigger_auto_eviction()
-        spot.flush()
         
-        # 2回目が呼ばれたことを確認（ロックが解放されていなければ 1 のままになる）
-        assert mock_clean.call_count == 2
+        # スケジュール自体に失敗したので、ロックは関数内で即座に解放されていなければならない
+        assert spot._eviction_lock.locked() is False

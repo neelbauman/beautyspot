@@ -65,10 +65,7 @@ def Spot(
     """
 
     # 0. デフォルトパス使用時のみワークスペースをセットアップ
-    #    カスタムパスを渡した場合、不要な .beautyspot/ を作らない
     _default_workspace = Path(".beautyspot")
-    if db is None or storage_backend is None:
-        _Spot._setup_workspace(_default_workspace)
 
     # 1. コンポーネントの解決 (DI)
     resolved_db = db or SQLiteTaskDB(_default_workspace / f"{name}.db")
