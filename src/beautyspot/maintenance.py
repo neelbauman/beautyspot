@@ -182,28 +182,29 @@ class MaintenanceService:
 
         return orphans
 
-    def clean_garbage(self, orphans: Optional[list[str]] = None) -> tuple[int, int]:
+    def clean_garbage(
+        self, 
+        orphans: Optional[list[str]] = None,
+        tmp_max_age_seconds: int = 86400
+    ) -> tuple[int, int]:
         """
         期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。
-
-        この処理はファイルI/OとDBアクセスを伴うため重くなる可能性があります。
-        複数スレッドから同時に呼び出された場合、最初のスレッドのみが実行し、
-        後続のスレッドは即座に(0, 0)を返してスキップします(Try-Lockパターン)。
+        また、アトミック書き込み時に残留した古い一時ファイル (.spot_tmp) の
+        クリーンアップも同時に行います。
 
         Args:
-            orphans: 事前にスキャンされた孤立ファイルのリスト。指定がない場合は自動でスキャンします。
+            orphans: 事前にスキャンされた孤立ファイルのリスト。
+            tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。
 
         Returns:
             tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)
         """
-        # Try-Lock: 既に他のスレッドが掃除中ならブロックせずに諦める
         if not self._cleaning_lock.acquire(blocking=False):
             logger.debug("Another eviction task is currently running. Skipping.")
             return 0, 0
 
         try:
-            # Phase 0: 期限切れタスクの削除 (DBから TTL 切れのレコードを消す)
-            # これを先に実行することで、後続の scan_garbage で正しく「孤立した」ファイルとして認識させます
+            # Phase 0: 期限切れタスクの削除
             deleted_expired_count = self.delete_expired_tasks()
             if deleted_expired_count > 0:
                 logger.info(f"Deleted {deleted_expired_count} expired tasks from DB.")
@@ -226,6 +227,14 @@ class MaintenanceService:
                 if deleted_orphan_count > 0:
                     logger.info(f"Deleted {deleted_orphan_count} orphaned blob files.")
 
+            # [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ
+            try:
+                tmp_count = self.storage.clean_temp_files(max_age_seconds=tmp_max_age_seconds)
+                if tmp_count > 0:
+                    logger.info(f"Removed {tmp_count} abandoned temporary files.")
+            except Exception as e:
+                logger.warning(f"Failed to clean temporary files: {e}")
+
             # Phase 3: 空ディレクトリ掃除
             try:
                 dir_count = self.storage.prune_empty_dirs()
@@ -237,7 +246,6 @@ class MaintenanceService:
             return deleted_expired_count, deleted_orphan_count
 
         finally:
-            # 処理が完了、あるいは例外が発生した場合でも確実にロックを解放する
             self._cleaning_lock.release()
 
     def resolve_key_prefix(self, prefix: str) -> str | list[str] | None:

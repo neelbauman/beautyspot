@@ -1,20 +1,12 @@
 # tests/integration/core/test_exit_drain.py
 
-import gc
+import subprocess
+import sys
 import time
+import gc
 import threading
 from unittest.mock import MagicMock
-import pytest
-
-from beautyspot.core import Spot, _active_loops
-
-
-@pytest.fixture(autouse=True)
-def clean_active_loops():
-    """テスト間の状態干渉を防ぐ"""
-    _active_loops.clear()
-    yield
-    _active_loops.clear()
+from beautyspot.core import Spot
 
 
 def test_zombie_thread_completes_tasks():
@@ -80,3 +72,90 @@ def test_zombie_thread_completes_tasks():
     assert success, (
         "GC後にバックグラウンドタスクが完遂されずに破棄されました（データロスト）"
     )
+
+def test_background_loop_graceful_drain_on_exit(tmp_path):
+    """
+    正常系:
+    atexit時、_BackgroundLoop がタイムアウト付きで
+    未完了タスクを正しくドレイン（処理完了）して終了することを確認する。
+    """
+    script_path = tmp_path / "simulate_exit.py"
+    flag_file = tmp_path / "done.flag"
+    
+    # 意図的に時間がかかるタスクを仕込み、すぐにメインプロセスを終了するスクリプト
+    script_content = f"""
+import asyncio
+import sys
+import logging
+from beautyspot.core import _BackgroundLoop
+
+logging.basicConfig(level=logging.INFO)
+loop = _BackgroundLoop(drain_timeout=3.0)
+
+async def slow_io_task():
+    await asyncio.sleep(1.0)  # 1秒かかるIO処理をシミュレート
+    with open(r'{flag_file}', 'w') as f:
+        f.write('success')
+
+# タスクを投入して即座にメインスレッドを終了（sys.exit）する
+loop.submit(slow_io_task())
+sys.exit(0)
+    """
+    script_path.write_text(script_content, encoding="utf-8")
+
+    # スクリプトを実行
+    start_time = time.time()
+    result = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
+    elapsed = time.time() - start_time
+    
+    # 実行が成功していること
+    assert result.returncode == 0
+    # メインスレッド終了(sys.exit)後もスレッドが生き残り、1秒後のファイル書き込みが成功しているはず
+    assert flag_file.exists(), f"File was not created. Stderr: {result.stderr}"
+    assert flag_file.read_text(encoding="utf-8") == "success"
+    # atexitでの待機が発生したため、実行時間は1秒以上かかっているはず
+    assert elapsed >= 1.0
+
+
+def test_background_loop_timeout_on_exit(tmp_path):
+    """
+    異常系（安全網）:
+    atexit時、タスクが drain_timeout を超過した場合は無限ハングせずに
+    強制終了（警告ログを出力）してプロセスが確実に終わることを確認する。
+    """
+    script_path = tmp_path / "simulate_timeout.py"
+    flag_file = tmp_path / "done_timeout.flag"
+    
+    script_content = f"""
+import asyncio
+import sys
+import logging
+from beautyspot.core import _BackgroundLoop
+
+# 標準エラー出力にログを出すように設定
+logging.basicConfig(level=logging.WARNING)
+
+# タイムアウトを極端に短く（1秒）設定
+loop = _BackgroundLoop(drain_timeout=1.0)
+
+async def too_slow_task():
+    await asyncio.sleep(3.0)  # タイムアウト(1秒)より長くかかるタスク
+    with open(r'{flag_file}', 'w') as f:
+        f.write('success')
+
+loop.submit(too_slow_task())
+sys.exit(0)
+    """
+    script_path.write_text(script_content, encoding="utf-8")
+
+    start_time = time.time()
+    result = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
+    elapsed = time.time() - start_time
+    
+    assert result.returncode == 0
+    # 3秒待たずに、タイムアウトの1秒強で強制終了しているはず
+    assert elapsed < 2.0
+    # タスクは完了前にキルされるため、ファイルは存在しないはず
+    assert not flag_file.exists()
+    # タイムアウト発生の警告ログが標準エラー出力に出ていることを確認
+    assert "BeautySpot background loop did not finish within 1.0s" in result.stderr

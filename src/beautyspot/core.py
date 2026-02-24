@@ -2,7 +2,6 @@
 
 import atexit
 import asyncio
-import concurrent.futures
 import hashlib
 import logging
 import functools
@@ -11,12 +10,13 @@ import random
 import threading
 import warnings
 import weakref
-from concurrent.futures import Executor, ThreadPoolExecutor, wait
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import (
     Any,
+    Coroutine,
     Callable,
     Optional,
     Union,
@@ -61,181 +61,100 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-# --- プロセス終了時のドレイン ---
-_active_loops: weakref.WeakSet["_BackgroundLoop"] = weakref.WeakSet()
-
-
-def _shutdown_all_loops():
-    """プロセス終了時に未完了のバックグラウンドタスクを安全にドレインする安全網。"""
-    for loop in list(_active_loops):
-        try:
-            # atexitのタイミングでは確実にデータを保存するため、
-            # キャンセルではなく完了を待つ drain_and_join を使う。
-            # ただし無制限に待たないようタイムアウトを設定
-            loop.drain_and_join(timeout=5.0)
-        except Exception as e:
-            logger.error(f"Error shutting down background loop during exit: {e}")
-
-
-# プロセス終了時のフックとして登録
-atexit.register(_shutdown_all_loops)
-
-
 class _BackgroundLoop:
-    """バックグラウンドで asyncio イベントループを実行するヘルパー。
-
-    専用スレッドで asyncio ループを動かし、保存処理を構造的に直列化する。
-    ``submit()`` で投入されたコルーチンは FIFO 順に逐次実行されるため、
-    ロックなしでスレッド安全性を確保できる。
+    """
+    バックグラウンドで非同期IOタスクを処理するイベントループ。
+    明示的なタスク追跡とスレッドロックにより、シャットダウン時の競合状態を完全に排除します。
     """
 
-    def __init__(self) -> None:
+    def __init__(self, drain_timeout: float = 5.0):
+        self._drain_timeout = drain_timeout
         self._loop = asyncio.new_event_loop()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._stopped = False
-        self._stopped_lock = threading.Lock()
+        
+        self._lock = threading.Lock()
+        self._is_shutting_down = False
+        self._active_tasks = 0  # 実行中（またはスケジュール待ち）のタスク数
+        
+        # daemon=True により、プロセス終了時の Python の無限ハングアップを防ぐ
+        self._thread = threading.Thread(
+            target=self._run_event_loop, 
+            daemon=True, 
+            name="BeautySpot-BGLoop"
+        )
         self._thread.start()
+        
+        # インスタンス自身が atexit を管理するため、グローバルな _active_loops 管理は不要
+        atexit.register(self._shutdown)
 
-        # 自身をトラッキングセットに追加
-        _active_loops.add(self)
-
-    def _run(self) -> None:
+    def _run_event_loop(self):
+        """専用スレッド内でイベントループを実行する"""
         asyncio.set_event_loop(self._loop)
         try:
             self._loop.run_forever()
         finally:
-            # メインスレッドからではなく、スレッドの終了直前に自身で確実にループを閉じる
             self._loop.close()
 
-    def submit(self, coro) -> concurrent.futures.Future:
-        """コルーチンをループに投入し、concurrent.futures.Future を返す。"""
-        return asyncio.run_coroutine_threadsafe(coro, self._loop)
+    async def _task_wrapper(self, coro: Coroutine) -> Any:
+        """タスクの完了を確実にフックし、必要ならループを停止するラッパー"""
+        try:
+            return await coro
+        finally:
+            with self._lock:
+                self._active_tasks -= 1
+                # シャットダウン中で、かつ最後のタスクが終わった瞬間ならループを止める
+                if self._is_shutting_down and self._active_tasks == 0:
+                    self._loop.call_soon_threadsafe(self._loop.stop)
 
-    def stop_gracefully_no_wait(self) -> None:
+    def submit(self, coro: Coroutine) -> Optional[Future[Any]]:
+        """スレッドセーフにタスクを投入する"""
+        with self._lock:
+            if self._is_shutting_down:
+                logger.debug("Background loop is shutting down. Task rejected.")
+                return None
+            
+            # ロック内でカウンタを増やすことで、確実にインフライトとして追跡される
+            self._active_tasks += 1
+            
+        try:
+            return asyncio.run_coroutine_threadsafe(self._task_wrapper(coro), self._loop)
+        except Exception:
+            # 万が一スケジュールに失敗した場合はカウンタを戻す
+            with self._lock:
+                self._active_tasks -= 1
+            raise
+
+    def stop(self, wait: bool = True):
         """
-        GC発生時など、メインスレッドをブロックせずに残りのタスクを完了させてから
-        ループを終了するためのメソッド。
+        ループに対して新規タスクの受付停止を通知し、シャットダウンシーケンスを開始する。
+        Spot.shutdown() や GCの _shutdown_resources() から呼び出される統一されたAPI。
         """
-        with self._stopped_lock:
-            if self._stopped:
+        with self._lock:
+            # 既にシャットダウン中であれば二重実行を避ける
+            if self._is_shutting_down:
                 return
-            self._stopped = True
-
-        def _drain_and_stop():
-            # 自分自身（このシャットダウン処理）以外の全タスクを取得
-            tasks = [
-                t
-                for t in asyncio.all_tasks(self._loop)
-                if t is not asyncio.current_task()
-            ]
-
-            if not tasks:
-                self._loop.stop()
-                return
-
-            # タスクをキャンセルするのではなく、完了を待機する
-            async def _wait_for_completion():
-                await asyncio.gather(*tasks, return_exceptions=True)
-                self._loop.stop()
-
-            self._loop.create_task(_wait_for_completion())
-
-        # スレッドセーフにシャットダウンシーケンスを投入（メインスレッドは即座にリターン）
-        self._loop.call_soon_threadsafe(_drain_and_stop)
-
-    def drain_and_join(self, timeout: float = 10.0) -> None:
-        """
-        未完了のタスクを**キャンセルせず完了まで待機**してからループを停止する。
-
-        プロセス終了時 (atexit) の安全網として使用する。
-        ``stop()`` と異なりタスクをキャンセルしないため、保存中のデータが
-        失われるリスクがない。タイムアウトを超えた場合のみ警告を出す。
-
-        Args:
-            timeout: スレッド終了待機の最大時間（秒）。
-        """
-        with self._stopped_lock:
-            if self._stopped:
-                return
-            self._stopped = True
-
-        def _drain_and_stop():
-            tasks = [
-                t
-                for t in asyncio.all_tasks(self._loop)
-                if t is not asyncio.current_task()
-            ]
-
-            if not tasks:
-                self._loop.stop()
-                return
-
-            async def _wait_for_completion():
-                await asyncio.gather(*tasks, return_exceptions=True)
-                self._loop.stop()
-
-            self._loop.create_task(_wait_for_completion())
-
-        self._loop.call_soon_threadsafe(_drain_and_stop)
-
-        self._thread.join(timeout=timeout)
-        if self._thread.is_alive():
-            logger.warning(
-                f"Background loop thread did not terminate within {timeout} seconds. "
-                "Some pending save tasks may not have completed."
-            )
-
-    def stop(self, wait: bool = True, timeout: float = 10.0) -> None:
-        """
-        ループを安全に停止する (Graceful Shutdown)。
-
-        wait=True の場合、実行中のタスクに対してキャンセル要求 (asyncio.CancelledError)
-        を送信し、それらが安全に終了するのを待機してからループを閉じます。
-
-        Args:
-            wait: True の場合、タスクのキャンセルとスレッドの終了を待機する。
-            timeout: スレッド終了待機の最大時間（秒）。
-        """
-        with self._stopped_lock:
-            if self._stopped:
-                return
-            self._stopped = True
-
-        def _cancel_tasks_and_stop():
-            # 現在のループで実行中の全タスクを取得（自分自身は除く）
-            tasks = [
-                t
-                for t in asyncio.all_tasks(self._loop)
-                if t is not asyncio.current_task()
-            ]
-
-            if not tasks:
-                self._loop.stop()
-                return
-
-            # 各タスクにキャンセルを要求
-            for task in tasks:
-                task.cancel()
-
-            # タスクのキャンセル処理（例外の送出と捕捉）が完了するのを待機してから停止
-            async def _wait_for_cancellation():
-                await asyncio.gather(*tasks, return_exceptions=True)
-                self._loop.stop()  # これにより run_forever() が終了し、finallyブロックへ進む
-
-            self._loop.create_task(_wait_for_cancellation())
-
-        # スレッドセーフにシャットダウンシーケンスを開始
-        self._loop.call_soon_threadsafe(_cancel_tasks_and_stop)
-
-        # wait=True の場合のみスレッド終了を待つ。
-        # Spot.shutdown(wait=False) や GCからの呼び出しではメインスレッドをブロックしない。
+            self._is_shutting_down = True
+            
+            # 現在アクティブなタスクがゼロなら、即座にループ停止をスケジュール
+            if self._active_tasks == 0:
+                self._loop.call_soon_threadsafe(self._loop.stop)
+                
         if wait:
-            self._thread.join(timeout=timeout)
+            # アクティブなタスクが残っている場合は、最後の _task_wrapper が stop() を呼ぶ
+            # タイムアウト付きでスレッドの終了（＝ループの停止）を待つ
+            self._thread.join(timeout=self._drain_timeout)
+            
             if self._thread.is_alive():
                 logger.warning(
-                    f"Background loop thread did not terminate within {timeout} seconds. "
-                    "Some IO tasks might be stuck."
+                    f"BeautySpot background loop did not finish within {self._drain_timeout}s. "
+                    "Pending IO tasks have been abruptly terminated."
                 )
+
+    def _shutdown(self):
+        """
+        [atexit フック] 
+        プロセス終了時に呼ばれる安全網。タイムアウト付きの待機を実行する。
+        """
+        self.stop(wait=True)
 
 
 class Spot:
@@ -373,6 +292,8 @@ class Spot:
 
     def _track_future(self, future: Any):
         """Futureを追跡セットに加え、完了したら削除する"""
+        if future is None:
+            return
         with self._futures_lock:
             self._active_futures.add(future)
 
@@ -438,7 +359,7 @@ class Spot:
     @staticmethod
     def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
         """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
-        bg_loop.stop_gracefully_no_wait()
+        bg_loop.stop(wait=False)
         executor.shutdown(wait=False)
 
     def shutdown(self, wait: bool = True):
@@ -462,7 +383,7 @@ class Spot:
 
     def _drain_futures(self) -> None:
         """保留中のすべての Future が完了するまで待機するドレインループ。"""
-        for i in range(self._MAX_DRAIN_ITERATIONS):
+        for _ in range(self._MAX_DRAIN_ITERATIONS):
             with self._futures_lock:
                 snapshot = list(self._active_futures)
             if not snapshot:
@@ -909,6 +830,8 @@ class Spot:
             coro = self._save_result_async(**save_kwargs)
             try:
                 future = bg_loop.submit(coro)
+                if future is None:
+                    coro.close()  # シャットダウン拒否時にコルーチンを破棄
             except RuntimeError:
                 coro.close()  # コルーチンを安全にクリーンアップ
                 raise

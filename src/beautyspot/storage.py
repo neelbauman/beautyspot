@@ -4,6 +4,7 @@ import os
 import io
 import logging
 import tempfile
+import time
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias, Iterator, Protocol, runtime_checkable
@@ -124,6 +125,14 @@ class BlobStorageBase(ABC):
         """
         return 0
 
+    def clean_temp_files(self, max_age_seconds: int = 86400) -> int:
+        """
+        Clean up abandoned temporary files older than the specified age.
+        Returns the count of removed files.
+        Default implementation is a no-op.
+        """
+        return 0
+
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str | Path):
@@ -147,7 +156,7 @@ class LocalStorage(BlobStorageBase):
         # when multiple threads/processes write concurrently.
         # flush + fsync ensures data reaches disk before rename,
         # so a crash between write and rename never leaves a corrupt file.
-        fd, temp_path_str = tempfile.mkstemp(dir=self.base_dir, suffix=".tmp")
+        fd, temp_path_str = tempfile.mkstemp(dir=self.base_dir, suffix=".spot_tmp")
         try:
             with os.fdopen(fd, "wb") as f:
                 f.write(data)
@@ -158,11 +167,10 @@ class LocalStorage(BlobStorageBase):
             try:
                 os.unlink(temp_path_str)
             except OSError:
+                # PermissionError等で消せなかった場合は残留するが、後でGCが回収する
                 pass
             raise
 
-        # [CHANGED] Return filename (relative path) instead of absolute path
-        # This enables portability of the DB/Blob set across different environments.
         return filename
 
     def load(self, location: str) -> bytes:
@@ -218,6 +226,30 @@ class LocalStorage(BlobStorageBase):
             if entry.is_file():
                 # base_dir からの相対パスを返す
                 yield str(entry.relative_to(self.base_dir).as_posix())
+
+    def clean_temp_files(self, max_age_seconds: int = 86400) -> int:
+        """
+        Remove '.spot_tmp' files that are older than max_age_seconds.
+        Provides a fail-safe against leaked temporary files due to file locks.
+        """
+        if not self.base_dir.exists():
+            return 0
+
+        removed_count = 0
+        now = time.time()
+
+        for entry in self.base_dir.rglob("*.spot_tmp"):
+            if entry.is_file():
+                try:
+                    # 猶予期間（デフォルト24時間）を経過しているかチェック
+                    if now - entry.stat().st_mtime > max_age_seconds:
+                        entry.unlink()
+                        removed_count += 1
+                except OSError:
+                    # アンチウイルスソフト等で現在もロックされている場合はスキップ
+                    pass
+
+        return removed_count
 
     def prune_empty_dirs(self) -> int:
         """

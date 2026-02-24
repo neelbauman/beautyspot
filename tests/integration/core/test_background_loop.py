@@ -3,10 +3,14 @@
 """asyncio バックグラウンドループによる保存の統合テスト。"""
 
 import time
-from unittest.mock import MagicMock
-
+import threading
 import beautyspot as bs
+import asyncio
+import pytest
+from unittest.mock import MagicMock
+from beautyspot.core import _BackgroundLoop
 from beautyspot.db import SQLiteTaskDB
+
 
 
 def test_background_loop_saves_correctly(tmp_path):
@@ -141,3 +145,101 @@ def test_shutdown_after_background_saves(tmp_path):
     elapsed = time.time() - start
 
     assert elapsed >= 0.4, "shutdown should wait for pending saves"
+
+def test_background_loop_basic_submit_and_drain():
+    """
+    正常系: タスクを投入し、stop(wait=True) で全てのタスクが確実に完了（ドレイン）することを確認する。
+    """
+    loop = _BackgroundLoop(drain_timeout=2.0)
+    results = []
+
+    async def sample_task(task_id: int):
+        await asyncio.sleep(0.1)
+        results.append(task_id)
+
+    # 3つのタスクを投入
+    f1 = loop.submit(sample_task(1))
+    f2 = loop.submit(sample_task(2))
+    f3 = loop.submit(sample_task(3))
+
+    assert f1 is not None and f2 is not None and f3 is not None
+
+    # シャットダウン開始（全てのタスクの完了を待機するはず）
+    loop.stop(wait=True)
+
+    # 全てのタスクが処理されていること
+    assert sorted(results) == [1, 2, 3]
+    # スレッドが正しく終了していること
+    assert not loop._thread.is_alive()
+
+def test_background_loop_rejects_tasks_after_stop():
+    """
+    エッジケース: シャットダウンシーケンスに入った後は、新規タスクの投入が拒否（Noneが返却）されること。
+    """
+    loop = _BackgroundLoop(drain_timeout=1.0)
+    
+    # 停止
+    loop.stop(wait=True)
+
+    async def dummy_task():
+        pass
+
+    # 停止後の投入は None を返すはず
+    future = loop.submit(dummy_task())
+    assert future is None
+
+def test_background_loop_handles_task_exceptions():
+    """
+    異常系: バックグラウンドタスク内で例外が発生しても、ループ自体はクラッシュせず、
+    Future経由で正しく例外を捕捉できること。
+    """
+    loop = _BackgroundLoop(drain_timeout=1.0)
+
+    async def failing_task():
+        await asyncio.sleep(0.05)
+        raise ValueError("Something went wrong in background")
+
+    async def successful_task():
+        await asyncio.sleep(0.1)
+        return "Success"
+
+    # 失敗するタスクと成功するタスクを両方投入
+    future_fail = loop.submit(failing_task())
+    future_succ = loop.submit(successful_task())
+
+    assert future_fail is not None
+    assert future_succ is not None
+
+    # failing_task の例外を Future から捕捉
+    with pytest.raises(ValueError, match="Something went wrong in background"):
+        future_fail.result(timeout=1.0)
+
+    # successful_task は巻き添えにならず正常に完了する
+    assert future_succ.result(timeout=1.0) == "Success"
+
+    loop.stop(wait=True)
+
+def test_background_loop_stop_no_wait():
+    """
+    GCファイナライザ用: stop(wait=False) が呼ばれた場合、
+    メインスレッドをブロックせずに即座に制御を返すこと。
+    """
+    loop = _BackgroundLoop(drain_timeout=5.0)
+    
+    task_started = threading.Event()
+
+    async def slow_task():
+        task_started.set()
+        await asyncio.sleep(2.0)  # 意図的に遅いタスク
+
+    loop.submit(slow_task())
+    
+    # タスクの開始を待つ
+    assert task_started.wait(timeout=1.0)
+
+    start_time = time.time()
+    # wait=False なので、タスクの完了を待たずに即座にリターンするはず
+    loop.stop(wait=False)
+    elapsed = time.time() - start_time
+
+    assert elapsed < 0.5  # 2秒待たずにすぐ返ってきていること

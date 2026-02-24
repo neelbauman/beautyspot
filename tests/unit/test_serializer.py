@@ -179,3 +179,75 @@ def test_raw_bytes_support():
     restored = serializer.loads(serializer.dumps(original))
 
     assert restored.name == "BytesUser"
+
+def test_serializer_subclass_cache_eviction():
+    """
+    LRUキャッシュの追い出しテスト:
+    動的に生成されたクラスの数が max_cache_size を超えた場合、
+    キャッシュサイズが上限値に維持され、古いものが破棄されることを確認する。
+    """
+    # テスト用に小さな上限値を設定
+    serializer = MsgpackSerializer(max_cache_size=5)
+    
+    class BaseType:
+        pass
+        
+    # BaseType を登録
+    serializer.register(BaseType, 10, lambda x: "base_data", lambda x: BaseType())
+    
+    subclasses = []
+    # 上限(5)を超える10個の動的サブクラスを生成してシリアライズ
+    for i in range(10):
+        SubClass = type(f"DynamicClass_{i}", (BaseType,), {})
+        subclasses.append(SubClass)
+        serializer.dumps(SubClass())
+        
+    # キャッシュサイズが上限の5に保たれていることを確認
+    assert len(serializer._subclass_cache) == 5
+    
+    # 最近使われた5つ（インデックス5〜9）がキャッシュに残っていることを確認
+    for i in range(5, 10):
+        assert subclasses[i] in serializer._subclass_cache
+        
+    # 古い5つ（インデックス0〜4）はキャッシュから追い出されていることを確認
+    for i in range(5):
+        assert subclasses[i] not in serializer._subclass_cache
+
+def test_serializer_subclass_cache_lru_ordering():
+    """
+    LRUキャッシュの順序更新テスト:
+    既存のキャッシュにヒットした際、その要素が最新（末尾）に移動し、
+    後続の追い出し処理で保護されることを確認する。
+    """
+    serializer = MsgpackSerializer(max_cache_size=3)
+    
+    class BaseType:
+        pass
+        
+    serializer.register(BaseType, 10, lambda x: "base_data", lambda x: BaseType())
+    
+    SubA = type("SubA", (BaseType,), {})
+    SubB = type("SubB", (BaseType,), {})
+    SubC = type("SubC", (BaseType,), {})
+    SubD = type("SubD", (BaseType,), {})
+    
+    # キャッシュを上限まで埋める (順序: A -> B -> C)
+    serializer.dumps(SubA())
+    serializer.dumps(SubB())
+    serializer.dumps(SubC())
+    
+    assert list(serializer._subclass_cache.keys()) == [SubA, SubB, SubC]
+    
+    # SubA を再度シリアライズ（キャッシュヒット）
+    # これにより SubA が最新として末尾に移動するはず (順序: B -> C -> A)
+    serializer.dumps(SubA())
+    assert list(serializer._subclass_cache.keys()) == [SubB, SubC, SubA]
+    
+    # 新しい SubD をシリアライズして上限を超える
+    # 最も古い SubB が追い出されるはず (順序: C -> A -> D)
+    serializer.dumps(SubD())
+    
+    assert list(serializer._subclass_cache.keys()) == [SubC, SubA, SubD]
+    assert SubB not in serializer._subclass_cache
+    assert SubA in serializer._subclass_cache  # 一度アクセスされたSubAは生き残る
+

@@ -1,6 +1,7 @@
 # src/beautyspot/serializer.py
 
 import msgpack
+from collections import OrderedDict
 from typing import (
     Any,
     Callable,
@@ -49,15 +50,21 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
 
     Allows registering custom types via `register()`.
     Automatically handles packing/unpacking of custom type payloads.
+
+    Note:
+        To prevent memory leaks in environments where types are generated dynamically
+        (e.g., namedtuples, dynamic Pydantic models), subclass resolution results 
+        are cached using an LRU strategy with a configurable maximum size.
     """
 
-    def __init__(self):
+    def __init__(self, max_cache_size: int = 1024):
         # Type -> (ExtCode, Encoder)
         self._encoders: Dict[Type, Tuple[int, Callable[[Any], Any]]] = {}
         # ExtCode -> Decoder
         self._decoders: Dict[int, Callable[[Any], Any]] = {}
         # Subclass lookup cache: Type -> (ExtCode, Encoder) or None
-        self._subclass_cache: Dict[Type, Tuple[int, Callable[[Any], Any]] | None] = {}
+        self._subclass_cache: OrderedDict[Type, Tuple[int, Callable[[Any], Any]] | None] = OrderedDict()
+        self._max_cache_size = max_cache_size
 
     def register(
         self,
@@ -92,6 +99,11 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         self._decoders[code] = decoder
         self._subclass_cache.clear()
 
+    def _enforce_cache_size(self):
+        """Evict the oldest items if the cache exceeds the maximum size."""
+        while len(self._subclass_cache) > self._max_cache_size:
+            self._subclass_cache.popitem(last=False)
+
     def _default_packer(self, obj: Any) -> Any:
         """
         [Wrapper Logic]
@@ -109,6 +121,9 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
             # Subclass support with cache
             if obj_type in self._subclass_cache:
                 cached = self._subclass_cache[obj_type]
+                # LRUの更新: アクセスされたものを最新として扱う
+                self._subclass_cache.move_to_end(obj_type)
+
                 if cached is not None:
                     target_code, target_encoder = cached
             else:
@@ -116,9 +131,11 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
                     if isinstance(obj, t):
                         target_code, target_encoder = c, e
                         self._subclass_cache[obj_type] = (c, e)
+                        self._enforce_cache_size()
                         break
                 else:
                     self._subclass_cache[obj_type] = None
+                    self._enforce_cache_size()
 
         # 2. Execute & Wrap
         if target_encoder:

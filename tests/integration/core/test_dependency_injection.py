@@ -44,7 +44,7 @@ class MockDB(TaskDBBase):
     def init_schema(self):
         pass
 
-    def get(self, cache_key: str):
+    def get(self, cache_key: str, *, include_expired: bool = False):
         return self.store.get(cache_key)
 
     def save(
