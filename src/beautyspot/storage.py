@@ -217,7 +217,7 @@ class LocalStorage(BlobStorageBase):
 
         # Security check: Ensure the path is strictly within the base_dir
         if not full_path.is_relative_to(self.base_dir):
-            raise ValueError(
+            raise CacheCorruptedError(
                 f"Access denied: {location} resolves to {full_path}, which is outside {self.base_dir}"
             )
 

@@ -204,15 +204,15 @@ def test_serializer_subclass_cache_eviction():
         serializer.dumps(SubClass())
 
     # キャッシュサイズが上限の5に保たれていることを確認
-    assert len(serializer._subclass_cache) == 5
+    assert len(serializer._get_local_cache()) == 5
 
     # 最近使われた5つ（インデックス5〜9）がキャッシュに残っていることを確認
     for i in range(5, 10):
-        assert subclasses[i] in serializer._subclass_cache
+        assert subclasses[i] in serializer._get_local_cache()
 
     # 古い5つ（インデックス0〜4）はキャッシュから追い出されていることを確認
     for i in range(5):
-        assert subclasses[i] not in serializer._subclass_cache
+        assert subclasses[i] not in serializer._get_local_cache()
 
 
 def test_serializer_subclass_cache_lru_ordering():
@@ -238,20 +238,20 @@ def test_serializer_subclass_cache_lru_ordering():
     serializer.dumps(SubB())
     serializer.dumps(SubC())
 
-    assert list(serializer._subclass_cache.keys()) == [SubA, SubB, SubC]
+    assert list(serializer._get_local_cache().keys()) == [SubA, SubB, SubC]
 
     # SubA を再度シリアライズ（キャッシュヒット）
     # これにより SubA が最新として末尾に移動するはず (順序: B -> C -> A)
     serializer.dumps(SubA())
-    assert list(serializer._subclass_cache.keys()) == [SubB, SubC, SubA]
+    assert list(serializer._get_local_cache().keys()) == [SubB, SubC, SubA]
 
     # 新しい SubD をシリアライズして上限を超える
     # 最も古い SubB が追い出されるはず (順序: C -> A -> D)
     serializer.dumps(SubD())
 
-    assert list(serializer._subclass_cache.keys()) == [SubC, SubA, SubD]
-    assert SubB not in serializer._subclass_cache
-    assert SubA in serializer._subclass_cache  # 一度アクセスされたSubAは生き残る
+    assert list(serializer._get_local_cache().keys()) == [SubC, SubA, SubD]
+    assert SubB not in serializer._get_local_cache()
+    assert SubA in serializer._get_local_cache()  # 一度アクセスされたSubAは生き残る
 
 
 # tests/unit/test_serializer.py に追加
@@ -351,12 +351,12 @@ def test_mro_caching_after_resolution():
     serializer.register(Base, 10, lambda x: "data", lambda x: "decoded")
 
     # 初回アクセス（キャッシュにない状態）
-    assert Sub not in serializer._subclass_cache
+    assert Sub not in serializer._get_local_cache()
     serializer.dumps(Sub())
 
     # キャッシュに登録されていることを確認
-    assert Sub in serializer._subclass_cache
-    assert serializer._subclass_cache[Sub] == (10, serializer._encoders[Base][1])
+    assert Sub in serializer._get_local_cache()
+    assert serializer._get_local_cache()[Sub] == (10, serializer._encoders[Base][1])
 
     # 2回目アクセス：内部でキャッシュから即座に返される（振る舞いとして確認）
     packed = serializer.dumps(Sub())

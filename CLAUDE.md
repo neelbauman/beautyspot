@@ -173,7 +173,7 @@ def test_basic_cache(tmp_path):
 1. Add the parameter to `Spot.mark()` in `core.py`.
 2. Thread it through `_execute_sync` and `_execute_async`.
 3. Update `_resolve_settings` if it needs a Spot-level default.
-4. Update `Spot.cached_run()` and `ScopedMark.__init__` if it applies there too.
+4. Update `Spot.cached_run()` if it applies there too.
 5. Update the factory in `__init__.py` if it needs a constructor-level default.
 6. Tests: `tests/unit/` for logic, `tests/integration/core/` for end-to-end.
 

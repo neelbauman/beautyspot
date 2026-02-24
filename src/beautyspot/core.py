@@ -46,6 +46,7 @@ from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGen, KeyGenPolicy
 from beautyspot.exceptions import (
     CacheCorruptedError,
+    ConfigurationError,
     IncompatibleProviderError,
     ValidationError,
 )
@@ -295,7 +296,8 @@ class Spot:
 
         # サンダリングハード対策: 同一キーの並行実行を直列化する
         # キャッシュミスを検出した複数スレッドが同時に同じ関数を実行するのを防ぐ。
-        self._inflight: dict[str, threading.Event] = {}
+        # tuple: (threading.Event, list[asyncio.Future], list[result])
+        self._inflight: dict[str, tuple[threading.Event, list[asyncio.Future], list]] = {}
         self._inflight_lock = threading.Lock()
 
     def __enter__(self) -> "Spot":
@@ -380,7 +382,7 @@ class Spot:
     ) -> None:
         """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
         bg_loop.stop(save_sync=False)
-        executor.shutdown(wait=False)
+        executor.shutdown(wait=False, cancel_futures=True)
         try:
             db.shutdown(wait=False)
         except Exception as e:
@@ -404,7 +406,7 @@ class Spot:
             self._bg_loop.stop(save_sync=save_sync)
 
         if self._executor is not None:
-            self._executor.shutdown(wait=save_sync)
+            self._executor.shutdown(wait=save_sync, cancel_futures=not save_sync)
 
         try:
             self.db.shutdown(wait=save_sync)
@@ -504,14 +506,12 @@ class Spot:
 
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
 
+        with self._futures_lock:
+            pending_futures = list(self._active_futures)
+
         # バックグラウンド実行用の安全なラッパー
         def _run_clean_safe():
             try:
-                # 1. 保存タスクの完了を待機 (レースコンディション防止)
-                # このエビクションがスケジュールされた時点までの保存がDBに反映されるのを保証する
-                self.flush()
-
-                # 2. クリーンアップ実行 (猶予期間 60秒)
                 self.maintenance.clean_garbage(orphan_grace_seconds=60.0)
             except Exception as e:
                 logger.error(
@@ -526,6 +526,15 @@ class Spot:
 
             async def _run_clean_coro():
                 loop = asyncio.get_running_loop()
+                # 1. 保存タスクの完了を非同期に待機 (レースコンディション防止)
+                # このエビクションがスケジュールされた時点までの保存がDBに反映されるのを保証する
+                if pending_futures:
+                    # concurrent.futures.Future を asyncio.Future にラップして待つ
+                    await asyncio.wait(
+                        [asyncio.wrap_future(f) for f in pending_futures],
+                        timeout=self._drain_timeout,
+                    )
+                # 2. クリーンアップ実行 (猶予期間 60秒) を別スレッドで実行
                 await loop.run_in_executor(executor, _run_clean_safe)
 
             coro = _run_clean_coro()
@@ -542,6 +551,12 @@ class Spot:
                 def _on_eviction_done(fut):
                     self._last_eviction_time = time.monotonic()
                     self._eviction_lock.release()
+                    try:
+                        exc = fut.exception()
+                        if exc:
+                            logger.error(f"Auto-eviction task failed: {exc}")
+                    except (asyncio.CancelledError, Exception):
+                        pass
 
                 future.add_done_callback(_on_eviction_done)
                 is_scheduled = True
@@ -635,8 +650,13 @@ class Spot:
             return None
 
         # 1. ローカル指定 (優先度: 高)
-        # _FOREVER は上で除外済みなので、parse_retention の受け入れ型に安全にキャスト
-        assert not isinstance(local_retention, _ForeverSentinel)
+        # _FOREVER は上で除外済みなので、ここに到達した時点で _ForeverSentinel は想定外。
+        # Bug Fix (Bug8): assert は python -O で無効化されるため if/raise に変更。
+        if isinstance(local_retention, _ForeverSentinel):
+            raise RuntimeError(
+                "内部エラー: _ForeverSentinel が parse_retention に到達しました。"
+                "これはバグです。Issue として報告してください。"
+            )
         retention = parse_retention(local_retention)
 
         # 2. ポリシー指定 (優先度: 低)
@@ -768,18 +788,46 @@ class Spot:
 
         # === 2.5 Thundering Herd Protection ===
         event = None
+        result_box = []
         while True:
             with self._inflight_lock:
                 if ck not in self._inflight:
                     # 自分が実行者になる
                     event = threading.Event()
-                    self._inflight[ck] = event
+                    self._inflight[ck] = (event, [], result_box)
                     break
                 # 他の実行者がいる場合はその完了を待つ
-                wait_event = self._inflight[ck]
+                wait_event, _, wait_box = self._inflight[ck]
 
-            # ロックの外側で待機
-            wait_event.wait()
+            # Bug Fix (Bug3): タイムアウトなし wait() は実行者スレッドが event.set() を
+            # 呼ばなかった場合（稀な異常終了）に永久ブロックする。
+            # 5秒ポーリングで定期的にウェイクアップし、永久ブロックを防止する。
+            while not wait_event.wait(timeout=5.0):
+                pass
+
+            if wait_box:
+                success, val = wait_box[0]
+                if success:
+                    self._dispatch_hooks(
+                        hooks,
+                        "on_cache_hit",
+                        CacheHitContext(
+                            func_name=func.__name__,
+                            input_id=str(iid),
+                            cache_key=ck,
+                            args=args,
+                            kwargs=hook_kwargs,
+                            result=val,
+                            version=s_ver,
+                        ),
+                    )
+                    return val
+                else:
+                    try:
+                        new_exc = type(val)(*val.args)
+                    except Exception:
+                        new_exc = RuntimeError(f"Error occurred in another thread during cache evaluation: {repr(val)}")
+                    raise new_exc from val
 
             # 再度キャッシュをチェック
             cached = self._check_cache_sync(ck, serializer)
@@ -818,6 +866,9 @@ class Spot:
                     version=s_ver,
                 ),
             )
+            
+            # 結果を待機中の他のスレッドに共有する
+            result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
             expires_at = self._calculate_expires_at(
@@ -850,11 +901,28 @@ class Spot:
                     self._handle_save_error(e, save_kwargs)
                     if self.on_background_error is None:
                         raise
+        except BaseException as e:
+            if not result_box:
+                result_box.append((False, e))
+            raise
         finally:
+            futs_to_notify = []
             with self._inflight_lock:
-                if self._inflight.get(ck) is event:
+                val = self._inflight.get(ck)
+                if val is not None and val[0] is event:
+                    _, futs_to_notify, _ = val
                     del self._inflight[ck]
-            event.set()
+            if event is not None:
+                event.set()
+                # 実行結果があれば、待機中の asyncio.Future にも通知する
+                if result_box and futs_to_notify:
+                    success, res_val = result_box[0]
+                    for fut in futs_to_notify:
+                        if not fut.done():
+                            if success:
+                                fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
+                            else:
+                                fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
 
         self._trigger_auto_eviction()
 
@@ -925,18 +993,69 @@ class Spot:
 
         # === 2.5 Thundering Herd Protection ===
         event = None
+        result_box = []
+        fut = None
         while True:
             with self._inflight_lock:
                 if ck not in self._inflight:
                     # 自分が実行者になる
                     event = threading.Event()
-                    self._inflight[ck] = event
+                    self._inflight[ck] = (event, [], result_box)
                     break
                 # 他の実行者がいる場合はその完了を待つ
-                wait_event = self._inflight[ck]
+                wait_event, futs, wait_box = self._inflight[ck]
+                if wait_box:
+                    # 既に結果が出ている場合はそのまま取得するパスへ
+                    pass
+                else:
+                    fut = loop.create_future()
+                    futs.append(fut)
 
-            # ロックの外側で、イベントループをブロックせずに待機
-            await loop.run_in_executor(None, wait_event.wait)
+            if fut is not None:
+                try:
+                    val = await fut
+                    success = True
+                except Exception as e:
+                    val = e
+                    success = False
+            else:
+                if wait_box:
+                    success, val = wait_box[0]
+                else:
+                    # 原理的にここには来ないはずだがフォールバック
+                    # Bug Fix (Bug3): タイムアウトなし wait はスレッドプールワーカーを
+                    # 無期限に占有する。5秒ポーリングで永久ブロックを防止する。
+                    while not await loop.run_in_executor(
+                        None, functools.partial(wait_event.wait, 5.0)
+                    ):
+                        pass
+                    if wait_box:
+                        success, val = wait_box[0]
+                    else:
+                        continue
+
+            if wait_box or fut is not None:
+                if success:
+                    self._dispatch_hooks(
+                        hooks,
+                        "on_cache_hit",
+                        CacheHitContext(
+                            func_name=func.__name__,
+                            input_id=str(iid),
+                            cache_key=ck,
+                            args=args,
+                            kwargs=hook_kwargs,
+                            result=val,
+                            version=s_ver,
+                        ),
+                    )
+                    return val
+                else:
+                    try:
+                        new_exc = type(val)(*val.args)
+                    except Exception:
+                        new_exc = RuntimeError(f"Error occurred in another thread during cache evaluation: {repr(val)}")
+                    raise new_exc from val
 
             # 再度キャッシュをチェック
             cached = await loop.run_in_executor(
@@ -976,6 +1095,9 @@ class Spot:
                     version=s_ver,
                 ),
             )
+            
+            # 結果を待機中の他のスレッドに共有する
+            result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
             expires_at = self._calculate_expires_at(
@@ -997,10 +1119,20 @@ class Spot:
 
             if s_save_sync:
                 try:
-                    await loop.run_in_executor(
-                        executor,
-                        functools.partial(self._save_result_sync, **save_kwargs),
-                    )
+                    # _submit_background_saveと同様にbg_loopにタスクを投入し、
+                    # 返却される concurrent.futures.Future を await することで
+                    # イベントループをブロックせず、スレッドプールの占有も避ける
+                    bg_loop, exec_pool = self._ensure_bg_resources()
+                    coro = self._save_result_async(executor=exec_pool, **save_kwargs)
+                    try:
+                        future = bg_loop.submit(coro)
+                        if future is None:
+                            self._notify_save_discarded(save_kwargs)
+                        else:
+                            await asyncio.wrap_future(future)
+                    except RuntimeError:
+                        coro.close()
+                        raise
                 except Exception as e:
                     self._handle_save_error(e, save_kwargs)
                     if self.on_background_error is None:
@@ -1012,11 +1144,28 @@ class Spot:
                     self._handle_save_error(e, save_kwargs)
                     if self.on_background_error is None:
                         raise
+        except BaseException as e:
+            if not result_box:
+                result_box.append((False, e))
+            raise
         finally:
+            futs_to_notify = []
             with self._inflight_lock:
-                if self._inflight.get(ck) is event:
+                val = self._inflight.get(ck)
+                if val is not None and val[0] is event:
+                    _, futs_to_notify, _ = val
                     del self._inflight[ck]
-            event.set()
+            if event is not None:
+                event.set()
+                # 実行結果があれば、待機中の asyncio.Future にも通知する
+                if result_box and futs_to_notify:
+                    success, res_val = result_box[0]
+                    for fut in futs_to_notify:
+                        if not fut.done():
+                            if success:
+                                fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
+                            else:
+                                fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
 
         self._trigger_auto_eviction()
 
@@ -1090,6 +1239,14 @@ class Spot:
     @staticmethod
     def _build_save_error_context(save_kwargs: dict) -> SaveErrorContext:
         """save_kwargs から SaveErrorContext を構築する共通ヘルパー。"""
+        import sys
+        result = save_kwargs.get("result")
+        result_type = type(result).__name__
+        try:
+            result_size = sys.getsizeof(result)
+        except Exception:
+            result_size = None
+
         return SaveErrorContext(
             func_name=save_kwargs.get("func_name", "unknown"),
             cache_key=save_kwargs.get("cache_key", ""),
@@ -1098,7 +1255,8 @@ class Spot:
             content_type=save_kwargs.get("content_type"),
             save_blob=save_kwargs.get("save_blob"),
             expires_at=save_kwargs.get("expires_at"),
-            result=save_kwargs.get("result"),
+            result_type=result_type,
+            result_size=result_size,
         )
 
     def _invoke_error_callback(self, err: Exception, save_kwargs: dict) -> None:
@@ -1294,6 +1452,12 @@ class Spot:
         """
 
         def decorator(func):
+            if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
+                raise ConfigurationError(
+                    f"Generators and async generators are not supported for caching. "
+                    f"Function: {func.__name__}"
+                )
+
             # --- 1. Eager Validation (定義時チェック) ---
             # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
             # 非推奨パラメータの使用に対して、定義時に即座にエラー/警告を出します。

@@ -40,7 +40,7 @@ def _canonicalize_ndarray(obj: Any) -> tuple:
 
 
 def _canonicalize_instance(obj: Any) -> Any:
-    """Custom object instance → canonical form via __dict__ or __slots__.
+    """Custom object instance → canonical form via __dict__ and/or __slots__.
 
     型名 (module + qualname) を含めることで、同じ属性構造を持つ
     異なる型のインスタンス同士のキャッシュ衝突を防ぐ。
@@ -48,8 +48,9 @@ def _canonicalize_instance(obj: Any) -> Any:
     obj_type = type(obj)
     type_tag = ("__instance__", obj_type.__module__, obj_type.__qualname__)
 
+    attrs = {}
     if hasattr(obj, "__dict__"):
-        return (*type_tag, canonicalize(obj.__dict__))
+        attrs.update(obj.__dict__)
 
     # __slots__ path: MRO を辿って全階層の __slots__ を収集する
     all_slots: list[str] = []
@@ -64,20 +65,16 @@ def _canonicalize_instance(obj: Any) -> Any:
                 cls_slots = []
         all_slots.extend(cls_slots)
 
-    # 重複排除しつつ安定したソート順を保証
-    seen: set[str] = set()
-    unique_slots: list[str] = []
+    # __slots__ の値を収集
     for s in all_slots:
-        if s not in seen:
-            seen.add(s)
-            unique_slots.append(s)
+        if hasattr(obj, s):
+            attrs[s] = getattr(obj, s)
 
     return (
         *type_tag,
         [
-            [k, canonicalize(getattr(obj, k))]
-            for k in sorted(unique_slots)
-            if hasattr(obj, k)
+            [k, canonicalize(v)]
+            for k, v in sorted(attrs.items(), key=lambda i: _safe_sort_key(i[0]))
         ],
     )
 
@@ -122,9 +119,9 @@ def canonicalize(obj: Any) -> Any:
 @canonicalize.register(dict)
 def _canonicalize_dict(obj: dict) -> list:
     """Dict → List of [k, v], sorted by key."""
+    canonical_items = [(canonicalize(k), canonicalize(v)) for k, v in obj.items()]
     return [
-        [canonicalize(k), canonicalize(v)]
-        for k, v in sorted(obj.items(), key=lambda i: _safe_sort_key(i[0]))
+        [k, v] for k, v in sorted(canonical_items, key=lambda i: _safe_sort_key(i[0]))
     ]
 
 
@@ -150,11 +147,32 @@ def _canonicalize_tuple(obj: tuple) -> tuple:
 
 
 @canonicalize.register(set)
-@canonicalize.register(frozenset)
-def _canonicalize_set(obj: Union[set, frozenset]) -> list:
-    """Set / Frozenset → sorted list."""
+def _canonicalize_set(obj: set) -> tuple:
+    """Set → type-tagged sorted list.
+
+    Note:
+        型タグ ``"__set__"`` を付与することで ``frozenset`` との衝突を防ぐ。
+        ``{1,2,3}`` と ``frozenset({1,2,3})`` が異なるキャッシュキーを生成する。
+
+    .. warning::
+        v2.7.x 以前のキャッシュとは非互換（型タグなしから変更）。
+    """
     normalized_items = [canonicalize(x) for x in obj]
-    return sorted(normalized_items, key=_safe_sort_key)
+    return ("__set__", sorted(normalized_items, key=_safe_sort_key))
+
+
+@canonicalize.register(frozenset)
+def _canonicalize_frozenset(obj: frozenset) -> tuple:
+    """Frozenset → type-tagged sorted list.
+
+    Note:
+        型タグ ``"__frozenset__"`` を付与することで ``set`` との衝突を防ぐ。
+
+    .. warning::
+        v2.7.x 以前のキャッシュとは非互換（型タグなしから変更）。
+    """
+    normalized_items = [canonicalize(x) for x in obj]
+    return ("__frozenset__", sorted(normalized_items, key=_safe_sort_key))
 
 
 @canonicalize.register(deque)

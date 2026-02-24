@@ -1,7 +1,8 @@
-# tests/senarios/test_security.py
+# tests/scenarios/test_security.py
 
 import pytest
 from beautyspot.storage import LocalStorage
+from beautyspot.exceptions import ValidationError
 
 
 @pytest.fixture
@@ -15,7 +16,9 @@ def test_path_traversal_save(storage):
     unsafe_key = "../../../etc/passwd"
     data = b"secret"
 
-    with pytest.raises(ValueError, match="Invalid key"):
+    # Bug Fix (Bug10): ValueError ではなく ValidationError を明示的に期待する。
+    # ValidationError は ValueError のサブクラスだが、将来の継承関係変更に対して堅牢にする。
+    with pytest.raises(ValidationError, match="Invalid key"):
         storage.save(unsafe_key, data)
 
 
@@ -24,7 +27,7 @@ def test_path_traversal_key_validation(storage):
     unsafe_keys = ["../foo", "foo/bar", "\\foo", "foo\\bar"]
 
     for key in unsafe_keys:
-        with pytest.raises(ValueError, match="Invalid key"):
+        with pytest.raises(ValidationError, match="Invalid key"):
             storage.save(key, b"data")
 
 
@@ -56,7 +59,8 @@ def test_load_outside_base_dir(storage, tmp_path):
         abs_path = str(outside_file.absolute())
 
         # Try to load it via LocalStorage
-        with pytest.raises(ValueError, match="Access denied"):
+        from beautyspot.exceptions import CacheCorruptedError
+        with pytest.raises(CacheCorruptedError, match="Access denied"):
             storage.load(abs_path)
     finally:
         if outside_file.exists():

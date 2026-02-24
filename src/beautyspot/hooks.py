@@ -27,7 +27,14 @@ class HookBase:
         """キャッシュから値が正常に取得され、元の関数実行がスキップされた直後に呼び出されます。"""
 
     def on_cache_miss(self, context: CacheMissContext) -> None:
-        """キャッシュが存在せず、元の関数が実行され結果が得られた直後に呼び出されます。"""
+        """元の関数が実行され結果が得られた直後に呼び出されます。
+
+        .. note::
+            このフックは関数実行の直後、キャッシュへの**永続化完了前**に呼ばれます。
+            ``save_sync=False`` の場合、フック呼び出し後にバックグラウンドで
+            保存が失敗する可能性があります。保存の成否を確認したい場合は
+            ``on_background_error`` コールバックを使用してください。
+        """
 
 
 def _wrap_with_lock(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -44,9 +51,14 @@ def _wrap_with_lock(fn: Callable[..., Any]) -> Callable[..., Any]:
 class ThreadSafeHookBase(HookBase):
     """スレッドセーフなフックベースクラス。
 
-    内部で ``threading.Lock`` を使用し、各コールバックの排他制御を行います。
+    内部で ``threading.RLock`` を使用し、各コールバックの排他制御を行います。
     ``HookBase`` と同じメソッド名 (``pre_execute``, ``on_cache_hit``,
     ``on_cache_miss``) をオーバーライドするだけで使用できます。
+
+    .. note::
+        再入可能ロック (``RLock``) を使用しているため、
+        サブクラスが ``super()`` 経由で親の同名メソッドを呼び出しても
+        デッドロックしません。
 
     Example::
 
@@ -72,14 +84,18 @@ class ThreadSafeHookBase(HookBase):
                 setattr(cls, name, _wrap_with_lock(cls.__dict__[name]))
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        # Bug Fix: Lock → RLock
+        # サブクラスが super() 経由で同名のラップ済みメソッドを呼び出すと、
+        # 同一スレッドが同じロックを再取得しようとしてデッドロックする。
+        # RLock (再入可能ロック) を使用することでこれを防ぐ。
+        self._lock = threading.RLock()
 
     def __getattr__(self, name: str) -> Any:
         # super().__init__() が呼ばれなかった場合の安全網。
         # _lock が未初期化のまま _wrap_with_lock から参照されると AttributeError になるため、
         # __getattr__ (通常の属性検索で見つからない場合のみ呼ばれる) でフォールバック生成する。
         if name == "_lock":
-            lock = threading.Lock()
+            lock = threading.RLock()
             object.__setattr__(self, "_lock", lock)
             return lock
         raise AttributeError(

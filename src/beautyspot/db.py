@@ -45,6 +45,7 @@ class _WriteTask:
     event: threading.Event
     result: Any = None
     error: Exception | None = None
+    state: str = "PENDING" # "PENDING", "RUNNING", "DONE", "CANCELLED"
 
 
 _STOP = object()
@@ -139,11 +140,16 @@ class SQLiteTaskDB(TaskDBBase):
         self.db_path = Path(db_path).resolve()
         self._ensure_cache_dir(self.db_path.parent)
         self.timeout = timeout
+        self._local = threading.local()
         self._write_queue: queue.Queue[object] = queue.Queue()
         self._shutdown_lock = threading.Lock()
         self._shutdown_requested = False
         self._writer_ready = threading.Event()
         self._writer_error: Exception | None = None
+        # Bug Fix (Bug5): 読み取り専用スレッドローカル接続を追跡し、
+        # shutdown() 時に一括クローズする。WAL チェックポイントの妨げを防ぐ。
+        self._read_conns: list[sqlite3.Connection] = []
+        self._read_conns_lock = threading.Lock()
         self._writer_thread = threading.Thread(
             target=self._writer_loop, daemon=True, name="BeautySpot-SQLiteWriter"
         )
@@ -169,15 +175,19 @@ class SQLiteTaskDB(TaskDBBase):
     def _read_connect(self) -> Iterator[sqlite3.Connection]:
         """
         Thread-safe connection context manager for read-only operations.
-        Skips commit/rollback since no data is modified.
+        Uses a thread-local pool to reuse connections and reduce overhead.
         PRAGMA query_only = ON により、誤った書き込みを接続レベルで防止する。
+
+        Bug Fix (Bug5): 新規接続を _read_conns リストに登録し、
+        shutdown() 時の一括クローズで WAL チェックポイント妨害を防ぐ。
         """
-        conn = sqlite3.connect(self.db_path, timeout=self.timeout)
-        try:
+        if not hasattr(self._local, "read_conn"):
+            conn = sqlite3.connect(self.db_path, timeout=self.timeout)
             conn.execute("PRAGMA query_only = ON;")
-            yield conn
-        finally:
-            conn.close()
+            with self._read_conns_lock:
+                self._read_conns.append(conn)
+            self._local.read_conn = conn
+        yield self._local.read_conn
 
     def _writer_loop(self) -> None:
         conn: sqlite3.Connection | None = None
@@ -197,6 +207,15 @@ class SQLiteTaskDB(TaskDBBase):
                     self._write_queue.task_done()
                     break
                 assert isinstance(task, _WriteTask)
+                if task.state == "CANCELLED":
+                    task.event.set()
+                    self._write_queue.task_done()
+                    continue
+                
+                # タスクを開始する前に状態を RUNNING に変更
+                # これにより、以降のキャンセル要求（タイムアウト等）を拒否する
+                task.state = "RUNNING"
+                
                 try:
                     task.result = task.fn(conn)
                     conn.commit()
@@ -204,6 +223,8 @@ class SQLiteTaskDB(TaskDBBase):
                     conn.rollback()
                     task.error = e
                 finally:
+                    if task.state != "CANCELLED":
+                        task.state = "DONE"
                     task.event.set()
                     self._write_queue.task_done()
         finally:
@@ -226,15 +247,31 @@ class SQLiteTaskDB(TaskDBBase):
             self._write_queue.put(task)
 
         start = time.monotonic()
+        _warned_running = False
         while not task.event.wait(timeout=0.5):
             if not self._writer_thread.is_alive():
                 raise RuntimeError("SQLite writer thread stopped unexpectedly.")
             if self._shutdown_requested:
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
-            if time.monotonic() - start > self.timeout:
-                raise TimeoutError(
-                    f"SQLite write did not complete within {self.timeout}s."
-                )
+            elapsed = time.monotonic() - start
+            if elapsed > self.timeout:
+                if task.state == "PENDING":
+                    # Bug Fix (Bug2): PENDING（未着手）のタスクはキャンセル可能
+                    task.state = "CANCELLED"
+                    raise TimeoutError(
+                        f"SQLite write did not start within {self.timeout}s and was cancelled."
+                    )
+                elif not _warned_running:
+                    # Bug Fix (Bug2): RUNNING（実行中）のタスクはキャンセル不可。
+                    # 旧実装では RUNNING でも TimeoutError を送出していたが、
+                    # DB への書き込みは継続されるため呼び出し元との整合性が取れなかった。
+                    # 修正後は完了まで待ち続け、警告ログのみ出力する。
+                    logger.warning(
+                        f"SQLite write has been running for over {self.timeout}s. "
+                        "The operation cannot be cancelled and will continue until completion."
+                    )
+                    _warned_running = True
+                # RUNNING 状態: 完了まで待ち続ける（TimeoutError は送出しない）
         if task.error:
             raise task.error
         return task.result
@@ -256,6 +293,16 @@ class SQLiteTaskDB(TaskDBBase):
         self._write_queue.put(_STOP)
         if wait:
             self._writer_thread.join()
+
+        # Bug Fix (Bug5): 全スレッドのread-only接続を一括クローズ。
+        # スレッドローカル接続が開いたままだと WAL チェックポイントを妨げるため。
+        with self._read_conns_lock:
+            for conn in self._read_conns:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            self._read_conns.clear()
 
     def init_schema(self):
         # スキーマ初期化および全マイグレーションを Writer Thread の接続で実行する。
@@ -283,20 +330,45 @@ class SQLiteTaskDB(TaskDBBase):
             columns = [row[1] for row in cursor.fetchall()]
 
             if "content_type" not in columns:
-                conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
+                try:
+                    conn.execute("ALTER TABLE tasks ADD COLUMN content_type TEXT;")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    pass
             if "version" not in columns:
-                conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
+                try:
+                    conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    pass
             if "result_data" not in columns:
-                conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
+                try:
+                    conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    pass
 
             if "func_identifier" not in columns:
-                conn.execute("ALTER TABLE tasks ADD COLUMN func_identifier TEXT;")
+                try:
+                    conn.execute("ALTER TABLE tasks ADD COLUMN func_identifier TEXT;")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    pass
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_func_identifier ON tasks(func_identifier);"
                 )
 
             if "expires_at" not in columns:
-                conn.execute("ALTER TABLE tasks ADD COLUMN expires_at TIMESTAMP;")
+                try:
+                    conn.execute("ALTER TABLE tasks ADD COLUMN expires_at TIMESTAMP;")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    pass
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);"
                 )
@@ -512,6 +584,9 @@ class SQLiteTaskDB(TaskDBBase):
         try:
             conn = sqlite3.connect(str(db_path), timeout=timeout)
             try:
+                # Bug Fix (Bug9): 読み取り専用ユーティリティに journal_mode=WAL 設定は不要。
+                # query_only=ON との組み合わせで動作が曖昧になる可能性もあるため削除。
+                conn.execute("PRAGMA query_only = ON;")
                 cursor = conn.execute("SELECT COUNT(*) FROM tasks")
                 result = cursor.fetchone()
                 return result[0] if result else 0

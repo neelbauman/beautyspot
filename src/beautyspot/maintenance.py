@@ -154,15 +154,27 @@ class MaintenanceService:
 
         result_record: dict[str, Any] = dict(record)
 
+        # Bug Fix (Bug6): DB レコードを先に削除してからブロブを削除する。
+        # 旧実装（ブロブ先削除）では DB レコード削除が失敗すると
+        # 「DB に参照が残るがブロブが消えた」状態になり、次のアクセスで
+        # CacheCorruptedError が発生していた。
+        # ブロブが孤立した場合は GC (scan_garbage) で回収可能なため、
+        # この順序の方が安全。
+        deleted = self.db.delete(cache_key)
+        if not deleted:
+            return False
+
         # Blob削除
         if record.get("result_type") == "FILE" and record.get("result_value"):
             try:
                 self.storage.delete(result_record["result_value"])
             except Exception as e:
-                logger.warning(f"Failed to delete blob for key '{cache_key}': {e}")
+                logger.warning(
+                    f"Failed to delete blob for key '{cache_key}': {e}. "
+                    "The orphaned blob will be collected by GC."
+                )
 
-        # レコード削除
-        return self.db.delete(cache_key)
+        return True
 
     # --- Maintenance Operations ---
 

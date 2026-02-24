@@ -23,13 +23,11 @@ def test_msgpack_serializer_lru_cache_thread_safety():
             DynamicClass = type(f"DynamicDummy_{worker_id}_{i}", (BaseDummy,), {})
             instance = DynamicClass()
             serializer.dumps(instance)
+        # スレッドごとにキャッシュサイズが守られていることを確認
+        assert len(serializer._get_local_cache()) <= MAX_CACHE_SIZE
 
     # 10スレッドで一斉に1000個の型をシリアライズ
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(serialize_worker, i) for i in range(10)]
         for future in futures:
             future.result()
-
-    # 論理的競合が起きていないことをアサート
-    # ロックがない状態だと、popitem のタイミングがずれ、キャッシュサイズが 50 を超過する可能性がある
-    assert len(serializer._subclass_cache) <= MAX_CACHE_SIZE

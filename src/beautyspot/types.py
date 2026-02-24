@@ -1,7 +1,9 @@
 # src/beautyspot/types.py
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from types import MappingProxyType
 from typing import Any, Optional
 
 
@@ -19,14 +21,8 @@ class SaveErrorContext:
         content_type: 保存データのMIMEタイプなどのコンテンツタイプ文字列
         save_blob: Blobストレージへの保存が指定/判定されていたか
         expires_at: 計算されたキャッシュの有効期限
-        result: キャッシュしようとした実際の戻り値のオブジェクト
-
-    Warning:
-        `result` には評価済みのオブジェクトがそのまま格納されます。
-        巨大なデータ（例: 数GBのDataFrameやテンソル）を返す関数の場合、
-        このエラーコンテキストをグローバルなリストや長寿命のオブジェクトに
-        保持し続けると、メモリリークの原因となる可能性があります。
-        エラーハンドラー内でのログ出力や一時的な検査のみに留めることを強く推奨します。
+        result_type: キャッシュしようとした戻り値の型名
+        result_size: キャッシュしようとした戻り値のメモリサイズ概算（取得可能な場合のみ）
     """
 
     func_name: str
@@ -36,18 +32,30 @@ class SaveErrorContext:
     content_type: Optional[str]
     save_blob: Optional[bool]
     expires_at: Optional[datetime]
-    result: Any
+    result_type: str
+    result_size: Optional[int]
 
 
 @dataclass(frozen=True)
 class HookContextBase:
-    """すべてのフックに共通する基本コンテキスト情報。"""
+    """すべてのフックに共通する基本コンテキスト情報。
+
+    Attributes:
+        kwargs: 関数に渡されたキーワード引数。読み取り専用の ``MappingProxyType``
+            として提供されるため、フック内での変更はできません。
+    """
 
     func_name: str
     input_id: str
     cache_key: str
     args: tuple
-    kwargs: dict
+    kwargs: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        # Bug Fix (D4): frozen=True でも dict の内容は変更可能なため、
+        # MappingProxyType でラップしてフックによる意図しない変更を防ぐ。
+        if not isinstance(self.kwargs, MappingProxyType):
+            object.__setattr__(self, "kwargs", MappingProxyType(self.kwargs))
 
 
 @dataclass(frozen=True)

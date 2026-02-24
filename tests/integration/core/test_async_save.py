@@ -123,7 +123,7 @@ def test_on_background_error_called_on_save_failure(mocker):
     assert passed_exception is test_exception
     assert isinstance(passed_context, SaveErrorContext)
     assert passed_context.func_name == "dummy_task"
-    assert passed_context.result == 20
+    assert passed_context.result_type == "int"
     # cache_key 等が kwargs から正しく渡されているかも検証可能
 
 
@@ -217,7 +217,7 @@ def test_background_save_notifies_on_shutdown_rejection():
     assert isinstance(ctx, SaveErrorContext)
     assert ctx.func_name == "my_func"
     assert ctx.cache_key == "test_key"
-    assert ctx.result == 42
+    assert ctx.result_type == "int"
 
 
 def test_background_save_logs_warning_without_callback(caplog):

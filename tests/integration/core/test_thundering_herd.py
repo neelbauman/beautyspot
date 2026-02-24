@@ -3,6 +3,7 @@ import threading
 import time
 import pytest
 import beautyspot as bs
+from beautyspot.core import Spot
 
 
 @pytest.mark.asyncio
@@ -77,8 +78,8 @@ async def test_thundering_herd_cross_sync_async():
     # [FIX] identifier を手動でモックし、同じキーを生成させる。
     # 通常のユーザーコードでは推奨されませんが、テストのために
     # _get_func_identifier をパッチします。
-    original_get_id = bs.core.Spot._get_func_identifier
-    bs.core.Spot._get_func_identifier = staticmethod(lambda f: "shared_task")
+    original_get_id = Spot._get_func_identifier
+    Spot._get_func_identifier = lambda self, f: "shared_task"
 
     try:
         spot.maintenance.clear()
@@ -93,4 +94,4 @@ async def test_thundering_herd_cross_sync_async():
         assert results == [20, 20]
     finally:
         # パッチを戻す
-        bs.core.Spot._get_func_identifier = original_get_id
+        Spot._get_func_identifier = original_get_id
