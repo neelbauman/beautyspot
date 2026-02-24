@@ -278,6 +278,15 @@ class SQLiteTaskDB(TaskDBBase):
             self._writer_thread.join()
 
     def init_schema(self):
+        # 1. ライタースレッドの疎通確認
+        # ディスクフルや権限エラーなどでライタースレッドが停止している場合、
+        # ここで早期に例外を発生させることで、後の「黙って保存されない」事態を防ぐ。
+        if not self.flush(timeout=self.timeout):
+            raise RuntimeError(
+                f"SQLiteTaskDB writer thread is not responding within {self.timeout}s during initialization. "
+                "Check file permissions and disk space."
+            )
+
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("""

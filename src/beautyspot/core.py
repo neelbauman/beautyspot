@@ -279,6 +279,7 @@ class Spot:
         self._maintenance_service: MaintenanceService | None = None
         self._maintenance_lock = threading.Lock()
         self._eviction_lock = threading.Lock()
+        self._last_eviction_time = 0.0
 
     def __enter__(self) -> "Spot":
         return self
@@ -348,15 +349,20 @@ class Spot:
                     self._executor = ThreadPoolExecutor()
                 if self._finalizer is None:
                     self._finalizer = weakref.finalize(
-                        self, Spot._shutdown_resources, self._bg_loop, self._executor
+                        self, Spot._shutdown_resources, self._bg_loop, self._executor, self.db
                     )
             return self._bg_loop, self._executor
 
     @staticmethod
-    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
+    def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase) -> None:
         """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False)
+        try:
+            db.shutdown(wait=False)
+        except Exception as e:
+            # GC時のエラーは最小限のログに留める
+            logger.debug(f"Failed to shut down DB during GC (ignored): {e}")
 
     def shutdown(self, save_sync: bool = True):
         """バックグラウンド IO を停止する。
@@ -404,9 +410,9 @@ class Spot:
             if remaining <= 0:
                 break
             wait_timeout = min(self._drain_poll_interval, remaining)
-            _, not_done = wait(snapshot, timeout=wait_timeout)
-            if not not_done:
-                break
+            # 現在のスナップショットの完了を待機し、ループの先頭に戻って
+            # 新たに追加されたタスクがないか再チェックする。
+            wait(snapshot, timeout=wait_timeout)
 
         with self._futures_lock:
             remaining_count = len(self._active_futures)
@@ -452,7 +458,15 @@ class Spot:
         if self.eviction_rate <= 0.0:
             return
 
+        # 1. 確率チェック
         if random.random() >= self.eviction_rate:
+            return
+
+        # 2. 時間ベースのガード (最低 60秒間隔)
+        # 非常に高い頻度で呼び出される場合、確率チェックを抜けても
+        # スレッドプールのスケジュール処理自体が負荷になるのを防ぐ。
+        now = time.monotonic()
+        if now - self._last_eviction_time < 60.0:
             return
 
         # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
@@ -462,7 +476,6 @@ class Spot:
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
         
         # バックグラウンド実行用の安全なラッパー
-        # (ロックの解放はここでは行わず、コールバックに委譲します)
         def _run_clean_safe():
             try:
                 self.maintenance.clean_garbage()
@@ -489,10 +502,11 @@ class Spot:
                 self._track_future(future)
                 
                 # タスクが完了・失敗・キャンセルされた際に確実にロックを解放する
-                def _release_lock(fut):
+                def _on_eviction_done(fut):
+                    self._last_eviction_time = time.monotonic()
                     self._eviction_lock.release()
                     
-                future.add_done_callback(_release_lock)
+                future.add_done_callback(_on_eviction_done)
                 is_scheduled = True
 
         except Exception as e:
