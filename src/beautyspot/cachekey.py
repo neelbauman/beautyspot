@@ -65,8 +65,10 @@ def _canonicalize_instance(obj: Any) -> Any:
                 cls_slots = []
         all_slots.extend(cls_slots)
 
-    # __slots__ の値を収集
+    # __slots__ の値を収集（__dict__ スロット自体は既に上で処理済み）
     for s in all_slots:
+        if s == "__dict__":
+            continue
         if hasattr(obj, s):
             attrs[s] = getattr(obj, s)
 
@@ -101,7 +103,13 @@ def canonicalize(obj: Any) -> Any:
     3. Object instances  → via __dict__ / __slots__
     4. Fallback          → str()
     """
-    if obj is None or isinstance(obj, (int, float, bool, str, bytes)):
+    if obj is None:
+        return obj
+    # bool は int のサブクラスなので、先に判定して型タグを付与する。
+    # これにより f(True) と f(1) が異なるキャッシュキーを生成する。
+    if isinstance(obj, bool):
+        return ("__bool__", obj)
+    if isinstance(obj, (int, float, str, bytes)):
         return obj
 
     if _is_ndarray_like(obj):
@@ -176,15 +184,24 @@ def _canonicalize_frozenset(obj: frozenset) -> tuple:
 
 
 @canonicalize.register(deque)
-def _canonicalize_deque(obj: deque) -> list:
-    """Deque → recursive canonicalization (element-aware)."""
-    return [canonicalize(x) for x in obj]
+def _canonicalize_deque(obj: deque) -> tuple:
+    """Deque → type-tagged recursive canonicalization.
+
+    Note:
+        型タグ ``"__deque__"`` を付与することで ``list`` / ``tuple`` との衝突を防ぐ。
+    """
+    return ("__deque__", [canonicalize(x) for x in obj])
 
 
 @canonicalize.register(defaultdict)
-def _canonicalize_defaultdict(obj: defaultdict) -> list:
-    """defaultdict → canonical dict (ignores default_factory)."""
-    return _canonicalize_dict(obj)
+def _canonicalize_defaultdict(obj: defaultdict) -> tuple:
+    """defaultdict → type-tagged canonical dict.
+
+    Note:
+        型タグ ``"__defaultdict__"`` を付与することで通常の ``dict`` との衝突を防ぐ。
+        ``default_factory`` は非決定的（lambda 等）な場合があるため、ハッシュには含めない。
+    """
+    return ("__defaultdict__", _canonicalize_dict(obj))
 
 
 @canonicalize.register(OrderedDict)

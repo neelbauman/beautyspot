@@ -56,10 +56,10 @@ class TokenBucket(LimiterProtocol):
                 "This task cannot be processed within the defined rate limit."
             )
 
-        now = time.monotonic()
         increment = cost / self.rate
 
         with self.lock:
+            now = time.monotonic()
             if now > self.tat:
                 self.tat = now
 

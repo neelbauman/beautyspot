@@ -112,7 +112,7 @@ class Rule:
     """
 
     pattern: str
-    retention: Union[str, timedelta, None]
+    retention: Union[str, timedelta, int, None]
 
 
 class LifecyclePolicy:

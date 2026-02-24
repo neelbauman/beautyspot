@@ -921,8 +921,13 @@ class Spot:
                         if not fut.done():
                             if success:
                                 fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
-                            else:
+                            elif isinstance(res_val, Exception):
                                 fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
+                            else:
+                                # BaseException は asyncio.Future.set_exception に渡せないためラップ
+                                wrapped = RuntimeError(f"Non-Exception error: {repr(res_val)}")
+                                wrapped.__cause__ = res_val
+                                fut.get_loop().call_soon_threadsafe(fut.set_exception, wrapped)
 
         self._trigger_auto_eviction()
 
@@ -994,8 +999,8 @@ class Spot:
         # === 2.5 Thundering Herd Protection ===
         event = None
         result_box = []
-        fut = None
         while True:
+            fut = None
             with self._inflight_lock:
                 if ck not in self._inflight:
                     # 自分が実行者になる
@@ -1164,8 +1169,13 @@ class Spot:
                         if not fut.done():
                             if success:
                                 fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
-                            else:
+                            elif isinstance(res_val, Exception):
                                 fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
+                            else:
+                                # BaseException は asyncio.Future.set_exception に渡せないためラップ
+                                wrapped = RuntimeError(f"Non-Exception error: {repr(res_val)}")
+                                wrapped.__cause__ = res_val
+                                fut.get_loop().call_soon_threadsafe(fut.set_exception, wrapped)
 
         self._trigger_auto_eviction()
 

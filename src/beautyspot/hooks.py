@@ -91,13 +91,11 @@ class ThreadSafeHookBase(HookBase):
         self._lock = threading.RLock()
 
     def __getattr__(self, name: str) -> Any:
-        # super().__init__() が呼ばれなかった場合の安全網。
-        # _lock が未初期化のまま _wrap_with_lock から参照されると AttributeError になるため、
-        # __getattr__ (通常の属性検索で見つからない場合のみ呼ばれる) でフォールバック生成する。
         if name == "_lock":
-            lock = threading.RLock()
-            object.__setattr__(self, "_lock", lock)
-            return lock
+            raise AttributeError(
+                f"'{type(self).__name__}._lock' is not initialized. "
+                f"Did you forget to call super().__init__() in your __init__ method?"
+            )
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
         )

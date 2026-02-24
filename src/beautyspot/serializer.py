@@ -71,10 +71,21 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         # 書き込み（register）を直列化するためのロック
         self._write_lock = threading.Lock()
 
+        # レジストリ世代カウンタ: register() のたびにインクリメントされ、
+        # スレッドローカルキャッシュの無効化に使用する。
+        self._registry_generation = 0
+
     def _get_local_cache(self) -> OrderedDict[Type, Tuple[int, Callable[[Any], Any]] | None]:
-        """現在のスレッド固有のLRUキャッシュを取得（必要なら初期化）する"""
-        if not hasattr(self._local, "subclass_cache"):
+        """現在のスレッド固有のLRUキャッシュを取得（必要なら初期化）する。
+
+        register() によりレジストリ世代が進んでいた場合、
+        キャッシュをクリアして stale エントリの参照を防ぐ。
+        """
+        gen = self._registry_generation
+        if not hasattr(self._local, "subclass_cache") or \
+           getattr(self._local, "_cache_generation", -1) != gen:
             self._local.subclass_cache = OrderedDict()
+            self._local._cache_generation = gen
         return self._local.subclass_cache
 
     def _enforce_cache_size(self, cache: OrderedDict):
@@ -115,6 +126,7 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
             # 参照をアトミックに差し替え
             self._encoders = new_encoders
             self._decoders = new_decoders
+            self._registry_generation += 1
 
     # src/beautyspot/serializer.py
 
@@ -167,9 +179,13 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
                     f"      returned type: {type(intermediate).__name__}"
                 ) from e
 
+        try:
+            obj_repr = str(obj)[:200]
+        except Exception:
+            obj_repr = f"<{obj_type.__name__} (str() failed)>"
         raise SerializationError(
             f"Object of type '{obj_type.__name__}' is not serializable.\n"
-            f"Value: {str(obj)[:200]}...\n"
+            f"Value: {obj_repr}...\n"
             "Hint: Use `spot.register(...)` to handle this custom type."
         )
 
@@ -191,7 +207,10 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
                     f"CRITICAL: Failed to decode custom type (ExtCode={code}).\n"
                     "The cached data might be corrupted or incompatible with the current decoder."
                 ) from e
-        return msgpack.ExtType(code, data)
+        raise SerializationError(
+            f"Received ExtType with unregistered code={code}. "
+            "The cache may have been created with a different serializer configuration."
+        )
 
     def dumps(self, obj: Any) -> bytes:
         try:

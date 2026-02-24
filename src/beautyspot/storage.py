@@ -359,7 +359,8 @@ class S3Storage(BlobStorageBase):
 
         parts = s3_uri.replace("s3://", "").split("/", 1)
         self.bucket_name = parts[0]
-        self.prefix = parts[1].rstrip("/") if len(parts) > 1 else "blobs"
+        raw_prefix = parts[1].rstrip("/") if len(parts) > 1 else ""
+        self.prefix = raw_prefix if raw_prefix else "blobs"
 
         opts = s3_opts or {}
         self.s3 = boto3.client("s3", **opts)
@@ -389,7 +390,11 @@ class S3Storage(BlobStorageBase):
         bucket, key = self._parse_s3_uri(location)
         try:
             resp = self.s3.get_object(Bucket=bucket, Key=key)
-            return resp["Body"].read()
+            body = resp["Body"]
+            try:
+                return body.read()
+            finally:
+                body.close()
         except ClientError as e:
             raise CacheCorruptedError(f"S3 blob lost: {location}") from e
 

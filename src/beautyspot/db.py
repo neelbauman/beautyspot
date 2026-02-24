@@ -8,6 +8,7 @@ import threading
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+import dataclasses
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,6 +47,29 @@ class _WriteTask:
     result: Any = None
     error: Exception | None = None
     state: str = "PENDING" # "PENDING", "RUNNING", "DONE", "CANCELLED"
+    _state_lock: threading.Lock = dataclasses.field(default_factory=threading.Lock)
+
+    def try_cancel(self) -> bool:
+        """PENDING 状態のタスクをキャンセルする。成功時 True。"""
+        with self._state_lock:
+            if self.state == "PENDING":
+                self.state = "CANCELLED"
+                return True
+            return False
+
+    def try_start(self) -> bool:
+        """PENDING → RUNNING に遷移する。CANCELLED なら False を返す。"""
+        with self._state_lock:
+            if self.state == "CANCELLED":
+                return False
+            self.state = "RUNNING"
+            return True
+
+    def mark_done(self) -> None:
+        """RUNNING → DONE に遷移する。"""
+        with self._state_lock:
+            if self.state != "CANCELLED":
+                self.state = "DONE"
 
 
 _STOP = object()
@@ -181,9 +205,15 @@ class SQLiteTaskDB(TaskDBBase):
         Bug Fix (Bug5): 新規接続を _read_conns リストに登録し、
         shutdown() 時の一括クローズで WAL チェックポイント妨害を防ぐ。
         """
-        if not hasattr(self._local, "read_conn"):
+        if self._shutdown_requested:
+            raise RuntimeError("SQLiteTaskDB is shutting down.")
+        if not hasattr(self._local, "read_conn") or self._local.read_conn is None:
             conn = sqlite3.connect(self.db_path, timeout=self.timeout)
-            conn.execute("PRAGMA query_only = ON;")
+            try:
+                conn.execute("PRAGMA query_only = ON;")
+            except Exception:
+                conn.close()
+                raise
             with self._read_conns_lock:
                 self._read_conns.append(conn)
             self._local.read_conn = conn
@@ -207,15 +237,12 @@ class SQLiteTaskDB(TaskDBBase):
                     self._write_queue.task_done()
                     break
                 assert isinstance(task, _WriteTask)
-                if task.state == "CANCELLED":
+                if not task.try_start():
+                    # CANCELLED 状態 — スキップ
                     task.event.set()
                     self._write_queue.task_done()
                     continue
-                
-                # タスクを開始する前に状態を RUNNING に変更
-                # これにより、以降のキャンセル要求（タイムアウト等）を拒否する
-                task.state = "RUNNING"
-                
+
                 try:
                     task.result = task.fn(conn)
                     conn.commit()
@@ -223,8 +250,7 @@ class SQLiteTaskDB(TaskDBBase):
                     conn.rollback()
                     task.error = e
                 finally:
-                    if task.state != "CANCELLED":
-                        task.state = "DONE"
+                    task.mark_done()
                     task.event.set()
                     self._write_queue.task_done()
         finally:
@@ -255,9 +281,8 @@ class SQLiteTaskDB(TaskDBBase):
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
             elapsed = time.monotonic() - start
             if elapsed > self.timeout:
-                if task.state == "PENDING":
+                if task.try_cancel():
                     # Bug Fix (Bug2): PENDING（未着手）のタスクはキャンセル可能
-                    task.state = "CANCELLED"
                     raise TimeoutError(
                         f"SQLite write did not start within {self.timeout}s and was cancelled."
                     )
@@ -321,6 +346,7 @@ class SQLiteTaskDB(TaskDBBase):
                     result_data BLOB,
                     content_type TEXT,
                     version TEXT,
+                    expires_at TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)

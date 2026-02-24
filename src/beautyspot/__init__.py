@@ -23,6 +23,8 @@ from beautyspot.exceptions import (
     CacheCorruptedError,
     SerializationError,
     ConfigurationError,
+    ValidationError,
+    IncompatibleProviderError,
 )
 from beautyspot.storage import (
     BlobStorageBase,
@@ -125,6 +127,8 @@ __all__ = [
     "CacheCorruptedError",
     "SerializationError",
     "ConfigurationError",
+    "ValidationError",
+    "IncompatibleProviderError",
     # --- Protocols & Base Classes (for custom implementations) ---
     "TaskDBBase",
     "BlobStorageBase",
