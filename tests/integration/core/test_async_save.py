@@ -1,7 +1,8 @@
 # tests/integration/core/test_async_save.py
 
+import logging
 import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB
 from beautyspot.types import SaveErrorContext
@@ -162,3 +163,94 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
     # Assert: ログにコールバック内部のエラーが出力されていることを確認
     assert "Error occurred within the 'on_background_error' callback" in caplog.text
     assert "Error inside callback!" in caplog.text
+
+
+def test_background_save_notifies_on_shutdown_rejection():
+    """
+    シャットダウン後の submit 時に on_background_error が呼ばれ、
+    ログにも警告が出ることを検証する。
+    """
+    mock_callback = MagicMock()
+
+    spot = Spot(
+        name="test_notify",
+        db=MagicMock(),
+        serializer=MagicMock(),
+        storage_backend=MagicMock(),
+        storage_policy=MagicMock(),
+        limiter=MagicMock(),
+        default_wait=False,
+        on_background_error=mock_callback,
+    )
+
+    # バックグラウンドリソースを初期化してからシャットダウン
+    spot._ensure_bg_resources()
+    spot.shutdown(wait=True)
+
+    # シャットダウン後に _submit_background_save を呼ぶ
+    save_kwargs = {
+        "cache_key": "test_key",
+        "func_name": "my_func",
+        "input_id": "abc",
+        "version": "v1",
+        "result": 42,
+        "content_type": None,
+        "save_blob": None,
+        "expires_at": None,
+    }
+
+    with patch("beautyspot.core.logger") as mock_logger:
+        spot._submit_background_save(**save_kwargs)
+
+        # 警告ログが出力されていること
+        mock_logger.warning.assert_called_once()
+        log_msg = mock_logger.warning.call_args[0][0]
+        assert "my_func" in log_msg
+        assert "discarded" in log_msg
+
+    # on_background_error コールバックが呼ばれていること
+    mock_callback.assert_called_once()
+    err, ctx = mock_callback.call_args[0]
+    assert isinstance(err, RuntimeError)
+    assert "my_func" in str(err)
+    assert isinstance(ctx, SaveErrorContext)
+    assert ctx.func_name == "my_func"
+    assert ctx.cache_key == "test_key"
+    assert ctx.result == 42
+
+
+def test_background_save_logs_warning_without_callback(caplog):
+    """
+    on_background_error コールバック未設定でも、
+    シャットダウン拒否時にログ警告が出ることを検証する。
+    """
+    spot = Spot(
+        name="test_no_callback",
+        db=MagicMock(),
+        serializer=MagicMock(),
+        storage_backend=MagicMock(),
+        storage_policy=MagicMock(),
+        limiter=MagicMock(),
+        default_wait=False,
+        on_background_error=None,  # コールバック未設定
+    )
+
+    spot._ensure_bg_resources()
+    spot.shutdown(wait=True)
+
+    save_kwargs = {
+        "cache_key": "key2",
+        "func_name": "another_func",
+        "input_id": "xyz",
+        "version": None,
+        "result": "data",
+        "content_type": None,
+        "save_blob": None,
+        "expires_at": None,
+    }
+
+    with caplog.at_level(logging.WARNING, logger="beautyspot.core"):
+        spot._submit_background_save(**save_kwargs)
+
+    assert "another_func" in caplog.text
+    assert "discarded" in caplog.text

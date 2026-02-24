@@ -1,5 +1,5 @@
 import threading
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -148,3 +148,33 @@ def test_auto_eviction_with_wait_false(tmp_path):
 
         spot.shutdown(wait=True)
         mock_clean_hit.assert_not_called()
+
+
+def test_eviction_lock_released_on_shutdown_rejection():
+    """
+    シャットダウン中に bg_loop.submit() が拒否(None返却)された後、
+    _eviction_lock が解放されていることを検証する。
+    """
+    spot = bs.Spot(
+        "test_lock_release",
+        db=MagicMock(),
+        serializer=MagicMock(),
+        storage_backend=MagicMock(),
+        storage_policy=MagicMock(),
+        limiter=MagicMock(),
+        eviction_rate=1.0,
+    )
+
+    # バックグラウンドリソースを初期化してからシャットダウン
+    spot._ensure_bg_resources()
+    spot.shutdown(wait=True)
+
+    # シャットダウン後に _trigger_auto_eviction を呼ぶ
+    # submit が None を返すのでロックリークが起きないことを検証
+    with patch("random.random", return_value=0.0):
+        spot._trigger_auto_eviction()
+
+    # ロックが解放されていることを確認（非ブロッキングで acquire できるはず）
+    acquired = spot._eviction_lock.acquire(blocking=False)
+    assert acquired, "_eviction_lock should be released after shutdown rejection"
+    spot._eviction_lock.release()

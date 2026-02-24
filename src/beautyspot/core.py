@@ -121,6 +121,9 @@ class _BackgroundLoop:
             # 万が一スケジュールに失敗した場合はカウンタを戻す
             with self._lock:
                 self._active_tasks -= 1
+                # シャットダウン中かつ最後のタスクだった場合、ループ停止を通知する
+                if self._is_shutting_down and self._active_tasks == 0:
+                    self._loop.call_soon_threadsafe(self._loop.stop)
             raise
 
     def stop(self, wait: bool = True):
@@ -339,13 +342,16 @@ class Spot:
                 raise RuntimeError(
                     "Cannot submit background tasks after shutdown() has been called."
                 )
-            # Double-checked locking
+            # Double-checked locking: 各リソースを独立チェックし既存のものは上書きしない
             if self._bg_loop is None or self._executor is None:
-                self._bg_loop = _BackgroundLoop()
-                self._executor = ThreadPoolExecutor(max_workers=self._io_workers)
-                self._finalizer = weakref.finalize(
-                    self, Spot._shutdown_resources, self._bg_loop, self._executor
-                )
+                if self._bg_loop is None:
+                    self._bg_loop = _BackgroundLoop()
+                if self._executor is None:
+                    self._executor = ThreadPoolExecutor(max_workers=self._io_workers)
+                if self._own_executor and self._finalizer is None:
+                    self._finalizer = weakref.finalize(
+                        self, Spot._shutdown_resources, self._bg_loop, self._executor
+                    )
             return self._bg_loop, self._executor
 
     @staticmethod
@@ -367,17 +373,18 @@ class Spot:
         """バックグラウンド IO を停止する。
 
         wait=True の場合、保留中のすべての Future を先にドレインしてから停止する。
+        _bg_loop は常に内部生成なので停止する。executor は自身が所有する場合のみシャットダウン。
         """
         self._shutdown_called = True
-        if not self._own_executor:
-            return
         if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
         if wait:
             self._drain_futures()
+        # _bg_loop は常に内部生成なので停止する
         if self._bg_loop is not None:
             self._bg_loop.stop(wait=wait)
-        if self._executor is not None:
+        # executor は自身が所有する場合のみシャットダウン
+        if self._own_executor and self._executor is not None:
             self._executor.shutdown(wait=wait)
 
     _MAX_DRAIN_ITERATIONS = 10
@@ -429,7 +436,12 @@ class Spot:
                         # ラッパーを介して実行
                         await loop.run_in_executor(executor, _run_clean_safe)
 
-                    future = bg_loop.submit(_run_clean_coro())
+                    coro = _run_clean_coro()
+                    future = bg_loop.submit(coro)
+                    if future is None:
+                        coro.close()
+                        self._eviction_lock.release()
+                        return
                     self._track_future(future)
 
                 elif self._executor is not None:
@@ -680,7 +692,11 @@ class Spot:
             self._submit_background_save(**save_kwargs)
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
-        self._trigger_auto_eviction()
+        # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
+        try:
+            self._trigger_auto_eviction()
+        except Exception as e:
+            logger.warning(f"Auto-eviction trigger failed (ignored): {e}")
 
         return res
 
@@ -788,7 +804,11 @@ class Spot:
             self._submit_background_save(**save_kwargs)
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
-        self._trigger_auto_eviction()
+        # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
+        try:
+            self._trigger_auto_eviction()
+        except Exception as e:
+            logger.warning(f"Auto-eviction trigger failed (ignored): {e}")
 
         return res
 
@@ -848,14 +868,48 @@ class Spot:
             try:
                 future = bg_loop.submit(coro)
                 if future is None:
-                    coro.close()  # シャットダウン拒否時にコルーチンを破棄
+                    coro.close()
+                    self._notify_save_discarded(save_kwargs)
+                    return
             except RuntimeError:
-                coro.close()  # コルーチンを安全にクリーンアップ
+                coro.close()
                 raise
         else:
             assert self._executor is not None
             future = self._executor.submit(self._save_result_safe, **save_kwargs)
         self._track_future(future)
+
+    def _notify_save_discarded(self, save_kwargs: dict) -> None:
+        """シャットダウンにより破棄された保存の警告ログとコールバック通知。"""
+        func_name = save_kwargs.get("func_name", "unknown")
+        logger.warning(
+            f"Background save for '{func_name}' was discarded: "
+            "background loop is shutting down."
+        )
+        if self.on_background_error:
+            try:
+                context = SaveErrorContext(
+                    func_name=func_name,
+                    cache_key=save_kwargs.get("cache_key", ""),
+                    input_id=save_kwargs.get("input_id", ""),
+                    version=save_kwargs.get("version"),
+                    content_type=save_kwargs.get("content_type"),
+                    save_blob=save_kwargs.get("save_blob"),
+                    expires_at=save_kwargs.get("expires_at"),
+                    result=save_kwargs.get("result"),
+                )
+                self.on_background_error(
+                    RuntimeError(
+                        f"Background save for '{func_name}' was discarded "
+                        "because the background loop is shutting down."
+                    ),
+                    context,
+                )
+            except Exception as cb_err:
+                logger.error(
+                    f"Error in 'on_background_error' callback: {cb_err}",
+                    exc_info=True,
+                )
 
     async def _save_result_async(self, /, **kwargs) -> None:
         """バックグラウンドループで実行される保存コルーチン。"""

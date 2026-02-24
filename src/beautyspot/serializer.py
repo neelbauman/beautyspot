@@ -73,11 +73,10 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
     ):
         if not (0 <= code <= 127):
             raise ValueError(f"ExtCode must be between 0 and 127, got {code}.")
-        if code in self._decoders:
-            raise ValueError(f"ExtCode {code} is already registered.")
 
-        # 登録時の状態変更をロックで保護
         with self._lock:
+            if code in self._decoders:
+                raise ValueError(f"ExtCode {code} is already registered.")
             self._encoders[type_class] = (code, encoder)
             self._decoders[code] = decoder
             self._subclass_cache.clear()

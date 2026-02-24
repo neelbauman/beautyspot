@@ -159,3 +159,70 @@ def test_custom_executor_injection(tmp_path):
     assert f.result() == "still_alive"
 
     executor.shutdown()
+
+
+def test_deprecated_executor_not_overwritten_by_ensure_bg_resources(tmp_path):
+    """
+    deprecated executor を渡した場合、_ensure_bg_resources() 呼び出し後も
+    ユーザーの executor が保持されることを検証する。
+    """
+    user_executor = ThreadPoolExecutor(max_workers=1)
+    with pytest.warns(DeprecationWarning, match="executor.*deprecated"):
+        spot = Spot(
+            name="di_test_ensure",
+            db=SQLiteTaskDB(tmp_path / "test_ensure.db"),
+            storage_backend=LocalStorage(str(tmp_path / "blobs_ensure")),
+            executor=user_executor,
+        )
+
+    # executor が設定されていることを確認
+    assert spot._executor is user_executor
+    assert spot._bg_loop is None
+
+    # _ensure_bg_resources を呼ぶ（async パスで呼ばれるケースをシミュレート）
+    bg_loop, executor = spot._ensure_bg_resources()
+
+    # _bg_loop が新たに生成されていること
+    assert bg_loop is not None
+    assert spot._bg_loop is bg_loop
+
+    # ユーザーの executor が上書きされていないこと
+    assert spot._executor is user_executor
+    assert executor is user_executor
+
+    # クリーンアップ
+    bg_loop.stop(wait=True)
+    user_executor.shutdown()
+
+
+def test_deprecated_executor_shutdown_cleans_bg_loop(tmp_path):
+    """
+    shutdown() が _bg_loop を停止しつつ、
+    ユーザーの executor は閉じないことを検証する。
+    """
+    user_executor = ThreadPoolExecutor(max_workers=1)
+    with pytest.warns(DeprecationWarning, match="executor.*deprecated"):
+        spot = Spot(
+            name="di_test_shutdown",
+            db=SQLiteTaskDB(tmp_path / "test_shutdown.db"),
+            storage_backend=LocalStorage(str(tmp_path / "blobs_shutdown")),
+            executor=user_executor,
+        )
+
+    # _ensure_bg_resources で _bg_loop を生成
+    spot._ensure_bg_resources()
+    assert spot._bg_loop is not None
+
+    bg_loop = spot._bg_loop
+
+    # shutdown 呼び出し
+    spot.shutdown(wait=True)
+
+    # _bg_loop は停止されていること
+    assert bg_loop._is_shutting_down is True
+
+    # ユーザーの executor はまだ使えること
+    f = user_executor.submit(lambda: "alive")
+    assert f.result() == "alive"
+
+    user_executor.shutdown()

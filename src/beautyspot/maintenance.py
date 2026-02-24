@@ -129,7 +129,7 @@ class MaintenanceService:
         """
         Delete a task record and its associated blob file.
         """
-        record = self.db.get(cache_key)
+        record = self.db.get(cache_key, include_expired=True)
         if not record:
             return False
 

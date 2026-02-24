@@ -18,8 +18,6 @@
 uv add beautyspot
 # or
 pip install beautyspot
-
-
 ```
 
 ## ✨ Key Features
