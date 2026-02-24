@@ -278,6 +278,7 @@ class Spot:
         # MaintenanceService の遅延初期化用
         self._maintenance_service: MaintenanceService | None = None
         self._maintenance_lock = threading.Lock()
+        self._eviction_lock = threading.Lock()
 
     def __enter__(self) -> "Spot":
         return self
@@ -398,31 +399,47 @@ class Spot:
                     f"with {remaining} futures still pending."
                 )
 
+
     def _trigger_auto_eviction(self) -> None:
-        """確率に応じてバックグラウンドで自動クリーンアップ(エビクション)をエンキューする"""
+        """確率に応じてバックグラウンドで自動クリーンアップをエンキューする"""
         if self.eviction_rate <= 0.0:
             return
 
         if random.random() < self.eviction_rate:
-            logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
+            # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
+            if not self._eviction_lock.acquire(blocking=False):
+                return
 
+            logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
             maintenance = self.maintenance
 
-            if self._own_executor:
-                bg_loop, executor = self._ensure_bg_resources()
+            # ロックを確実に解放するためのラッパー
+            def _run_clean_safe():
+                try:
+                    maintenance.clean_garbage()
+                finally:
+                    self._eviction_lock.release()
 
-                async def _run_clean():
-                    loop = asyncio.get_running_loop()
-                    # 管理下のエグゼキュータでI/Oブロッキングな掃除処理を実行
-                    await loop.run_in_executor(executor, maintenance.clean_garbage)
+            try:
+                if self._own_executor:
+                    bg_loop, executor = self._ensure_bg_resources()
 
-                future = bg_loop.submit(_run_clean())
-                self._track_future(future)
+                    async def _run_clean_coro():
+                        loop = asyncio.get_running_loop()
+                        # ラッパーを介して実行
+                        await loop.run_in_executor(executor, _run_clean_safe)
 
-            elif self._executor is not None:
-                # レガシーパス用
-                future = self._executor.submit(maintenance.clean_garbage)
-                self._track_future(future)
+                    future = bg_loop.submit(_run_clean_coro())
+                    self._track_future(future)
+
+                elif self._executor is not None:
+                    # レガシーパス用
+                    future = self._executor.submit(_run_clean_safe)
+                    self._track_future(future)
+            except Exception:
+                # スケジュール自体に失敗した場合は、ロックを戻しておく
+                self._eviction_lock.release()
+                raise
 
     def _resolve_key_fn(
         self,

@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-24 13:00:12
+**最終更新:** 2026-02-24 13:35:13
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -26,10 +26,10 @@ lifecycle       | 1   | 1   | 0.50
 db              | 2   | 0   | 0.00
 cli             | 0   | 1   | 1.00
 dashboard       | 0   | 2   | 1.00
-serializer      | 2   | 1   | 0.33
-core            | 0   | 11  | 1.00
-storage         | 2   | 1   | 0.33
 maintenance     | 3   | 3   | 0.50
+core            | 0   | 11  | 1.00
+serializer      | 2   | 1   | 0.33
+storage         | 2   | 1   | 0.33
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -125,35 +125,35 @@ src/beautyspot/lifecycle.py
 src/beautyspot/__init__.py
     F 45:0 Spot - B
 src/beautyspot/db.py
-    M 178:4 SQLiteTaskDB.get - B
-    M 144:4 SQLiteTaskDB.init_schema - B
-    M 293:4 SQLiteTaskDB.get_outdated_tasks - A
-    M 324:4 SQLiteTaskDB.get_blob_refs - A
+    M 180:4 SQLiteTaskDB.get - B
+    M 146:4 SQLiteTaskDB.init_schema - B
+    M 297:4 SQLiteTaskDB.get_outdated_tasks - A
+    M 328:4 SQLiteTaskDB.get_blob_refs - A
     F 20:0 _ensure_utc_isoformat - A
-    C 105:0 SQLiteTaskDB - A
-    M 244:4 SQLiteTaskDB.get_history - A
-    M 335:4 SQLiteTaskDB.get_keys_start_with - A
+    C 107:0 SQLiteTaskDB - A
+    M 248:4 SQLiteTaskDB.get_history - A
+    M 339:4 SQLiteTaskDB.get_keys_start_with - A
     C 36:0 TaskDBBase - A
-    M 115:4 SQLiteTaskDB._connect - A
-    M 268:4 SQLiteTaskDB.delete_all - A
-    M 278:4 SQLiteTaskDB.prune - A
-    M 313:4 SQLiteTaskDB.delete_expired - A
+    M 117:4 SQLiteTaskDB._connect - A
+    M 272:4 SQLiteTaskDB.delete_all - A
+    M 282:4 SQLiteTaskDB.prune - A
+    M 317:4 SQLiteTaskDB.delete_expired - A
     C 29:0 TaskRecord - A
     M 42:4 TaskDBBase.init_schema - A
     M 46:4 TaskDBBase.get - A
-    M 50:4 TaskDBBase.save - A
-    M 65:4 TaskDBBase.get_history - A
-    M 69:4 TaskDBBase.delete - A
-    M 73:4 TaskDBBase.delete_expired - A
-    M 77:4 TaskDBBase.prune - A
-    M 84:4 TaskDBBase.get_outdated_tasks - A
-    M 92:4 TaskDBBase.get_blob_refs - A
-    M 96:4 TaskDBBase.delete_all - A
-    M 100:4 TaskDBBase.get_keys_start_with - A
-    M 110:4 SQLiteTaskDB.__init__ - A
-    M 133:4 SQLiteTaskDB._read_connect - A
-    M 212:4 SQLiteTaskDB.save - A
-    M 263:4 SQLiteTaskDB.delete - A
+    M 52:4 TaskDBBase.save - A
+    M 67:4 TaskDBBase.get_history - A
+    M 71:4 TaskDBBase.delete - A
+    M 75:4 TaskDBBase.delete_expired - A
+    M 79:4 TaskDBBase.prune - A
+    M 86:4 TaskDBBase.get_outdated_tasks - A
+    M 94:4 TaskDBBase.get_blob_refs - A
+    M 98:4 TaskDBBase.delete_all - A
+    M 102:4 TaskDBBase.get_keys_start_with - A
+    M 112:4 SQLiteTaskDB.__init__ - A
+    M 135:4 SQLiteTaskDB._read_connect - A
+    M 216:4 SQLiteTaskDB.save - A
+    M 267:4 SQLiteTaskDB.delete - A
 src/beautyspot/cli.py
     F 304:0 show_cmd - C
     F 556:0 gc_cmd - C
@@ -169,102 +169,14 @@ src/beautyspot/cli.py
     F 75:0 _get_task_count - A
     F 33:0 get_service - A
     F 286:0 list_cmd - A
-    F 769:0 version_cmd - A
+    F 771:0 version_cmd - A
     F 45:0 _is_port_in_use - A
     F 68:0 _format_timestamp - A
-    F 788:0 main - A
+    F 790:0 main - A
 src/beautyspot/dashboard.py
     F 54:0 load_data - A
     F 14:0 get_args - A
     F 35:0 render_mermaid - A
-src/beautyspot/serializer.py
-    M 107:4 MsgpackSerializer._default_packer - B
-    C 47:0 MsgpackSerializer - A
-    M 197:4 MsgpackSerializer.dumps - A
-    M 69:4 MsgpackSerializer.register - A
-    M 174:4 MsgpackSerializer._ext_hook - A
-    M 219:4 MsgpackSerializer.loads - A
-    C 21:0 SerializerProtocol - A
-    C 33:0 TypeRegistryProtocol - A
-    M 102:4 MsgpackSerializer._enforce_cache_size - A
-    M 27:4 SerializerProtocol.dumps - A
-    M 29:4 SerializerProtocol.loads - A
-    M 38:4 TypeRegistryProtocol.register - A
-    M 60:4 MsgpackSerializer.__init__ - A
-src/beautyspot/core.py
-    M 779:4 Spot._check_cache_sync - B
-    M 366:4 Spot.shutdown - B
-    M 324:4 Spot._ensure_bg_resources - B
-    M 1069:4 Spot.cached_run - B
-    M 127:4 _BackgroundLoop.stop - A
-    M 385:4 Spot._drain_futures - A
-    M 402:4 Spot._trigger_auto_eviction - A
-    M 428:4 Spot._resolve_key_fn - A
-    M 827:4 Spot._submit_background_save - A
-    C 161:0 Spot - A
-    M 207:4 Spot.__init__ - A
-    M 308:4 Spot.maintenance - A
-    M 514:4 Spot._dispatch_hooks - A
-    M 532:4 Spot._resolve_settings - A
-    M 572:4 Spot._execute_sync - A
-    M 671:4 Spot._execute_async - A
-    M 852:4 Spot._save_result_safe - A
-    M 886:4 Spot._save_result_sync - A
-    C 65:0 _BackgroundLoop - A
-    M 98:4 _BackgroundLoop._task_wrapper - A
-    M 109:4 _BackgroundLoop.submit - A
-    M 455:4 Spot.register - A
-    M 496:4 Spot._calculate_expires_at - A
-    M 551:4 Spot._make_cache_key - A
-    M 970:4 Spot.mark - A
-    M 294:4 Spot._track_future - A
-    M 352:4 Spot._setup_workspace - A
-    M 480:4 Spot.register_type - A
-    M 71:4 _BackgroundLoop.__init__ - A
-    M 90:4 _BackgroundLoop._run_event_loop - A
-    M 153:4 _BackgroundLoop._shutdown - A
-    M 283:4 Spot.__enter__ - A
-    M 286:4 Spot.__exit__ - A
-    M 361:4 Spot._shutdown_resources - A
-    M 844:4 Spot._save_result_async - A
-    M 932:4 Spot.consume - A
-    M 953:4 Spot.mark - A
-    M 956:4 Spot.mark - A
-    M 1037:4 Spot.cached_run - A
-    M 1054:4 Spot.cached_run - A
-src/beautyspot/storage.py
-    M 254:4 LocalStorage.prune_empty_dirs - B
-    M 230:4 LocalStorage.clean_temp_files - B
-    C 137:0 LocalStorage - A
-    M 310:4 S3Storage._parse_s3_uri - A
-    M 143:4 LocalStorage._validate_key - A
-    M 176:4 LocalStorage.load - A
-    M 216:4 LocalStorage.list_keys - A
-    C 293:0 S3Storage - A
-    M 294:4 S3Storage.__init__ - A
-    C 51:0 WarningOnlyPolicy - A
-    M 150:4 LocalStorage.save - A
-    M 197:4 LocalStorage.delete - A
-    M 343:4 S3Storage.list_keys - A
-    F 351:0 create_storage - A
-    C 28:0 StoragePolicyProtocol - A
-    C 38:0 ThresholdStoragePolicy - A
-    M 60:4 WarningOnlyPolicy.should_save_as_blob - A
-    C 70:0 AlwaysBlobPolicy - A
-    C 83:0 BlobStorageBase - A
-    M 328:4 S3Storage.load - A
-    M 336:4 S3Storage.delete - A
-    M 34:4 StoragePolicyProtocol.should_save_as_blob - A
-    M 46:4 ThresholdStoragePolicy.should_save_as_blob - A
-    M 76:4 AlwaysBlobPolicy.should_save_as_blob - A
-    M 89:4 BlobStorageBase.save - A
-    M 97:4 BlobStorageBase.load - A
-    M 104:4 BlobStorageBase.delete - A
-    M 112:4 BlobStorageBase.list_keys - A
-    M 120:4 BlobStorageBase.prune_empty_dirs - A
-    M 128:4 BlobStorageBase.clean_temp_files - A
-    M 138:4 LocalStorage.__init__ - A
-    M 322:4 S3Storage.save - A
 src/beautyspot/maintenance.py
     M 185:4 MaintenanceService.clean_garbage - C
     M 84:4 MaintenanceService.get_task_detail - B
@@ -281,9 +193,97 @@ src/beautyspot/maintenance.py
     M 150:4 MaintenanceService.get_prunable_tasks - A
     M 156:4 MaintenanceService.prune - A
     M 163:4 MaintenanceService.clear - A
+src/beautyspot/core.py
+    M 778:4 Spot._check_cache_sync - B
+    M 365:4 Spot.shutdown - B
+    M 323:4 Spot._ensure_bg_resources - B
+    M 1068:4 Spot.cached_run - B
+    M 126:4 _BackgroundLoop.stop - A
+    M 384:4 Spot._drain_futures - A
+    M 401:4 Spot._trigger_auto_eviction - A
+    M 427:4 Spot._resolve_key_fn - A
+    M 826:4 Spot._submit_background_save - A
+    C 160:0 Spot - A
+    M 206:4 Spot.__init__ - A
+    M 307:4 Spot.maintenance - A
+    M 513:4 Spot._dispatch_hooks - A
+    M 531:4 Spot._resolve_settings - A
+    M 571:4 Spot._execute_sync - A
+    M 670:4 Spot._execute_async - A
+    M 851:4 Spot._save_result_safe - A
+    M 885:4 Spot._save_result_sync - A
+    C 64:0 _BackgroundLoop - A
+    M 95:4 _BackgroundLoop._task_wrapper - A
+    M 106:4 _BackgroundLoop.submit - A
+    M 454:4 Spot.register - A
+    M 495:4 Spot._calculate_expires_at - A
+    M 550:4 Spot._make_cache_key - A
+    M 969:4 Spot.mark - A
+    M 293:4 Spot._track_future - A
+    M 351:4 Spot._setup_workspace - A
+    M 479:4 Spot.register_type - A
+    M 70:4 _BackgroundLoop.__init__ - A
+    M 87:4 _BackgroundLoop._run_event_loop - A
+    M 152:4 _BackgroundLoop._shutdown - A
+    M 282:4 Spot.__enter__ - A
+    M 285:4 Spot.__exit__ - A
+    M 360:4 Spot._shutdown_resources - A
+    M 843:4 Spot._save_result_async - A
+    M 931:4 Spot.consume - A
+    M 952:4 Spot.mark - A
+    M 955:4 Spot.mark - A
+    M 1036:4 Spot.cached_run - A
+    M 1053:4 Spot.cached_run - A
+src/beautyspot/serializer.py
+    M 95:4 MsgpackSerializer._default_packer - B
+    C 38:0 MsgpackSerializer - A
+    M 160:4 MsgpackSerializer.dumps - A
+    M 67:4 MsgpackSerializer.register - A
+    M 147:4 MsgpackSerializer._ext_hook - A
+    M 171:4 MsgpackSerializer.loads - A
+    C 22:0 SerializerProtocol - A
+    C 28:0 TypeRegistryProtocol - A
+    M 85:4 MsgpackSerializer._enforce_cache_size - A
+    M 23:4 SerializerProtocol.dumps - A
+    M 24:4 SerializerProtocol.loads - A
+    M 29:4 TypeRegistryProtocol.register - A
+    M 56:4 MsgpackSerializer.__init__ - A
+src/beautyspot/storage.py
+    M 259:4 LocalStorage.prune_empty_dirs - B
+    M 235:4 LocalStorage.clean_temp_files - B
+    C 137:0 LocalStorage - A
+    M 315:4 S3Storage._parse_s3_uri - A
+    M 143:4 LocalStorage._validate_key - A
+    M 176:4 LocalStorage.load - A
+    M 197:4 LocalStorage.delete - A
+    M 221:4 LocalStorage.list_keys - A
+    C 298:0 S3Storage - A
+    M 299:4 S3Storage.__init__ - A
+    C 51:0 WarningOnlyPolicy - A
+    M 150:4 LocalStorage.save - A
+    M 348:4 S3Storage.list_keys - A
+    F 356:0 create_storage - A
+    C 28:0 StoragePolicyProtocol - A
+    C 38:0 ThresholdStoragePolicy - A
+    M 60:4 WarningOnlyPolicy.should_save_as_blob - A
+    C 70:0 AlwaysBlobPolicy - A
+    C 83:0 BlobStorageBase - A
+    M 333:4 S3Storage.load - A
+    M 341:4 S3Storage.delete - A
+    M 34:4 StoragePolicyProtocol.should_save_as_blob - A
+    M 46:4 ThresholdStoragePolicy.should_save_as_blob - A
+    M 76:4 AlwaysBlobPolicy.should_save_as_blob - A
+    M 89:4 BlobStorageBase.save - A
+    M 97:4 BlobStorageBase.load - A
+    M 104:4 BlobStorageBase.delete - A
+    M 112:4 BlobStorageBase.list_keys - A
+    M 120:4 BlobStorageBase.prune_empty_dirs - A
+    M 128:4 BlobStorageBase.clean_temp_files - A
+    M 138:4 LocalStorage.__init__ - A
+    M 327:4 S3Storage.save - A
 
 210 blocks (classes, functions, methods) analyzed.
-Average complexity: A (2.895238095238095)
+Average complexity: A (2.9)
 ```
 </details>
 
@@ -311,10 +311,10 @@ src/beautyspot/__init__.py - A
 src/beautyspot/db.py - A
 src/beautyspot/cli.py - A
 src/beautyspot/dashboard.py - A
-src/beautyspot/serializer.py - A
-src/beautyspot/core.py - A
-src/beautyspot/storage.py - A
 src/beautyspot/maintenance.py - A
+src/beautyspot/core.py - A
+src/beautyspot/serializer.py - A
+src/beautyspot/storage.py - A
 ```
 </details>
 
