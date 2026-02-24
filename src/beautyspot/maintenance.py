@@ -171,14 +171,28 @@ class MaintenanceService:
         if ref_filenames is None:
             return []
 
-        # get_blob_refs() はファイル名のみ (例: "abc.bin") を返す。
-        # list_keys() はサブディレクトリを含むパス ("subdir/abc.bin") を
-        # 返す可能性があるため、ファイル名部分を抽出して比較する。
+        def _normalize_location(location: str) -> str:
+            return location.replace("\\", "/")
+
+        def _basename(location: str) -> str:
+            return _normalize_location(location).split("/")[-1]
+
+        ref_locations = {_normalize_location(loc) for loc in ref_filenames}
+        # Legacy support: DBに絶対パスが保存されていた場合のみbasenameを許容
+        ref_basenames = {
+            _basename(loc)
+            for loc in ref_locations
+            if Path(loc).is_absolute()
+        }
+
         orphans = []
         for location in self.storage.list_keys():
-            filename = location.replace("\\", "/").split("/")[-1]
-            if filename not in ref_filenames:
-                orphans.append(location)
+            norm = _normalize_location(location)
+            if norm in ref_locations:
+                continue
+            if _basename(norm) in ref_basenames:
+                continue
+            orphans.append(location)
 
         return orphans
 
@@ -258,7 +272,7 @@ class MaintenanceService:
             None: No match found.
         """
         # 1. 完全一致を最優先でチェック
-        if self.db.get(prefix):
+        if self.db.get(prefix, include_expired=True):
             return prefix
 
         # 2. プレフィックス検索

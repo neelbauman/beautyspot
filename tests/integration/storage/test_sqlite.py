@@ -29,6 +29,7 @@ def test_init_schema(db):
         assert "content_type" in columns
         assert "version" in columns
         assert "result_data" in columns  # Added check for BLOB column
+        assert "func_identifier" in columns
 
 
 def test_save_and_get(db):
@@ -37,6 +38,7 @@ def test_save_and_get(db):
     db.save(
         cache_key=key,
         func_name="my_func",
+        func_identifier="tests.integration.storage.test_sqlite.my_func",
         input_id="input_1",
         version="v1",
         result_type="DIRECT",
@@ -58,8 +60,8 @@ def test_get_non_existent(db):
 def test_get_history(db):
     """履歴の取得 (Pandas)"""
     # データを投入
-    db.save("k1", "f1", "i1", "v1", "DIRECT", "text", '"v1"')
-    db.save("k2", "f1", "i2", "v1", "DIRECT", "text", '"v2"')
+    db.save("k1", "f1", "tests.integration.storage.test_sqlite.f1", "i1", "v1", "DIRECT", "text", '"v1"')
+    db.save("k2", "f1", "tests.integration.storage.test_sqlite.f1", "i2", "v1", "DIRECT", "text", '"v2"')
 
     df = db.get_history()
     assert len(df) == 2

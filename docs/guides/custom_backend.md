@@ -4,9 +4,9 @@
 
 v1.0.0 から導入された **Dependency Injection (DI)** 機構を利用することで、ライブラリのコードを変更することなく、バックエンドを自由に差し替えることができます。
 
-## 1. The Interface: `TaskDB`
+## 1. The Interface: `TaskDBBase`
 
-カスタムバックエンドを作成するには、`beautyspot.db.TaskDB` 抽象基底クラス（Abstract Base Class）を継承し、以下の4つのメソッドを実装する必要があります。
+カスタムバックエンドを作成するには、`beautyspot.db.TaskDBBase` 抽象基底クラス（Abstract Base Class）を継承し、以下のメソッドを実装する必要があります。
 
 ::: beautyspot.db.TaskDBBase
     options:
@@ -18,6 +18,7 @@ v1.0.0 から導入された **Dependency Injection (DI)** 機構を利用する
 * **Thread Safety**: `Spot` はマルチスレッドで動作する可能性があります。データベースアダプタはスレッドセーフである必要があります。
 * **Schema Initialization**: `init_schema()` は `Spot` 初期化時に毎回呼ばれます。「テーブルがなければ作成する（IF NOT EXISTS）」ように実装してください。
 * **Idempotency**: `save()` は同じキーで何度も呼ばれる可能性があります。`INSERT OR REPLACE` (Upsert) の挙動を実装してください。
+* **Function Identity**: `func_identifier` (完全修飾名) が渡された場合は保存し、未指定なら `func_name` にフォールバックしてください。同名関数の衝突回避に使われます。
 
 ## 2. Implementation Example
 
@@ -26,10 +27,11 @@ v1.0.0 から導入された **Dependency Injection (DI)** 機構を利用する
 
 ```python
 from typing import Any, Dict, Optional
+from datetime import datetime
 import pandas as pd
-from beautyspot.db import TaskDB
+from beautyspot.db import TaskDBBase
 
-class MemoryTaskDB(TaskDB):
+class MemoryTaskDB(TaskDBBase):
     """
     オンメモリで動作する揮発性のバックエンド。
     テストや、永続化が不要な一時的なスクリプトに最適です。
@@ -45,23 +47,29 @@ class MemoryTaskDB(TaskDB):
         return self._storage.get(cache_key)
 
     def save(
-        self, 
-        cache_key: str, 
-        func_name: str, 
-        input_id: str, 
-        version: Optional[str], 
-        result_type: str, 
-        content_type: Optional[str], 
-        result_value: str
+        self,
+        cache_key: str,
+        func_name: str,
+        func_identifier: Optional[str],
+        input_id: str,
+        version: Optional[str],
+        result_type: str,
+        content_type: Optional[str],
+        result_value: Optional[str] = None,
+        result_data: Optional[bytes] = None,
+        expires_at: Optional[datetime] = None,
     ):
         # 辞書に保存（Upsert）
         self._storage[cache_key] = {
             "func_name": func_name,
+            "func_identifier": func_identifier or func_name,
             "input_id": input_id,
             "version": version,
             "result_type": result_type,
             "content_type": content_type,
             "result_value": result_value,
+            "result_data": result_data,
+            "expires_at": expires_at,
             "updated_at": pd.Timestamp.now() # 履歴用
         }
 
@@ -100,7 +108,7 @@ print(calc(10))
 
 ## 4. Advanced: Using PostgreSQL / MySQL
 
-RDBMS を使用する場合は、`sqlalchemy` や `psycopg2` を使用して `TaskDB` を実装します。
+RDBMS を使用する場合は、`sqlalchemy` や `psycopg2` を使用して `TaskDBBase` を実装します。
 `src/beautyspot/db.py` 内の `SQLiteTaskDB` の実装が参考になります。
 
 特に以下の点に注意してください：

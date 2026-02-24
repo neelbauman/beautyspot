@@ -191,6 +191,7 @@ def test_background_save_notifies_on_shutdown_rejection():
     save_kwargs = {
         "cache_key": "test_key",
         "func_name": "my_func",
+        "func_identifier": "tests.integration.core.test_async_save.my_func",
         "input_id": "abc",
         "version": "v1",
         "result": 42,
@@ -241,6 +242,7 @@ def test_background_save_logs_warning_without_callback(caplog):
     save_kwargs = {
         "cache_key": "key2",
         "func_name": "another_func",
+        "func_identifier": "tests.integration.core.test_async_save.another_func",
         "input_id": "xyz",
         "version": None,
         "result": "data",

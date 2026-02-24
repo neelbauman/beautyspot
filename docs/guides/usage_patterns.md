@@ -55,6 +55,53 @@ with spot.cached_run(simulation, version="test-v1") as sim:
 
 ---
 
+## 2.1 Function Identity (完全修飾名と衝突回避)
+
+同名の関数が別モジュールや別クラスに存在する場合、**短い関数名 (`func_name`) だけでは衝突**します。  
+`beautyspot` は内部で **完全修飾名 (`module.qualname`)** を保存し、保持期間や `--func` フィルタなどで優先的に使用します。
+
+### 例: 同名関数が2つあるケース
+
+```python
+# package_a/tasks.py
+def preprocess(x):
+    return x * 2
+
+# package_b/tasks.py
+def preprocess(x):
+    return x + 1
+```
+
+```python
+import beautyspot as bs
+from package_a.tasks import preprocess as preprocess_a
+from package_b.tasks import preprocess as preprocess_b
+
+spot = bs.Spot("my_app")
+
+with spot.cached_run(preprocess_a) as run_a:
+    run_a(10)
+
+with spot.cached_run(preprocess_b) as run_b:
+    run_b(10)
+```
+
+このとき、DBに保存される `func_identifier` は以下のようになります。
+
+* `package_a.tasks.preprocess`
+* `package_b.tasks.preprocess`
+
+### CLIフィルタでの指定
+
+```bash
+# 完全修飾名で正確に対象を絞る
+beautyspot prune .beautyspot/my_app.db --days 30 --func package_a.tasks.preprocess
+```
+
+短い関数名も後方互換として使えますが、**同名関数がある場合は完全修飾名を推奨**します。
+
+---
+
 ## 3. Parallel Execution (並列実行と共有フック)
 
 `beautyspot` は、`ThreadPoolExecutor` などを用いた並列タスク実行をネイティブにサポートしています。
@@ -116,4 +163,3 @@ def run_experiment():
     # ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれています
 
 ```
-

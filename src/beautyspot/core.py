@@ -10,6 +10,7 @@ import random
 import threading
 import warnings
 import weakref
+import time
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -108,6 +109,11 @@ class _BackgroundLoop:
         with self._lock:
             if self._is_shutting_down:
                 logger.debug("Background loop is shutting down. Task rejected.")
+                try:
+                    coro.close()
+                except Exception:
+                    # Best-effort cleanup; avoid raising during rejection.
+                    pass
                 return None
 
             # ロック内でカウンタを増やすことで、確実にインフライトとして追跡される
@@ -224,6 +230,8 @@ class Spot:
         default_content_type: Optional[str | ContentType] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
         eviction_rate: float = 0.0,
+        drain_timeout: float = 5.0,
+        drain_poll_interval: float = 0.5,
         on_background_error: Optional[
             Callable[[Exception, SaveErrorContext], None]
         ] = None,
@@ -232,6 +240,12 @@ class Spot:
         if not (0.0 <= eviction_rate <= 1.0):
             raise ValueError("eviction_rate must be between 0.0 and 1.0")
         self.eviction_rate = eviction_rate
+        if drain_timeout <= 0:
+            raise ValueError("drain_timeout must be positive")
+        if drain_poll_interval <= 0:
+            raise ValueError("drain_poll_interval must be positive")
+        self._drain_timeout = drain_timeout
+        self._drain_poll_interval = drain_poll_interval
 
         # --- 依存オブジェクトの注入 ---
         self.db = db
@@ -345,7 +359,7 @@ class Spot:
             # Double-checked locking: 各リソースを独立チェックし既存のものは上書きしない
             if self._bg_loop is None or self._executor is None:
                 if self._bg_loop is None:
-                    self._bg_loop = _BackgroundLoop()
+                    self._bg_loop = _BackgroundLoop(drain_timeout=self._drain_timeout)
                 if self._executor is None:
                     self._executor = ThreadPoolExecutor(max_workers=self._io_workers)
                 if self._own_executor and self._finalizer is None:
@@ -391,24 +405,36 @@ class Spot:
         except Exception as e:
             logger.error(f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True)
 
-    _MAX_DRAIN_ITERATIONS = 10
-
     def _drain_futures(self) -> None:
         """保留中のすべての Future が完了するまで待機するドレインループ。"""
-        for _ in range(self._MAX_DRAIN_ITERATIONS):
+        deadline = time.monotonic() + self._drain_timeout
+        while True:
             with self._futures_lock:
                 snapshot = list(self._active_futures)
             if not snapshot:
+                return
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 break
-            wait(snapshot)
-        else:
-            with self._futures_lock:
-                remaining = len(self._active_futures)
-            if remaining:
-                logger.warning(
-                    f"Drain loop reached max iterations ({self._MAX_DRAIN_ITERATIONS}) "
-                    f"with {remaining} futures still pending."
-                )
+            wait_timeout = min(self._drain_poll_interval, remaining)
+            _, not_done = wait(snapshot, timeout=wait_timeout)
+            if not not_done:
+                return
+
+        with self._futures_lock:
+            remaining_count = len(self._active_futures)
+        if remaining_count:
+            logger.warning(
+                f"Drain timeout ({self._drain_timeout}s) reached with "
+                f"{remaining_count} futures still pending."
+            )
+
+    @staticmethod
+    def _get_func_identifier(func: Callable) -> str:
+        """Derive a fully-qualified identifier for cache key namespacing."""
+        module = getattr(func, "__module__", None) or func.__class__.__module__
+        qualname = getattr(func, "__qualname__", None) or func.__class__.__qualname__
+        return f"{module}.{qualname}"
 
 
     def _trigger_auto_eviction(self) -> None:
@@ -526,7 +552,10 @@ class Spot:
 
     # --- ヘルパーメソッド: 有効期限の計算 ---
     def _calculate_expires_at(
-        self, func_name: str, local_retention: Union[str, timedelta, None]
+        self,
+        func_identifier: str,
+        func_name: str,
+        local_retention: Union[str, timedelta, None],
     ) -> Optional[datetime]:
 
         # 1. ローカル指定 (優先度: 高)
@@ -534,7 +563,9 @@ class Spot:
 
         # 2. ポリシー指定 (優先度: 低)
         if retention is None:
-            retention = self.lifecycle_policy.resolve(func_name)
+            retention = self.lifecycle_policy.resolve_with_fallback(
+                func_identifier, func_name
+            )
 
         if retention is None:
             return None  # 無期限
@@ -582,7 +613,7 @@ class Spot:
 
     def _make_cache_key(
         self,
-        func_name: str,
+        func_identifier: str,
         args: tuple,
         kwargs: dict,
         resolved_key_fn: Optional[Callable],
@@ -594,7 +625,7 @@ class Spot:
             else KeyGen._default(args, kwargs)
         )
 
-        key_source = f"{func_name}:{iid}"
+        key_source = f"{func_identifier}:{iid}"
         if version:
             key_source += f":{version}"
 
@@ -620,8 +651,9 @@ class Spot:
             save_blob, version, content_type, wait
         )
 
+        func_identifier = self._get_func_identifier(func)
         iid, ck = self._make_cache_key(
-            func.__name__, args, kwargs, effective_key_fn, s_ver
+            func_identifier, args, kwargs, effective_key_fn, s_ver
         )
 
         # kwargs をコピーしてフックからの変更を防止
@@ -677,10 +709,11 @@ class Spot:
         )
 
         # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(func.__name__, retention)
+        expires_at = self._calculate_expires_at(func_identifier, func.__name__, retention)
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
+            "func_identifier": func_identifier,
             "input_id": str(iid),
             "version": s_ver,
             "result": res,
@@ -704,7 +737,6 @@ class Spot:
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
                     raise
-                raise
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
         # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
@@ -734,8 +766,9 @@ class Spot:
             save_blob, version, content_type, wait
         )
 
+        func_identifier = self._get_func_identifier(func)
         iid, ck = self._make_cache_key(
-            func.__name__, args, kwargs, effective_key_fn, s_ver
+            func_identifier, args, kwargs, effective_key_fn, s_ver
         )
         loop = asyncio.get_running_loop()
         # async パスでは常にエグゼキュータが必要なので遅延初期化
@@ -796,11 +829,12 @@ class Spot:
         )
 
         # === 5. Calculate Expiration & Save ===
-        expires_at = self._calculate_expires_at(func.__name__, retention)
+        expires_at = self._calculate_expires_at(func_identifier, func.__name__, retention)
 
         save_kwargs = {
             "cache_key": ck,
             "func_name": func.__name__,
+            "func_identifier": func_identifier,
             "input_id": str(iid),
             "version": s_ver,
             "result": res,
@@ -831,7 +865,6 @@ class Spot:
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
                     raise
-                raise
 
         # [ADD] 保存後に自動クリーンアップのトリガー判定
         # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
@@ -1012,6 +1045,7 @@ class Spot:
         self,
         cache_key: str,
         func_name: str,
+        func_identifier: Optional[str],
         input_id: str,
         version: str | None,
         result: Any,
@@ -1045,6 +1079,7 @@ class Spot:
         self.db.save(
             cache_key=cache_key,
             func_name=func_name,
+            func_identifier=func_identifier,
             input_id=input_id,
             version=version,
             result_type=r_type,

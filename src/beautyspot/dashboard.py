@@ -72,12 +72,16 @@ if df.empty:
 st.sidebar.header("Filter")
 st.sidebar.metric("Total Records", len(df))
 
+if "func_identifier" in df.columns and df["func_identifier"].notna().any():  # type: ignore[union-attr]
+    func_col = "func_identifier"
+else:
+    func_col = "func_name"
 funcs = st.sidebar.multiselect(
     "Function",
-    df["func_name"].unique().tolist(),  # type: ignore[union-attr]
+    df[func_col].dropna().unique().tolist(),  # type: ignore[union-attr]
 )
 if funcs:
-    df = df[df["func_name"].isin(funcs)]  # type: ignore[union-attr]
+    df = df[df[func_col].isin(funcs)]  # type: ignore[union-attr]
 
 result_types = st.sidebar.multiselect(
     "Result Type",
@@ -98,7 +102,7 @@ event = st.dataframe(
         [
             "cache_key",
             "updated_at",
-            "func_name",
+            func_col,
             "input_id",
             "version",
             "result_type",

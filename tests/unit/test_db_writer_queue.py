@@ -22,6 +22,7 @@ class FailingDB(TaskDBBase):
         self,
         cache_key: str,
         func_name: str,
+        func_identifier: str | None,
         input_id: str,
         version: str | None,
         result_type: str,

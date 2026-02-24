@@ -157,7 +157,12 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
 
     if func:
         # Note: Filtering DataFrame returns DataFrame, so this is safe from 'if df:' issue
-        df = df[df["func_name"].str.contains(func, na=False)]  # type: ignore
+        if "func_identifier" in df.columns:
+            func_mask = df["func_name"].str.contains(func, na=False)  # type: ignore
+            func_id_mask = df["func_identifier"].fillna("").str.contains(func, na=False)  # type: ignore
+            df = df[func_mask | func_id_mask]  # type: ignore
+        else:
+            df = df[df["func_name"].str.contains(func, na=False)]  # type: ignore
         if df.empty:
             console.print(f"[yellow]No tasks found for function: {func}[/yellow]")
             raise typer.Exit(0)
@@ -193,8 +198,14 @@ def _list_tasks(db: str, limit: int, func: Optional[str]):
 
         cache_key_short = str(row["cache_key"])[:8]
 
+        func_identifier = row.get("func_identifier") if "func_identifier" in row else None
+        if isinstance(func_identifier, str) and func_identifier:
+            func_display = func_identifier
+        else:
+            func_display = str(row["func_name"])
+
         table.add_row(
-            str(row["func_name"]),
+            func_display,
             cache_key_short,
             input_id,
             str(row["version"] or "-"),
@@ -411,7 +422,11 @@ def stats_cmd(
         raise typer.Exit(0)
 
     total_tasks = len(df)
-    unique_functions = df["func_name"].nunique()  # type: ignore
+    if "func_identifier" in df.columns and df["func_identifier"].notna().any():  # type: ignore
+        func_col = "func_identifier"
+    else:
+        func_col = "func_name"
+    unique_functions = df[func_col].nunique()  # type: ignore
     result_types = df["result_type"].value_counts().to_dict()  # type: ignore
     content_types = df["content_type"].value_counts().to_dict()  # type: ignore
 
@@ -439,7 +454,7 @@ def stats_cmd(
             ct_table.add_row(ct_str, str(count))
         console.print(ct_table)
 
-    top_funcs = df["func_name"].value_counts().head(10).to_dict()  # type: ignore
+    top_funcs = df[func_col].value_counts().head(10).to_dict()  # type: ignore
     if top_funcs:
         func_table = Table(title="Top Functions", border_style="blue")
         func_table.add_column("Function", style="cyan")

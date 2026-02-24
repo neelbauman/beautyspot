@@ -186,8 +186,11 @@ def test_background_loop_rejects_tasks_after_stop():
         pass
 
     # 停止後の投入は None を返すはず
-    future = loop.submit(dummy_task())
+    coro = dummy_task()
+    future = loop.submit(coro)
     assert future is None
+    # 拒否時にコルーチンが close されること（未await警告対策）
+    assert coro.cr_frame is None
 
 
 def test_background_loop_handles_task_exceptions():

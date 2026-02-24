@@ -6,11 +6,11 @@
 
 ## 概要
 
-`beautyspot` のデータベースレイヤーは、抽象基底クラス `TaskDB` によって定義されています。これにより、デフォルトの SQLite 以外のバックエンド（PostgreSQL, Redis 等）をユーザーが独自に実装して注入することが可能です。
+`beautyspot` のデータベースレイヤーは、抽象基底クラス `TaskDBBase` によって定義されています。これにより、デフォルトの SQLite 以外のバックエンド（PostgreSQL, Redis 等）をユーザーが独自に実装して注入することが可能です。
 
 ## 主なクラス
 
-### TaskDB
+### TaskDBBase
 すべてのデータベースバックエンドが継承すべき抽象インターフェースです。
 
 !!! info "実装時の注意点 (Thread Safety)"
@@ -43,7 +43,8 @@ db = SQLiteTaskDB(".beautyspot/tasks.db", timeout=60.0)
 | カラム名 | 説明 |
 | --- | --- |
 | `cache_key` | タスクのユニークな識別子 (主キー) |
-| `func_name` | 実行された関数名 |
+| `func_name` | 実行された関数名（短い名前） |
+| `func_identifier` | 実行された関数の完全修飾名（`module.qualname`） |
 | `input_id` | 入力引数から生成された ID |
 | `version` | タスクのバージョン |
 | `result_type` | 結果の保存形式 (`DIRECT_BLOB` または `FILE`) |
@@ -51,4 +52,8 @@ db = SQLiteTaskDB(".beautyspot/tasks.db", timeout=60.0)
 | `result_value` | 外部ファイルへのパス (FILE の場合) |
 | `result_data` | シリアライズされたバイナリデータ (DIRECT_BLOB の場合) |
 | `updated_at` | 最終更新日時 |
+| `expires_at` | 期限切れ日時（任意） |
 
+!!! note "func_identifier について"
+    `func_identifier` は `module.qualname` 形式の完全修飾名で、同名関数の衝突を避けるために使われます。
+    既存データは `func_identifier` が NULL の場合があるため、表示やフィルタでは `func_name` にフォールバックされます。

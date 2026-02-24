@@ -46,6 +46,7 @@ def test_zombie_thread_completes_tasks():
         spot._submit_background_save(
             cache_key="test_key",
             func_name="test",
+            func_identifier="tests.integration.core.test_exit_drain.test",
             input_id="1",
             version="1",
             result="data",

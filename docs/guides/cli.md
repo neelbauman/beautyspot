@@ -68,6 +68,11 @@ $ beautyspot prune .beautyspot/project.db --days 30
 
 * **動作:** 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。
 
+!!! note "関数名フィルタについて"
+    `--func` などの関数名フィルタは、**完全修飾名（`module.qualname`）を優先**してマッチします。
+    同名関数がある場合は完全修飾名を指定してください。短い関数名も後方互換のため引き続き使えます。
+    具体例は Usage Patterns の「Function Identity」セクションを参照してください: `docs/guides/usage_patterns.md`。
+
 ### 3. 孤立ファイルのクリーンアップ (`clean`)
 
 `clean` は、**ストレージの整合性を修復** するための低レイヤーコマンドです。
@@ -79,4 +84,3 @@ $ beautyspot prune .beautyspot/project.db --days 30
 $ beautyspot clean .beautyspot/project.db
 
 ```
-

@@ -51,6 +51,7 @@ class MockDB(TaskDBBase):
         self,
         cache_key,
         func_name,
+        func_identifier,
         input_id,
         version,
         result_type,

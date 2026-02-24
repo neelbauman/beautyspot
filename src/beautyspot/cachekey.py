@@ -43,9 +43,18 @@ def _canonicalize_instance(obj: Any) -> Any:
     if hasattr(obj, "__dict__"):
         return canonicalize(obj.__dict__)
     # __slots__ path
+    slots = getattr(obj, "__slots__", [])
+    if isinstance(slots, str):
+        slots = [slots]
+    else:
+        try:
+            slots = list(slots)
+        except TypeError:
+            slots = []
+
     return [
         [k, canonicalize(getattr(obj, k))]
-        for k in sorted(obj.__slots__)
+        for k in sorted(slots)
         if hasattr(obj, k)
     ]
 

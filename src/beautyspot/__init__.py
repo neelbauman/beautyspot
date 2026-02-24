@@ -60,6 +60,8 @@ def Spot(
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
     default_wait: bool = True,
+    drain_timeout: float = 5.0,
+    drain_poll_interval: float = 0.5,
     on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
 ) -> _Spot:
     """
@@ -114,6 +116,8 @@ def Spot(
         default_version=default_version,
         default_content_type=default_content_type,
         default_wait=default_wait,
+        drain_timeout=drain_timeout,
+        drain_poll_interval=drain_poll_interval,
         on_background_error=on_background_error,
     )
 

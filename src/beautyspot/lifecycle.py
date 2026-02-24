@@ -81,6 +81,23 @@ class LifecyclePolicy:
         # Default is indefinite (None)
         return Retention.INDEFINITE
 
+    def resolve_with_fallback(
+        self, func_identifier: str, func_name: str
+    ) -> Optional[timedelta]:
+        """
+        Resolve retention using the fully-qualified identifier first, then
+        fall back to the short function name for backward compatibility.
+        """
+        for rule in self.rules:
+            if fnmatch.fnmatch(func_identifier, rule.pattern):
+                return parse_retention(rule.retention)
+
+        for rule in self.rules:
+            if fnmatch.fnmatch(func_name, rule.pattern):
+                return parse_retention(rule.retention)
+
+        return Retention.INDEFINITE
+
     @classmethod
     def default(cls) -> "LifecyclePolicy":
         """Default policy: Everything is kept indefinitely."""

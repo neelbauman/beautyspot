@@ -5,6 +5,7 @@ import os
 import logging
 import queue
 import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -26,6 +27,15 @@ def _ensure_utc_isoformat(dt: Optional[datetime]) -> Optional[str]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.isoformat(" ")
+
+
+def _ensure_utc_isoformat_naive(dt: datetime) -> str:
+    """UTCに揃えたタイムゾーンなしの ISO 8601 文字列に変換する。"""
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
     return dt.isoformat(" ")
 
 
@@ -67,6 +77,7 @@ class TaskDBBase(ABC):
         self,
         cache_key: str,
         func_name: str,
+        func_identifier: Optional[str],
         input_id: str,
         version: Optional[str],
         result_type: str,
@@ -216,7 +227,16 @@ class SQLiteTaskDB(TaskDBBase):
             task = _WriteTask(fn=fn, event=threading.Event())
             self._write_queue.put(task)
 
-        task.event.wait()
+        start = time.monotonic()
+        while not task.event.wait(timeout=0.5):
+            if not self._writer_thread.is_alive():
+                raise RuntimeError("SQLite writer thread stopped unexpectedly.")
+            if self._shutdown_requested:
+                raise RuntimeError("SQLiteTaskDB is shutting down.")
+            if time.monotonic() - start > self.timeout:
+                raise TimeoutError(
+                    f"SQLite write did not complete within {self.timeout}s."
+                )
         if task.error:
             raise task.error
         return task.result
@@ -246,6 +266,7 @@ class SQLiteTaskDB(TaskDBBase):
                 CREATE TABLE IF NOT EXISTS tasks (
                     cache_key TEXT PRIMARY KEY,
                     func_name TEXT,
+                    func_identifier TEXT,
                     input_id  TEXT,
                     result_type TEXT,
                     result_value TEXT,
@@ -266,6 +287,12 @@ class SQLiteTaskDB(TaskDBBase):
                 conn.execute("ALTER TABLE tasks ADD COLUMN version TEXT;")
             if "result_data" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN result_data BLOB;")
+
+            if "func_identifier" not in columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN func_identifier TEXT;")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_func_identifier ON tasks(func_identifier);"
+                )
 
             if "expires_at" not in columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN expires_at TIMESTAMP;")
@@ -313,6 +340,7 @@ class SQLiteTaskDB(TaskDBBase):
         self,
         cache_key: str,
         func_name: str,
+        func_identifier: Optional[str],
         input_id: str,
         version: Optional[str],
         result_type: str,
@@ -322,15 +350,17 @@ class SQLiteTaskDB(TaskDBBase):
         expires_at: Optional[datetime] = None,  # [ADD] Added argument
     ):
         def _op(conn: sqlite3.Connection) -> None:
+            effective_identifier = func_identifier or func_name
             conn.execute(
                 """
                 INSERT OR REPLACE INTO tasks 
-                (cache_key, func_name, input_id, version, result_type, content_type, result_value, result_data, expires_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (cache_key, func_name, func_identifier, input_id, version, result_type, content_type, result_value, result_data, expires_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     cache_key,
                     func_name,
+                    effective_identifier,
                     input_id,
                     version,
                     result_type,
@@ -355,7 +385,7 @@ class SQLiteTaskDB(TaskDBBase):
         with self._read_connect() as conn:
             query = """
                 SELECT
-                    cache_key, func_name, input_id, version, result_type,
+                    cache_key, func_name, func_identifier, input_id, version, result_type,
                     content_type, result_value, result_data, updated_at, expires_at
                 FROM tasks
                 ORDER BY updated_at DESC LIMIT ?
@@ -373,7 +403,8 @@ class SQLiteTaskDB(TaskDBBase):
         def _op(conn: sqlite3.Connection) -> int:
             if func_name:
                 cursor = conn.execute(
-                    "DELETE FROM tasks WHERE func_name = ?", (func_name,)
+                    "DELETE FROM tasks WHERE func_name = ? OR func_identifier = ?",
+                    (func_name, func_name),
                 )
             else:
                 cursor = conn.execute("DELETE FROM tasks")
@@ -382,12 +413,12 @@ class SQLiteTaskDB(TaskDBBase):
         return int(self._enqueue_write(_op))
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
-        cutoff_str = _ensure_utc_isoformat(older_than)
+        cutoff_str = _ensure_utc_isoformat_naive(older_than)
         def _op(conn: sqlite3.Connection) -> int:
             if func_name:
                 cursor = conn.execute(
-                    "DELETE FROM tasks WHERE updated_at < ? AND func_name = ?",
-                    (cutoff_str, func_name),
+                    "DELETE FROM tasks WHERE updated_at < ? AND (func_name = ? OR func_identifier = ?)",
+                    (cutoff_str, func_name, func_name),
                 )
             else:
                 cursor = conn.execute(
@@ -401,19 +432,20 @@ class SQLiteTaskDB(TaskDBBase):
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        cutoff_str = _ensure_utc_isoformat(older_than)
+        cutoff_str = _ensure_utc_isoformat_naive(older_than)
         if not os.path.exists(self.db_path):
             return []
 
         with self._read_connect() as conn:
             if func_name:
                 cursor = conn.execute(
-                    "SELECT cache_key, func_name, updated_at FROM tasks WHERE updated_at < ? AND func_name = ?",
-                    (cutoff_str, func_name),
+                    "SELECT cache_key, COALESCE(func_identifier, func_name), updated_at FROM tasks "
+                    "WHERE updated_at < ? AND (func_name = ? OR func_identifier = ?)",
+                    (cutoff_str, func_name, func_name),
                 )
             else:
                 cursor = conn.execute(
-                    "SELECT cache_key, func_name, updated_at FROM tasks WHERE updated_at < ?",
+                    "SELECT cache_key, COALESCE(func_identifier, func_name), updated_at FROM tasks WHERE updated_at < ?",
                     (cutoff_str,),
                 )
             return [(row[0], row[1], str(row[2])) for row in cursor.fetchall()]
@@ -439,8 +471,8 @@ class SQLiteTaskDB(TaskDBBase):
             cursor = conn.execute(
                 "SELECT result_value FROM tasks WHERE result_type = 'FILE' AND result_value IS NOT NULL"
             )
-            # Use filename for robust matching across machines/paths
-            return {Path(row[0]).name for row in cursor.fetchall() if row[0]}
+            # Return full location strings for precise matching
+            return {row[0] for row in cursor.fetchall() if row[0]}
 
     def get_keys_start_with(self, prefix: str) -> list[str]:
         if not os.path.exists(self.db_path):

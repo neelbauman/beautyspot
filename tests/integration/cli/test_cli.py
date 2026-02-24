@@ -24,6 +24,7 @@ def temp_db(tmp_path: Path) -> Path:
         CREATE TABLE tasks (
             cache_key TEXT PRIMARY KEY,
             func_name TEXT,
+            func_identifier TEXT,
             input_id TEXT,
             result_type TEXT,
             result_value TEXT,
@@ -61,6 +62,7 @@ def temp_db_with_blobs(tmp_path: Path) -> tuple[Path, Path]:
         CREATE TABLE tasks (
             cache_key TEXT PRIMARY KEY,
             func_name TEXT,
+            func_identifier TEXT,
             input_id TEXT,
             result_type TEXT,
             result_value TEXT,
@@ -105,6 +107,7 @@ def beautyspot_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         CREATE TABLE tasks (
             cache_key TEXT PRIMARY KEY,
             func_name TEXT,
+            func_identifier TEXT,
             input_id TEXT,
             result_type TEXT,
             result_value TEXT,
@@ -244,6 +247,7 @@ def test_stats_empty_db(tmp_path: Path):
         CREATE TABLE tasks (
             cache_key TEXT PRIMARY KEY,
             func_name TEXT,
+            func_identifier TEXT,
             input_id TEXT,
             result_type TEXT,
             result_value TEXT,
