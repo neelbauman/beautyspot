@@ -117,6 +117,7 @@ def Spot(
         on_background_error=on_background_error,
     )
 
+
 # isinstance(spot, bs.SpotType) のための型エクスポート
 SpotType: type[_Spot] = _Spot
 

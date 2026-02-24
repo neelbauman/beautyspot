@@ -17,10 +17,12 @@ from beautyspot.exceptions import SerializationError
 
 T = TypeVar("T")
 
+
 @runtime_checkable
 class SerializerProtocol(Protocol):
     def dumps(self, obj: Any, /) -> bytes: ...
     def loads(self, data: bytes, /) -> Any: ...
+
 
 @runtime_checkable
 class TypeRegistryProtocol(Protocol):
@@ -31,6 +33,7 @@ class TypeRegistryProtocol(Protocol):
         encoder: Callable[[Any], Any],
         decoder: Callable[[Any], Any],
     ) -> None: ...
+
 
 class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
     """
@@ -46,16 +49,18 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
 
     Note:
         To prevent memory leaks in environments where types are generated dynamically
-        (e.g., namedtuples, dynamic Pydantic models), subclass resolution results 
+        (e.g., namedtuples, dynamic Pydantic models), subclass resolution results
         are cached using an LRU strategy with a configurable maximum size.
     """
 
     def __init__(self, max_cache_size: int = 1024):
         self._encoders: Dict[Type, Tuple[int, Callable[[Any], Any]]] = {}
         self._decoders: Dict[int, Callable[[Any], Any]] = {}
-        self._subclass_cache: OrderedDict[Type, Tuple[int, Callable[[Any], Any]] | None] = OrderedDict()
+        self._subclass_cache: OrderedDict[
+            Type, Tuple[int, Callable[[Any], Any]] | None
+        ] = OrderedDict()
         self._max_cache_size = max_cache_size
-        
+
         # 内部状態を保護するためのスレッドロックを追加
         self._lock = threading.Lock()
 
@@ -85,33 +90,32 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         while len(self._subclass_cache) > self._max_cache_size:
             self._subclass_cache.popitem(last=False)
 
+    # src/beautyspot/serializer.py
+
     def _default_packer(self, obj: Any) -> Any:
         obj_type = type(obj)
-
         target_code = None
         target_encoder = None
 
-        # キャッシュの読み書きと、フォールバック探索をロックで保護
         with self._lock:
             if obj_type in self._encoders:
                 target_code, target_encoder = self._encoders[obj_type]
+            elif obj_type in self._subclass_cache:
+                cached = self._subclass_cache[obj_type]
+                self._subclass_cache.move_to_end(obj_type)
+                if cached is not None:
+                    target_code, target_encoder = cached
             else:
-                # Subclass support with cache
-                if obj_type in self._subclass_cache:
-                    cached = self._subclass_cache[obj_type]
-                    self._subclass_cache.move_to_end(obj_type)
-                    if cached is not None:
-                        target_code, target_encoder = cached
-                else:
-                    for t, (c, e) in self._encoders.items():
-                        if isinstance(obj, t):
-                            target_code, target_encoder = c, e
-                            self._subclass_cache[obj_type] = (c, e)
-                            self._enforce_cache_size()
-                            break
-                    else:
-                        self._subclass_cache[obj_type] = None
+                # 案3: MROをスキャンして登録済みの基底クラスを探す
+                for base in obj_type.__mro__:
+                    if base in self._encoders:
+                        target_code, target_encoder = self._encoders[base]
+                        self._subclass_cache[obj_type] = (target_code, target_encoder)
                         self._enforce_cache_size()
+                        break
+                else:
+                    self._subclass_cache[obj_type] = None
+                    self._enforce_cache_size()
 
         # Execute & Wrap (ロックの外側でユーザーのエンコーダ関数を実行する)
         if target_encoder:
@@ -171,4 +175,3 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
             if isinstance(e, SerializationError):
                 raise e
             raise SerializationError("Failed to deserialize data.") from e
-

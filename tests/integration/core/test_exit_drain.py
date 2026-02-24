@@ -73,6 +73,7 @@ def test_zombie_thread_completes_tasks():
         "GC後にバックグラウンドタスクが完遂されずに破棄されました（データロスト）"
     )
 
+
 def test_background_loop_graceful_drain_on_exit(tmp_path):
     """
     正常系:
@@ -81,7 +82,7 @@ def test_background_loop_graceful_drain_on_exit(tmp_path):
     """
     script_path = tmp_path / "simulate_exit.py"
     flag_file = tmp_path / "done.flag"
-    
+
     # 意図的に時間がかかるタスクを仕込み、すぐにメインプロセスを終了するスクリプト
     script_content = f"""
 import asyncio
@@ -105,9 +106,11 @@ sys.exit(0)
 
     # スクリプトを実行
     start_time = time.time()
-    result = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, str(script_path)], capture_output=True, text=True
+    )
     elapsed = time.time() - start_time
-    
+
     # 実行が成功していること
     assert result.returncode == 0
     # メインスレッド終了(sys.exit)後もスレッドが生き残り、1秒後のファイル書き込みが成功しているはず
@@ -125,7 +128,7 @@ def test_background_loop_timeout_on_exit(tmp_path):
     """
     script_path = tmp_path / "simulate_timeout.py"
     flag_file = tmp_path / "done_timeout.flag"
-    
+
     script_content = f"""
 import asyncio
 import sys
@@ -149,9 +152,11 @@ sys.exit(0)
     script_path.write_text(script_content, encoding="utf-8")
 
     start_time = time.time()
-    result = subprocess.run([sys.executable, str(script_path)], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, str(script_path)], capture_output=True, text=True
+    )
     elapsed = time.time() - start_time
-    
+
     assert result.returncode == 0
     # 3秒待たずに、タイムアウトの1秒強で強制終了しているはず
     assert elapsed < 2.0

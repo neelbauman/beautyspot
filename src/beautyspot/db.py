@@ -43,7 +43,9 @@ class TaskDBBase(ABC):
         pass
 
     @abstractmethod
-    def get(self, cache_key: str, *, include_expired: bool = False) -> Optional[TaskRecord]:
+    def get(
+        self, cache_key: str, *, include_expired: bool = False
+    ) -> Optional[TaskRecord]:
         pass
 
     @abstractmethod
@@ -175,7 +177,9 @@ class SQLiteTaskDB(TaskDBBase):
                     "CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);"
                 )
 
-    def get(self, cache_key: str, *, include_expired: bool = False) -> Optional[TaskRecord]:
+    def get(
+        self, cache_key: str, *, include_expired: bool = False
+    ) -> Optional[TaskRecord]:
         with self._read_connect() as conn:
             # [MOD] Include expires_at in query
             row = conn.execute(
@@ -338,7 +342,9 @@ class SQLiteTaskDB(TaskDBBase):
 
         with self._read_connect() as conn:
             # LIKE ワイルドカード文字をエスケープしてプレフィックス検索
-            escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            escaped = (
+                prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            )
             cursor = conn.execute(
                 "SELECT cache_key FROM tasks WHERE cache_key LIKE ? ESCAPE '\\' LIMIT 50",
                 (f"{escaped}%",),

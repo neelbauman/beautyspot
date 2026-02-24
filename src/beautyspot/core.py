@@ -70,19 +70,17 @@ class _BackgroundLoop:
     def __init__(self, drain_timeout: float = 5.0):
         self._drain_timeout = drain_timeout
         self._loop = asyncio.new_event_loop()
-        
+
         self._lock = threading.Lock()
         self._is_shutting_down = False
         self._active_tasks = 0  # 実行中（またはスケジュール待ち）のタスク数
-        
+
         # daemon=True により、プロセス終了時の Python の無限ハングアップを防ぐ
         self._thread = threading.Thread(
-            target=self._run_event_loop, 
-            daemon=True, 
-            name="BeautySpot-BGLoop"
+            target=self._run_event_loop, daemon=True, name="BeautySpot-BGLoop"
         )
         self._thread.start()
-        
+
         # インスタンス自身が atexit を管理するため、グローバルな _active_loops 管理は不要
         atexit.register(self._shutdown)
 
@@ -111,12 +109,14 @@ class _BackgroundLoop:
             if self._is_shutting_down:
                 logger.debug("Background loop is shutting down. Task rejected.")
                 return None
-            
+
             # ロック内でカウンタを増やすことで、確実にインフライトとして追跡される
             self._active_tasks += 1
-            
+
         try:
-            return asyncio.run_coroutine_threadsafe(self._task_wrapper(coro), self._loop)
+            return asyncio.run_coroutine_threadsafe(
+                self._task_wrapper(coro), self._loop
+            )
         except Exception:
             # 万が一スケジュールに失敗した場合はカウンタを戻す
             with self._lock:
@@ -133,16 +133,16 @@ class _BackgroundLoop:
             if self._is_shutting_down:
                 return
             self._is_shutting_down = True
-            
+
             # 現在アクティブなタスクがゼロなら、即座にループ停止をスケジュール
             if self._active_tasks == 0:
                 self._loop.call_soon_threadsafe(self._loop.stop)
-                
+
         if wait:
             # アクティブなタスクが残っている場合は、最後の _task_wrapper が stop() を呼ぶ
             # タイムアウト付きでスレッドの終了（＝ループの停止）を待つ
             self._thread.join(timeout=self._drain_timeout)
-            
+
             if self._thread.is_alive():
                 logger.warning(
                     f"BeautySpot background loop did not finish within {self._drain_timeout}s. "
@@ -151,7 +151,7 @@ class _BackgroundLoop:
 
     def _shutdown(self):
         """
-        [atexit フック] 
+        [atexit フック]
         プロセス終了時に呼ばれる安全網。タイムアウト付きの待機を実行する。
         """
         self.stop(wait=True)

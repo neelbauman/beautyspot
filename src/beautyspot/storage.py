@@ -212,6 +212,11 @@ class LocalStorage(BlobStorageBase):
             os.remove(full_path)
         except FileNotFoundError:
             pass
+        except (PermissionError, OSError) as e:
+            # 他のプロセスによるロックや権限の問題をログに残すが、処理は継続する
+            logging.warning(
+                f"Failed to delete blob at {full_path}: {e}. It will be handled by subsequent GC."
+            )
 
     def list_keys(self) -> Iterator[str]:
         """

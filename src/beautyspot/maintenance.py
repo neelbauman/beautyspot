@@ -183,9 +183,7 @@ class MaintenanceService:
         return orphans
 
     def clean_garbage(
-        self, 
-        orphans: Optional[list[str]] = None,
-        tmp_max_age_seconds: int = 86400
+        self, orphans: Optional[list[str]] = None, tmp_max_age_seconds: int = 86400
     ) -> tuple[int, int]:
         """
         期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。
@@ -229,7 +227,9 @@ class MaintenanceService:
 
             # [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ
             try:
-                tmp_count = self.storage.clean_temp_files(max_age_seconds=tmp_max_age_seconds)
+                tmp_count = self.storage.clean_temp_files(
+                    max_age_seconds=tmp_max_age_seconds
+                )
                 if tmp_count > 0:
                     logger.info(f"Removed {tmp_count} abandoned temporary files.")
             except Exception as e:

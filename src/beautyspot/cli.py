@@ -760,7 +760,9 @@ def prune_cmd(
         orphans = service.scan_garbage()
         if orphans:
             _, deleted_orphans = service.clean_garbage(orphans)
-            console.print(f"[green]✓ Deleted {deleted_orphans} orphaned blob files.[/green]")
+            console.print(
+                f"[green]✓ Deleted {deleted_orphans} orphaned blob files.[/green]"
+            )
         else:
             console.print("[green]✓ No orphaned blob files found.[/green]")
 

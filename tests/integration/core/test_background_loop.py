@@ -12,7 +12,6 @@ from beautyspot.core import _BackgroundLoop
 from beautyspot.db import SQLiteTaskDB
 
 
-
 def test_background_loop_saves_correctly(tmp_path):
     """_BackgroundLoop 経由の wait=False 保存が正しく動作することを確認する。"""
     db_path = tmp_path / "bg.db"
@@ -146,6 +145,7 @@ def test_shutdown_after_background_saves(tmp_path):
 
     assert elapsed >= 0.4, "shutdown should wait for pending saves"
 
+
 def test_background_loop_basic_submit_and_drain():
     """
     正常系: タスクを投入し、stop(wait=True) で全てのタスクが確実に完了（ドレイン）することを確認する。
@@ -172,12 +172,13 @@ def test_background_loop_basic_submit_and_drain():
     # スレッドが正しく終了していること
     assert not loop._thread.is_alive()
 
+
 def test_background_loop_rejects_tasks_after_stop():
     """
     エッジケース: シャットダウンシーケンスに入った後は、新規タスクの投入が拒否（Noneが返却）されること。
     """
     loop = _BackgroundLoop(drain_timeout=1.0)
-    
+
     # 停止
     loop.stop(wait=True)
 
@@ -187,6 +188,7 @@ def test_background_loop_rejects_tasks_after_stop():
     # 停止後の投入は None を返すはず
     future = loop.submit(dummy_task())
     assert future is None
+
 
 def test_background_loop_handles_task_exceptions():
     """
@@ -219,13 +221,14 @@ def test_background_loop_handles_task_exceptions():
 
     loop.stop(wait=True)
 
+
 def test_background_loop_stop_no_wait():
     """
     GCファイナライザ用: stop(wait=False) が呼ばれた場合、
     メインスレッドをブロックせずに即座に制御を返すこと。
     """
     loop = _BackgroundLoop(drain_timeout=5.0)
-    
+
     task_started = threading.Event()
 
     async def slow_task():
@@ -233,7 +236,7 @@ def test_background_loop_stop_no_wait():
         await asyncio.sleep(2.0)  # 意図的に遅いタスク
 
     loop.submit(slow_task())
-    
+
     # タスクの開始を待つ
     assert task_started.wait(timeout=1.0)
 

@@ -180,6 +180,7 @@ def test_raw_bytes_support():
 
     assert restored.name == "BytesUser"
 
+
 def test_serializer_subclass_cache_eviction():
     """
     LRUキャッシュの追い出しテスト:
@@ -188,30 +189,31 @@ def test_serializer_subclass_cache_eviction():
     """
     # テスト用に小さな上限値を設定
     serializer = MsgpackSerializer(max_cache_size=5)
-    
+
     class BaseType:
         pass
-        
+
     # BaseType を登録
     serializer.register(BaseType, 10, lambda x: "base_data", lambda x: BaseType())
-    
+
     subclasses = []
     # 上限(5)を超える10個の動的サブクラスを生成してシリアライズ
     for i in range(10):
         SubClass = type(f"DynamicClass_{i}", (BaseType,), {})
         subclasses.append(SubClass)
         serializer.dumps(SubClass())
-        
+
     # キャッシュサイズが上限の5に保たれていることを確認
     assert len(serializer._subclass_cache) == 5
-    
+
     # 最近使われた5つ（インデックス5〜9）がキャッシュに残っていることを確認
     for i in range(5, 10):
         assert subclasses[i] in serializer._subclass_cache
-        
+
     # 古い5つ（インデックス0〜4）はキャッシュから追い出されていることを確認
     for i in range(5):
         assert subclasses[i] not in serializer._subclass_cache
+
 
 def test_serializer_subclass_cache_lru_ordering():
     """
@@ -220,34 +222,158 @@ def test_serializer_subclass_cache_lru_ordering():
     後続の追い出し処理で保護されることを確認する。
     """
     serializer = MsgpackSerializer(max_cache_size=3)
-    
+
     class BaseType:
         pass
-        
+
     serializer.register(BaseType, 10, lambda x: "base_data", lambda x: BaseType())
-    
+
     SubA = type("SubA", (BaseType,), {})
     SubB = type("SubB", (BaseType,), {})
     SubC = type("SubC", (BaseType,), {})
     SubD = type("SubD", (BaseType,), {})
-    
+
     # キャッシュを上限まで埋める (順序: A -> B -> C)
     serializer.dumps(SubA())
     serializer.dumps(SubB())
     serializer.dumps(SubC())
-    
+
     assert list(serializer._subclass_cache.keys()) == [SubA, SubB, SubC]
-    
+
     # SubA を再度シリアライズ（キャッシュヒット）
     # これにより SubA が最新として末尾に移動するはず (順序: B -> C -> A)
     serializer.dumps(SubA())
     assert list(serializer._subclass_cache.keys()) == [SubB, SubC, SubA]
-    
+
     # 新しい SubD をシリアライズして上限を超える
     # 最も古い SubB が追い出されるはず (順序: C -> A -> D)
     serializer.dumps(SubD())
-    
+
     assert list(serializer._subclass_cache.keys()) == [SubC, SubA, SubD]
     assert SubB not in serializer._subclass_cache
     assert SubA in serializer._subclass_cache  # 一度アクセスされたSubAは生き残る
 
+
+# tests/unit/test_serializer.py に追加
+
+
+def test_mro_resolution_priority_child_over_parent():
+    """
+    親クラスと子クラスの両方が登録されている場合、
+    子クラスのインスタンスに対しては、より近い「子クラス」のエンコーダーが選ばれることを検証。
+    """
+    serializer = MsgpackSerializer()
+
+    class Parent:
+        pass
+
+    class Child(Parent):
+        pass
+
+    # 親と子の両方を登録
+    serializer.register(Parent, 10, lambda x: "parent_data", lambda x: "parent_decoded")
+    serializer.register(Child, 11, lambda x: "child_data", lambda x: "child_decoded")
+
+    # Childインスタンスをシリアライズ
+    # MROにより Child -> Parent の順で探索され、Childがヒットするはず
+    packed = serializer.dumps(Child())
+
+    # デコード結果がChildのものであることを確認
+    assert serializer.loads(packed) == "child_decoded"
+
+
+def test_mro_resolution_fallback_to_parent():
+    """
+    子クラス自体は未登録だが、親クラスが登録されている場合、
+    親クラスのエンコーダーがフォールバックとして使用されることを検証。
+    """
+    serializer = MsgpackSerializer()
+
+    class Parent:
+        pass
+
+    class Child(Parent):
+        pass
+
+    class GrandChild(Child):
+        pass
+
+    # 親だけを登録
+    serializer.register(Parent, 10, lambda x: "parent_data", lambda x: "parent_decoded")
+
+    # 未登録の孫クラスのインスタンスをシリアライズ
+    # MRO: GrandChild -> Child -> Parent (hit!)
+    packed = serializer.dumps(GrandChild())
+
+    # 親のエンコーダー/デコーダーが適用されていることを確認
+    assert serializer.loads(packed) == "parent_decoded"
+
+
+def test_mro_resolution_multiple_inheritance():
+    """
+    多重継承において、Python標準のMRO順序に従って
+    最初にマッチした基底クラスが採用されることを検証。
+    """
+    serializer = MsgpackSerializer()
+
+    class BaseA:
+        pass
+
+    class BaseB:
+        pass
+
+    class MyClass(BaseA, BaseB):
+        pass
+
+    # 両方の基底クラスを登録
+    serializer.register(BaseA, 10, lambda x: "A_data", lambda x: "A_decoded")
+    serializer.register(BaseB, 11, lambda x: "B_data", lambda x: "B_decoded")
+
+    # MyClass(BaseA, BaseB) なので、MROは [MyClass, BaseA, BaseB, object]
+    # 先にヒットする BaseA が使われるはず
+    packed = serializer.dumps(MyClass())
+    assert serializer.loads(packed) == "A_decoded"
+
+
+def test_mro_caching_after_resolution():
+    """
+    一度MROで解決されたサブクラスの結果がキャッシュに格納され、
+    二回目以降のアクセスでMROスキャンをスキップできる状態になっているか検証。
+    """
+    serializer = MsgpackSerializer()
+
+    class Base:
+        pass
+
+    class Sub(Base):
+        pass
+
+    serializer.register(Base, 10, lambda x: "data", lambda x: "decoded")
+
+    # 初回アクセス（キャッシュにない状態）
+    assert Sub not in serializer._subclass_cache
+    serializer.dumps(Sub())
+
+    # キャッシュに登録されていることを確認
+    assert Sub in serializer._subclass_cache
+    assert serializer._subclass_cache[Sub] == (10, serializer._encoders[Base][1])
+
+    # 2回目アクセス：内部でキャッシュから即座に返される（振る舞いとして確認）
+    packed = serializer.dumps(Sub())
+    assert serializer.loads(packed) == "decoded"
+
+
+def test_mro_no_match_raises_serialization_error():
+    """
+    どの親クラスも登録されていない場合、適切に SerializationError を投げることを確認。
+    """
+    serializer = MsgpackSerializer()
+
+    class CompletelyUnregistered:
+        pass
+
+    with pytest.raises(SerializationError) as exc_info:
+        serializer.dumps(CompletelyUnregistered())
+
+    assert "is not serializable" in str(exc_info.value)
+    assert "CompletelyUnregistered" in str(exc_info.value)

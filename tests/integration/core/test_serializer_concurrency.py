@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from beautyspot.serializer import MsgpackSerializer
 
+
 def test_msgpack_serializer_lru_cache_thread_safety():
     """
     複数スレッドから同時に動的な型をシリアライズした際、
@@ -10,10 +11,10 @@ def test_msgpack_serializer_lru_cache_thread_safety():
     """
     MAX_CACHE_SIZE = 50
     serializer = MsgpackSerializer(max_cache_size=MAX_CACHE_SIZE)
-    
+
     class BaseDummy:
         pass
-        
+
     serializer.register(BaseDummy, 1, lambda obj: {"v": 1}, lambda d: BaseDummy())
 
     def serialize_worker(worker_id: int):
