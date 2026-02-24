@@ -37,7 +37,7 @@ def test_auto_eviction_trigger_probability(tmp_path):
             spot._trigger_auto_eviction()
 
             # バックグラウンドループ上のタスクが完了するのを待機
-            spot.shutdown(wait=True)
+            spot.shutdown(save_sync=True)
             mock_clean.assert_called_once()
 
     # Spotを作り直してパターン2をテスト
@@ -48,7 +48,7 @@ def test_auto_eviction_trigger_probability(tmp_path):
         with patch("random.random", return_value=0.9):
             spot2._trigger_auto_eviction()
 
-            spot2.shutdown(wait=True)
+            spot2.shutdown(save_sync=True)
             mock_clean2.assert_not_called()
 
 
@@ -110,7 +110,7 @@ def test_maintenance_try_lock(tmp_path):
 
 def test_auto_eviction_with_wait_false(tmp_path):
     """
-    wait=False (バックグラウンド保存) のタスク実行時にも、
+    save_sync=False (バックグラウンド保存) のタスク実行時にも、
     正しく自動エビクションがバックグラウンドでエンキューされ、処理されるかをテストする。
     """
     # 確実にトリガーさせるために eviction_rate=1.0 に設定
@@ -120,21 +120,21 @@ def test_auto_eviction_with_wait_false(tmp_path):
         eviction_rate=1.0,
     )
 
-    # wait=False でマーク
-    @spot.mark(wait=False)
+    # save_sync=False でマーク
+    @spot.mark(save_sync=False)
     def fast_task(x: int):
         return x * 2
 
     with patch.object(spot.maintenance, "clean_garbage") as mock_clean:
         # タスク実行（キャッシュミス -> 保存と掃除がバックグラウンドへ）
-        # wait=False なので、この呼び出しはメインスレッドをブロックせず即座に返る
+        # save_sync=False なので、この呼び出しはメインスレッドをブロックせず即座に返る
         result = fast_task(10)
         assert result == 20
 
         # この時点ではバックグラウンドスレッドが処理中かもしれないので、
         # assert_called_once() をすぐ呼ぶとFlaky(不安定)になる可能性がある。
-        # 確実に完了を待機(ドレイン)するために shutdown(wait=True) を呼ぶ。
-        spot.shutdown(wait=True)
+        # 確実に完了を待機(ドレイン)するために shutdown(save_sync=True) を呼ぶ。
+        spot.shutdown(save_sync=True)
 
         # 保存完了後、正しく clean_garbage が呼ばれたか検証
         mock_clean.assert_called_once()
@@ -146,7 +146,7 @@ def test_auto_eviction_with_wait_false(tmp_path):
         result2 = fast_task(10)
         assert result2 == 20
 
-        spot.shutdown(wait=True)
+        spot.shutdown(save_sync=True)
         mock_clean_hit.assert_not_called()
 
 
@@ -167,7 +167,7 @@ def test_eviction_lock_released_on_shutdown_rejection():
 
     # バックグラウンドリソースを初期化してからシャットダウン
     spot._ensure_bg_resources()
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     # シャットダウン後に _trigger_auto_eviction を呼ぶ
     # submit が None を返すのでロックリークが起きないことを検証

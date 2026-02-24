@@ -10,7 +10,7 @@ from beautyspot.types import SaveErrorContext
 
 def test_shutdown_waits_for_pending_tasks(tmp_path):
     """
-    default_wait=False の場合でも、Spotの終了時(Context Exit)には
+    save_sync=False の場合でも、Spotの終了時(Context Exit)には
     バックグラウンドの保存タスク完了を待機することを確認する。
     """
     db_path = tmp_path / "async_test.db"
@@ -25,12 +25,12 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
 
     slow_storage.save.side_effect = slow_save
 
-    # default_wait=False で初期化
+    # save_sync=False で初期化
     spot = Spot(
         "async_app",
         db=SQLiteTaskDB(db_path),
         storage_backend=slow_storage,  # Mockストレージ注入
-        default_wait=False,  # ★ Fire-and-Forgetモード
+        save_sync=False,  # ★ Fire-and-Forgetモード
         default_save_blob=True,  # Storageを使わせるため
     )
 
@@ -48,7 +48,7 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
         start_time = time.time()
 
         # 1. タスク実行
-        # default_wait=False なので、0.5秒の保存を待たずに即座に返ってくるはず
+        # save_sync=False なので、0.5秒の保存を待たずに即座に返ってくるはず
         res = quick_task(10)
 
         elapsed = time.time() - start_time
@@ -77,7 +77,7 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
 
 def test_on_background_error_called_on_save_failure(mocker):
     """
-    バックグラウンド保存 (wait=False) 中に _save_result_sync が例外を投げた場合、
+    バックグラウンド保存 (save_sync=False) 中に _save_result_sync が例外を投げた場合、
     on_background_error コールバックが正しい引数で呼ばれることを検証する。
     """
     # Arrange: コールバックのモックを作成
@@ -92,7 +92,7 @@ def test_on_background_error_called_on_save_failure(mocker):
         storage_backend=MagicMock(),
         storage_policy=MagicMock(),
         limiter=MagicMock(),
-        default_wait=False,  # バックグラウンド実行をデフォルトに
+        save_sync=False,  # バックグラウンド実行をデフォルトに
         on_background_error=mock_callback,
     )
 
@@ -104,11 +104,11 @@ def test_on_background_error_called_on_save_failure(mocker):
     def dummy_task(x):
         return x * 2
 
-    # Act: 関数を実行 (wait=False なので保存処理は裏で走る)
+    # Act: 関数を実行 (save_sync=False なので保存処理は裏で走る)
     result = dummy_task(10)
 
     # バックグラウンドタスクの完了を待機 (Spot.__exit__ の仕組みを利用するか、手動で wait する)
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     # Assert: 戻り値自体は正常に計算されていること
     assert result == 20
@@ -144,7 +144,7 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
         storage_backend=MagicMock(),
         storage_policy=MagicMock(),
         limiter=MagicMock(),
-        default_wait=False,
+        save_sync=False,
         on_background_error=faulty_callback,
     )
 
@@ -158,7 +158,7 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
 
     # Act
     dummy_task()
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     # Assert: ログにコールバック内部のエラーが出力されていることを確認
     assert "Error occurred within the 'on_background_error' callback" in caplog.text
@@ -179,13 +179,13 @@ def test_background_save_notifies_on_shutdown_rejection():
         storage_backend=MagicMock(),
         storage_policy=MagicMock(),
         limiter=MagicMock(),
-        default_wait=False,
+        save_sync=False,
         on_background_error=mock_callback,
     )
 
     # バックグラウンドリソースを初期化してからシャットダウン
     spot._ensure_bg_resources()
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     # シャットダウン後に _submit_background_save を呼ぶ
     save_kwargs = {
@@ -232,12 +232,12 @@ def test_background_save_logs_warning_without_callback(caplog):
         storage_backend=MagicMock(),
         storage_policy=MagicMock(),
         limiter=MagicMock(),
-        default_wait=False,
+        save_sync=False,
         on_background_error=None,  # コールバック未設定
     )
 
     spot._ensure_bg_resources()
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     save_kwargs = {
         "cache_key": "key2",

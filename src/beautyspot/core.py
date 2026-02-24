@@ -132,7 +132,7 @@ class _BackgroundLoop:
                     self._loop.call_soon_threadsafe(self._loop.stop)
             raise
 
-    def stop(self, wait: bool = True):
+    def stop(self, save_sync: bool = True):
         """
         ループに対して新規タスクの受付停止を通知し、シャットダウンシーケンスを開始する。
         Spot.shutdown() や GCの _shutdown_resources() から呼び出される統一されたAPI。
@@ -147,7 +147,7 @@ class _BackgroundLoop:
             if self._active_tasks == 0:
                 self._loop.call_soon_threadsafe(self._loop.stop)
 
-        if wait:
+        if save_sync:
             # アクティブなタスクが残っている場合は、最後の _task_wrapper が stop() を呼ぶ
             # タイムアウト付きでスレッドの終了（＝ループの停止）を待つ
             self._thread.join(timeout=self._drain_timeout)
@@ -163,7 +163,7 @@ class _BackgroundLoop:
         [atexit フック]
         プロセス終了時に呼ばれる安全網。タイムアウト付きの待機を実行する。
         """
-        self.stop(wait=True)
+        self.stop(save_sync=True)
 
 
 class Spot:
@@ -189,7 +189,7 @@ class Spot:
         安全に利用するためには、以下のいずれかのアプローチを推奨します。
         1. アプリケーションのライフサイクル全体で1つの `Spot` インスタンスを使い回す（シングルトン的利用）。
         2. コンテキストマネージャ (`with Spot(...) as spot:`) を使用し、スコープを抜ける際に確実にリソースをドレインする。
-        3. 利用終了時に明示的に `spot.shutdown(wait=True)` を呼び出す。
+        3. 利用終了時に明示的に `spot.shutdown(save_sync=True)` を呼び出す。
 
         ※ プロセス終了時 (`atexit`) には安全網として未完了タスクのドレインを試みますが、
            GCによる破棄に対しては無力であることに注意してください。
@@ -201,7 +201,7 @@ class Spot:
         storage_backend: The blob storage backend.
         storage_policy: The policy to decide whether to save as blob.
         limiter: The rate limiter instance.
-        wait: Default behavior for wait flag in saving cache.
+        save_sync: Default behavior for save_sync flag in saving cache.
         version: Default version string for cache entries.
         content_type: Default content type string.
         lifecycle_policy: The lifecycle retention policy.
@@ -210,7 +210,7 @@ class Spot:
             cleanup of expired cache entries and orphaned blob files after a cache miss.
             Defaults to 0.0 (disabled). Set to a small value (e.g., 0.01) for
             long-running applications to prevent storage bloat without blocking the main thread.
-        on_background_error: キャッシュ保存 (wait=False/True) 時に
+        on_background_error: キャッシュ保存 (save_sync=False/True) 時に
             例外が発生した際に呼び出されるコールバック関数。
             メインスレッドの処理を阻害することなく、保存失敗のログ収集や
             監視ツールへの通知を行うために使用します。
@@ -228,7 +228,7 @@ class Spot:
         storage_policy: StoragePolicyProtocol,
         limiter: LimiterProtocol,
         # オプション設定
-        wait: bool = True,
+        save_sync: bool = True,
         # デフォルト動作設定
         lifecycle_policy: Optional[LifecyclePolicy] = None,
         eviction_rate: float = 0.0,
@@ -257,7 +257,7 @@ class Spot:
         self.limiter = limiter
 
         # --- オプション設定の適用 ---
-        self._wait = wait
+        self._save_sync = save_sync
         self.lifecycle_policy = lifecycle_policy or LifecyclePolicy.default()
         self.on_background_error = on_background_error
 
@@ -325,8 +325,8 @@ class Spot:
     def _ensure_bg_resources(self) -> tuple[_BackgroundLoop, Executor]:
         """バックグラウンドリソースを遅延初期化し、(bg_loop, executor) を返す。
 
-        初回の wait=False 保存や async パスで呼ばれた時点でリソースを生成する。
-        self._wait=True で wait=False を一度も使わないユーザーには
+        初回の save_sync=False 保存や async パスで呼ばれた時点でリソースを生成する。
+        self._save_sync=True で save_sync=False を一度も使わないユーザーには
         スレッドやイベントループを一切作らない。
 
         Raises:
@@ -364,36 +364,45 @@ class Spot:
 
     @staticmethod
     def _shutdown_resources(bg_loop: _BackgroundLoop, executor: Executor) -> None:
-        """GC finalizer 用: リソースを即座に解放する (wait=False)。"""
-        bg_loop.stop(wait=False)
+        """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
+        bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False)
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, save_sync: bool = True):
         """バックグラウンド IO を停止する。
 
-        wait=True の場合、保留中のすべての Future を先にドレインしてから停止する。
+        save_sync=True の場合、保留中のすべての Future を先にドレインしてから停止する。
         _bg_loop と executor は Spot 自身が所有するため、常にシャットダウンする。
         """
         self._shutdown_called = True
         if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
-        if wait:
+        if save_sync:
             self._drain_futures()
             
         if self._bg_loop is not None:
-            self._bg_loop.stop(wait=wait)
+            self._bg_loop.stop(save_sync=save_sync)
             
         if self._executor is not None:
-            self._executor.shutdown(wait=wait)
+            self._executor.shutdown(wait=save_sync)
             
         try:
-            self.db.shutdown(wait=wait)
+            self.db.shutdown(wait=save_sync)
         except Exception as e:
             logger.error(f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True)
 
-    def _drain_futures(self) -> None:
-        """保留中のすべての Future が完了するまで待機するドレインループ。"""
-        deadline = time.monotonic() + self._drain_timeout
+    def flush(self, timeout: Optional[float] = None) -> None:
+        """
+        バックグラウンドで実行中のすべての保存タスクが完了するまで待機します。
+        
+        バッチ処理や単発のスクリプトにおいて、プログラムが終了する前に
+        キャッシュが確実に永続化されることを保証するために使用します。
+
+        Args:
+            timeout: 待機する最大秒数。指定しない場合は Spot 初期化時の 
+                     drain_timeout が使用されます。
+        """
+        deadline = time.monotonic() + (timeout if timeout is not None else self._drain_timeout)
         while True:
             with self._futures_lock:
                 snapshot = list(self._active_futures)
@@ -411,9 +420,13 @@ class Spot:
             remaining_count = len(self._active_futures)
         if remaining_count:
             logger.warning(
-                f"Drain timeout ({self._drain_timeout}s) reached with "
-                f"{remaining_count} futures still pending."
+                f"Drain timeout reached with {remaining_count} futures still pending."
             )
+
+    # 既存の _drain_futures は内部利用のために flush を呼ぶ形に変更するか、
+    # そのまま flush に一本化（shutdownや__exit__からは flush() を呼ぶ）します。
+    def _drain_futures(self) -> None:
+        self.flush()
 
     @staticmethod
     def _get_func_identifier(func: Callable) -> str:
@@ -578,7 +591,7 @@ class Spot:
         save_blob: bool | None,
         version: str | None,
         content_type: str | ContentType | None,
-        wait: bool | None,
+        save_sync: bool | None,
     ) -> tuple[bool | None, str | None, str | None, bool]:
         # [CHANGED] save_blob が None の場合、ここで False に解決せず None のまま通す。
         # これにより _save_result_sync で policy.should_save_as_blob() が呼ばれるようになる。
@@ -586,9 +599,9 @@ class Spot:
 
         final_version = version
         final_content_type = content_type 
-        final_wait = wait if wait is not None else self._wait
+        final_save_sync = save_sync if save_sync is not None else self._save_sync
 
-        return final_save_blob, final_version, final_content_type, final_wait
+        return final_save_blob, final_version, final_content_type, final_save_sync
 
     def _make_cache_key(
         self,
@@ -622,12 +635,12 @@ class Spot:
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
         retention: Union[str, timedelta, None],
-        wait: bool | None,
+        save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
-        # Resolve Defaults (wait もここで解決)
-        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
-            save_blob, version, content_type, wait
+        # Resolve Defaults (save_sync もここで解決)
+        s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
+            save_blob, version, content_type, save_sync
         )
 
         func_identifier = self._get_func_identifier(func)
@@ -702,7 +715,7 @@ class Spot:
             "expires_at": expires_at,
         }
 
-        if s_wait:
+        if s_save_sync:
             try:
                 self._save_result_sync(**save_kwargs)
             except Exception as e:
@@ -737,12 +750,12 @@ class Spot:
         content_type: Optional[str | ContentType],
         serializer: Optional[SerializerProtocol],
         retention: Union[str, timedelta, None],
-        wait: bool | None,
+        save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         # Resolve Defaults
-        s_blob, s_ver, s_ct, s_wait = self._resolve_settings(
-            save_blob, version, content_type, wait
+        s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
+            save_blob, version, content_type, save_sync
         )
 
         func_identifier = self._get_func_identifier(func)
@@ -823,7 +836,7 @@ class Spot:
             "expires_at": expires_at,
         }
 
-        if s_wait:
+        if s_save_sync:
             try:
                 await loop.run_in_executor(
                     executor,
@@ -903,7 +916,7 @@ class Spot:
 
     # --- バックグラウンド保存の投入 ---
     def _submit_background_save(self, **save_kwargs) -> None:
-        """wait=False 時にバックグラウンドへ保存処理を投入する。"""
+        """save_sync=False 時にバックグラウンドへ保存処理を投入する。"""
         bg_loop, _ = self._ensure_bg_resources()
         coro = self._save_result_async(**save_kwargs)
         try:
@@ -1098,7 +1111,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
-        wait: Optional[bool] = None,
+        save_sync: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
@@ -1113,7 +1126,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
-        wait: Optional[bool] = None,
+        save_sync: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
@@ -1142,7 +1155,7 @@ class Spot:
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
-                    wait=wait,  # None のまま渡す
+                    save_sync=save_sync,  # None のまま渡す
                     retention=retention,
                     hooks=hooks,
                 )
@@ -1158,7 +1171,7 @@ class Spot:
                     version=version,
                     content_type=content_type,
                     serializer=serializer,
-                    wait=wait,  # None のまま渡す
+                    save_sync=save_sync,  # None のまま渡す
                     retention=retention,
                     hooks=hooks,
                 )
@@ -1181,7 +1194,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
-        wait: Optional[bool] = None,
+        save_sync: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[T]: ...
@@ -1196,7 +1209,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
-        wait: Optional[bool] = None,
+        save_sync: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> ContextManager[tuple[Unpack[Ts]]]: ...
@@ -1211,7 +1224,7 @@ class Spot:
         version: str | None = None,
         content_type: Optional[str | ContentType] = None,
         serializer: Optional[SerializerProtocol] = None,
-        wait: Optional[bool] = None,
+        save_sync: Optional[bool] = None,
         retention: Union[str, timedelta, None] = None,
         hooks: Optional[Sequence[HookBase]] = None,
     ):
@@ -1234,7 +1247,7 @@ class Spot:
                 version=version,
                 content_type=content_type,
                 serializer=serializer,
-                wait=wait,
+                save_sync=save_sync,
                 retention=retention,
                 hooks=hooks,
             )

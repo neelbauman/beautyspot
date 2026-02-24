@@ -13,13 +13,13 @@ from beautyspot.db import SQLiteTaskDB
 
 
 def test_background_loop_saves_correctly(tmp_path):
-    """_BackgroundLoop 経由の wait=False 保存が正しく動作することを確認する。"""
+    """_BackgroundLoop 経由の save_sync=False 保存が正しく動作することを確認する。"""
     db_path = tmp_path / "bg.db"
     spot = bs.Spot(
         name="bg_test",
         db=SQLiteTaskDB(db_path),
         storage_backend=bs.LocalStorage(tmp_path / "blobs"),
-        default_wait=False,
+        save_sync=False,
     )
 
     @spot.mark()
@@ -37,13 +37,13 @@ def test_background_loop_saves_correctly(tmp_path):
 
 
 def test_background_loop_serializes_saves(tmp_path):
-    """wait=False で複数タスクを投入しても、保存が直列化されることを確認する。"""
+    """save_sync=False で複数タスクを投入しても、保存が直列化されることを確認する。"""
     db_path = tmp_path / "serial.db"
     spot = bs.Spot(
         name="serial_test",
         db=SQLiteTaskDB(db_path),
         storage_backend=bs.LocalStorage(tmp_path / "blobs"),
-        default_wait=False,
+        save_sync=False,
     )
 
     @spot.mark()
@@ -60,14 +60,14 @@ def test_background_loop_serializes_saves(tmp_path):
 
 
 def test_background_loop_with_blob_storage(tmp_path):
-    """wait=False + blob ストレージでも正しく保存されることを確認する。"""
+    """save_sync=False + blob ストレージでも正しく保存されることを確認する。"""
     db_path = tmp_path / "blob.db"
     blob_dir = tmp_path / "blobs"
     spot = bs.Spot(
         name="blob_test",
         db=SQLiteTaskDB(db_path),
         storage_backend=bs.LocalStorage(blob_dir),
-        default_wait=False,
+        save_sync=False,
         default_save_blob=True,
     )
 
@@ -94,7 +94,7 @@ def test_background_loop_fires_error_callback(tmp_path, mocker):
         storage_backend=MagicMock(),
         storage_policy=MagicMock(),
         limiter=MagicMock(),
-        default_wait=False,
+        save_sync=False,
         on_background_error=mock_callback,
     )
 
@@ -106,7 +106,7 @@ def test_background_loop_fires_error_callback(tmp_path, mocker):
         return x * 2
 
     result = task(5)
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     assert result == 10
     mock_callback.assert_called_once()
@@ -116,7 +116,7 @@ def test_background_loop_fires_error_callback(tmp_path, mocker):
 
 
 def test_shutdown_after_background_saves(tmp_path):
-    """shutdown(wait=True) が保留中のバックグラウンド保存を待つことを確認する。"""
+    """shutdown(save_sync=True) が保留中のバックグラウンド保存を待つことを確認する。"""
     slow_storage = MagicMock()
 
     def slow_save(key, data):
@@ -129,7 +129,7 @@ def test_shutdown_after_background_saves(tmp_path):
         name="shutdown_test",
         db=SQLiteTaskDB(tmp_path / "s.db"),
         storage_backend=slow_storage,
-        default_wait=False,
+        save_sync=False,
         default_save_blob=True,
     )
 
@@ -140,7 +140,7 @@ def test_shutdown_after_background_saves(tmp_path):
     fn(42)
 
     start = time.time()
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
     elapsed = time.time() - start
 
     assert elapsed >= 0.4, "shutdown should wait for pending saves"
@@ -148,7 +148,7 @@ def test_shutdown_after_background_saves(tmp_path):
 
 def test_background_loop_basic_submit_and_drain():
     """
-    正常系: タスクを投入し、stop(wait=True) で全てのタスクが確実に完了（ドレイン）することを確認する。
+    正常系: タスクを投入し、stop(save_sync=True) で全てのタスクが確実に完了（ドレイン）することを確認する。
     """
     loop = _BackgroundLoop(drain_timeout=2.0)
     results = []
@@ -165,7 +165,7 @@ def test_background_loop_basic_submit_and_drain():
     assert f1 is not None and f2 is not None and f3 is not None
 
     # シャットダウン開始（全てのタスクの完了を待機するはず）
-    loop.stop(wait=True)
+    loop.stop(save_sync=True)
 
     # 全てのタスクが処理されていること
     assert sorted(results) == [1, 2, 3]
@@ -180,7 +180,7 @@ def test_background_loop_rejects_tasks_after_stop():
     loop = _BackgroundLoop(drain_timeout=1.0)
 
     # 停止
-    loop.stop(wait=True)
+    loop.stop(save_sync=True)
 
     async def dummy_task():
         pass
@@ -222,12 +222,12 @@ def test_background_loop_handles_task_exceptions():
     # successful_task は巻き添えにならず正常に完了する
     assert future_succ.result(timeout=1.0) == "Success"
 
-    loop.stop(wait=True)
+    loop.stop(save_sync=True)
 
 
 def test_background_loop_stop_no_wait():
     """
-    GCファイナライザ用: stop(wait=False) が呼ばれた場合、
+    GCファイナライザ用: stop(save_sync=False) が呼ばれた場合、
     メインスレッドをブロックせずに即座に制御を返すこと。
     """
     loop = _BackgroundLoop(drain_timeout=5.0)
@@ -245,7 +245,7 @@ def test_background_loop_stop_no_wait():
 
     start_time = time.time()
     # wait=False なので、タスクの完了を待たずに即座にリターンするはず
-    loop.stop(wait=False)
+    loop.stop(save_sync=False)
     elapsed = time.time() - start_time
 
     assert elapsed < 0.5  # 2秒待たずにすぐ返ってきていること

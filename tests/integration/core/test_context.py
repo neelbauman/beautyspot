@@ -36,12 +36,12 @@ def test_spot_explicit_shutdown(tmp_path):
     db_path = str(tmp_path / "test.db")
     spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path))
 
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
     # シャットダウン後はタスクを投げると RuntimeError になるのが正しい挙動
     with pytest.raises(RuntimeError):
 
-        @spot.mark(wait=False)
+        @spot.mark(save_sync=False)
         def task(x):
             return x
 

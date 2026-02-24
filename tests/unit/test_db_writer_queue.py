@@ -84,7 +84,7 @@ async def test_save_failure_does_not_raise_async(tmp_path):
     assert errors
     assert isinstance(errors[0], RuntimeError)
 
-    spot.shutdown(wait=True)
+    spot.shutdown(save_sync=True)
 
 
 def test_sqlite_shutdown_waits_for_queue(tmp_path):

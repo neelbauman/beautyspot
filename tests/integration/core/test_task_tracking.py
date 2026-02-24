@@ -19,13 +19,13 @@ def spot_with_slow_storage(tmp_path):
 
     slow_storage.save.side_effect = slow_save
 
-    # default_wait=False (Fire-and-Forget) で初期化
+    # save_sync=False (Fire-and-Forget) で初期化
     spot = Spot(
         name="tracking_test",
         db=SQLiteTaskDB(db_path),
         storage_backend=slow_storage,
         serializer=MagicMock(),  # デコード不要のためモックでOK
-        default_wait=False,
+        save_sync=False,
         default_save_blob=True,
     )
     return spot, slow_storage
@@ -48,7 +48,7 @@ def test_flush_on_context_exit(spot_with_slow_storage):
         res = my_task(10)
         assert res == 10
 
-        # default_wait=False なので、0.5秒待たずにここに来るはず
+        # save_sync=False なので、0.5秒待たずにここに来るはず
         elapsed_inside = time.time() - start_time
         assert elapsed_inside < 0.2, (
             "Inside with-block, it should not wait for storage save."
@@ -100,7 +100,7 @@ async def test_async_task_tracking(tmp_path):
         db=SQLiteTaskDB(db_path),
         storage_backend=slow_storage,
         serializer=MagicMock(),
-        default_wait=False,
+        save_sync=False,
     )
 
     @spot.mark(save_blob=True)
