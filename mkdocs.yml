@@ -78,11 +78,12 @@ nav:
       - Testing: cookbooks/testing.md
   - Reference:
       - Spot: reference/core.md
-      - Hooks: reference/hooks.md
       - CacheKey: reference/cachekey.md
+      - Lifecycle: reference/lifecycle.md
       - CacheDB: reference/db.md
       - Storage: reference/storage.md
       - Types: reference/types.md
+      - Hooks: reference/hooks.md
       - MaintenanceService: reference/maintenance.md
   - Topics:
       - Philosophy: reference/philosophy.md

@@ -71,6 +71,56 @@ def daily_process(data):
 
 ```
 
+---
+
+## LifecyclePolicy
+
+`LifecyclePolicy` は、関数の名前（パターン）に基づいて、実行結果の有効期限（Retention）を自動的に決定する仕組みです。個々のデコレータに保持期間を記述する代わりに、プロジェクト全体で一貫したルールを適用できます。
+
+## 基本的な使い方
+
+`LifecyclePolicy` を定義し、`Spot` の初期化時に渡します。
+
+```python
+from beautyspot import Spot
+from beautyspot.lifecycle import LifecyclePolicy, Rule
+
+# ルールを定義（リストの先頭から順にマッチングされます）
+policy = LifecyclePolicy(rules=[
+    Rule(pattern="debug_*", retention="1h"),   # デバッグ用関数は1時間
+    Rule(pattern="*_tmp", retention="30m"),    # 一時的な計算は30分
+    Rule(pattern="*", retention="30d"),        # デフォルトは30日間
+])
+
+# Spot インスタンスへ組み込み
+spot = Spot(
+    name="my_project",
+    lifecycle_policy=policy,
+    # ... その他の設定 ...
+)
+
+```
+
+## ルールの詳細
+
+### Rule クラス
+
+* `pattern` (str): 関数名にマッチさせるパターン。内部で `fnmatch` を使用しており、Unix シェル形式のワイルドカード（`*`, `?` など）が利用可能です。
+* `retention` (Union[str, int, timedelta, None]):
+* `"1h"`, `"7d"` などの文字列形式
+* 整数（秒単位）
+* `datetime.timedelta` オブジェクト
+* `None`（無期限保持）
+
+
+### 解決の優先順位
+
+有効期限は以下の優先順位で決定されます：
+
+1. **デコレータでの直接指定:** `@spot.mark(retention="5h")` が最優先されます。
+2. **ポリシーによるマッチング:** `LifecyclePolicy.rules` のリストを **上から順に** スキャンし、最初にマッチしたルールが適用されます。
+3. **デフォルト:** いずれにもマッチしない場合は `Retention.INDEFINITE`（無期限）となります。
+
 ### アーキテクチャの強み
 
 この自動エビクションは、`beautyspot` の哲学である **「メインの実行ロジックを阻害しない（Non-blocking）」** ように設計されています。
