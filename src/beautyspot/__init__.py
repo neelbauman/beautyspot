@@ -4,7 +4,6 @@ import logging
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 from typing import Optional, Callable
-from concurrent.futures import Executor
 
 from beautyspot.core import Spot as _Spot
 
@@ -49,14 +48,12 @@ def Spot(
     limiter: Optional[LimiterProtocol] = None,
     storage_backend: Optional[BlobStorageBase] = None,
     storage_policy: Optional[StoragePolicyProtocol] = None,
-    executor: Optional[Executor] = None,
     # --- Configuration Options ---
     lifecycle_policy: Optional[LifecyclePolicy] = None,
     eviction_rate: float = 0.0,
     blob_warning_threshold: int = 1024 * 1024,
     default_save_blob: bool = False,
     tpm: int = 10000,
-    io_workers: int = 4,
     default_version: Optional[str] = None,
     default_content_type: Optional[str] = None,
     default_wait: bool = True,
@@ -111,11 +108,7 @@ def Spot(
         # その他のオプション
         lifecycle_policy=lifecycle_policy,
         eviction_rate=eviction_rate,
-        executor=executor,
-        io_workers=io_workers,
-        default_version=default_version,
-        default_content_type=default_content_type,
-        default_wait=default_wait,
+        wait=default_wait,
         drain_timeout=drain_timeout,
         drain_poll_interval=drain_poll_interval,
         on_background_error=on_background_error,

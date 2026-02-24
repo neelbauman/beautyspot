@@ -171,6 +171,14 @@ class Spot:
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
 
+    .. note::
+        **v3.0 アーキテクチャの変更点**
+        以前のバージョンで存在した `executor` および `io_workers` パラメータは廃止されました。
+        Spotは現在、自律的にバックグラウンド用のイベントループとスレッドプールを内部で管理します。
+        これにより、アプリケーションのライフサイクル（シャットダウン時の安全なデータドレインなど）
+        と完全に統合され、ユーザーがインフラストラクチャを意識することなく安全に非同期保存を
+        利用できるようになっています。スレッド数はPython標準の最適値が自動的に割り当てられます。
+
     .. warning::
         **リソース管理とデータロストに関する注意**
         `Spot` インスタンスは内部でバックグラウンドIO用の専用スレッドを起動します。
@@ -193,11 +201,9 @@ class Spot:
         storage_backend: The blob storage backend.
         storage_policy: The policy to decide whether to save as blob.
         limiter: The rate limiter instance.
-        executor: Optional thread pool executor for async tasks.
-        io_workers: Number of workers if executor is not provided.
-        default_wait: Default behavior for wait flag in saving cache.
-        default_version: Default version string for cache entries.
-        default_content_type: Default content type string.
+        wait: Default behavior for wait flag in saving cache.
+        version: Default version string for cache entries.
+        content_type: Default content type string.
         lifecycle_policy: The lifecycle retention policy.
         eviction_rate: float, optional
             The probability (0.0 to 1.0) of triggering an automatic background
@@ -222,12 +228,8 @@ class Spot:
         storage_policy: StoragePolicyProtocol,
         limiter: LimiterProtocol,
         # オプション設定
-        executor: Optional[Executor] = None,
-        io_workers: int = 4,
-        default_wait: bool = True,
+        wait: bool = True,
         # デフォルト動作設定
-        default_version: Optional[str] = None,
-        default_content_type: Optional[str | ContentType] = None,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
         eviction_rate: float = 0.0,
         drain_timeout: float = 5.0,
@@ -255,35 +257,17 @@ class Spot:
         self.limiter = limiter
 
         # --- オプション設定の適用 ---
-        self.default_version = default_version
-        self.default_content_type = default_content_type
-        self.default_wait = default_wait
+        self._wait = wait
         self.lifecycle_policy = lifecycle_policy or LifecyclePolicy.default()
         self.on_background_error = on_background_error
 
         # --- DBの初期化 ---
         self.db.init_schema()
 
-        # --- バックグラウンド IO 管理 ---
-        self._io_workers = io_workers
-        if executor is not None:
-            warnings.warn(
-                "The 'executor' parameter is deprecated. "
-                "beautyspot now uses an internal asyncio event loop for background IO.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # レガシーパス: 従来の ThreadPoolExecutor 動作
-            self._bg_loop: _BackgroundLoop | None = None
-            self._executor: Executor | None = executor
-            self._own_executor = False
-            self._finalizer: weakref.finalize | None = None
-        else:
-            # 新パス: 遅延初期化 (初回 wait=False 使用時に _ensure_bg_resources() で生成)
-            self._bg_loop = None
-            self._executor = None
-            self._own_executor = True
-            self._finalizer = None
+        # --- バックグラウンド IO 管理 (遅延初期化用) ---
+        self._bg_loop: _BackgroundLoop | None = None
+        self._executor: Executor | None = None
+        self._finalizer: weakref.finalize | None = None
 
         self._bg_init_lock = threading.Lock()
         self._shutdown_called = False
@@ -342,7 +326,7 @@ class Spot:
         """バックグラウンドリソースを遅延初期化し、(bg_loop, executor) を返す。
 
         初回の wait=False 保存や async パスで呼ばれた時点でリソースを生成する。
-        default_wait=True で wait=False を一度も使わないユーザーには
+        self._wait=True で wait=False を一度も使わないユーザーには
         スレッドやイベントループを一切作らない。
 
         Raises:
@@ -361,8 +345,9 @@ class Spot:
                 if self._bg_loop is None:
                     self._bg_loop = _BackgroundLoop(drain_timeout=self._drain_timeout)
                 if self._executor is None:
-                    self._executor = ThreadPoolExecutor(max_workers=self._io_workers)
-                if self._own_executor and self._finalizer is None:
+                    # I/OプールはPython標準の最適値(min(32, os.cpu_count() + 4))に委ねる
+                    self._executor = ThreadPoolExecutor()
+                if self._finalizer is None:
                     self._finalizer = weakref.finalize(
                         self, Spot._shutdown_resources, self._bg_loop, self._executor
                     )
@@ -387,19 +372,20 @@ class Spot:
         """バックグラウンド IO を停止する。
 
         wait=True の場合、保留中のすべての Future を先にドレインしてから停止する。
-        _bg_loop は常に内部生成なので停止する。executor は自身が所有する場合のみシャットダウン。
+        _bg_loop と executor は Spot 自身が所有するため、常にシャットダウンする。
         """
         self._shutdown_called = True
         if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
         if wait:
             self._drain_futures()
-        # _bg_loop は常に内部生成なので停止する
+            
         if self._bg_loop is not None:
             self._bg_loop.stop(wait=wait)
-        # executor は自身が所有する場合のみシャットダウン
-        if self._own_executor and self._executor is not None:
+            
+        if self._executor is not None:
             self._executor.shutdown(wait=wait)
+            
         try:
             self.db.shutdown(wait=wait)
         except Exception as e:
@@ -458,26 +444,21 @@ class Spot:
                     self._eviction_lock.release()
 
             try:
-                if self._own_executor:
-                    bg_loop, executor = self._ensure_bg_resources()
+                bg_loop, executor = self._ensure_bg_resources()
 
-                    async def _run_clean_coro():
-                        loop = asyncio.get_running_loop()
-                        # ラッパーを介して実行
-                        await loop.run_in_executor(executor, _run_clean_safe)
+                async def _run_clean_coro():
+                    loop = asyncio.get_running_loop()
+                    # ラッパーを介して実行
+                    await loop.run_in_executor(executor, _run_clean_safe)
 
-                    coro = _run_clean_coro()
-                    future = bg_loop.submit(coro)
-                    if future is None:
-                        coro.close()
-                        self._eviction_lock.release()
-                        return
-                    self._track_future(future)
+                coro = _run_clean_coro()
+                future = bg_loop.submit(coro)
+                if future is None:
+                    coro.close()
+                    self._eviction_lock.release()
+                    return
+                self._track_future(future)
 
-                elif self._executor is not None:
-                    # レガシーパス用
-                    future = self._executor.submit(_run_clean_safe)
-                    self._track_future(future)
             except Exception:
                 # スケジュール自体に失敗した場合は、ロックを戻しておく
                 self._eviction_lock.release()
@@ -603,11 +584,9 @@ class Spot:
         # これにより _save_result_sync で policy.should_save_as_blob() が呼ばれるようになる。
         final_save_blob = save_blob
 
-        final_version = version if version is not None else self.default_version
-        final_content_type = (
-            content_type if content_type is not None else self.default_content_type
-        )
-        final_wait = wait if wait is not None else self.default_wait
+        final_version = version
+        final_content_type = content_type 
+        final_wait = wait if wait is not None else self._wait
 
         return final_save_blob, final_version, final_content_type, final_wait
 
@@ -925,21 +904,18 @@ class Spot:
     # --- バックグラウンド保存の投入 ---
     def _submit_background_save(self, **save_kwargs) -> None:
         """wait=False 時にバックグラウンドへ保存処理を投入する。"""
-        if self._own_executor:
-            bg_loop, _ = self._ensure_bg_resources()
-            coro = self._save_result_async(**save_kwargs)
-            try:
-                future = bg_loop.submit(coro)
-                if future is None:
-                    coro.close()
-                    self._notify_save_discarded(save_kwargs)
-                    return
-            except RuntimeError:
+        bg_loop, _ = self._ensure_bg_resources()
+        coro = self._save_result_async(**save_kwargs)
+        try:
+            future = bg_loop.submit(coro)
+            if future is None:
                 coro.close()
-                raise
-        else:
-            assert self._executor is not None
-            future = self._executor.submit(self._save_result_safe, **save_kwargs)
+                self._notify_save_discarded(save_kwargs)
+                return
+        except RuntimeError:
+            coro.close()
+            raise
+            
         self._track_future(future)
 
     def _notify_save_discarded(self, save_kwargs: dict) -> None:
