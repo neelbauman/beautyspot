@@ -8,13 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/types/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/reference/lifecycle/">
       
       
-        <link rel="prev" href="../storage/">
+        <link rel="prev" href="../cachekey/">
       
       
-        <link rel="next" href="../hooks/">
+        <link rel="next" href="../db/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>Types - beautyspot</title>
+        <title>Lifecycle - beautyspot</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#types" class="md-skip">
+        <a href="#lifecycle" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Types
+              Lifecycle
             
           </span>
         </div>
@@ -1004,10 +1004,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../lifecycle/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1023,6 +1050,204 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LifecyclePolicy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LifecyclePolicy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.resolve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        resolve
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.Retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.Rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.parse_retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse_retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        主要な構成要素
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="主要な構成要素">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-retention-parse_retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Retention 解決ロジック (parse_retention)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Rule クラス
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-lifecyclepolicy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. LifecyclePolicy クラス
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        型定義と定数
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="型定義と定数">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention クラス
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        注意事項
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1088,37 +1313,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Types
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../types/" class="md-nav__link">
         
   
   
@@ -1134,148 +1332,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#beautyspot.types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        types
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.CacheHitContext" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CacheHitContext
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.CacheMissContext" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CacheMissContext
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.HookContextBase" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        HookContextBase
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.PreExecuteContext" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PreExecuteContext
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.SaveErrorContext" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SaveErrorContext
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#hook-contexts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Hook Contexts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#error-contexts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Contexts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#beautyspot.content_types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        content_types
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="content_types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.content_types.ContentType" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ContentType
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1483,22 +1539,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#beautyspot.types" class="md-nav__link">
+  <a href="#beautyspot.lifecycle" class="md-nav__link">
     <span class="md-ellipsis">
       
-        types
+        lifecycle
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="types">
+    <nav class="md-nav" aria-label="lifecycle">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.CacheHitContext" class="md-nav__link">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CacheHitContext
+        LifecyclePolicy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LifecyclePolicy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        default
       
     </span>
   </a>
@@ -1506,10 +1574,26 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.CacheMissContext" class="md-nav__link">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.resolve" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CacheMissContext
+        resolve
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.Retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention
       
     </span>
   </a>
@@ -1517,10 +1601,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.HookContextBase" class="md-nav__link">
+  <a href="#beautyspot.lifecycle.Rule" class="md-nav__link">
     <span class="md-ellipsis">
       
-        HookContextBase
+        Rule
       
     </span>
   </a>
@@ -1528,21 +1612,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#beautyspot.types.PreExecuteContext" class="md-nav__link">
+  <a href="#beautyspot.lifecycle.parse_retention" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PreExecuteContext
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#beautyspot.types.SaveErrorContext" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        SaveErrorContext
+        parse_retention
       
     </span>
   </a>
@@ -1555,44 +1628,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hook-contexts" class="md-nav__link">
+  <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Hook Contexts
+        主要な構成要素
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#error-contexts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Contexts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#beautyspot.content_types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        content_types
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="content_types">
+    <nav class="md-nav" aria-label="主要な構成要素">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#beautyspot.content_types.ContentType" class="md-nav__link">
+  <a href="#1-retention-parse_retention" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ContentType
+        1. Retention 解決ロジック (parse_retention)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Rule クラス
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-lifecyclepolicy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. LifecyclePolicy クラス
       
     </span>
   </a>
@@ -1601,6 +1674,45 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        型定義と定数
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="型定義と定数">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retention クラス
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        注意事項
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1624,16 +1736,16 @@
   
 
 
-<h1 id="types">Types</h1>
-<p><code>beautyspot.types</code> モジュールでは、エラーハンドリングや拡張フックで利用されるデータクラスを定義しています。</p>
+<h1 id="lifecycle">lifecycle</h1>
+<p><code>beautyspot.lifecycle</code> モジュールは、データの保持期間（Retention）の解析、および関数名に基づいたポリシーの解決を担います。</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="beautyspot.types" class="doc doc-heading">
-            <code>beautyspot.types</code>
+<h2 id="beautyspot.lifecycle" class="doc doc-heading">
+            <code>beautyspot.lifecycle</code>
 
 
 </h2>
@@ -1663,29 +1775,18 @@
 
 
 
-<h3 id="beautyspot.types.CacheHitContext" class="doc doc-heading">
-            <code>CacheHitContext</code>
+<h3 id="beautyspot.lifecycle.LifecyclePolicy" class="doc doc-heading">
+            <code>LifecyclePolicy</code>
 
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
 
 </h3>
 
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="HookContextBase
-
-
-  
-      dataclass
-   (beautyspot.types.HookContextBase)" href="#beautyspot.types.HookContextBase">HookContextBase</a></code></p>
 
 
 
-        <p>キャッシュから正常に結果が取得された際に渡されるコンテキスト。</p>
+        <p>Manages data retention policies based on function names.</p>
 
 
 
@@ -1695,90 +1796,184 @@
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="k">class</span><span class="w"> </span><span class="nc">CacheHitContext</span><span class="p">(</span><span class="n">HookContextBase</span><span class="p">):</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;キャッシュから正常に結果が取得された際に渡されるコンテキスト。&quot;&quot;&quot;</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">result</span><span class="p">:</span> <span class="n">Any</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="n">version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="beautyspot.types.CacheMissContext" class="doc doc-heading">
-            <code>CacheMissContext</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="HookContextBase
-
-
-  
-      dataclass
-   (beautyspot.types.HookContextBase)" href="#beautyspot.types.HookContextBase">HookContextBase</a></code></p>
-
-
-
-        <p>キャッシュミスとなり、元の関数が実行された後に渡されるコンテキスト。</p>
-
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-68">68</a></span>
+                <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#__codelineno-0-68">68</a></span>
 <span class="normal"><a href="#__codelineno-0-69">69</a></span>
 <span class="normal"><a href="#__codelineno-0-70">70</a></span>
 <span class="normal"><a href="#__codelineno-0-71">71</a></span>
 <span class="normal"><a href="#__codelineno-0-72">72</a></span>
-<span class="normal"><a href="#__codelineno-0-73">73</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="k">class</span><span class="w"> </span><span class="nc">CacheMissContext</span><span class="p">(</span><span class="n">HookContextBase</span><span class="p">):</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;キャッシュミスとなり、元の関数が実行された後に渡されるコンテキスト。&quot;&quot;&quot;</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">result</span><span class="p">:</span> <span class="n">Any</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="n">version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="k">class</span><span class="w"> </span><span class="nc">LifecyclePolicy</span><span class="p">:</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    Manages data retention policies based on function names.</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Rule</span><span class="p">]):</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span> <span class="o">=</span> <span class="n">rules</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72"></a>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        Find the first matching rule for the given function name.</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">        Returns the retention timedelta, or None if indefinite (or no match).</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>                <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="c1"># Default is indefinite (None)</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="beautyspot.lifecycle.LifecyclePolicy.default" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">default</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Default policy: Everything is kept indefinitely.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="beautyspot.lifecycle.LifecyclePolicy.resolve" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">resolve</span><span class="p">(</span><span class="n">func_name</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Find the first matching rule for the given function name.
+Returns the retention timedelta, or None if indefinite (or no match).</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#__codelineno-0-82">82</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">    Find the first matching rule for the given function name.</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    Returns the retention timedelta, or None if indefinite (or no match).</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="c1"># Default is indefinite (None)</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="beautyspot.lifecycle.Retention" class="doc doc-heading">
+            <code>Retention</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Constants for retention policies.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="k">class</span><span class="w"> </span><span class="nc">Retention</span><span class="p">:</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constants for retention policies.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">INDEFINITE</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -1807,8 +2002,8 @@
 
 
 
-<h3 id="beautyspot.types.HookContextBase" class="doc doc-heading">
-            <code>HookContextBase</code>
+<h3 id="beautyspot.lifecycle.Rule" class="doc doc-heading">
+            <code>Rule</code>
 
 
   <span class="doc doc-labels">
@@ -1822,7 +2017,7 @@
 
 
 
-        <p>すべてのフックに共通する基本コンテキスト情報。</p>
+        <p>A rule defining retention policy based on function name pattern.</p>
 
 
 
@@ -1832,94 +2027,22 @@
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span>
-<span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="k">class</span><span class="w"> </span><span class="nc">HookContextBase</span><span class="p">:</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;すべてのフックに共通する基本コンテキスト情報。&quot;&quot;&quot;</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">input_id</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">cache_key</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="beautyspot.types.PreExecuteContext" class="doc doc-heading">
-            <code>PreExecuteContext</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="HookContextBase
-
-
-  
-      dataclass
-   (beautyspot.types.HookContextBase)" href="#beautyspot.types.HookContextBase">HookContextBase</a></code></p>
-
-
-
-        <p>関数実行前、またはキャッシュ確認前に渡されるコンテキスト。</p>
-
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+                <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-55">55</a></span>
 <span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="k">class</span><span class="w"> </span><span class="nc">PreExecuteContext</span><span class="p">(</span><span class="n">HookContextBase</span><span class="p">):</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;関数実行前、またはキャッシュ確認前に渡されるコンテキスト。&quot;&quot;&quot;</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">pass</span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#__codelineno-0-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="nd">@dataclass</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="k">class</span><span class="w"> </span><span class="nc">Rule</span><span class="p">:</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">    A rule defining retention policy based on function name pattern.</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>    <span class="n">retention</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -1944,155 +2067,26 @@
 
 </div>
 
-<div class="doc doc-object doc-class">
+
+<div class="doc doc-object doc-function">
 
 
-
-<h3 id="beautyspot.types.SaveErrorContext" class="doc doc-heading">
-            <code>SaveErrorContext</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
+<h3 id="beautyspot.lifecycle.parse_retention" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse_retention</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></code>
 
 </h3>
 
 
     <div class="doc doc-contents ">
 
+        <p>Helper function to normalize retention specification to timedelta.
+None means 'indefinite'.
+int is treated as 'seconds'.</p>
 
 
-        <p>バックグラウンドでのキャッシュ保存処理 (wait=False) が失敗した際に、
-エラーハンドラーへ渡されるコンテキスト情報です。</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.func_name">func_name</span></code></td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>キャッシュ保存対象となった関数の名前</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.cache_key">cache_key</span></code></td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>生成されたキャッシュキー (SHA-256)</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.input_id">input_id</span></code></td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>入力引数から生成された識別子</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.version">version</span></code></td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>キャッシュのバージョン指定文字列</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.content_type">content_type</span></code></td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>保存データのMIMEタイプなどのコンテンツタイプ文字列</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.save_blob">save_blob</span></code></td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="bool">bool</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Blobストレージへの保存が指定/判定されていたか</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.expires_at">expires_at</span></code></td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="datetime.datetime">datetime</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>計算されたキャッシュの有効期限</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="beautyspot.types.SaveErrorContext.result">result</span></code></td>
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>キャッシュしようとした実際の戻り値のオブジェクト</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="warning" open>
-  <summary>Warning</summary>
-  <p><code>result</code> には評価済みのオブジェクトがそのまま格納されます。
-巨大なデータ（例: 数GBのDataFrameやテンソル）を返す関数の場合、
-このエラーコンテキストをグローバルなリストや長寿命のオブジェクトに
-保持し続けると、メモリリークの原因となる可能性があります。
-エラーハンドラー内でのログ出力や一時的な検査のみに留めることを強く推奨します。</p>
-</details>
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-0-10">10</a></span>
-<span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-14">14</a></span>
 <span class="normal"><a href="#__codelineno-0-15">15</a></span>
 <span class="normal"><a href="#__codelineno-0-16">16</a></span>
 <span class="normal"><a href="#__codelineno-0-17">17</a></span>
@@ -2117,201 +2111,107 @@
 <span class="normal"><a href="#__codelineno-0-36">36</a></span>
 <span class="normal"><a href="#__codelineno-0-37">37</a></span>
 <span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">SaveErrorContext</span><span class="p">:</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="sd">    バックグラウンドでのキャッシュ保存処理 (wait=False) が失敗した際に、</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    エラーハンドラーへ渡されるコンテキスト情報です。</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    Attributes:</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">        func_name: キャッシュ保存対象となった関数の名前</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">        cache_key: 生成されたキャッシュキー (SHA-256)</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        input_id: 入力引数から生成された識別子</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        version: キャッシュのバージョン指定文字列</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        content_type: 保存データのMIMEタイプなどのコンテンツタイプ文字列</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">        save_blob: Blobストレージへの保存が指定/判定されていたか</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        expires_at: 計算されたキャッシュの有効期限</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">        result: キャッシュしようとした実際の戻り値のオブジェクト</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23"></a>
-<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    Warning:</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        `result` には評価済みのオブジェクトがそのまま格納されます。</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        巨大なデータ（例: 数GBのDataFrameやテンソル）を返す関数の場合、</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        このエラーコンテキストをグローバルなリストや長寿命のオブジェクトに</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        保持し続けると、メモリリークの原因となる可能性があります。</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        エラーハンドラー内でのログ出力や一時的な検査のみに留めることを強く推奨します。</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">cache_key</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="n">input_id</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="n">version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a>    <span class="n">content_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a>    <span class="n">save_blob</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="n">expires_at</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="n">result</span><span class="p">:</span> <span class="n">Any</span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_retention</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]:</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    Helper function to normalize retention specification to timedelta.</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    None means &#39;indefinite&#39;.</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    int is treated as &#39;seconds&#39;.</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a>    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">):</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a>        <span class="k">return</span> <span class="n">value</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a>        <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>        <span class="n">match</span> <span class="o">=</span> <span class="n">_TIME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>                <span class="sa">f</span><span class="s2">&quot;Invalid retention format: &#39;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&#39;. Use format like &#39;7d&#39;, &#39;12h&#39;, &#39;30m&#39;.&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>            <span class="p">)</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="n">amount</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;d&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>            <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">amount</span><span class="p">)</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>            <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">amount</span><span class="p">)</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>        <span class="k">elif</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;m&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>            <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">amount</span><span class="p">)</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>        <span class="sa">f</span><span class="s2">&quot;Retention must be str, int, or timedelta, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
+            </details>
     </div>
 
 </div>
 
 
 
-
   </div>
 
     </div>
 
-</div><h2 id="hook-contexts">Hook Contexts</h2>
-<p>フックシステム（<code>HookBase</code>）の各メソッドに渡される、型安全なコンテキストオブジェクトです。</p>
+</div><h2 id="_1">主要な構成要素</h2>
+<h3 id="1-retention-parse_retention">1. Retention 解決ロジック (<code>parse_retention</code>)</h3>
+<p>ユーザーが指定した多様な形式（文字列、整数、timedelta）を、内部で扱う <code>timedelta</code> オブジェクトへと正規化します。</p>
 <ul>
-<li><strong><code>PreExecuteContext</code></strong>: 関数実行（およびキャッシュ確認）の直前に渡されます。引数 (<code>args</code>, <code>kwargs</code>) にアクセスできます。</li>
-<li><strong><code>CacheHitContext</code></strong>: キャッシュがヒットした直後に渡されます。キャッシュから復元された <code>result</code> にアクセスできます。</li>
-<li><strong><code>CacheMissContext</code></strong>: キャッシュが存在せず、実関数が実行された直後に渡されます。新たに生成された <code>result</code> にアクセスできます。</li>
+<li><strong>サポートされる形式</strong>:</li>
+<li><strong>文字列</strong>: <code>"7d"</code> (日), <code>"12h"</code> (時間), <code>"30m"</code> (分) の形式。</li>
+<li><strong>整数</strong>: 秒単位として扱われます。</li>
+<li><strong>timedelta</strong>: そのまま利用されます。</li>
+<li><strong>None</strong>: <code>Retention.INDEFINITE</code> (無期限) として扱われます。</li>
 </ul>
-<h2 id="error-contexts">Error Contexts</h2>
+<h3 id="2-rule">2. Rule クラス</h3>
+<p>特定の関数名パターンに対して適用する保持期間を定義するデータクラスです。</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>型</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pattern</code></td>
+<td><code>str</code></td>
+<td><code>fnmatch</code> 形式のワイルドカードパターン（例: <code>api_*</code>）</td>
+</tr>
+<tr>
+<td><code>retention</code></td>
+<td><code>Union[str, int, timedelta, None]</code></td>
+<td>適用する保持期間</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-lifecyclepolicy">3. LifecyclePolicy クラス</h3>
+<p>ルールの集合を管理し、実行時に特定の関数名に対してどのルールを適用するかを決定（Resolve）します。</p>
 <ul>
-<li><strong><code>SaveErrorContext</code></strong>: バックグラウンド保存 (<code>wait=False</code>) 時にエラーが発生した場合、<code>on_background_error</code> ハンドラに渡されるコンテキストです。</li>
+<li><strong>解決アルゴリズム</strong>: <code>rules</code> リストの <strong>先頭から順に</strong> パターンマッチングを行い、最初にマッチしたルールの保持期間を返します。</li>
+<li><strong>デフォルト挙動</strong>: マッチするルールがない場合、またはルールリストが空の場合は <code>Retention.INDEFINITE</code>（無期限）が返されます。</li>
 </ul>
-
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="beautyspot.content_types" class="doc doc-heading">
-            <code>beautyspot.content_types</code>
-
-
-</h2>
-
-    <div class="doc doc-contents first">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="beautyspot.content_types.ContentType" class="doc doc-heading">
-            <code>ContentType</code>
-
-
-</h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="enum.StrEnum">StrEnum</span></code></p>
-
-
-
-        <p>Supported semantic content types for beautyspot tasks.
-Used by the dashboard to determine the appropriate rendering widget.</p>
-
-
-
-
-
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>src/beautyspot/content_types.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-0-10">10</a></span>
-<span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">ContentType</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="sd">    Supported semantic content types for beautyspot tasks.</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="sd">    Used by the dashboard to determine the appropriate rendering widget.</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">TEXT</span> <span class="o">=</span> <span class="s2">&quot;text/plain&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;application/json&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">MARKDOWN</span> <span class="o">=</span> <span class="s2">&quot;text/markdown&quot;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">PNG</span> <span class="o">=</span> <span class="s2">&quot;image/png&quot;</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">JPEG</span> <span class="o">=</span> <span class="s2">&quot;image/jpeg&quot;</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a>    <span class="n">MERMAID</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.mermaid&quot;</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18"></a>    <span class="n">GRAPHVIZ</span> <span class="o">=</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a>    <span class="n">HTML</span> <span class="o">=</span> <span class="s2">&quot;text/html&quot;</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
+<h2 id="_2">型定義と定数</h2>
+<h3 id="retention">Retention クラス</h3>
+<ul>
+<li><code>INDEFINITE</code>: <code>None</code>（無期限保持を明示するためのエイリアス）。</li>
+</ul>
+<h2 id="_3">注意事項</h2>
+<ul>
+<li><strong>パターンマッチング</strong>: 内部で <code>fnmatch.fnmatch</code> を使用しているため、大文字小文字の区別は OS のファイルシステムルールに依存する可能性があります。一貫性を保つため、関数名の命名規則をプロジェクト内で統一することを推奨します。</li>
+<li><strong>バリデーション</strong>: <code>parse_retention</code> は、不正なフォーマット（例: <code>"1year"</code> や <code>"10s"</code> <em>※現状秒単位の文字指定は未サポート</em>）が渡された場合、<code>beautyspot.exceptions.ValidationError</code> を送出します。</li>
+</ul>
 
 
 

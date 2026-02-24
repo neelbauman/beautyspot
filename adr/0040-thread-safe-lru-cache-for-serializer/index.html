@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0032-relax-cached-run-scoping/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0040-thread-safe-lru-cache-for-serializer/">
       
       
       
@@ -21,7 +21,7 @@
     
     
       
-        <title>32. cached_run スコープ制限の廃止 - beautyspot</title>
+        <title>40. Thread-safe LRU Cache for Serializer - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#32-cached_run" class="md-skip">
+        <a href="#40-thread-safe-lru-cache-for-serializer" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              32. cached_run スコープ制限の廃止
+              40. Thread-safe LRU Cache for Serializer
             
           </span>
         </div>
@@ -1313,7 +1313,7 @@
   <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        状況・背景 (Context)
       
     </span>
   </a>
@@ -1324,7 +1324,18 @@
   <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        決定事項 (Decision)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        理由 (Rationale)
       
     </span>
   </a>
@@ -1335,38 +1346,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        結果 (Consequences)
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1390,41 +1373,22 @@
   
 
 
-<h1 id="32-cached_run">32. cached_run スコープ制限の廃止</h1>
-<p>Date: 2026-02-21
-Status: Accepted
-Supersedes: <a href="../0014-strict-scoping-for-cached-run/">ADR-0014</a></p>
-<h2 id="context">Context</h2>
-<p>ADR-0014 では、<code>cached_run</code> が返すラッパー関数を <code>with</code> ブロック外から呼び出した場合に
-<code>RuntimeError</code> を raise する Runtime Guard パターンを導入した。</p>
-<p>しかし、ADR-0023 で <code>Spot</code> インスタンス自体の再利用性（<code>with spot:</code> はフラッシュのみで
-制限ではない）が確立されたことにより、<code>cached_run</code> のラッパーについても同様に
-スコープ外での利用を妨げない方針が自然な帰結となった。</p>
-<p>また、Runtime Guard の実装に <code>ContextVar</code> を使用していたが、
-<code>cached_run</code> 呼び出しごとに新規の <code>ContextVar</code> を作成するため、
-コンテキスト分離の恩恵が得られない構造になっていた。
-さらに asyncio のデタッチドタスクパターンでは <code>reset()</code> が伝播せず、
-<code>with</code> 外から呼べてしまうという逆効果のバグも内包していた。</p>
-<h2 id="decision">Decision</h2>
-<p><code>cached_run</code> の Runtime Guard を廃止し、返されたラッパー関数は
-<code>with</code> ブロック外でも呼び出し可能とする。</p>
+<h1 id="40-thread-safe-lru-cache-for-serializer">40. Thread-safe LRU Cache for Serializer</h1>
+<h2 id="context">状況・背景 (Context)</h2>
+<p><code>MsgpackSerializer</code> は動的型生成時のメモリリークを防ぐために、内部で <code>OrderedDict</code> を用いた LRU (Least Recently Used) キャッシュを運用している。
+しかし、<code>beautyspot</code> のアーキテクチャでは <code>Spot</code> インスタンスを通じたバックグラウンド保存（<code>wait=False</code>）や、Webフレームワークでのシングルトン利用など、マルチスレッド環境からの並行アクセスが日常的に発生する。
+ロックを持たない <code>OrderedDict</code> への並行操作は <code>RuntimeError: OrderedDict mutated during iteration</code> やデータの破損を引き起こす致命的なバグの温床となっていた。</p>
+<h2 id="decision">決定事項 (Decision)</h2>
+<p><code>MsgpackSerializer</code> の内部状態（<code>_subclass_cache</code> およびレジストリ）に対するすべての読み書き操作を <code>threading.Lock()</code> で保護する。</p>
+<h2 id="rationale">理由 (Rationale)</h2>
+<ol>
+<li><strong>安定性の優先</strong>: 稀に発生するクラッシュはデバッグが極めて困難であり、ライブラリの信頼性を著しく損なうため、確実な排他制御が不可欠である。</li>
+<li><strong>パフォーマンスへの影響の最小化</strong>: ロックの範囲は「型の解決とキャッシュの更新」というメモリアクセス領域に限定し、シリアライズ処理そのもの（I/Oやエンコード計算）はロック外で実行する。これにより、並行処理スループットの低下を最小限に抑えつつスレッドセーフ性を担保できる。</li>
+</ol>
+<h2 id="consequences">結果 (Consequences)</h2>
 <ul>
-<li><code>ContextVar</code>、<code>is_active</code>、<code>make_scoped_guard</code>、<code>_sync_guard</code>、<code>_async_guard</code> を削除</li>
-<li><code>make_cached</code> に簡略化（<code>self.mark()</code> を適用して返すだけ）</li>
-<li><code>try/finally</code> による <code>reset()</code> も不要のため削除</li>
-</ul>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
-<ul>
-<li><strong>シンプルな実装</strong>: ガード層がなくなり、<code>cached_run</code> は単純な <code>@mark</code> の一括適用に帰結する。</li>
-<li><strong>バグの除去</strong>: <code>ContextVar</code> の誤用に起因する asyncio デタッチドタスクでのガード素通りが解消される。</li>
-<li><strong>ADR-0023 との一貫性</strong>: <code>Spot</code> インスタンスと同様に、ラッパーもスコープに縛られない利用が可能になる。</li>
-</ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>誤用の検出不可</strong>: <code>with</code> ブロック外でのラッパー使用がランタイムで検出されなくなる。
-  ただし、ラッパー自体は通常の <code>@spot.mark()</code> 相当の関数であり、
-  呼び出しても意図しない副作用は生じない。</li>
+<li><strong>Positive</strong>: <code>MsgpackSerializer</code> をシングルトンとして安全にマルチスレッド環境で使い回せるようになった。</li>
+<li><strong>Negative</strong>: 型の初回解決時やキャッシュヒット時のロック取得により、ごくわずかなオーバーヘッドが追加されるが、実用上問題ないレベルであると判断した。</li>
 </ul>
 
 
