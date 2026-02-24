@@ -218,15 +218,16 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 | `cachekey.py` | `Strategy`, `KeyGenPolicy`, `KeyGen` |
 | `cli.py` | — |
 | `content_types.py` | `ContentType` |
-| `core.py` | `Spot` |
+| `core.py` | `_BackgroundLoop`, `Spot` |
 | `db.py` | `TaskDBBase`, `SQLiteTaskDB` |
 | `exceptions.py` | `BeautySpotError`, `CacheCorruptedError`, `SerializationError`, `ConfigurationError`, `ValidationError` |
+| `hooks.py` | `HookBase`, `ThreadSafeHookBase` |
 | `lifecycle.py` | `Retention`, `Rule`, `LifecyclePolicy` |
 | `limiter.py` | `TokenBucket` |
 | `maintenance.py` | `MaintenanceService` |
 | `serializer.py` | `SerializerProtocol`, `TypeRegistryProtocol`, `MsgpackSerializer` |
 | `storage.py` | `StoragePolicyProtocol`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `BlobStorageBase` |
-| `types.py` | `SaveErrorContext` |
+| `types.py` | `SaveErrorContext`, `HookContextBase`, `PreExecuteContext`, `CacheHitContext`, `CacheMissContext` |
 
 ### Class Summaries
 
@@ -242,6 +243,7 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 
 **`core.py`**
 
+- `_BackgroundLoop`: バックグラウンドで asyncio イベントループを実行するヘルパー。
 - `Spot`: Spot class that handles task management, serialization, and
 
 **`db.py`**
@@ -252,11 +254,16 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 **`exceptions.py`**
 
 - `BeautySpotError`: Base exception for all beautyspot errors
-- `CacheCorruptedError`: Raised when cache data (DB record or Blob file) is lost, 
+- `CacheCorruptedError`: Raised when cache data (DB record or Blob file) is lost,
 - `SerializationError`: Raised when the serializer fails to encode or decode data
 - `ConfigurationError`: Raised when there is a logical error in the user's configuration
 - `ValidationError`: メソッド呼び出し時の引数やバリデーションエラー。
 - `IncompatibleProviderError`: 注入された依存オブジェクト（Serializer, Storage, DB）が
+
+**`hooks.py`**
+
+- `HookBase`: beautyspotのタスク実行ライフサイクルに介入するためのベースクラス。
+- `ThreadSafeHookBase`: スレッドセーフなフックベースクラス。
 
 **`lifecycle.py`**
 
@@ -289,6 +296,10 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 **`types.py`**
 
 - `SaveErrorContext`: バックグラウンドでのキャッシュ保存処理 (wait=False) が失敗した際に、
+- `HookContextBase`: すべてのフックに共通する基本コンテキスト情報。
+- `PreExecuteContext`: 関数実行前、またはキャッシュ確認前に渡されるコンテキスト。
+- `CacheHitContext`: キャッシュから正常に結果が取得された際に渡されるコンテキスト。
+- `CacheMissContext`: キャッシュミスとなり、元の関数が実行された後に渡されるコンテキスト。
 
 ### CLI Commands
 
@@ -306,5 +317,5 @@ spot.register_type(MyClass, code=1, encoder=..., decoder=...)
 
 ### Public API (`import beautyspot as bs`)
 
-`Spot`, `KeyGen`, `ContentType`, `SaveErrorContext`, `BeautySpotError`, `CacheCorruptedError`, `SerializationError`, `ConfigurationError`, `TaskDBBase`, `BlobStorageBase`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`, `SQLiteTaskDB`, `LocalStorage`, `MsgpackSerializer`, `TokenBucket`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `LifecyclePolicy`, `Rule`, `Retention`
+`Spot`, `SpotType`, `KeyGen`, `ContentType`, `SaveErrorContext`, `BeautySpotError`, `CacheCorruptedError`, `SerializationError`, `ConfigurationError`, `TaskDBBase`, `BlobStorageBase`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`, `SQLiteTaskDB`, `LocalStorage`, `MsgpackSerializer`, `TokenBucket`, `ThresholdStoragePolicy`, `WarningOnlyPolicy`, `AlwaysBlobPolicy`, `LifecyclePolicy`, `Rule`, `Retention`, `HookBase`, `ThreadSafeHookBase`, `PreExecuteContext`, `CacheHitContext`, `CacheMissContext`
 

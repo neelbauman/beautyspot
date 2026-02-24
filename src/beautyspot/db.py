@@ -43,7 +43,7 @@ class TaskDBBase(ABC):
         pass
 
     @abstractmethod
-    def get(self, cache_key: str) -> Optional[TaskRecord]:
+    def get(self, cache_key: str, *, include_expired: bool = False) -> Optional[TaskRecord]:
         pass
 
     @abstractmethod
@@ -108,7 +108,7 @@ class SQLiteTaskDB(TaskDBBase):
     """
 
     def __init__(self, db_path: str | Path, timeout: float = 30.0):
-        self.db_path = db_path
+        self.db_path = Path(db_path).resolve()
         self.timeout = timeout
 
     @contextmanager
@@ -175,7 +175,7 @@ class SQLiteTaskDB(TaskDBBase):
                     "CREATE INDEX IF NOT EXISTS idx_expires_at ON tasks(expires_at);"
                 )
 
-    def get(self, cache_key: str) -> Optional[TaskRecord]:
+    def get(self, cache_key: str, *, include_expired: bool = False) -> Optional[TaskRecord]:
         with self._read_connect() as conn:
             # [MOD] Include expires_at in query
             row = conn.execute(
@@ -186,8 +186,8 @@ class SQLiteTaskDB(TaskDBBase):
             if row:
                 r_type, r_val, r_data, exp_str = row
 
-                # [ADD] Lazy Expiration Check
-                if exp_str:
+                # [ADD] Lazy Expiration Check (skip when include_expired=True)
+                if exp_str and not include_expired:
                     try:
                         # SQLite returns timestamps as strings usually
                         expires_at = datetime.fromisoformat(exp_str)

@@ -81,12 +81,17 @@ class MaintenanceService:
         """Get task history from DB."""
         return self.db.get_history(limit=limit)
 
-    def get_task_detail(self, cache_key: str) -> Optional[dict[str, Any]]:
+    def get_task_detail(
+        self, cache_key: str, *, include_expired: bool = False
+    ) -> Optional[dict[str, Any]]:
         """
         Retrieve task details and decode the blob data if available.
         Returns the record dict with an extra 'decoded_data' key.
+
+        Args:
+            include_expired: If True, return expired records as well (for dashboard/debugging).
         """
-        record = self.db.get(cache_key)
+        record = self.db.get(cache_key, include_expired=include_expired)
         if not record:
             return None
 
@@ -292,4 +297,4 @@ class MaintenanceService:
                 shutil.rmtree(path)
             except Exception as e:
                 logger.error(f"Failed to delete directory {path}: {e}")
-                raise e
+                raise

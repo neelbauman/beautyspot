@@ -130,7 +130,7 @@ else:
 
 if selected_key:
     # サービス経由でデータを取得（デシリアライズ済み）
-    row = service.get_task_detail(selected_key)
+    row = service.get_task_detail(selected_key, include_expired=True)
 
     if row:
         c_type = row.get("content_type")
@@ -170,9 +170,9 @@ if selected_key:
                     st.image(data)
 
                 elif c_type == ContentType.HTML:
-                    # sandboxed iframe: script 実行を制限しつつ HTML を表示
+                    # sandboxed iframe: 全制限で安全に HTML を表示
                     sandbox_html = (
-                        '<iframe sandbox="allow-same-origin" srcdoc="'
+                        '<iframe sandbox="" srcdoc="'
                         + html.escape(data, quote=True)
                         + '" style="width:100%;height:600px;border:none;"></iframe>'
                     )

@@ -56,6 +56,8 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         self._encoders: Dict[Type, Tuple[int, Callable[[Any], Any]]] = {}
         # ExtCode -> Decoder
         self._decoders: Dict[int, Callable[[Any], Any]] = {}
+        # Subclass lookup cache: Type -> (ExtCode, Encoder) or None
+        self._subclass_cache: Dict[Type, Tuple[int, Callable[[Any], Any]] | None] = {}
 
     def register(
         self,
@@ -88,6 +90,7 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
 
         self._encoders[type_class] = (code, encoder)
         self._decoders[code] = decoder
+        self._subclass_cache.clear()
 
     def _default_packer(self, obj: Any) -> Any:
         """
@@ -103,11 +106,19 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         if obj_type in self._encoders:
             target_code, target_encoder = self._encoders[obj_type]
         else:
-            # Subclass support
-            for t, (c, e) in self._encoders.items():
-                if isinstance(obj, t):
-                    target_code, target_encoder = c, e
-                    break
+            # Subclass support with cache
+            if obj_type in self._subclass_cache:
+                cached = self._subclass_cache[obj_type]
+                if cached is not None:
+                    target_code, target_encoder = cached
+            else:
+                for t, (c, e) in self._encoders.items():
+                    if isinstance(obj, t):
+                        target_code, target_encoder = c, e
+                        self._subclass_cache[obj_type] = (c, e)
+                        break
+                else:
+                    self._subclass_cache[obj_type] = None
 
         # 2. Execute & Wrap
         if target_encoder:

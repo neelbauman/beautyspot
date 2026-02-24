@@ -93,6 +93,7 @@ class _BackgroundLoop:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._stopped = False
+        self._stopped_lock = threading.Lock()
         self._thread.start()
 
         # 自身をトラッキングセットに追加
@@ -115,16 +116,17 @@ class _BackgroundLoop:
         GC発生時など、メインスレッドをブロックせずに残りのタスクを完了させてから
         ループを終了するためのメソッド。
         """
-        if self._stopped:
-            return
-        self._stopped = True
+        with self._stopped_lock:
+            if self._stopped:
+                return
+            self._stopped = True
 
         def _drain_and_stop():
             # 自分自身（このシャットダウン処理）以外の全タスクを取得
             tasks = [
                 t
                 for t in asyncio.all_tasks(self._loop)
-                if t is not asyncio.current_task(self._loop)
+                if t is not asyncio.current_task()
             ]
 
             if not tasks:
@@ -152,9 +154,10 @@ class _BackgroundLoop:
         Args:
             timeout: スレッド終了待機の最大時間（秒）。
         """
-        if self._stopped:
-            return
-        self._stopped = True
+        with self._stopped_lock:
+            if self._stopped:
+                return
+            self._stopped = True
 
         def _drain_and_stop():
             tasks = [
@@ -193,16 +196,17 @@ class _BackgroundLoop:
             wait: True の場合、タスクのキャンセルとスレッドの終了を待機する。
             timeout: スレッド終了待機の最大時間（秒）。
         """
-        if self._stopped:
-            return
-        self._stopped = True
+        with self._stopped_lock:
+            if self._stopped:
+                return
+            self._stopped = True
 
         def _cancel_tasks_and_stop():
             # 現在のループで実行中の全タスクを取得（自分自身は除く）
             tasks = [
                 t
                 for t in asyncio.all_tasks(self._loop)
-                if t is not asyncio.current_task(self._loop)
+                if t is not asyncio.current_task()
             ]
 
             if not tasks:
@@ -325,6 +329,7 @@ class Spot:
         self.db.init_schema()
 
         # --- バックグラウンド IO 管理 ---
+        self._io_workers = io_workers
         if executor is not None:
             warnings.warn(
                 "The 'executor' parameter is deprecated. "
@@ -336,17 +341,16 @@ class Spot:
             self._bg_loop: _BackgroundLoop | None = None
             self._executor: Executor | None = executor
             self._own_executor = False
-            self._finalizer = None
+            self._finalizer: weakref.finalize | None = None
         else:
-            # 新パス: 専用 asyncio ループ (wait=False 保存用) +
-            # スレッドプール (async パスの run_in_executor 用)
-            self._bg_loop = _BackgroundLoop()
-            self._executor = ThreadPoolExecutor(max_workers=io_workers)
+            # 新パス: 遅延初期化 (初回 wait=False 使用時に _ensure_bg_resources() で生成)
+            self._bg_loop = None
+            self._executor = None
             self._own_executor = True
-            # GC時の安全なシャットダウン
-            self._finalizer = weakref.finalize(
-                self, Spot._shutdown_resources, self._bg_loop, self._executor
-            )
+            self._finalizer = None
+
+        self._bg_init_lock = threading.Lock()
+        self._shutdown_called = False
 
         # 実行中のタスクを管理するセット (ロックで保護)
         self._active_futures: set = set()
@@ -395,6 +399,33 @@ class Spot:
         assert self._maintenance_service is not None
         return self._maintenance_service
 
+    def _ensure_bg_resources(self) -> tuple[_BackgroundLoop, Executor]:
+        """バックグラウンドリソースを遅延初期化し、(bg_loop, executor) を返す。
+
+        初回の wait=False 保存や async パスで呼ばれた時点でリソースを生成する。
+        default_wait=True で wait=False を一度も使わないユーザーには
+        スレッドやイベントループを一切作らない。
+
+        Raises:
+            RuntimeError: shutdown() が既に呼ばれている場合。
+        """
+        if self._bg_loop is not None and self._executor is not None:
+            return self._bg_loop, self._executor
+
+        with self._bg_init_lock:
+            if self._shutdown_called:
+                raise RuntimeError(
+                    "Cannot submit background tasks after shutdown() has been called."
+                )
+            # Double-checked locking
+            if self._bg_loop is None or self._executor is None:
+                self._bg_loop = _BackgroundLoop()
+                self._executor = ThreadPoolExecutor(max_workers=self._io_workers)
+                self._finalizer = weakref.finalize(
+                    self, Spot._shutdown_resources, self._bg_loop, self._executor
+                )
+            return self._bg_loop, self._executor
+
     @staticmethod
     def _setup_workspace(workspace_dir: Path):
         """Ensure the workspace directory and .gitignore exist."""
@@ -415,6 +446,7 @@ class Spot:
 
         wait=True の場合、保留中のすべての Future を先にドレインしてから停止する。
         """
+        self._shutdown_called = True
         if not self._own_executor:
             return
         if self._finalizer is not None and self._finalizer.alive:
@@ -455,14 +487,15 @@ class Spot:
 
             maintenance = self.maintenance
 
-            if self._bg_loop is not None:
-                # _bg_loop.submit はコルーチンを受け取るため、同期関数をラップする
+            if self._own_executor:
+                bg_loop, executor = self._ensure_bg_resources()
+
                 async def _run_clean():
                     loop = asyncio.get_running_loop()
-                    # デフォルトエグゼキュータ（別スレッド）でI/Oブロッキングな掃除処理を実行
-                    await loop.run_in_executor(None, maintenance.clean_garbage)
+                    # 管理下のエグゼキュータでI/Oブロッキングな掃除処理を実行
+                    await loop.run_in_executor(executor, maintenance.clean_garbage)
 
-                future = self._bg_loop.submit(_run_clean())
+                future = bg_loop.submit(_run_clean())
                 self._track_future(future)
 
             elif self._executor is not None:
@@ -736,6 +769,8 @@ class Spot:
             func.__name__, args, kwargs, effective_key_fn, s_ver
         )
         loop = asyncio.get_running_loop()
+        # async パスでは常にエグゼキュータが必要なので遅延初期化
+        _, executor = self._ensure_bg_resources()
 
         # kwargs をコピーしてフックからの変更を防止
         hook_kwargs = dict(kwargs) if hooks else kwargs
@@ -755,7 +790,7 @@ class Spot:
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
-            self._executor, self._check_cache_sync, ck, serializer
+            executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
             self._dispatch_hooks(
@@ -808,7 +843,7 @@ class Spot:
 
         if s_wait:
             await loop.run_in_executor(
-                self._executor,
+                executor,
                 functools.partial(self._save_result_sync, **save_kwargs),
             )
         else:
@@ -858,16 +893,22 @@ class Spot:
                         f"Cache corrupted or lost for {cache_key}, falling back to CACHE_MISS: {e}"
                     )
                     return CACHE_MISS
+                except Exception as e:
+                    logger.error(
+                        f"Failed to deserialize FILE blob for `{cache_key}`: {e}"
+                    )
+                    return CACHE_MISS
 
         return CACHE_MISS
 
     # --- バックグラウンド保存の投入 ---
     def _submit_background_save(self, **save_kwargs) -> None:
         """wait=False 時にバックグラウンドへ保存処理を投入する。"""
-        if self._bg_loop is not None:
+        if self._own_executor:
+            bg_loop, _ = self._ensure_bg_resources()
             coro = self._save_result_async(**save_kwargs)
             try:
-                future = self._bg_loop.submit(coro)
+                future = bg_loop.submit(coro)
             except RuntimeError:
                 coro.close()  # コルーチンを安全にクリーンアップ
                 raise
@@ -878,7 +919,10 @@ class Spot:
 
     async def _save_result_async(self, /, **kwargs) -> None:
         """バックグラウンドループで実行される保存コルーチン。"""
-        self._save_result_safe(**kwargs)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            self._executor, functools.partial(self._save_result_safe, **kwargs)
+        )
 
     # --- 安全なバックグラウンド実行用ラッパー ---
     def _save_result_safe(self, /, **kwargs):

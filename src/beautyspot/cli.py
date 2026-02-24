@@ -329,7 +329,7 @@ def show_cmd(
 
     real_key = resolved
 
-    result = service.get_task_detail(real_key)
+    result = service.get_task_detail(real_key, include_expired=True)
     if result is None:
         console.print(f"[red]Error:[/red] Failed to retrieve details for: {real_key}")
         raise typer.Exit(1)

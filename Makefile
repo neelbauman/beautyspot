@@ -33,7 +33,7 @@ clean:  ## 生成ファイルを削除
 	find . -name '__pycache__' -exec rm -rf {} +
 
 
-.PHONY docs-serve docs-deploy
+.PHONY: docs-serve docs-deploy
 
 docs-serve:  ## ドキュメントをローカルで確認
 	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs serve
@@ -41,7 +41,7 @@ docs-serve:  ## ドキュメントをローカルで確認
 docs-deploy:  ## GitHub Pagesにデプロイ
 	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs gh-deploy
 
-.PHONY version pypi-publish test-publish release
+.PHONY: version pypi-publish test-publish release
 
 version:  ## 現在のバージョン（Gitタグ）を表示
 	@echo "Current version (from git): $(VERSION)"
@@ -105,7 +105,7 @@ report: audit visualize## [Report] 全解析を実行し、docs/quality_report.m
 	@uv run python tools/generate_report.py
 
 
-.PHONY update-claude
+.PHONY: update-claude
 
 update-claude:  ## CLAUDE.md の自動生成セクションを更新
 	uv run python tools/generate_claude_ref.py
