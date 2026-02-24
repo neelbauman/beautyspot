@@ -1196,6 +1196,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.resolve_with_fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        resolve_with_fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1668,6 +1679,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#beautyspot.lifecycle.LifecyclePolicy.resolve_with_fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        resolve_with_fallback
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1821,7 +1843,8 @@
 
 
 <h1 id="lifecycle">lifecycle</h1>
-<p><code>beautyspot.lifecycle</code> モジュールは、データの保持期間（Retention）の解析、および関数名に基づいたポリシーの解決を担います。</p>
+<p><code>beautyspot.lifecycle</code> モジュールは、データの保持期間（Retention）の解析、および関数名に基づいたポリシーの解決を担います。
+現在は <strong>完全修飾名（<code>module.qualname</code>）を優先</strong> して解決し、マッチしない場合のみ短い関数名にフォールバックします。</p>
 
 
 <div class="doc doc-object doc-module">
@@ -1881,29 +1904,46 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span>
-<span class="normal"><a href="#__codelineno-0-69">69</a></span>
-<span class="normal"><a href="#__codelineno-0-70">70</a></span>
-<span class="normal"><a href="#__codelineno-0-71">71</a></span>
-<span class="normal"><a href="#__codelineno-0-72">72</a></span>
-<span class="normal"><a href="#__codelineno-0-73">73</a></span>
-<span class="normal"><a href="#__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#__codelineno-0-76">76</a></span>
-<span class="normal"><a href="#__codelineno-0-77">77</a></span>
-<span class="normal"><a href="#__codelineno-0-78">78</a></span>
-<span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span>
-<span class="normal"><a href="#__codelineno-0-82">82</a></span>
-<span class="normal"><a href="#__codelineno-0-83">83</a></span>
-<span class="normal"><a href="#__codelineno-0-84">84</a></span>
-<span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="k">class</span><span class="w"> </span><span class="nc">LifecyclePolicy</span><span class="p">:</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-65"> 65</a></span>
+<span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
+<span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
+<span class="normal"><a href="#__codelineno-0-68"> 68</a></span>
+<span class="normal"><a href="#__codelineno-0-69"> 69</a></span>
+<span class="normal"><a href="#__codelineno-0-70"> 70</a></span>
+<span class="normal"><a href="#__codelineno-0-71"> 71</a></span>
+<span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
+<span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
+<span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
+<span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
+<span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
+<span class="normal"><a href="#__codelineno-0-77"> 77</a></span>
+<span class="normal"><a href="#__codelineno-0-78"> 78</a></span>
+<span class="normal"><a href="#__codelineno-0-79"> 79</a></span>
+<span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
+<span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
+<span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
+<span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
+<span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
+<span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
+<span class="normal"><a href="#__codelineno-0-86"> 86</a></span>
+<span class="normal"><a href="#__codelineno-0-87"> 87</a></span>
+<span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
+<span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
+<span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
+<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
+<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
+<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
+<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="k">class</span><span class="w"> </span><span class="nc">LifecyclePolicy</span><span class="p">:</span>
 <a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    Manages data retention policies based on function names.</span>
 <a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -1922,10 +1962,27 @@
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="c1"># Default is indefinite (None)</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_with_fallback</span><span class="p">(</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">func_identifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]:</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">        Resolve retention using the fully-qualified identifier first, then</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">        fall back to the short function name for backward compatibility.</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_identifier</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>                <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>                <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -1962,13 +2019,13 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-84">84</a></span>
-<span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LifecyclePolicy&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default policy: Everything is kept indefinitely.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2011,6 +2068,60 @@ Returns the retention timedelta, or None if indefinite (or no match).</p>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="c1"># Default is indefinite (None)</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="beautyspot.lifecycle.LifecyclePolicy.resolve_with_fallback" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">resolve_with_fallback</span><span class="p">(</span><span class="n">func_identifier</span><span class="p">,</span> <span class="n">func_name</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Resolve retention using the fully-qualified identifier first, then
+fall back to the short function name for backward compatibility.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/beautyspot/lifecycle.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#__codelineno-0-85">85</a></span>
+<span class="normal"><a href="#__codelineno-0-86">86</a></span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#__codelineno-0-92">92</a></span>
+<span class="normal"><a href="#__codelineno-0-93">93</a></span>
+<span class="normal"><a href="#__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#__codelineno-0-95">95</a></span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span>
+<span class="normal"><a href="#__codelineno-0-97">97</a></span>
+<span class="normal"><a href="#__codelineno-0-98">98</a></span>
+<span class="normal"><a href="#__codelineno-0-99">99</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_with_fallback</span><span class="p">(</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">func_identifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]:</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">    Resolve retention using the fully-qualified identifier first, then</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">    fall back to the short function name for backward compatibility.</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_identifier</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">):</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>            <span class="k">return</span> <span class="n">parse_retention</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">retention</span><span class="p">)</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="k">return</span> <span class="n">Retention</span><span class="o">.</span><span class="n">INDEFINITE</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2284,6 +2395,7 @@ int is treated as 'seconds'.</p>
 <p>ルールの集合を管理し、実行時に特定の関数名に対してどのルールを適用するかを決定（Resolve）します。</p>
 <ul>
 <li><strong>解決アルゴリズム</strong>: <code>rules</code> リストの <strong>先頭から順に</strong> パターンマッチングを行い、最初にマッチしたルールの保持期間を返します。</li>
+<li><strong>適用順序</strong>: 完全修飾名（<code>module.qualname</code>）→ 短い関数名（<code>func_name</code>）の順でマッチングします。</li>
 <li><strong>デフォルト挙動</strong>: マッチするルールがない場合、またはルールリストが空の場合は <code>Retention.INDEFINITE</code>（無期限）が返されます。</li>
 </ul>
 <h2 id="_2">型定義と定数</h2>

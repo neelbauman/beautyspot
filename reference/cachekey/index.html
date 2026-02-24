@@ -1969,16 +1969,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span>
-<span class="normal"><a href="#__codelineno-0-253">253</a></span>
-<span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-260">260</a></span>
 <span class="normal"><a href="#__codelineno-0-261">261</a></span>
 <span class="normal"><a href="#__codelineno-0-262">262</a></span>
 <span class="normal"><a href="#__codelineno-0-263">263</a></span>
@@ -2085,123 +2076,132 @@
 <span class="normal"><a href="#__codelineno-0-364">364</a></span>
 <span class="normal"><a href="#__codelineno-0-365">365</a></span>
 <span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="k">class</span><span class="w"> </span><span class="nc">KeyGen</span><span class="p">:</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">    Generates stable cache keys (SHA-256) for function inputs (Identity Layer).</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a>    <span class="c1"># Constants for convenience usage in KeyGen.map()</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="n">HASH</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a>    <span class="n">IGNORE</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a>    <span class="n">FILE_CONTENT</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="n">PATH_STAT</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_path_stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fast: path + size + mtime (SHA-256)&quot;&quot;&quot;</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>        <span class="n">identifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">identifier</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="k">class</span><span class="w"> </span><span class="nc">KeyGen</span><span class="p">:</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">    Generates stable cache keys (SHA-256) for function inputs (Identity Layer).</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="c1"># Constants for convenience usage in KeyGen.map()</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a>    <span class="n">HASH</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="n">IGNORE</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>    <span class="n">FILE_CONTENT</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a>    <span class="n">PATH_STAT</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span>
 <a id="__codelineno-0-270" name="__codelineno-0-270"></a>
 <a id="__codelineno-0-271" name="__codelineno-0-271"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_file_content</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Strict: file content hash (SHA-256)&quot;&quot;&quot;</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_path_stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fast: path + size + mtime (SHA-256)&quot;&quot;&quot;</span>
 <a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
 <a id="__codelineno-0-275" name="__codelineno-0-275"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>        <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>        <span class="c1"># Include extension to distinguish format changes</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>        <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filepath</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>                <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">):</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>                    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ERROR_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_default</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        Generates a stable SHA-256 hash from function arguments using recursive canonicalization.</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">        This is the default legacy behavior sensitive to args/kwargs structure.</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>            <span class="c1"># 1. Normalize structure</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a>            <span class="n">normalized</span> <span class="o">=</span> <span class="p">[</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">canonicalize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)]</span>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a>            <span class="c1"># 2. Serialize to bytes</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a>            <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">normalized</span><span class="p">)</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a>            <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a>            <span class="c1"># 3. Hash (SHA-256)</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>        <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>        <span class="n">identifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">identifier</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_file_content</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Strict: file content hash (SHA-256)&quot;&quot;&quot;</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="c1"># Include extension to distinguish format changes</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>        <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filepath</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a>            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a>                <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">):</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>                    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ERROR_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>        <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_default</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        Generates a stable SHA-256 hash from function arguments using recursive canonicalization.</span>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">        This is the default legacy behavior sensitive to args/kwargs structure.</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>            <span class="c1"># 1. Normalize structure</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>            <span class="n">normalized</span> <span class="o">=</span> <span class="p">[</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">canonicalize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)]</span>
 <a id="__codelineno-0-307" name="__codelineno-0-307"></a>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>        <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
-<a id="__codelineno-0-309" name="__codelineno-0-309"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-310" name="__codelineno-0-310"></a>                <span class="s2">&quot;Circular reference detected in arguments; falling back to str-based hash. &quot;</span>
-<a id="__codelineno-0-311" name="__codelineno-0-311"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
-<a id="__codelineno-0-312" name="__codelineno-0-312"></a>            <span class="p">)</span>
-<a id="__codelineno-0-313" name="__codelineno-0-313"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">((</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-314" name="__codelineno-0-314"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<a id="__codelineno-0-315" name="__codelineno-0-315"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>                <span class="s2">&quot;Failed to canonicalize or pack arguments; falling back to str-based hash. &quot;</span>
-<a id="__codelineno-0-317" name="__codelineno-0-317"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
-<a id="__codelineno-0-318" name="__codelineno-0-318"></a>            <span class="p">)</span>
-<a id="__codelineno-0-319" name="__codelineno-0-319"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">((</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-320" name="__codelineno-0-320"></a>
-<a id="__codelineno-0-321" name="__codelineno-0-321"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">hash_items</span><span class="p">(</span><span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper to hash a list of canonicalized items.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>            <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>            <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a>                <span class="s2">&quot;Failed to pack canonicalized items; falling back to str-based hash. &quot;</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a>            <span class="p">)</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a>
-<a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="c1"># --- Factory Methods for Policies ---</span>
-<a id="__codelineno-0-337" name="__codelineno-0-337"></a>
-<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">ignore</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        Creates a policy that ignores specific arguments (e.g., &#39;verbose&#39;, &#39;logger&#39;).</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
-<a id="__codelineno-0-345" name="__codelineno-0-345"></a>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">arg_strategies</span><span class="p">:</span> <span class="n">Strategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">        Creates a policy with explicit strategies for specific arguments.</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">arg_strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>
-<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">file_content</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">        Creates a policy that treats specified arguments as file paths and hashes their content.</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="nd">@classmethod</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">path_stat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">        Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>            <span class="c1"># 2. Serialize to bytes</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>            <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">normalized</span><span class="p">)</span>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>            <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a>            <span class="c1"># 3. Hash (SHA-256)</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>        <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>                <span class="s2">&quot;Circular reference detected in arguments; falling back to str-based hash. &quot;</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>            <span class="p">)</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">((</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-323" name="__codelineno-0-323"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-0-324" name="__codelineno-0-324"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-325" name="__codelineno-0-325"></a>                <span class="s2">&quot;Failed to canonicalize or pack arguments; falling back to str-based hash. &quot;</span>
+<a id="__codelineno-0-326" name="__codelineno-0-326"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
+<a id="__codelineno-0-327" name="__codelineno-0-327"></a>            <span class="p">)</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">((</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">hash_items</span><span class="p">(</span><span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper to hash a list of canonicalized items.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>            <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a>            <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>                <span class="s2">&quot;Failed to pack canonicalized items; falling back to str-based hash. &quot;</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>                <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>            <span class="p">)</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>            <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-344" name="__codelineno-0-344"></a>
+<a id="__codelineno-0-345" name="__codelineno-0-345"></a>    <span class="c1"># --- Factory Methods for Policies ---</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a>
+<a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">ignore</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">        Creates a policy that ignores specific arguments (e.g., &#39;verbose&#39;, &#39;logger&#39;).</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">arg_strategies</span><span class="p">:</span> <span class="n">Strategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">        Creates a policy with explicit strategies for specific arguments.</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">arg_strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">file_content</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">        Creates a policy that treats specified arguments as file paths and hashes their content.</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>    <span class="nd">@classmethod</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">path_stat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">        Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>        <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>        <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2238,19 +2238,19 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="k">def</span><span class="w"> </span><span class="nf">file_content</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">    Creates a policy that treats specified arguments as file paths and hashes their content.</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+<span class="normal"><a href="#__codelineno-0-365">365</a></span>
+<span class="normal"><a href="#__codelineno-0-366">366</a></span>
+<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+<span class="normal"><a href="#__codelineno-0-368">368</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="k">def</span><span class="w"> </span><span class="nf">file_content</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">    Creates a policy that treats specified arguments as file paths and hashes their content.</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2277,39 +2277,39 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span>
-<span class="normal"><a href="#__codelineno-0-273">273</a></span>
-<span class="normal"><a href="#__codelineno-0-274">274</a></span>
-<span class="normal"><a href="#__codelineno-0-275">275</a></span>
-<span class="normal"><a href="#__codelineno-0-276">276</a></span>
-<span class="normal"><a href="#__codelineno-0-277">277</a></span>
-<span class="normal"><a href="#__codelineno-0-278">278</a></span>
-<span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-280">280</a></span>
 <span class="normal"><a href="#__codelineno-0-281">281</a></span>
 <span class="normal"><a href="#__codelineno-0-282">282</a></span>
 <span class="normal"><a href="#__codelineno-0-283">283</a></span>
 <span class="normal"><a href="#__codelineno-0-284">284</a></span>
 <span class="normal"><a href="#__codelineno-0-285">285</a></span>
 <span class="normal"><a href="#__codelineno-0-286">286</a></span>
-<span class="normal"><a href="#__codelineno-0-287">287</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_file_content</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Strict: file content hash (SHA-256)&quot;&quot;&quot;</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>
-<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="c1"># Include extension to distinguish format changes</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filepath</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a>        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a>            <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">):</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>                <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ERROR_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="normal"><a href="#__codelineno-0-287">287</a></span>
+<span class="normal"><a href="#__codelineno-0-288">288</a></span>
+<span class="normal"><a href="#__codelineno-0-289">289</a></span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span>
+<span class="normal"><a href="#__codelineno-0-294">294</a></span>
+<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_file_content</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Strict: file content hash (SHA-256)&quot;&quot;&quot;</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="c1"># Include extension to distinguish format changes</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filepath</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a>        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a>            <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">):</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>                <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a>    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ERROR_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2336,21 +2336,21 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_path_stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fast: path + size + mtime (SHA-256)&quot;&quot;&quot;</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>    <span class="n">identifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">identifier</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-271">271</a></span>
+<span class="normal"><a href="#__codelineno-0-272">272</a></span>
+<span class="normal"><a href="#__codelineno-0-273">273</a></span>
+<span class="normal"><a href="#__codelineno-0-274">274</a></span>
+<span class="normal"><a href="#__codelineno-0-275">275</a></span>
+<span class="normal"><a href="#__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span>
+<span class="normal"><a href="#__codelineno-0-278">278</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_path_stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fast: path + size + mtime (SHA-256)&quot;&quot;&quot;</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MISSING_</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="n">stat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>    <span class="n">identifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">identifier</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2377,33 +2377,33 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-321">321</a></span>
-<span class="normal"><a href="#__codelineno-0-322">322</a></span>
-<span class="normal"><a href="#__codelineno-0-323">323</a></span>
-<span class="normal"><a href="#__codelineno-0-324">324</a></span>
-<span class="normal"><a href="#__codelineno-0-325">325</a></span>
-<span class="normal"><a href="#__codelineno-0-326">326</a></span>
-<span class="normal"><a href="#__codelineno-0-327">327</a></span>
-<span class="normal"><a href="#__codelineno-0-328">328</a></span>
-<span class="normal"><a href="#__codelineno-0-329">329</a></span>
-<span class="normal"><a href="#__codelineno-0-330">330</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-330">330</a></span>
 <span class="normal"><a href="#__codelineno-0-331">331</a></span>
 <span class="normal"><a href="#__codelineno-0-332">332</a></span>
 <span class="normal"><a href="#__codelineno-0-333">333</a></span>
-<span class="normal"><a href="#__codelineno-0-334">334</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-321" name="__codelineno-0-321"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="k">def</span><span class="w"> </span><span class="nf">hash_items</span><span class="p">(</span><span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to hash a list of canonicalized items.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-324" name="__codelineno-0-324"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-325" name="__codelineno-0-325"></a>        <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
-<a id="__codelineno-0-326" name="__codelineno-0-326"></a>        <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-327" name="__codelineno-0-327"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a>            <span class="s2">&quot;Failed to pack canonicalized items; falling back to str-based hash. &quot;</span>
-<a id="__codelineno-0-332" name="__codelineno-0-332"></a>            <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
-<a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="p">)</span>
-<a id="__codelineno-0-334" name="__codelineno-0-334"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<span class="normal"><a href="#__codelineno-0-334">334</a></span>
+<span class="normal"><a href="#__codelineno-0-335">335</a></span>
+<span class="normal"><a href="#__codelineno-0-336">336</a></span>
+<span class="normal"><a href="#__codelineno-0-337">337</a></span>
+<span class="normal"><a href="#__codelineno-0-338">338</a></span>
+<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#__codelineno-0-343">343</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-330" name="__codelineno-0-330"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="k">def</span><span class="w"> </span><span class="nf">hash_items</span><span class="p">(</span><span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper to hash a list of canonicalized items.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-333" name="__codelineno-0-333"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-334" name="__codelineno-0-334"></a>        <span class="n">packed</span> <span class="o">=</span> <span class="n">msgpack</span><span class="o">.</span><span class="n">packb</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a>        <span class="k">if</span> <span class="n">packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-336" name="__codelineno-0-336"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;msgpack.packb returned None&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-337" name="__codelineno-0-337"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<a id="__codelineno-0-338" name="__codelineno-0-338"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-340" name="__codelineno-0-340"></a>            <span class="s2">&quot;Failed to pack canonicalized items; falling back to str-based hash. &quot;</span>
+<a id="__codelineno-0-341" name="__codelineno-0-341"></a>            <span class="s2">&quot;This may cause unexpected cache misses if argument repr is not stable.&quot;</span>
+<a id="__codelineno-0-342" name="__codelineno-0-342"></a>        <span class="p">)</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a>        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2430,19 +2430,19 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="k">def</span><span class="w"> </span><span class="nf">ignore</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">    Creates a policy that ignores specific arguments (e.g., &#39;verbose&#39;, &#39;logger&#39;).</span>
-<a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="k">def</span><span class="w"> </span><span class="nf">ignore</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">    Creates a policy that ignores specific arguments (e.g., &#39;verbose&#39;, &#39;logger&#39;).</span>
+<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2469,17 +2469,17 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-347" name="__codelineno-0-347"></a><span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">arg_strategies</span><span class="p">:</span> <span class="n">Strategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">    Creates a policy with explicit strategies for specific arguments.</span>
-<a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">arg_strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">arg_strategies</span><span class="p">:</span> <span class="n">Strategy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">    Creates a policy with explicit strategies for specific arguments.</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">arg_strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2506,19 +2506,19 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="nd">@classmethod</span>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="k">def</span><span class="w"> </span><span class="nf">path_stat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">    Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).</span>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-370">370</a></span>
+<span class="normal"><a href="#__codelineno-0-371">371</a></span>
+<span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="nd">@classmethod</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="k">def</span><span class="w"> </span><span class="nf">path_stat</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">arg_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">    Creates a policy that treats specified arguments as file paths and hashes their metadata (stat).</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a>    <span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">arg_names</span><span class="p">}</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="k">return</span> <span class="n">KeyGenPolicy</span><span class="p">(</span><span class="n">strategies</span><span class="p">,</span> <span class="n">default_strategy</span><span class="o">=</span><span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2560,16 +2560,7 @@ based on argument-specific strategies.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-194">194</a></span>
-<span class="normal"><a href="#__codelineno-0-195">195</a></span>
-<span class="normal"><a href="#__codelineno-0-196">196</a></span>
-<span class="normal"><a href="#__codelineno-0-197">197</a></span>
-<span class="normal"><a href="#__codelineno-0-198">198</a></span>
-<span class="normal"><a href="#__codelineno-0-199">199</a></span>
-<span class="normal"><a href="#__codelineno-0-200">200</a></span>
-<span class="normal"><a href="#__codelineno-0-201">201</a></span>
-<span class="normal"><a href="#__codelineno-0-202">202</a></span>
-<span class="normal"><a href="#__codelineno-0-203">203</a></span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-203">203</a></span>
 <span class="normal"><a href="#__codelineno-0-204">204</a></span>
 <span class="normal"><a href="#__codelineno-0-205">205</a></span>
 <span class="normal"><a href="#__codelineno-0-206">206</a></span>
@@ -2614,61 +2605,70 @@ based on argument-specific strategies.</p>
 <span class="normal"><a href="#__codelineno-0-245">245</a></span>
 <span class="normal"><a href="#__codelineno-0-246">246</a></span>
 <span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="k">class</span><span class="w"> </span><span class="nc">KeyGenPolicy</span><span class="p">:</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">    A policy object that binds to a function signature to generate cache keys</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">    based on argument-specific strategies.</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>        <span class="n">strategies</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Strategy</span><span class="p">],</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>        <span class="n">default_strategy</span><span class="p">:</span> <span class="n">Strategy</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="p">):</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span> <span class="o">=</span> <span class="n">strategies</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span> <span class="o">=</span> <span class="n">default_strategy</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">        Creates a key generation function bound to the specific signature of `func`.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_bound_keygen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>            <span class="c1"># Bind arguments to names, applying defaults</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>            <span class="n">bound</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>            <span class="n">items_to_hash</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>            <span class="c1"># Iterate over arguments in definition order</span>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>                <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span><span class="p">)</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>                <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span><span class="p">:</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>                    <span class="k">continue</span>
+<span class="normal"><a href="#__codelineno-0-248">248</a></span>
+<span class="normal"><a href="#__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#__codelineno-0-253">253</a></span>
+<span class="normal"><a href="#__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#__codelineno-0-257">257</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="k">class</span><span class="w"> </span><span class="nc">KeyGenPolicy</span><span class="p">:</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">    A policy object that binds to a function signature to generate cache keys</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">    based on argument-specific strategies.</span>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a>        <span class="n">strategies</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Strategy</span><span class="p">],</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a>        <span class="n">default_strategy</span><span class="p">:</span> <span class="n">Strategy</span> <span class="o">=</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="p">):</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span> <span class="o">=</span> <span class="n">strategies</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span> <span class="o">=</span> <span class="n">default_strategy</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">        Creates a key generation function bound to the specific signature of `func`.</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_bound_keygen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a>            <span class="c1"># Bind arguments to names, applying defaults</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="n">bound</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>                <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span><span class="p">:</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>                    <span class="c1"># Expecting val to be a path-like string</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_file_content</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>                <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span><span class="p">:</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_path_stat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a>                <span class="k">else</span><span class="p">:</span>  <span class="c1"># DEFAULT</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>                    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>                        <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>                    <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>                            <span class="sa">f</span><span class="s2">&quot;Circular reference detected in argument &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;; &quot;</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>                            <span class="s2">&quot;falling back to str-based representation for this argument.&quot;</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                        <span class="p">)</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>                        <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>            <span class="c1"># Hash the accumulated list of canonical items</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>            <span class="k">return</span> <span class="n">KeyGen</span><span class="o">.</span><span class="n">hash_items</span><span class="p">(</span><span class="n">items_to_hash</span><span class="p">)</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="k">return</span> <span class="n">_bound_keygen</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="n">items_to_hash</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>            <span class="c1"># Iterate over arguments in definition order</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a>                <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span><span class="p">)</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>                <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span><span class="p">:</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a>                    <span class="k">continue</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a>                <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span><span class="p">:</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>                    <span class="c1"># Expecting val to be a path-like string</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_file_content</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>                <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span><span class="p">:</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_path_stat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>                <span class="k">else</span><span class="p">:</span>  <span class="c1"># DEFAULT</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>                    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>                        <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>                    <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>                            <span class="sa">f</span><span class="s2">&quot;Circular reference detected in argument &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;; &quot;</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>                            <span class="s2">&quot;falling back to str-based representation for this argument.&quot;</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>                        <span class="p">)</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>                        <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>            <span class="c1"># Hash the accumulated list of canonical items</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>            <span class="k">return</span> <span class="n">KeyGen</span><span class="o">.</span><span class="n">hash_items</span><span class="p">(</span><span class="n">items_to_hash</span><span class="p">)</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>        <span class="k">return</span> <span class="n">_bound_keygen</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2701,16 +2701,7 @@ based on argument-specific strategies.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-208">208</a></span>
-<span class="normal"><a href="#__codelineno-0-209">209</a></span>
-<span class="normal"><a href="#__codelineno-0-210">210</a></span>
-<span class="normal"><a href="#__codelineno-0-211">211</a></span>
-<span class="normal"><a href="#__codelineno-0-212">212</a></span>
-<span class="normal"><a href="#__codelineno-0-213">213</a></span>
-<span class="normal"><a href="#__codelineno-0-214">214</a></span>
-<span class="normal"><a href="#__codelineno-0-215">215</a></span>
-<span class="normal"><a href="#__codelineno-0-216">216</a></span>
-<span class="normal"><a href="#__codelineno-0-217">217</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-217">217</a></span>
 <span class="normal"><a href="#__codelineno-0-218">218</a></span>
 <span class="normal"><a href="#__codelineno-0-219">219</a></span>
 <span class="normal"><a href="#__codelineno-0-220">220</a></span>
@@ -2741,47 +2732,56 @@ based on argument-specific strategies.</p>
 <span class="normal"><a href="#__codelineno-0-245">245</a></span>
 <span class="normal"><a href="#__codelineno-0-246">246</a></span>
 <span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">    Creates a key generation function bound to the specific signature of `func`.</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_bound_keygen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="c1"># Bind arguments to names, applying defaults</span>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="n">bound</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="n">items_to_hash</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>        <span class="c1"># Iterate over arguments in definition order</span>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>            <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span><span class="p">)</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span><span class="p">:</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>                <span class="k">continue</span>
+<span class="normal"><a href="#__codelineno-0-248">248</a></span>
+<span class="normal"><a href="#__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#__codelineno-0-253">253</a></span>
+<span class="normal"><a href="#__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#__codelineno-0-257">257</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">    Creates a key generation function bound to the specific signature of `func`.</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>    <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_bound_keygen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a>        <span class="c1"># Bind arguments to names, applying defaults</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="n">bound</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>        <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span><span class="p">:</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>                <span class="c1"># Expecting val to be a path-like string</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>                <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_file_content</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>            <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span><span class="p">:</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a>                <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_path_stat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a>            <span class="k">else</span><span class="p">:</span>  <span class="c1"># DEFAULT</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>                <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>                <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>                        <span class="sa">f</span><span class="s2">&quot;Circular reference detected in argument &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;; &quot;</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>                        <span class="s2">&quot;falling back to str-based representation for this argument.&quot;</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                    <span class="p">)</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>        <span class="c1"># Hash the accumulated list of canonical items</span>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="k">return</span> <span class="n">KeyGen</span><span class="o">.</span><span class="n">hash_items</span><span class="p">(</span><span class="n">items_to_hash</span><span class="p">)</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>    <span class="k">return</span> <span class="n">_bound_keygen</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="n">items_to_hash</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>        <span class="c1"># Iterate over arguments in definition order</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a>            <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_strategy</span><span class="p">)</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>            <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">IGNORE</span><span class="p">:</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a>            <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">FILE_CONTENT</span><span class="p">:</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>                <span class="c1"># Expecting val to be a path-like string</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>                <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_file_content</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>            <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="n">Strategy</span><span class="o">.</span><span class="n">PATH_STAT</span><span class="p">:</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KeyGen</span><span class="o">.</span><span class="n">from_path_stat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>            <span class="k">else</span><span class="p">:</span>  <span class="c1"># DEFAULT</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>                <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">canonicalize</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>                <span class="k">except</span> <span class="ne">RecursionError</span><span class="p">:</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>                        <span class="sa">f</span><span class="s2">&quot;Circular reference detected in argument &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;; &quot;</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>                        <span class="s2">&quot;falling back to str-based representation for this argument.&quot;</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>                    <span class="p">)</span>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>                    <span class="n">items_to_hash</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>        <span class="c1"># Hash the accumulated list of canonical items</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="k">return</span> <span class="n">KeyGen</span><span class="o">.</span><span class="n">hash_items</span><span class="p">(</span><span class="n">items_to_hash</span><span class="p">)</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>    <span class="k">return</span> <span class="n">_bound_keygen</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2824,27 +2824,27 @@ based on argument-specific strategies.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-181">181</a></span>
-<span class="normal"><a href="#__codelineno-0-182">182</a></span>
-<span class="normal"><a href="#__codelineno-0-183">183</a></span>
-<span class="normal"><a href="#__codelineno-0-184">184</a></span>
-<span class="normal"><a href="#__codelineno-0-185">185</a></span>
-<span class="normal"><a href="#__codelineno-0-186">186</a></span>
-<span class="normal"><a href="#__codelineno-0-187">187</a></span>
-<span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span>
-<span class="normal"><a href="#__codelineno-0-190">190</a></span>
-<span class="normal"><a href="#__codelineno-0-191">191</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="k">class</span><span class="w"> </span><span class="nc">Strategy</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">    Defines the strategy for hashing a specific argument.</span>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-185" name="__codelineno-0-185"></a>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="n">DEFAULT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Recursively canonicalize and hash (Default behavior)</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="n">IGNORE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Exclude from hash calculation completely</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a>    <span class="n">FILE_CONTENT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Treat as file path and hash its content (Strict)</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="n">PATH_STAT</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a>        <span class="n">auto</span><span class="p">()</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="p">)</span>  <span class="c1"># Treat as file path and hash its metadata (Fast: path+size+mtime)</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#__codelineno-0-198">198</a></span>
+<span class="normal"><a href="#__codelineno-0-199">199</a></span>
+<span class="normal"><a href="#__codelineno-0-200">200</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="k">class</span><span class="w"> </span><span class="nc">Strategy</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="sd">    Defines the strategy for hashing a specific argument.</span>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="n">DEFAULT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Recursively canonicalize and hash (Default behavior)</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="n">IGNORE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Exclude from hash calculation completely</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="n">FILE_CONTENT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Treat as file path and hash its content (Strict)</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="n">PATH_STAT</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>        <span class="n">auto</span><span class="p">()</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="p">)</span>  <span class="c1"># Treat as file path and hash its metadata (Fast: path+size+mtime)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2892,16 +2892,7 @@ Msgpack serialization.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/cachekey.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span>
-<span class="normal"><a href="#__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span>
-<span class="normal"><a href="#__codelineno-0-69">69</a></span>
-<span class="normal"><a href="#__codelineno-0-70">70</a></span>
-<span class="normal"><a href="#__codelineno-0-71">71</a></span>
-<span class="normal"><a href="#__codelineno-0-72">72</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-72">72</a></span>
 <span class="normal"><a href="#__codelineno-0-73">73</a></span>
 <span class="normal"><a href="#__codelineno-0-74">74</a></span>
 <span class="normal"><a href="#__codelineno-0-75">75</a></span>
@@ -2916,31 +2907,40 @@ Msgpack serialization.</p>
 <span class="normal"><a href="#__codelineno-0-84">84</a></span>
 <span class="normal"><a href="#__codelineno-0-85">85</a></span>
 <span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="nd">@singledispatch</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="k">def</span><span class="w"> </span><span class="nf">canonicalize</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">    Recursively converts an object into a canonical form suitable for stable</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    Msgpack serialization.</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">    Dispatch order for unregistered types:</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    1. Primitives        → return as-is</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">    2. Numpy-like arrays → tagged tuple via duck typing</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    3. Object instances  → via __dict__ / __slots__</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="sd">    4. Fallback          → str()</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>        <span class="k">return</span> <span class="n">obj</span>
+<span class="normal"><a href="#__codelineno-0-87">87</a></span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span>
+<span class="normal"><a href="#__codelineno-0-92">92</a></span>
+<span class="normal"><a href="#__codelineno-0-93">93</a></span>
+<span class="normal"><a href="#__codelineno-0-94">94</a></span>
+<span class="normal"><a href="#__codelineno-0-95">95</a></span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="nd">@singledispatch</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="k">def</span><span class="w"> </span><span class="nf">canonicalize</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">    Recursively converts an object into a canonical form suitable for stable</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    Msgpack serialization.</span>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">if</span> <span class="n">_is_ndarray_like</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="k">return</span> <span class="n">_canonicalize_ndarray</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>            <span class="k">pass</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__slots__&quot;</span><span class="p">):</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="k">return</span> <span class="n">_canonicalize_instance</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    Dispatch order for unregistered types:</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">    1. Primitives        → return as-is</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">    2. Numpy-like arrays → tagged tuple via duck typing</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">    3. Object instances  → via __dict__ / __slots__</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">    4. Fallback          → str()</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="k">return</span> <span class="n">obj</span>
 <a id="__codelineno-0-86" name="__codelineno-0-86"></a>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">if</span> <span class="n">_is_ndarray_like</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>            <span class="k">return</span> <span class="n">_canonicalize_ndarray</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="k">pass</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__slots__&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>        <span class="k">return</span> <span class="n">_canonicalize_instance</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

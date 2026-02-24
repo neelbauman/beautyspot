@@ -185,6 +185,10 @@
          <lastmod>2026-02-24</lastmod>
     </url>
     <url>
+         <loc>https://neelbauman.github.io/beautyspot/adr/0041-serialize-sqlite-writes-with-queue/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
          <loc>https://neelbauman.github.io/beautyspot/cookbooks/cloud_storage/</loc>
          <lastmod>2026-02-24</lastmod>
     </url>

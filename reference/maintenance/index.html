@@ -2181,7 +2181,21 @@
 <span class="normal"><a href="#__codelineno-0-305">305</a></span>
 <span class="normal"><a href="#__codelineno-0-306">306</a></span>
 <span class="normal"><a href="#__codelineno-0-307">307</a></span>
-<span class="normal"><a href="#__codelineno-0-308">308</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">MaintenanceService</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-308">308</a></span>
+<span class="normal"><a href="#__codelineno-0-309">309</a></span>
+<span class="normal"><a href="#__codelineno-0-310">310</a></span>
+<span class="normal"><a href="#__codelineno-0-311">311</a></span>
+<span class="normal"><a href="#__codelineno-0-312">312</a></span>
+<span class="normal"><a href="#__codelineno-0-313">313</a></span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span>
+<span class="normal"><a href="#__codelineno-0-315">315</a></span>
+<span class="normal"><a href="#__codelineno-0-316">316</a></span>
+<span class="normal"><a href="#__codelineno-0-317">317</a></span>
+<span class="normal"><a href="#__codelineno-0-318">318</a></span>
+<span class="normal"><a href="#__codelineno-0-319">319</a></span>
+<span class="normal"><a href="#__codelineno-0-320">320</a></span>
+<span class="normal"><a href="#__codelineno-0-321">321</a></span>
+<span class="normal"><a href="#__codelineno-0-322">322</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">MaintenanceService</span><span class="p">:</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Service layer for administrative tasks, dashboard support, and system assembly.</span>
 <a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -2295,7 +2309,7 @@
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">        Delete a task record and its associated blob file.</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">include_expired</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="p">:</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>            <span class="k">return</span> <span class="kc">False</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>
@@ -2337,141 +2351,155 @@
 <a id="__codelineno-0-171" name="__codelineno-0-171"></a>        <span class="k">if</span> <span class="n">ref_filenames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-172" name="__codelineno-0-172"></a>            <span class="k">return</span> <span class="p">[]</span>
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a>
-<a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="c1"># get_blob_refs() はファイル名のみ (例: &quot;abc.bin&quot;) を返す。</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="c1"># list_keys() はサブディレクトリを含むパス (&quot;subdir/abc.bin&quot;) を</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="c1"># 返す可能性があるため、ファイル名部分を抽出して比較する。</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a>        <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">list_keys</span><span class="p">():</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a>            <span class="n">filename</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a>            <span class="k">if</span> <span class="n">filename</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ref_filenames</span><span class="p">:</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a>                <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a>        <span class="k">return</span> <span class="n">orphans</span>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>
-<a id="__codelineno-0-185" name="__codelineno-0-185"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clean_garbage</span><span class="p">(</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">orphans</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tmp_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">        期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">        また、アトミック書き込み時に残留した古い一時ファイル (.spot_tmp) の</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">        クリーンアップも同時に行います。</span>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">            orphans: 事前にスキャンされた孤立ファイルのリスト。</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">            tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_location</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a>            <span class="k">return</span> <span class="n">location</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_basename</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>            <span class="k">return</span> <span class="n">_normalize_location</span><span class="p">(</span><span class="n">location</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="n">ref_locations</span> <span class="o">=</span> <span class="p">{</span><span class="n">_normalize_location</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span> <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">ref_filenames</span><span class="p">}</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>        <span class="c1"># Legacy support: DBに絶対パスが保存されていた場合のみbasenameを許容</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>        <span class="n">ref_basenames</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>            <span class="n">_basename</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>            <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">ref_locations</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a>            <span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="p">}</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">list_keys</span><span class="p">():</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>            <span class="n">norm</span> <span class="o">=</span> <span class="n">_normalize_location</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>            <span class="k">if</span> <span class="n">norm</span> <span class="ow">in</span> <span class="n">ref_locations</span><span class="p">:</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a>            <span class="k">if</span> <span class="n">_basename</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ref_basenames</span><span class="p">:</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>            <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">            tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Another eviction task is currently running. Skipping.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>            <span class="c1"># Phase 0: 期限切れタスクの削除</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>            <span class="n">deleted_expired_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete_expired_tasks</span><span class="p">()</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>            <span class="k">if</span> <span class="n">deleted_expired_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_expired_count</span><span class="si">}</span><span class="s2"> expired tasks from DB.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>            <span class="c1"># Phase 1: 孤立したファイルの特定</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>            <span class="k">if</span> <span class="n">orphans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>                <span class="n">orphans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_garbage</span><span class="p">()</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>            <span class="n">deleted_orphan_count</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>            <span class="c1"># Phase 2: ファイルの実体削除</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>            <span class="k">if</span> <span class="n">orphans</span><span class="p">:</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>                <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">orphans</span><span class="p">:</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>                    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>                        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>                        <span class="n">deleted_orphan_count</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete orphan blob </span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>                <span class="k">if</span> <span class="n">deleted_orphan_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_orphan_count</span><span class="si">}</span><span class="s2"> orphaned blob files.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>        <span class="k">return</span> <span class="n">orphans</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clean_garbage</span><span class="p">(</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">orphans</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tmp_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">        期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">        また、アトミック書き込み時に残留した古い一時ファイル (.spot_tmp) の</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">        クリーンアップも同時に行います。</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">            orphans: 事前にスキャンされた孤立ファイルのリスト。</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">            tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">            tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Another eviction task is currently running. Skipping.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a>            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a>            <span class="c1"># Phase 0: 期限切れタスクの削除</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a>            <span class="n">deleted_expired_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete_expired_tasks</span><span class="p">()</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>            <span class="k">if</span> <span class="n">deleted_expired_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_expired_count</span><span class="si">}</span><span class="s2"> expired tasks from DB.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a>            <span class="c1"># Phase 1: 孤立したファイルの特定</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="k">if</span> <span class="n">orphans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>                <span class="n">orphans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_garbage</span><span class="p">()</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="c1"># [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>                <span class="n">tmp_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">clean_temp_files</span><span class="p">(</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>                    <span class="n">max_age_seconds</span><span class="o">=</span><span class="n">tmp_max_age_seconds</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>                <span class="p">)</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a>                <span class="k">if</span> <span class="n">tmp_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">tmp_count</span><span class="si">}</span><span class="s2"> abandoned temporary files.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to clean temporary files: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>            <span class="c1"># Phase 3: 空ディレクトリ掃除</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>                <span class="n">dir_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">prune_empty_dirs</span><span class="p">()</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>                <span class="k">if</span> <span class="n">dir_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">dir_count</span><span class="si">}</span><span class="s2"> empty directories.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to prune empty directories: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>            <span class="k">return</span> <span class="n">deleted_expired_count</span><span class="p">,</span> <span class="n">deleted_orphan_count</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>        <span class="k">finally</span><span class="p">:</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
-<a id="__codelineno-0-250" name="__codelineno-0-250"></a>
-<a id="__codelineno-0-251" name="__codelineno-0-251"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_key_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">        Resolve a potentially shortened key to a full cache key.</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">            str: The single matching full key (Exact match or unique prefix match).</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">            list[str]: A list of conflicting candidates (Ambiguous).</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">            None: No match found.</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>        <span class="c1"># 1. 完全一致を最優先でチェック</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>            <span class="k">return</span> <span class="n">prefix</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>        <span class="c1"># 2. プレフィックス検索</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>        <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get_keys_start_with</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>            <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>            <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a>        <span class="c1"># 3. 曖昧な場合 (複数の候補を返す)</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="k">return</span> <span class="n">candidates</span>
-<a id="__codelineno-0-275" name="__codelineno-0-275"></a>
-<a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="c1"># --- Zombie Project Cleanup (gc command) ---</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="n">deleted_orphan_count</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>            <span class="c1"># Phase 2: ファイルの実体削除</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>            <span class="k">if</span> <span class="n">orphans</span><span class="p">:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a>                <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">orphans</span><span class="p">:</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a>                    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>                        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a>                        <span class="n">deleted_orphan_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a>                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a>                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete orphan blob </span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>                <span class="k">if</span> <span class="n">deleted_orphan_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_orphan_count</span><span class="si">}</span><span class="s2"> orphaned blob files.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>            <span class="c1"># [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>                <span class="n">tmp_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">clean_temp_files</span><span class="p">(</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>                    <span class="n">max_age_seconds</span><span class="o">=</span><span class="n">tmp_max_age_seconds</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>                <span class="p">)</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>                <span class="k">if</span> <span class="n">tmp_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">tmp_count</span><span class="si">}</span><span class="s2"> abandoned temporary files.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to clean temporary files: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>            <span class="c1"># Phase 3: 空ディレクトリ掃除</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>                <span class="n">dir_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">prune_empty_dirs</span><span class="p">()</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>                <span class="k">if</span> <span class="n">dir_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">dir_count</span><span class="si">}</span><span class="s2"> empty directories.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to prune empty directories: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>            <span class="k">return</span> <span class="n">deleted_expired_count</span><span class="p">,</span> <span class="n">deleted_orphan_count</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>        <span class="k">finally</span><span class="p">:</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a>
+<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_key_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">        Resolve a potentially shortened key to a full cache key.</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">            str: The single matching full key (Exact match or unique prefix match).</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">            list[str]: A list of conflicting candidates (Ambiguous).</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">            None: No match found.</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>        <span class="c1"># 1. 完全一致を最優先でチェック</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">include_expired</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>            <span class="k">return</span> <span class="n">prefix</span>
 <a id="__codelineno-0-277" name="__codelineno-0-277"></a>
-<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">scan_orphan_projects</span><span class="p">(</span><span class="n">workspace_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        Scan for blob directories in .beautyspot/blobs/ that have no corresponding .db file.</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">        Returns a list of Path objects for the orphan directories.</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="n">blobs_root</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="s2">&quot;blobs&quot;</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>            <span class="k">return</span> <span class="p">[]</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>        <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>                <span class="c1"># blobs/{name} に対して {name}.db が存在するか確認</span>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a>                <span class="n">db_path</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.db&quot;</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">db_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a>                    <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>        <span class="k">return</span> <span class="n">orphans</span>
-<a id="__codelineno-0-297" name="__codelineno-0-297"></a>
-<a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="nd">@staticmethod</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">delete_project_storage</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">        Recursively delete a project storage directory.</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a>        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete directory </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>                <span class="k">raise</span>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>        <span class="c1"># 2. プレフィックス検索</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>        <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get_keys_start_with</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>            <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="c1"># 3. 曖昧な場合 (複数の候補を返す)</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>        <span class="k">return</span> <span class="n">candidates</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a>    <span class="c1"># --- Zombie Project Cleanup (gc command) ---</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a>
+<a id="__codelineno-0-292" name="__codelineno-0-292"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">scan_orphan_projects</span><span class="p">(</span><span class="n">workspace_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">        Scan for blob directories in .beautyspot/blobs/ that have no corresponding .db file.</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        Returns a list of Path objects for the orphan directories.</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>        <span class="n">blobs_root</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="s2">&quot;blobs&quot;</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>            <span class="k">return</span> <span class="p">[]</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>        <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a>        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a>            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>                <span class="c1"># blobs/{name} に対して {name}.db が存在するか確認</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>                <span class="n">db_path</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.db&quot;</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">db_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>                    <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>        <span class="k">return</span> <span class="n">orphans</span>
+<a id="__codelineno-0-311" name="__codelineno-0-311"></a>
+<a id="__codelineno-0-312" name="__codelineno-0-312"></a>    <span class="nd">@staticmethod</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">delete_project_storage</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">        Recursively delete a project storage directory.</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>            <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete directory </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>                <span class="k">raise</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2576,21 +2604,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/maintenance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-185">185</a></span>
-<span class="normal"><a href="#__codelineno-0-186">186</a></span>
-<span class="normal"><a href="#__codelineno-0-187">187</a></span>
-<span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span>
-<span class="normal"><a href="#__codelineno-0-190">190</a></span>
-<span class="normal"><a href="#__codelineno-0-191">191</a></span>
-<span class="normal"><a href="#__codelineno-0-192">192</a></span>
-<span class="normal"><a href="#__codelineno-0-193">193</a></span>
-<span class="normal"><a href="#__codelineno-0-194">194</a></span>
-<span class="normal"><a href="#__codelineno-0-195">195</a></span>
-<span class="normal"><a href="#__codelineno-0-196">196</a></span>
-<span class="normal"><a href="#__codelineno-0-197">197</a></span>
-<span class="normal"><a href="#__codelineno-0-198">198</a></span>
-<span class="normal"><a href="#__codelineno-0-199">199</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-199">199</a></span>
 <span class="normal"><a href="#__codelineno-0-200">200</a></span>
 <span class="normal"><a href="#__codelineno-0-201">201</a></span>
 <span class="normal"><a href="#__codelineno-0-202">202</a></span>
@@ -2640,71 +2654,85 @@
 <span class="normal"><a href="#__codelineno-0-246">246</a></span>
 <span class="normal"><a href="#__codelineno-0-247">247</a></span>
 <span class="normal"><a href="#__codelineno-0-248">248</a></span>
-<span class="normal"><a href="#__codelineno-0-249">249</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="k">def</span><span class="w"> </span><span class="nf">clean_garbage</span><span class="p">(</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">orphans</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tmp_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a><span class="sd">    期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a><span class="sd">    また、アトミック書き込み時に残留した古い一時ファイル (.spot_tmp) の</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">    クリーンアップも同時に行います。</span>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">        orphans: 事前にスキャンされた孤立ファイルのリスト。</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">        tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a><span class="sd">        tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Another eviction task is currently running. Skipping.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>        <span class="c1"># Phase 0: 期限切れタスクの削除</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>        <span class="n">deleted_expired_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete_expired_tasks</span><span class="p">()</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>        <span class="k">if</span> <span class="n">deleted_expired_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_expired_count</span><span class="si">}</span><span class="s2"> expired tasks from DB.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>        <span class="c1"># Phase 1: 孤立したファイルの特定</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>        <span class="k">if</span> <span class="n">orphans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>            <span class="n">orphans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_garbage</span><span class="p">()</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="n">deleted_orphan_count</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>
-<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="c1"># Phase 2: ファイルの実体削除</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a>        <span class="k">if</span> <span class="n">orphans</span><span class="p">:</span>
-<a id="__codelineno-0-218" name="__codelineno-0-218"></a>            <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">orphans</span><span class="p">:</span>
-<a id="__codelineno-0-219" name="__codelineno-0-219"></a>                <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-220" name="__codelineno-0-220"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
-<a id="__codelineno-0-221" name="__codelineno-0-221"></a>                    <span class="n">deleted_orphan_count</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-222" name="__codelineno-0-222"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-223" name="__codelineno-0-223"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete orphan blob </span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-224" name="__codelineno-0-224"></a>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="k">if</span> <span class="n">deleted_orphan_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_orphan_count</span><span class="si">}</span><span class="s2"> orphaned blob files.&quot;</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-249">249</a></span>
+<span class="normal"><a href="#__codelineno-0-250">250</a></span>
+<span class="normal"><a href="#__codelineno-0-251">251</a></span>
+<span class="normal"><a href="#__codelineno-0-252">252</a></span>
+<span class="normal"><a href="#__codelineno-0-253">253</a></span>
+<span class="normal"><a href="#__codelineno-0-254">254</a></span>
+<span class="normal"><a href="#__codelineno-0-255">255</a></span>
+<span class="normal"><a href="#__codelineno-0-256">256</a></span>
+<span class="normal"><a href="#__codelineno-0-257">257</a></span>
+<span class="normal"><a href="#__codelineno-0-258">258</a></span>
+<span class="normal"><a href="#__codelineno-0-259">259</a></span>
+<span class="normal"><a href="#__codelineno-0-260">260</a></span>
+<span class="normal"><a href="#__codelineno-0-261">261</a></span>
+<span class="normal"><a href="#__codelineno-0-262">262</a></span>
+<span class="normal"><a href="#__codelineno-0-263">263</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="k">def</span><span class="w"> </span><span class="nf">clean_garbage</span><span class="p">(</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">orphans</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tmp_max_age_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">86400</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">    期限切れのタスク（DBレコード）と孤立したBlobファイルを削除します。</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">    また、アトミック書き込み時に残留した古い一時ファイル (.spot_tmp) の</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a><span class="sd">    クリーンアップも同時に行います。</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a><span class="sd">        orphans: 事前にスキャンされた孤立ファイルのリスト。</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a><span class="sd">        tmp_max_age_seconds: 一時ファイルを削除対象とするまでの猶予期間（秒）。デフォルトは24時間。</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">        tuple[int, int]: (削除された期限切れタスクの数, 削除された孤立ファイルの数)</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Another eviction task is currently running. Skipping.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a>
+<a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-219" name="__codelineno-0-219"></a>        <span class="c1"># Phase 0: 期限切れタスクの削除</span>
+<a id="__codelineno-0-220" name="__codelineno-0-220"></a>        <span class="n">deleted_expired_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete_expired_tasks</span><span class="p">()</span>
+<a id="__codelineno-0-221" name="__codelineno-0-221"></a>        <span class="k">if</span> <span class="n">deleted_expired_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-222" name="__codelineno-0-222"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_expired_count</span><span class="si">}</span><span class="s2"> expired tasks from DB.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-223" name="__codelineno-0-223"></a>
+<a id="__codelineno-0-224" name="__codelineno-0-224"></a>        <span class="c1"># Phase 1: 孤立したファイルの特定</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>        <span class="k">if</span> <span class="n">orphans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>            <span class="n">orphans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_garbage</span><span class="p">()</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="c1"># [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-230" name="__codelineno-0-230"></a>            <span class="n">tmp_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">clean_temp_files</span><span class="p">(</span>
-<a id="__codelineno-0-231" name="__codelineno-0-231"></a>                <span class="n">max_age_seconds</span><span class="o">=</span><span class="n">tmp_max_age_seconds</span>
-<a id="__codelineno-0-232" name="__codelineno-0-232"></a>            <span class="p">)</span>
-<a id="__codelineno-0-233" name="__codelineno-0-233"></a>            <span class="k">if</span> <span class="n">tmp_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-234" name="__codelineno-0-234"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">tmp_count</span><span class="si">}</span><span class="s2"> abandoned temporary files.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-236" name="__codelineno-0-236"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to clean temporary files: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-237" name="__codelineno-0-237"></a>
-<a id="__codelineno-0-238" name="__codelineno-0-238"></a>        <span class="c1"># Phase 3: 空ディレクトリ掃除</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-240" name="__codelineno-0-240"></a>            <span class="n">dir_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">prune_empty_dirs</span><span class="p">()</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>            <span class="k">if</span> <span class="n">dir_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">dir_count</span><span class="si">}</span><span class="s2"> empty directories.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-244" name="__codelineno-0-244"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to prune empty directories: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-245" name="__codelineno-0-245"></a>
-<a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="k">return</span> <span class="n">deleted_expired_count</span><span class="p">,</span> <span class="n">deleted_orphan_count</span>
-<a id="__codelineno-0-247" name="__codelineno-0-247"></a>
-<a id="__codelineno-0-248" name="__codelineno-0-248"></a>    <span class="k">finally</span><span class="p">:</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="n">deleted_orphan_count</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>
+<a id="__codelineno-0-230" name="__codelineno-0-230"></a>        <span class="c1"># Phase 2: ファイルの実体削除</span>
+<a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="k">if</span> <span class="n">orphans</span><span class="p">:</span>
+<a id="__codelineno-0-232" name="__codelineno-0-232"></a>            <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">orphans</span><span class="p">:</span>
+<a id="__codelineno-0-233" name="__codelineno-0-233"></a>                <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-234" name="__codelineno-0-234"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a>                    <span class="n">deleted_orphan_count</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-236" name="__codelineno-0-236"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-237" name="__codelineno-0-237"></a>                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete orphan blob </span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-238" name="__codelineno-0-238"></a>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a>            <span class="k">if</span> <span class="n">deleted_orphan_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-240" name="__codelineno-0-240"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted </span><span class="si">{</span><span class="n">deleted_orphan_count</span><span class="si">}</span><span class="s2"> orphaned blob files.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="c1"># [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ</span>
+<a id="__codelineno-0-243" name="__codelineno-0-243"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-244" name="__codelineno-0-244"></a>            <span class="n">tmp_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">clean_temp_files</span><span class="p">(</span>
+<a id="__codelineno-0-245" name="__codelineno-0-245"></a>                <span class="n">max_age_seconds</span><span class="o">=</span><span class="n">tmp_max_age_seconds</span>
+<a id="__codelineno-0-246" name="__codelineno-0-246"></a>            <span class="p">)</span>
+<a id="__codelineno-0-247" name="__codelineno-0-247"></a>            <span class="k">if</span> <span class="n">tmp_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-248" name="__codelineno-0-248"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">tmp_count</span><span class="si">}</span><span class="s2"> abandoned temporary files.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-250" name="__codelineno-0-250"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to clean temporary files: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-251" name="__codelineno-0-251"></a>
+<a id="__codelineno-0-252" name="__codelineno-0-252"></a>        <span class="c1"># Phase 3: 空ディレクトリ掃除</span>
+<a id="__codelineno-0-253" name="__codelineno-0-253"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-254" name="__codelineno-0-254"></a>            <span class="n">dir_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">prune_empty_dirs</span><span class="p">()</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>            <span class="k">if</span> <span class="n">dir_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-256" name="__codelineno-0-256"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">dir_count</span><span class="si">}</span><span class="s2"> empty directories.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-257" name="__codelineno-0-257"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-258" name="__codelineno-0-258"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to prune empty directories: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-259" name="__codelineno-0-259"></a>
+<a id="__codelineno-0-260" name="__codelineno-0-260"></a>        <span class="k">return</span> <span class="n">deleted_expired_count</span><span class="p">,</span> <span class="n">deleted_orphan_count</span>
+<a id="__codelineno-0-261" name="__codelineno-0-261"></a>
+<a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="k">finally</span><span class="p">:</span>
+<a id="__codelineno-0-263" name="__codelineno-0-263"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_cleaning_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2760,27 +2788,27 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/maintenance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-298">298</a></span>
-<span class="normal"><a href="#__codelineno-0-299">299</a></span>
-<span class="normal"><a href="#__codelineno-0-300">300</a></span>
-<span class="normal"><a href="#__codelineno-0-301">301</a></span>
-<span class="normal"><a href="#__codelineno-0-302">302</a></span>
-<span class="normal"><a href="#__codelineno-0-303">303</a></span>
-<span class="normal"><a href="#__codelineno-0-304">304</a></span>
-<span class="normal"><a href="#__codelineno-0-305">305</a></span>
-<span class="normal"><a href="#__codelineno-0-306">306</a></span>
-<span class="normal"><a href="#__codelineno-0-307">307</a></span>
-<span class="normal"><a href="#__codelineno-0-308">308</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-299" name="__codelineno-0-299"></a><span class="k">def</span><span class="w"> </span><span class="nf">delete_project_storage</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    Recursively delete a project storage directory.</span>
-<a id="__codelineno-0-302" name="__codelineno-0-302"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-<a id="__codelineno-0-304" name="__codelineno-0-304"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-305" name="__codelineno-0-305"></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-<a id="__codelineno-0-306" name="__codelineno-0-306"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-<a id="__codelineno-0-307" name="__codelineno-0-307"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete directory </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-308" name="__codelineno-0-308"></a>            <span class="k">raise</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-312">312</a></span>
+<span class="normal"><a href="#__codelineno-0-313">313</a></span>
+<span class="normal"><a href="#__codelineno-0-314">314</a></span>
+<span class="normal"><a href="#__codelineno-0-315">315</a></span>
+<span class="normal"><a href="#__codelineno-0-316">316</a></span>
+<span class="normal"><a href="#__codelineno-0-317">317</a></span>
+<span class="normal"><a href="#__codelineno-0-318">318</a></span>
+<span class="normal"><a href="#__codelineno-0-319">319</a></span>
+<span class="normal"><a href="#__codelineno-0-320">320</a></span>
+<span class="normal"><a href="#__codelineno-0-321">321</a></span>
+<span class="normal"><a href="#__codelineno-0-322">322</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="k">def</span><span class="w"> </span><span class="nf">delete_project_storage</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    Recursively delete a project storage directory.</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-317" name="__codelineno-0-317"></a>    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+<a id="__codelineno-0-318" name="__codelineno-0-318"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-0-319" name="__codelineno-0-319"></a>            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<a id="__codelineno-0-320" name="__codelineno-0-320"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-0-321" name="__codelineno-0-321"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete directory </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-322" name="__codelineno-0-322"></a>            <span class="k">raise</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2825,7 +2853,7 @@
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">    Delete a task record and its associated blob file.</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">include_expired</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="p">:</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>        <span class="k">return</span> <span class="kc">False</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>
@@ -3179,21 +3207,7 @@ Returns the record dict with an extra 'decoded_data' key.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/maintenance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span>
-<span class="normal"><a href="#__codelineno-0-253">253</a></span>
-<span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
 <span class="normal"><a href="#__codelineno-0-267">267</a></span>
 <span class="normal"><a href="#__codelineno-0-268">268</a></span>
@@ -3202,30 +3216,44 @@ Returns the record dict with an extra 'decoded_data' key.</p>
 <span class="normal"><a href="#__codelineno-0-271">271</a></span>
 <span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
-<span class="normal"><a href="#__codelineno-0-274">274</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_key_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">    Resolve a potentially shortened key to a full cache key.</span>
-<a id="__codelineno-0-254" name="__codelineno-0-254"></a>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-256" name="__codelineno-0-256"></a><span class="sd">        str: The single matching full key (Exact match or unique prefix match).</span>
-<a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">        list[str]: A list of conflicting candidates (Ambiguous).</span>
-<a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">        None: No match found.</span>
-<a id="__codelineno-0-259" name="__codelineno-0-259"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-260" name="__codelineno-0-260"></a>    <span class="c1"># 1. 完全一致を最優先でチェック</span>
-<a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
-<a id="__codelineno-0-262" name="__codelineno-0-262"></a>        <span class="k">return</span> <span class="n">prefix</span>
-<a id="__codelineno-0-263" name="__codelineno-0-263"></a>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a>    <span class="c1"># 2. プレフィックス検索</span>
-<a id="__codelineno-0-265" name="__codelineno-0-265"></a>    <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get_keys_start_with</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
-<a id="__codelineno-0-266" name="__codelineno-0-266"></a>
-<a id="__codelineno-0-267" name="__codelineno-0-267"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a>        <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-269" name="__codelineno-0-269"></a>
-<a id="__codelineno-0-270" name="__codelineno-0-270"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-271" name="__codelineno-0-271"></a>        <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-272" name="__codelineno-0-272"></a>
-<a id="__codelineno-0-273" name="__codelineno-0-273"></a>    <span class="c1"># 3. 曖昧な場合 (複数の候補を返す)</span>
-<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="k">return</span> <span class="n">candidates</span>
+<span class="normal"><a href="#__codelineno-0-274">274</a></span>
+<span class="normal"><a href="#__codelineno-0-275">275</a></span>
+<span class="normal"><a href="#__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span>
+<span class="normal"><a href="#__codelineno-0-278">278</a></span>
+<span class="normal"><a href="#__codelineno-0-279">279</a></span>
+<span class="normal"><a href="#__codelineno-0-280">280</a></span>
+<span class="normal"><a href="#__codelineno-0-281">281</a></span>
+<span class="normal"><a href="#__codelineno-0-282">282</a></span>
+<span class="normal"><a href="#__codelineno-0-283">283</a></span>
+<span class="normal"><a href="#__codelineno-0-284">284</a></span>
+<span class="normal"><a href="#__codelineno-0-285">285</a></span>
+<span class="normal"><a href="#__codelineno-0-286">286</a></span>
+<span class="normal"><a href="#__codelineno-0-287">287</a></span>
+<span class="normal"><a href="#__codelineno-0-288">288</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_key_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">    Resolve a potentially shortened key to a full cache key.</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a>
+<a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        str: The single matching full key (Exact match or unique prefix match).</span>
+<a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">        list[str]: A list of conflicting candidates (Ambiguous).</span>
+<a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">        None: No match found.</span>
+<a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="c1"># 1. 完全一致を最優先でチェック</span>
+<a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">include_expired</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-276" name="__codelineno-0-276"></a>        <span class="k">return</span> <span class="n">prefix</span>
+<a id="__codelineno-0-277" name="__codelineno-0-277"></a>
+<a id="__codelineno-0-278" name="__codelineno-0-278"></a>    <span class="c1"># 2. プレフィックス検索</span>
+<a id="__codelineno-0-279" name="__codelineno-0-279"></a>    <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">get_keys_start_with</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+<a id="__codelineno-0-280" name="__codelineno-0-280"></a>
+<a id="__codelineno-0-281" name="__codelineno-0-281"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
+<a id="__codelineno-0-282" name="__codelineno-0-282"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-283" name="__codelineno-0-283"></a>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-285" name="__codelineno-0-285"></a>        <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-286" name="__codelineno-0-286"></a>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a>    <span class="c1"># 3. 曖昧な場合 (複数の候補を返す)</span>
+<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="k">return</span> <span class="n">candidates</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3253,43 +3281,43 @@ Returns a list of Path objects for the orphan directories.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/beautyspot/maintenance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-278">278</a></span>
-<span class="normal"><a href="#__codelineno-0-279">279</a></span>
-<span class="normal"><a href="#__codelineno-0-280">280</a></span>
-<span class="normal"><a href="#__codelineno-0-281">281</a></span>
-<span class="normal"><a href="#__codelineno-0-282">282</a></span>
-<span class="normal"><a href="#__codelineno-0-283">283</a></span>
-<span class="normal"><a href="#__codelineno-0-284">284</a></span>
-<span class="normal"><a href="#__codelineno-0-285">285</a></span>
-<span class="normal"><a href="#__codelineno-0-286">286</a></span>
-<span class="normal"><a href="#__codelineno-0-287">287</a></span>
-<span class="normal"><a href="#__codelineno-0-288">288</a></span>
-<span class="normal"><a href="#__codelineno-0-289">289</a></span>
-<span class="normal"><a href="#__codelineno-0-290">290</a></span>
-<span class="normal"><a href="#__codelineno-0-291">291</a></span>
-<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-292">292</a></span>
 <span class="normal"><a href="#__codelineno-0-293">293</a></span>
 <span class="normal"><a href="#__codelineno-0-294">294</a></span>
 <span class="normal"><a href="#__codelineno-0-295">295</a></span>
-<span class="normal"><a href="#__codelineno-0-296">296</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="nd">@staticmethod</span>
-<a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="k">def</span><span class="w"> </span><span class="nf">scan_orphan_projects</span><span class="p">(</span><span class="n">workspace_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">    Scan for blob directories in .beautyspot/blobs/ that have no corresponding .db file.</span>
-<a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">    Returns a list of Path objects for the orphan directories.</span>
-<a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a>    <span class="n">blobs_root</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="s2">&quot;blobs&quot;</span>
-<a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-<a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="k">return</span> <span class="p">[]</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a>
-<a id="__codelineno-0-288" name="__codelineno-0-288"></a>    <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a>    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a>        <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a>            <span class="c1"># blobs/{name} に対して {name}.db が存在するか確認</span>
-<a id="__codelineno-0-292" name="__codelineno-0-292"></a>            <span class="n">db_path</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.db&quot;</span>
-<a id="__codelineno-0-293" name="__codelineno-0-293"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">db_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-<a id="__codelineno-0-294" name="__codelineno-0-294"></a>                <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-<a id="__codelineno-0-295" name="__codelineno-0-295"></a>
-<a id="__codelineno-0-296" name="__codelineno-0-296"></a>    <span class="k">return</span> <span class="n">orphans</span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span>
+<span class="normal"><a href="#__codelineno-0-297">297</a></span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span>
+<span class="normal"><a href="#__codelineno-0-300">300</a></span>
+<span class="normal"><a href="#__codelineno-0-301">301</a></span>
+<span class="normal"><a href="#__codelineno-0-302">302</a></span>
+<span class="normal"><a href="#__codelineno-0-303">303</a></span>
+<span class="normal"><a href="#__codelineno-0-304">304</a></span>
+<span class="normal"><a href="#__codelineno-0-305">305</a></span>
+<span class="normal"><a href="#__codelineno-0-306">306</a></span>
+<span class="normal"><a href="#__codelineno-0-307">307</a></span>
+<span class="normal"><a href="#__codelineno-0-308">308</a></span>
+<span class="normal"><a href="#__codelineno-0-309">309</a></span>
+<span class="normal"><a href="#__codelineno-0-310">310</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="k">def</span><span class="w"> </span><span class="nf">scan_orphan_projects</span><span class="p">(</span><span class="n">workspace_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">    Scan for blob directories in .beautyspot/blobs/ that have no corresponding .db file.</span>
+<a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">    Returns a list of Path objects for the orphan directories.</span>
+<a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-298" name="__codelineno-0-298"></a>    <span class="n">blobs_root</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="s2">&quot;blobs&quot;</span>
+<a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>        <span class="k">return</span> <span class="p">[]</span>
+<a id="__codelineno-0-301" name="__codelineno-0-301"></a>
+<a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="n">orphans</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">blobs_root</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+<a id="__codelineno-0-304" name="__codelineno-0-304"></a>        <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+<a id="__codelineno-0-305" name="__codelineno-0-305"></a>            <span class="c1"># blobs/{name} に対して {name}.db が存在するか確認</span>
+<a id="__codelineno-0-306" name="__codelineno-0-306"></a>            <span class="n">db_path</span> <span class="o">=</span> <span class="n">workspace_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.db&quot;</span>
+<a id="__codelineno-0-307" name="__codelineno-0-307"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">db_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="__codelineno-0-308" name="__codelineno-0-308"></a>                <span class="n">orphans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+<a id="__codelineno-0-309" name="__codelineno-0-309"></a>
+<a id="__codelineno-0-310" name="__codelineno-0-310"></a>    <span class="k">return</span> <span class="n">orphans</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

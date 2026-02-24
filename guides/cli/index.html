@@ -1717,6 +1717,12 @@
 <ul>
 <li><strong>動作:</strong> 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。</li>
 </ul>
+<div class="admonition note">
+<p class="admonition-title">関数名フィルタについて</p>
+<p><code>--func</code> などの関数名フィルタは、<strong>完全修飾名（<code>module.qualname</code>）を優先</strong>してマッチします。
+同名関数がある場合は完全修飾名を指定してください。短い関数名も後方互換のため引き続き使えます。
+具体例は Usage Patterns の「Function Identity」セクションを参照してください: <code>docs/guides/usage_patterns.md</code>。</p>
+</div>
 <h3 id="3-clean">3. 孤立ファイルのクリーンアップ (<code>clean</code>)</h3>
 <p><code>clean</code> は、<strong>ストレージの整合性を修復</strong> するための低レイヤーコマンドです。
 通常、<code>gc</code> や <code>prune</code> が自動的に整合性を保つため、頻繁に使う必要はありません。プロセスのクラッシュなどで「DBレコードは消えたが、ファイルだけ残っている」状態が発生した場合に使用します。</p>

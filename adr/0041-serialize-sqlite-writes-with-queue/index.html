@@ -8,13 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/guides/usage_patterns/">
+        <link rel="canonical" href="https://neelbauman.github.io/beautyspot/adr/0041-serialize-sqlite-writes-with-queue/">
       
       
-        <link rel="prev" href="../..">
-      
-      
-        <link rel="next" href="../../cookbooks/custom_types/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Getting Started - beautyspot</title>
+        <title>Serialize SQLite Writes with a Writer Queue - beautyspot</title>
       
     
     
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#usage-patterns" class="md-skip">
+        <a href="#serialize-sqlite-writes-with-a-writer-queue" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started
+              Serialize SQLite Writes with a Writer Queue
             
           </span>
         </div>
@@ -284,37 +280,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting Started
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/usage_patterns/" class="md-nav__link">
         
   
   
@@ -330,177 +299,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-definition-time-spotmark" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Definition Time (@spot.mark)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="1. Definition Time (@spot.mark)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        特徴
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-execution-time-with-spotcached_run" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Execution Time (with spot.cached_run)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Execution Time (with spot.cached_run)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#single-function" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        基本的な使い方 (Single Function)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#21-function-identity" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 Function Identity (完全修飾名と衝突回避)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2.1 Function Identity (完全修飾名と衝突回避)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        例: 同名関数が2つあるケース
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CLIフィルタでの指定
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-parallel-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Parallel Execution (並列実行と共有フック)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Parallel Execution (並列実行と共有フック)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#thread-safe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread-Safe な集計パターン
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-flush" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. コンテキストマネージャによる同期 (Flush)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. コンテキストマネージャによる同期 (Flush)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        推奨されるパターン：バッチ処理の区切り
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -897,7 +695,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../caching/" class="md-nav__link">
+      <a href="../../guides/caching/" class="md-nav__link">
         
   
   
@@ -925,7 +723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../serialization/" class="md-nav__link">
+      <a href="../../guides/serialization/" class="md-nav__link">
         
   
   
@@ -953,7 +751,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../lifecycle/" class="md-nav__link">
+      <a href="../../guides/lifecycle/" class="md-nav__link">
         
   
   
@@ -981,7 +779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom_backend/" class="md-nav__link">
+      <a href="../../guides/custom_backend/" class="md-nav__link">
         
   
   
@@ -1009,7 +807,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../rate_limiting/" class="md-nav__link">
+      <a href="../../guides/rate_limiting/" class="md-nav__link">
         
   
   
@@ -1037,7 +835,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
+      <a href="../../guides/cli/" class="md-nav__link">
         
   
   
@@ -1596,22 +1394,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-definition-time-spotmark" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Definition Time (@spot.mark)
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Definition Time (@spot.mark)">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#implementation-sketch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        特徴
+        Implementation Sketch / 実装概要
       
     </span>
   </a>
@@ -1624,125 +1455,24 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-execution-time-with-spotcached_run" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Execution Time (with spot.cached_run)
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="2. Execution Time (with spot.cached_run)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#single-function" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        基本的な使い方 (Single Function)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#21-function-identity" class="md-nav__link">
+  <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.1 Function Identity (完全修飾名と衝突回避)
+        Notes / 補足
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="2.1 Function Identity (完全修飾名と衝突回避)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        例: 同名関数が2つあるケース
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CLIフィルタでの指定
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-parallel-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Parallel Execution (並列実行と共有フック)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Parallel Execution (並列実行と共有フック)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#thread-safe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread-Safe な集計パターン
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-flush" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. コンテキストマネージャによる同期 (Flush)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. コンテキストマネージャによる同期 (Flush)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        推奨されるパターン：バッチ処理の区切り
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1766,135 +1496,72 @@
   
 
 
-<h1 id="usage-patterns">Usage Patterns</h1>
-<p><code>beautyspot</code> は、関数のキャッシュ化を「いつ」行いたいか、また「どのように」実行したいかに応じて、柔軟な実行パターンを提供します。</p>
-<h2 id="1-definition-time-spotmark">1. Definition Time (<code>@spot.mark</code>)</h2>
-<p><strong>「この関数は常にキャッシュされるべきである」</strong> という設計の場合に使用します。
-主にアプリケーションのコアロジックや、データパイプラインの定義に適しています。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># 1. Spot（実行コンテキスト）を定義</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># 2. 関数定義時にデコレータを付与</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">heavy_analysis</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="c1"># ... 重い計算 ...</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">return</span> <span class="n">result</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># 3. 呼び出すだけでキャッシュ機能が働く</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">heavy_analysis</span><span class="p">(</span><span class="n">input_data</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="_1">特徴</h3>
+<h1 id="serialize-sqlite-writes-with-a-writer-queue">Serialize SQLite Writes with a Writer Queue</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> は <code>wait=False</code> のバックグラウンド保存や <code>async</code> 経路で、
+複数スレッドから同時に SQLite へ書き込みを行う可能性がある。
+WAL モードを有効化していても SQLite の書き込みは単一ライター制約があり、
+高並行時に <code>database is locked</code> が発生し得る。</p>
+<p>一方で、アプリケーションの関数実行自体は失敗させたくない。
+また、シャットダウン時には必ず書き込みをフラッシュしたい。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Persistent:</strong> 関数が定義されている間、常にキャッシュ機構が有効になります。</li>
-<li><strong>Simple:</strong> 呼び出し側のコードを変更する必要がありません。</li>
+<li><strong>Reliability</strong>: プロセス内の書き込み競合を回避し、安定して保存する。</li>
+<li><strong>Non-blocking API</strong>: キャッシュ保存の失敗で関数実行を失敗させない。</li>
+<li><strong>Flush Guarantee</strong>: <code>shutdown(wait=True)</code> で書き込みを確実にフラッシュする。</li>
+<li><strong>Minimal Surface Change</strong>: 公開 API の破壊的変更を避ける。</li>
 </ul>
-<hr />
-<h2 id="2-execution-time-with-spotcached_run">2. Execution Time (<code>with spot.cached_run</code>)</h2>
-<p>既存の関数やサードパーティ製ライブラリの関数を、<strong>特定のスコープ内でのみ</strong>キャッシュ化して実行します。
-v2.0 から推奨される、柔軟かつモダンな実行パターンです。</p>
-<h3 id="single-function">基本的な使い方 (Single Function)</h3>
-<p><code>with</code> ブロック内でのみ、渡した関数が「キャッシュ機能付き」のラッパーに置き換わります。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">external_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulation</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;experiment&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># 単一の関数を渡すと、そのままラッパーが返ってきます</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">simulation</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;test-v1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="c1"># IDEの型補完や静的解析も機能します</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
-</code></pre></div>
-<hr />
-<h2 id="21-function-identity">2.1 Function Identity (完全修飾名と衝突回避)</h2>
-<p>同名の関数が別モジュールや別クラスに存在する場合、<strong>短い関数名 (<code>func_name</code>) だけでは衝突</strong>します。<br />
-<code>beautyspot</code> は内部で <strong>完全修飾名 (<code>module.qualname</code>)</strong> を保存し、保持期間や <code>--func</code> フィルタなどで優先的に使用します。</p>
-<h3 id="2">例: 同名関数が2つあるケース</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># package_a/tasks.py</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">preprocess</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">2</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># package_b/tasks.py</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">preprocess</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">beautyspot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bs</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">package_a.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">preprocess</span> <span class="k">as</span> <span class="n">preprocess_a</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">package_b.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">preprocess</span> <span class="k">as</span> <span class="n">preprocess_b</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">preprocess_a</span><span class="p">)</span> <span class="k">as</span> <span class="n">run_a</span><span class="p">:</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">run_a</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="k">with</span> <span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">preprocess_b</span><span class="p">)</span> <span class="k">as</span> <span class="n">run_b</span><span class="p">:</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">run_b</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-</code></pre></div>
-<p>このとき、DBに保存される <code>func_identifier</code> は以下のようになります。</p>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ul>
-<li><code>package_a.tasks.preprocess</code></li>
-<li><code>package_b.tasks.preprocess</code></li>
+<li><strong>Option 1</strong>: 現状維持（都度接続 + timeout）。</li>
+<li><strong>Option 2</strong>: コネクションプールを導入。</li>
+<li><strong>Option 3</strong>: プロセス内ロックで <code>save/delete</code> を直列化（単一接続は持たない）。</li>
+<li><strong>Option 4</strong>: 専用 writer スレッド + キューで直列化（単一接続を保持）。</li>
+<li><strong>Option 5</strong>: 外部 DB 利用を推奨（SQLite を事実上やめる）。</li>
 </ul>
-<h3 id="cli">CLIフィルタでの指定</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># 完全修飾名で正確に対象を絞る</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>beautyspot<span class="w"> </span>prune<span class="w"> </span>.beautyspot/my_app.db<span class="w"> </span>--days<span class="w"> </span><span class="m">30</span><span class="w"> </span>--func<span class="w"> </span>package_a.tasks.preprocess
-</code></pre></div>
-<p>短い関数名も後方互換として使えますが、<strong>同名関数がある場合は完全修飾名を推奨</strong>します。</p>
-<hr />
-<h2 id="3-parallel-execution">3. Parallel Execution (並列実行と共有フック)</h2>
-<p><code>beautyspot</code> は、<code>ThreadPoolExecutor</code> などを用いた並列タスク実行をネイティブにサポートしています。
-複数のスレッドから同じフックインスタンスを共有してメトリクス（進捗、トークン数など）を収集する場合、<strong><code>ThreadSafeHookBase</code></strong> を使用することで、競合状態（Race Condition）を防ぎつつ安全に集計を行えます。</p>
-<h3 id="thread-safe">Thread-Safe な集計パターン</h3>
-<p>以下の例では、5つのスレッドで並列にタスクを実行し、共通のカウンタを安全に更新しています。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">concurrent.futures</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beautyspot.hooks</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadSafeHookBase</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ConcurrentCounterHook</span><span class="p">(</span><span class="n">ThreadSafeHookBase</span><span class="p">):</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>  <span class="c1"># ⚠️ 必須：内部ロックの初期化</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_hit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># ロックは自動適用されます</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">on_cache_miss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">counter</span> <span class="o">=</span> <span class="n">ConcurrentCounterHook</span><span class="p">()</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="c1"># 複数のタスクに同じ counter インスタンスを渡す</span>
-<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">spot</span><span class="o">.</span><span class="n">cached_run</span><span class="p">(</span><span class="n">heavy_task</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="p">[</span><span class="n">counter</span><span class="p">]),</span> <span class="n">i</span><span class="p">)</span> 
-<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
-<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="p">]</span>
-<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>    <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
-<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>
-<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total processed: </span><span class="si">{</span><span class="n">counter</span><span class="o">.</span><span class="n">count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</code></pre></div>
-<hr />
-<h2 id="4-flush">4. コンテキストマネージャによる同期 (Flush)</h2>
-<p><code>wait=False</code>（非同期保存）を使用している場合、アプリケーションが終了する前にバックグラウンドの保存処理を完了させる必要があります。<code>with spot:</code> ブロックは、<strong>「溜まっている保存タスクをすべて完了させる同期ポイント（Flush）」</strong> として機能します。</p>
-<h3 id="_2">推奨されるパターン：バッチ処理の区切り</h3>
-<p>大量の並列処理やループ処理の後に <code>with</code> ブロックを抜けることで、全データの永続化を保証します。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">Spot</span><span class="p">(</span><span class="s2">&quot;my_app&quot;</span><span class="p">,</span> <span class="n">default_wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_experiment</span><span class="p">():</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">with</span> <span class="n">spot</span><span class="p">:</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="c1"># このブロック内の保存はバックグラウンドで行われる</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>            <span class="n">process_data</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="c1"># ブロックを抜ける際、未完了の保存タスクがすべて終わるまで待機します</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="c1"># ここに来た時点で、100件すべてのキャッシュがストレージに書き込まれています</span>
-</code></pre></div>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 4</strong>.</p>
+<p><code>SQLiteTaskDB</code> に writer スレッドとキューを実装し、
+書き込み系操作を単一接続で直列化する。
+シャットダウン時は <code>shutdown(wait=True)</code> によりキューを drain し、
+未処理の書き込みが残らないようにする。</p>
+<p>さらに、保存失敗は関数実行を失敗させず、
+ログと <code>on_background_error</code> で通知する。</p>
+<h3 id="implementation-sketch">Implementation Sketch / 実装概要</h3>
+<ul>
+<li><code>SQLiteTaskDB</code> 内部に <code>queue.Queue</code> と writer スレッドを保持。</li>
+<li>書き込み系メソッドは <code>_enqueue_write()</code> 経由でシリアライズ。</li>
+<li><code>TaskDBBase.shutdown()</code> を追加し、<code>SQLiteTaskDB.shutdown(wait=True)</code> でフラッシュ。</li>
+<li><code>Spot.shutdown(wait=True)</code> から <code>db.shutdown(wait=True)</code> を呼び出す。</li>
+<li><code>wait=True</code> 保存時の失敗も例外として外に出さず、ログとコールバックで通知。</li>
+</ul>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:</li>
+<li>プロセス内の書き込み競合が解消され、<code>database is locked</code> の発生率が下がる。</li>
+<li><code>shutdown(wait=True)</code> で書き込みを確実にフラッシュできる。</li>
+<li>
+<p>保存失敗がアプリケーションの関数実行に影響しない。</p>
+</li>
+<li>
+<p><strong>Negative</strong>:</p>
+</li>
+<li>書き込みは直列化されるため、ピーク時の書き込み待ちが増える可能性がある。</li>
+<li>writer スレッドがハングした場合、<code>shutdown(wait=True)</code> がブロックし続ける。</li>
+<li>他プロセスによる競合は依然として発生し得る。</li>
+</ul>
+<h2 id="notes">Notes / 補足</h2>
+<p>本 ADR はプロセス内の直列化を対象とする。複数プロセスが同一 SQLite を共有する
+運用では、依然としてロック競合が起こり得るため注意する。</p>
 
 
 
 
 
 
+
+  
+  
 
 
 
