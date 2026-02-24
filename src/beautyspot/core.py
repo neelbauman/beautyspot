@@ -402,19 +402,21 @@ class Spot:
             timeout: 待機する最大秒数。指定しない場合は Spot 初期化時の 
                      drain_timeout が使用されます。
         """
-        deadline = time.monotonic() + (timeout if timeout is not None else self._drain_timeout)
+        timeout_val = timeout if timeout is not None else self._drain_timeout
+        deadline = time.monotonic() + timeout_val
+
         while True:
             with self._futures_lock:
                 snapshot = list(self._active_futures)
             if not snapshot:
-                return
+                break
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
             wait_timeout = min(self._drain_poll_interval, remaining)
             _, not_done = wait(snapshot, timeout=wait_timeout)
             if not not_done:
-                return
+                break
 
         with self._futures_lock:
             remaining_count = len(self._active_futures)
@@ -423,8 +425,16 @@ class Spot:
                 f"Drain timeout reached with {remaining_count} futures still pending."
             )
 
-    # 既存の _drain_futures は内部利用のために flush を呼ぶ形に変更するか、
-    # そのまま flush に一本化（shutdownや__exit__からは flush() を呼ぶ）します。
+        # 2. DBの書き込みキューをドレイン
+        db_remaining = deadline - time.monotonic()
+        if db_remaining > 0:
+            success = self.db.flush(timeout=db_remaining)
+            if not success:
+                logger.warning("DB flush timed out. Pending writes may still be in the queue.")
+        else:
+            # 既にタイムアウト時間を使い切っている場合
+            logger.warning("DB flush skipped due to overall timeout. Pending writes may exist.")
+
     def _drain_futures(self) -> None:
         self.flush()
 
@@ -435,47 +445,71 @@ class Spot:
         qualname = getattr(func, "__qualname__", None) or func.__class__.__qualname__
         return f"{module}.{qualname}"
 
-
     def _trigger_auto_eviction(self) -> None:
-        """確率に応じてバックグラウンドで自動クリーンアップをエンキューする"""
+        """
+        確率に応じてバックグラウンドで自動クリーンアップ（エビクション）をエンキューします。
+
+        このメソッドは、メインスレッドのレイテンシに影響を与えない「ベストエフォート」
+        の設計思想に基づいています。そのため、スケジュールの失敗やバックグラウンド
+        実行中のエラーはログに記録されるのみで、呼び出し元には伝播（raise）しません。
+
+        スレッドセーフティ:
+            多重起動を防ぐため、ノンブロッキングロック (`_eviction_lock`) を使用します。
+            スケジュールに失敗した場合や、タスクが完了/失敗した場合には、
+            確実にロックを解放し、次回以降のエビクションがデッドロックするのを防ぎます。
+        """
         if self.eviction_rate <= 0.0:
             return
 
-        if random.random() < self.eviction_rate:
-            # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
-            if not self._eviction_lock.acquire(blocking=False):
-                return
+        if random.random() >= self.eviction_rate:
+            return
 
-            logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
-            maintenance = self.maintenance
+        # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
+        if not self._eviction_lock.acquire(blocking=False):
+            return
 
-            # ロックを確実に解放するためのラッパー
-            def _run_clean_safe():
-                try:
-                    maintenance.clean_garbage()
-                finally:
-                    self._eviction_lock.release()
-
+        logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
+        
+        # バックグラウンド実行用の安全なラッパー
+        def _run_clean_safe():
             try:
-                bg_loop, executor = self._ensure_bg_resources()
-
-                async def _run_clean_coro():
-                    loop = asyncio.get_running_loop()
-                    # ラッパーを介して実行
-                    await loop.run_in_executor(executor, _run_clean_safe)
-
-                coro = _run_clean_coro()
-                future = bg_loop.submit(coro)
-                if future is None:
-                    coro.close()
-                    self._eviction_lock.release()
-                    return
-                self._track_future(future)
-
-            except Exception:
-                # スケジュール自体に失敗した場合は、ロックを戻しておく
+                self.maintenance.clean_garbage()
+            except Exception as e:
+                # 実行中のエラーは記録するが、クラッシュはさせない
+                logger.error(f"Auto-eviction failed during background execution: {e}", exc_info=True)
+            finally:
+                # 成功・失敗に関わらず確実にロックを解放
                 self._eviction_lock.release()
-                raise
+
+        # スケジュールフェーズの保護
+        is_scheduled = False
+        try:
+            bg_loop, executor = self._ensure_bg_resources()
+
+            async def _run_clean_coro():
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(executor, _run_clean_safe)
+
+            coro = _run_clean_coro()
+            future = bg_loop.submit(coro)
+            
+            if future is None:
+                # シャットダウン中などでタスクが拒否された場合
+                coro.close()
+                logger.debug("Auto-eviction task rejected (shutting down).")
+            else:
+                self._track_future(future)
+                is_scheduled = True
+
+        except Exception as e:
+            # スケジュール自体（リソース初期化など）に失敗した場合
+            logger.warning(f"Failed to schedule auto-eviction task: {e}")
+            
+        finally:
+            # スケジュールされなかった場合（拒否、または例外発生時）は、
+            # バックグラウンドタスク内でロックが解放されることはないため、ここで直ちに解放する
+            if not is_scheduled:
+                self._eviction_lock.release()
 
     def _resolve_key_fn(
         self,
@@ -730,12 +764,7 @@ class Spot:
                 if self.on_background_error is None:
                     raise
 
-        # [ADD] 保存後に自動クリーンアップのトリガー判定
-        # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
-        try:
-            self._trigger_auto_eviction()
-        except Exception as e:
-            logger.warning(f"Auto-eviction trigger failed (ignored): {e}")
+        self._trigger_auto_eviction()
 
         return res
 
@@ -858,12 +887,7 @@ class Spot:
                 if self.on_background_error is None:
                     raise
 
-        # [ADD] 保存後に自動クリーンアップのトリガー判定
-        # ベストエフォート: エビクション失敗がユーザーの関数結果に影響しないようにする
-        try:
-            self._trigger_auto_eviction()
-        except Exception as e:
-            logger.warning(f"Auto-eviction trigger failed (ignored): {e}")
+        self._trigger_auto_eviction()
 
         return res
 

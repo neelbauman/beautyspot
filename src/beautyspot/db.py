@@ -128,6 +128,10 @@ class TaskDBBase(ABC):
         """Retrieve cache keys that start with the given prefix."""
         return []
 
+    def flush(self, timeout: Optional[float] = None) -> bool:
+        """Wait for all pending background writes to complete."""
+        return True
+
     def shutdown(self, wait: bool = True) -> None:
         """Gracefully shut down the database backend."""
         return None
@@ -488,3 +492,30 @@ class SQLiteTaskDB(TaskDBBase):
                 (f"{escaped}%",),
             )
             return [row[0] for row in cursor.fetchall()]
+
+    def flush(self, timeout: Optional[float] = None) -> bool:
+        """
+        キューに溜まっているすべての書き込み操作が完了するまで待機します。
+        
+        No-op（何もしない）タスクをキューの末尾に挿入し、そのタスクが処理されるまで
+        待機することで、先行するすべてのタスクの完了を保証します。
+        
+        Args:
+            timeout: 待機する最大秒数。タイムアウトした場合は False を返します。
+        """
+        self._writer_ready.wait()
+        
+        with self._shutdown_lock:
+            if self._shutdown_requested or not self._writer_thread.is_alive():
+                return False
+
+        # キューをフラッシュするためのダミータスク
+        def _noop_op(conn: sqlite3.Connection) -> None:
+            pass
+
+        task = _WriteTask(fn=_noop_op, event=threading.Event())
+        self._write_queue.put(task)
+        
+        # ダミータスクの完了を待機
+        return task.event.wait(timeout=timeout)
+

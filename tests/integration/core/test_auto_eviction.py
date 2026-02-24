@@ -1,9 +1,7 @@
 import threading
-from unittest.mock import patch, MagicMock
-
 import pytest
-
 import beautyspot as bs
+from unittest.mock import patch, MagicMock
 from beautyspot.db import SQLiteTaskDB
 
 
@@ -178,3 +176,32 @@ def test_eviction_lock_released_on_shutdown_rejection():
     acquired = spot._eviction_lock.acquire(blocking=False)
     assert acquired, "_eviction_lock should be released after shutdown rejection"
     spot._eviction_lock.release()
+
+def test_auto_eviction_releases_lock_on_error(tmp_path):
+    """
+    バックグラウンドのエビクション処理中に例外が発生しても、
+    ロックが正しく解放され、次回のトリガーが発火可能であることを検証する。
+    """
+    # eviction_rate=1.0 にして確実にトリガーされるようにする
+    spot = bs.Spot("test_eviction", eviction_rate=1.0)
+    spot._setup_workspace(tmp_path) # StorageやDBの準備
+
+    # MaintenanceService.clean_garbage をモック化し、意図的に例外を発生させる
+    with patch("beautyspot.maintenance.MaintenanceService.clean_garbage") as mock_clean:
+        mock_clean.side_effect = Exception("Simulated background error")
+
+        # 1回目のトリガー（内部でバックグラウンドタスクが走り、例外が発生する）
+        spot._trigger_auto_eviction()
+        
+        # バックグラウンドタスクが完了するのを待機
+        spot.flush()
+        
+        # 1回目が呼ばれたことを確認
+        assert mock_clean.call_count == 1
+        
+        # ロックが解放されているはずなので、2回目もトリガーできる
+        spot._trigger_auto_eviction()
+        spot.flush()
+        
+        # 2回目が呼ばれたことを確認（ロックが解放されていなければ 1 のままになる）
+        assert mock_clean.call_count == 2

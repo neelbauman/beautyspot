@@ -3,9 +3,7 @@
 import sqlite3
 import threading
 import time
-
 import pytest
-
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB, TaskDBBase
 from beautyspot.storage import LocalStorage
@@ -156,3 +154,54 @@ def test_sqlite_shutdown_waits_for_queue(tmp_path):
         ).fetchone()
         assert row is not None
         assert row[0] == "DIRECT_BLOB"
+
+
+def test_db_flush_waits_for_pending_writes(tmp_path):
+    """
+    flush() が、キューに積まれた重いタスクの完了を正しく待機することを検証する。
+    """
+    db = SQLiteTaskDB(tmp_path / "test.db")
+    db.init_schema()
+
+    # 意図的に時間がかかる書き込みタスクを投入
+    def _slow_op(conn):
+        time.sleep(0.5)
+
+    # 内部の _enqueue_write は完了を同期で待つため、今回はキューに直接タスクを入れます
+    from beautyspot.db import _WriteTask
+    import threading
+    
+    task = _WriteTask(fn=_slow_op, event=threading.Event())
+    db._write_queue.put(task)
+
+    start = time.monotonic()
+    # flush() は遅いタスクが終わるのを待つはず
+    success = db.flush(timeout=2.0)
+    elapsed = time.monotonic() - start
+
+    assert success is True
+    assert elapsed >= 0.5  # 少なくとも遅延させた分は待っていること
+
+def test_db_flush_timeout(tmp_path):
+    """
+    flush() がタイムアウト時に False を返し、ブロックを解除することを検証する。
+    """
+    db = SQLiteTaskDB(tmp_path / "test.db")
+    db.init_schema()
+
+    def _very_slow_op(conn):
+        time.sleep(2.0)
+
+    from beautyspot.db import _WriteTask
+    import threading
+    
+    task = _WriteTask(fn=_very_slow_op, event=threading.Event())
+    db._write_queue.put(task)
+
+    start = time.monotonic()
+    # 短いタイムアウトで flush
+    success = db.flush(timeout=0.2)
+    elapsed = time.monotonic() - start
+
+    assert success is False
+    assert elapsed < 1.0  # タイムアウトですぐに抜けていること
