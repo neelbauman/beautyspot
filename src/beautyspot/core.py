@@ -951,10 +951,24 @@ class Spot:
     def _notify_save_discarded(self, save_kwargs: dict) -> None:
         """シャットダウンにより破棄された保存の警告ログとコールバック通知。"""
         func_name = save_kwargs.get("func_name", "unknown")
-        logger.warning(
-            f"Background save for '{func_name}' was discarded: "
-            "background loop is shutting down."
+        
+        # ユーザーに解決策（with句の利用）を提示する親切なエラーメッセージ
+        msg = (
+            f"Background save for task '{func_name}' was discarded because the Spot instance "
+            "is being destroyed or shut down without waiting for completion. "
+            "To prevent data loss, always use the Spot instance as a context manager "
+            "(`with spot:`) or call `spot.shutdown(save_sync=True)` explicitly."
         )
+        
+        # 1. ロガーへの出力 (既存)
+        logger.warning(msg)
+        
+        # 2. ResourceWarning の発行 (新規追加)
+        # stacklevel=2 (または適宜調整) にして、ライブラリ内部ではなく
+        # ユーザーの呼び出し元のコードに近い場所を指し示すようにします。
+        warnings.warn(msg, ResourceWarning, stacklevel=2)
+
+        # 3. コールバック処理 (既存)
         if self.on_background_error:
             try:
                 context = SaveErrorContext(
@@ -967,13 +981,7 @@ class Spot:
                     expires_at=save_kwargs.get("expires_at"),
                     result=save_kwargs.get("result"),
                 )
-                self.on_background_error(
-                    RuntimeError(
-                        f"Background save for '{func_name}' was discarded "
-                        "because the background loop is shutting down."
-                    ),
-                    context,
-                )
+                self.on_background_error(RuntimeError(msg), context)
             except Exception as cb_err:
                 logger.error(
                     f"Error in 'on_background_error' callback: {cb_err}",
