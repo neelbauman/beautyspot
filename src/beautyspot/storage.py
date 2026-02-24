@@ -158,7 +158,7 @@ class LocalStorage(BlobStorageBase):
         # so a crash between write and rename never leaves a corrupt file.
         fd, temp_path_str = tempfile.mkstemp(dir=self.base_dir, suffix=".spot_tmp")
         try:
-            with os.fdopen(fd, "wb") as f:
+            with os.fdopen(fd, "wb", closefd=True) as f:
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
