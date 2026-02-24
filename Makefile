@@ -1,4 +1,4 @@
-.PHONY: help install test lint lint-fix format build docs-serve docs-deploy clean pypi-publish test-publish version release
+.PHONY: help install test lint lint-fix format build clean 
 
 # Gitタグからバージョンを取得（タグがない場合は開発版扱い）
 VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
@@ -28,15 +28,20 @@ build: clean test  ## パッケージをビルド（テスト後）
 	# hatch-vcs が自動的にGitタグからバージョンを埋め込みます
 	uv build
 
+clean:  ## 生成ファイルを削除
+	rm -rf dist/ .pytest_cache/ .ruff_cache/
+	find . -name '__pycache__' -exec rm -rf {} +
+
+
+.PHONY docs-serve docs-deploy
+
 docs-serve:  ## ドキュメントをローカルで確認
 	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs serve
 
 docs-deploy:  ## GitHub Pagesにデプロイ
 	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs gh-deploy
 
-clean:  ## 生成ファイルを削除
-	rm -rf dist/ .pytest_cache/ .ruff_cache/
-	find . -name '__pycache__' -exec rm -rf {} +
+.PHONY version pypi-publish test-publish release
 
 version:  ## 現在のバージョン（Gitタグ）を表示
 	@echo "Current version (from git): $(VERSION)"
@@ -69,7 +74,7 @@ release: pypi-publish  ## 完全リリース（PyPI公開→GitHubタグPush）
 
 # Makefile (追加案)
 
-.PHONY: audit visualize update-claude
+.PHONY: audit visualize 
 
 audit:  ## [Console] コードの複雑度と保守性をコンソール出力
 	@echo "=== Cyclomatic Complexity (Rank C+) ==="
@@ -98,6 +103,9 @@ visualize: ## [Image] 依存関係グラフのみ生成
 
 report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
+
+
+.PHONY update-claude
 
 update-claude:  ## CLAUDE.md の自動生成セクションを更新
 	uv run python tools/generate_claude_ref.py

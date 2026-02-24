@@ -30,6 +30,7 @@ class TaskRecord(TypedDict):
     result_type: str
     result_value: Optional[str]
     result_data: Optional[bytes]
+    expires_at: Optional[str]
 
 
 class TaskDBBase(ABC):
@@ -113,7 +114,7 @@ class SQLiteTaskDB(TaskDBBase):
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
         """
-        Thread-safe connection context manager.
+        Thread-safe connection context manager for write operations.
         Each call creates a new connection (one per operation), ensuring that
         concurrent callers from different threads never share a connection.
         Commits on success, rolls back on exception, and always closes.
@@ -125,6 +126,18 @@ class SQLiteTaskDB(TaskDBBase):
         except Exception:
             conn.rollback()
             raise
+        finally:
+            conn.close()
+
+    @contextmanager
+    def _read_connect(self) -> Iterator[sqlite3.Connection]:
+        """
+        Thread-safe connection context manager for read-only operations.
+        Skips commit/rollback since no data is modified.
+        """
+        conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+        try:
+            yield conn
         finally:
             conn.close()
 
@@ -163,7 +176,7 @@ class SQLiteTaskDB(TaskDBBase):
                 )
 
     def get(self, cache_key: str) -> Optional[TaskRecord]:
-        with self._connect() as conn:
+        with self._read_connect() as conn:
             # [MOD] Include expires_at in query
             row = conn.execute(
                 "SELECT result_type, result_value, result_data, expires_at FROM tasks WHERE cache_key=?",
@@ -188,11 +201,12 @@ class SQLiteTaskDB(TaskDBBase):
                     except (ValueError, TypeError):
                         pass  # Ignore parsing errors, treat as valid
 
-                return {
-                    "result_type": r_type,
-                    "result_value": r_val,
-                    "result_data": r_data,
-                }
+                return TaskRecord(
+                    result_type=r_type,
+                    result_value=r_val,
+                    result_data=r_data,
+                    expires_at=exp_str,
+                )
         return None
 
     def save(
@@ -236,12 +250,12 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return pd.DataFrame()
 
-        with self._connect() as conn:
+        with self._read_connect() as conn:
             query = """
-                SELECT 
-                    cache_key, func_name, input_id, version, result_type, 
-                    content_type, result_value, result_data, updated_at, expires_at 
-                FROM tasks 
+                SELECT
+                    cache_key, func_name, input_id, version, result_type,
+                    content_type, result_value, result_data, updated_at, expires_at
+                FROM tasks
                 ORDER BY updated_at DESC LIMIT ?
             """
             return pd.read_sql_query(query, conn, params=[limit])
@@ -283,7 +297,7 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return []
 
-        with self._connect() as conn:
+        with self._read_connect() as conn:
             if func_name:
                 cursor = conn.execute(
                     "SELECT cache_key, func_name, updated_at FROM tasks WHERE updated_at < ? AND func_name = ?",
@@ -311,7 +325,7 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return set()
 
-        with self._connect() as conn:
+        with self._read_connect() as conn:
             cursor = conn.execute(
                 "SELECT result_value FROM tasks WHERE result_type = 'FILE' AND result_value IS NOT NULL"
             )
@@ -322,10 +336,11 @@ class SQLiteTaskDB(TaskDBBase):
         if not os.path.exists(self.db_path):
             return []
 
-        with self._connect() as conn:
-            # プレフィックス検索 (LIMITをつけて大量取得を防止)
+        with self._read_connect() as conn:
+            # LIKE ワイルドカード文字をエスケープしてプレフィックス検索
+            escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             cursor = conn.execute(
-                "SELECT cache_key FROM tasks WHERE cache_key LIKE ? LIMIT 50",
-                (f"{prefix}%",),
+                "SELECT cache_key FROM tasks WHERE cache_key LIKE ? ESCAPE '\\' LIMIT 50",
+                (f"{escaped}%",),
             )
             return [row[0] for row in cursor.fetchall()]

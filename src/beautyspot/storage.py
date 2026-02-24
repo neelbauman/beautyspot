@@ -116,6 +116,14 @@ class BlobStorageBase(ABC):
         """
         pass
 
+    def prune_empty_dirs(self) -> int:
+        """
+        Remove empty directories left after blob deletion.
+        Returns the count of removed directories.
+        Default implementation is a no-op (e.g. for S3 which has no directories).
+        """
+        return 0
+
 
 class LocalStorage(BlobStorageBase):
     def __init__(self, base_dir: str | Path):

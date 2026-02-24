@@ -546,10 +546,10 @@ def clean_cmd(
         console=console,
     ) as progress:
         task = progress.add_task("Cleaning garbage...", total=len(orphans))
-        count, _ = service.clean_garbage(orphans=orphans)
+        _, deleted_orphans = service.clean_garbage(orphans=orphans)
         progress.update(task, completed=len(orphans))
 
-    console.print(f"[green]✓ Deleted {count} orphaned blob files.[/green]")
+    console.print(f"[green]✓ Deleted {deleted_orphans} orphaned blob files.[/green]")
 
 
 @app.command("gc")
@@ -759,8 +759,8 @@ def prune_cmd(
 
         orphans = service.scan_garbage()
         if orphans:
-            c, _ = service.clean_garbage(orphans)
-            console.print(f"[green]✓ Deleted {c} orphaned blob files.[/green]")
+            _, deleted_orphans = service.clean_garbage(orphans)
+            console.print(f"[green]✓ Deleted {deleted_orphans} orphaned blob files.[/green]")
         else:
             console.print("[green]✓ No orphaned blob files found.[/green]")
 

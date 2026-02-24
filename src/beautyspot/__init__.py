@@ -7,6 +7,7 @@ from typing import Optional, Callable
 from concurrent.futures import Executor
 
 from beautyspot.core import Spot as _Spot
+
 from beautyspot.types import (
     SaveErrorContext,
     PreExecuteContext,
@@ -116,10 +117,13 @@ def Spot(
         on_background_error=on_background_error,
     )
 
+# isinstance(spot, bs.SpotType) のための型エクスポート
+SpotType: type[_Spot] = _Spot
 
 __all__ = [
     # --- Core ---
     "Spot",
+    "SpotType",
     "KeyGen",
     "ContentType",
     "SaveErrorContext",

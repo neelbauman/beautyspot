@@ -6,20 +6,11 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
-
 # .environments
 .env
 
-# blobs
-blobs
-chat_logs/
-
-.pytest_cache
-
-# mkdocs
-site
+# Mkdocks-generated files
+site/
 
 # Generated version file
 src/beautyspot/_version.py

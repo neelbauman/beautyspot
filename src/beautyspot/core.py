@@ -69,9 +69,10 @@ def _shutdown_all_loops():
     """プロセス終了時に未完了のバックグラウンドタスクを安全にドレインする安全網。"""
     for loop in list(_active_loops):
         try:
-            # atexitのタイミングではプロセスが終了するため、wait=Trueで確実にデータを保存する
+            # atexitのタイミングでは確実にデータを保存するため、
+            # キャンセルではなく完了を待つ drain_and_join を使う。
             # ただし無制限に待たないようタイムアウトを設定
-            loop.stop(wait=True, timeout=5.0)
+            loop.drain_and_join(timeout=5.0)
         except Exception as e:
             logger.error(f"Error shutting down background loop during exit: {e}")
 
@@ -139,6 +140,47 @@ class _BackgroundLoop:
 
         # スレッドセーフにシャットダウンシーケンスを投入（メインスレッドは即座にリターン）
         self._loop.call_soon_threadsafe(_drain_and_stop)
+
+    def drain_and_join(self, timeout: float = 10.0) -> None:
+        """
+        未完了のタスクを**キャンセルせず完了まで待機**してからループを停止する。
+
+        プロセス終了時 (atexit) の安全網として使用する。
+        ``stop()`` と異なりタスクをキャンセルしないため、保存中のデータが
+        失われるリスクがない。タイムアウトを超えた場合のみ警告を出す。
+
+        Args:
+            timeout: スレッド終了待機の最大時間（秒）。
+        """
+        if self._stopped:
+            return
+        self._stopped = True
+
+        def _drain_and_stop():
+            tasks = [
+                t
+                for t in asyncio.all_tasks(self._loop)
+                if t is not asyncio.current_task()
+            ]
+
+            if not tasks:
+                self._loop.stop()
+                return
+
+            async def _wait_for_completion():
+                await asyncio.gather(*tasks, return_exceptions=True)
+                self._loop.stop()
+
+            self._loop.create_task(_wait_for_completion())
+
+        self._loop.call_soon_threadsafe(_drain_and_stop)
+
+        self._thread.join(timeout=timeout)
+        if self._thread.is_alive():
+            logger.warning(
+                f"Background loop thread did not terminate within {timeout} seconds. "
+                "Some pending save tasks may not have completed."
+            )
 
     def stop(self, wait: bool = True, timeout: float = 10.0) -> None:
         """
@@ -310,6 +352,10 @@ class Spot:
         self._active_futures: set = set()
         self._futures_lock = threading.Lock()
 
+        # MaintenanceService の遅延初期化用
+        self._maintenance_service: MaintenanceService | None = None
+        self._maintenance_lock = threading.Lock()
+
     def __enter__(self) -> "Spot":
         return self
 
@@ -338,12 +384,15 @@ class Spot:
         MaintenanceService を遅延評価で生成・取得します。
         Spot初期化時の循環参照や不要なインポートを防ぎます。
         """
-        if getattr(self, "_maintenance_service", None) is None:
-            self._maintenance_service = MaintenanceService(
-                db=self.db,
-                storage=self.storage_backend,
-                serializer=self.serializer,
-            )
+        if self._maintenance_service is None:
+            with self._maintenance_lock:
+                if self._maintenance_service is None:
+                    self._maintenance_service = MaintenanceService(
+                        db=self.db,
+                        storage=self.storage_backend,
+                        serializer=self.serializer,
+                    )
+        assert self._maintenance_service is not None
         return self._maintenance_service
 
     @staticmethod

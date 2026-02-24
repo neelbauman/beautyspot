@@ -162,22 +162,16 @@ class MaintenanceService:
         return count
 
     def scan_garbage(self) -> list[str]:
-        refs = self.db.get_blob_refs()
-        if refs is None:
+        ref_filenames = self.db.get_blob_refs()
+        if ref_filenames is None:
             return []
 
-        # DB参照をファイル名のみのセットに変換 (S3/Local両対応)
-        ref_filenames = set()
-        for r in refs:
-            if r:
-                name = r.replace("\\", "/").split("/")[-1]
-                ref_filenames.add(name)
-
+        # get_blob_refs() はファイル名のみ (例: "abc.bin") を返す。
+        # list_keys() はサブディレクトリを含むパス ("subdir/abc.bin") を
+        # 返す可能性があるため、ファイル名部分を抽出して比較する。
         orphans = []
         for location in self.storage.list_keys():
-            # location は "subdir/abc.bin" の可能性がある
             filename = location.replace("\\", "/").split("/")[-1]
-
             if filename not in ref_filenames:
                 orphans.append(location)
 
@@ -227,14 +221,13 @@ class MaintenanceService:
                 if deleted_orphan_count > 0:
                     logger.info(f"Deleted {deleted_orphan_count} orphaned blob files.")
 
-            # Phase 3: 空ディレクトリ掃除 (LocalStorage等の特定のバックエンドのみ)
-            if hasattr(self.storage, "prune_empty_dirs"):
-                try:
-                    dir_count = self.storage.prune_empty_dirs()  # type: ignore
-                    if dir_count > 0:
-                        logger.info(f"Removed {dir_count} empty directories.")
-                except Exception as e:
-                    logger.warning(f"Failed to prune empty directories: {e}")
+            # Phase 3: 空ディレクトリ掃除
+            try:
+                dir_count = self.storage.prune_empty_dirs()
+                if dir_count > 0:
+                    logger.info(f"Removed {dir_count} empty directories.")
+            except Exception as e:
+                logger.warning(f"Failed to prune empty directories: {e}")
 
             return deleted_expired_count, deleted_orphan_count
 
