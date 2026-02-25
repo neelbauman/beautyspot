@@ -37,10 +37,10 @@ _FOREVER = _ForeverSentinel()
 
 
 # parse_retention の受け取り可能な型 (FOREVER sentinel を含む)
-RetentionSpec = Union[str, timedelta, int, _ForeverSentinel, None]
+RetentionSpec = Union[str, timedelta, int, float, _ForeverSentinel, None]
 
 
-def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedelta]:
+def parse_retention(value: Union[str, timedelta, int, float, None]) -> Optional[timedelta]:
     """
     Helper function to normalize retention specification to timedelta.
     None means 'indefinite' (defers to lifecycle policy).
@@ -58,10 +58,10 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
             raise ValidationError(f"Retention timedelta must be positive, got {value}.")
         return value
 
-    if isinstance(value, int):
+    if isinstance(value, (int, float)):
         if value <= 0:
             raise ValidationError(
-                f"Retention must be a positive integer (seconds), got {value}."
+                f"Retention must be a positive number (seconds), got {value}."
             )
         return timedelta(seconds=value)
 
@@ -85,7 +85,7 @@ def parse_retention(value: Union[str, timedelta, int, None]) -> Optional[timedel
             return timedelta(minutes=amount)
 
     raise ValidationError(
-        f"Retention must be str, int, or timedelta, got {type(value)}"
+        f"Retention must be str, int, float, or timedelta, got {type(value)}"
     )
 
 

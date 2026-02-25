@@ -21,6 +21,10 @@ class TestParseRetention:
         """int は秒数として解釈されるべき"""
         assert parse_retention(60) == timedelta(seconds=60)
 
+    def test_parse_float(self):
+        """float は秒数として解釈されるべき"""
+        assert parse_retention(3600.5) == timedelta(seconds=3600.5)
+
     @pytest.mark.parametrize(
         "input_str, expected",
         [

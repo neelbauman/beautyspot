@@ -493,15 +493,15 @@ class Spot:
         if random.random() >= self.eviction_rate:
             return
 
-        # 2. 時間ベースのガード (最低 60秒間隔)
-        # 非常に高い頻度で呼び出される場合、確率チェックを抜けても
-        # スレッドプールのスケジュール処理自体が負荷になるのを防ぐ。
-        now = time.monotonic()
-        if now - self._last_eviction_time < 60.0:
-            return
-
         # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
         if not self._eviction_lock.acquire(blocking=False):
+            return
+
+        # 2. 時間ベースのガード (最低 60秒間隔)
+        # PEP 703 (free-threading) のデータ競合を防ぐためロック内で読み書きを統一。
+        now = time.monotonic()
+        if now - self._last_eviction_time < 60.0:
+            self._eviction_lock.release()
             return
 
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
@@ -823,11 +823,7 @@ class Spot:
                     )
                     return val
                 else:
-                    try:
-                        new_exc = type(val)(*val.args)
-                    except Exception:
-                        new_exc = RuntimeError(f"Error occurred in another thread during cache evaluation: {repr(val)}")
-                    raise new_exc from val
+                    raise val
 
             # 再度キャッシュをチェック
             cached = self._check_cache_sync(ck, serializer)
@@ -964,36 +960,42 @@ class Spot:
         hook_kwargs = dict(kwargs) if hooks else kwargs
 
         # === 1. フック: pre_execute ===
-        self._dispatch_hooks(
-            hooks,
-            "pre_execute",
-            PreExecuteContext(
-                func_name=func.__name__,
-                input_id=str(iid),
-                cache_key=ck,
-                args=args,
-                kwargs=hook_kwargs,
-            ),
-        )
+        if hooks:
+            await loop.run_in_executor(
+                executor,
+                self._dispatch_hooks,
+                hooks,
+                "pre_execute",
+                PreExecuteContext(
+                    func_name=func.__name__,
+                    input_id=str(iid),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=hook_kwargs,
+                ),
+            )
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
             executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
-            self._dispatch_hooks(
-                hooks,
-                "on_cache_hit",
-                CacheHitContext(
-                    func_name=func.__name__,
-                    input_id=str(iid),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=hook_kwargs,
-                    result=cached,
-                    version=s_ver,
-                ),
-            )
+            if hooks:
+                await loop.run_in_executor(
+                    executor,
+                    self._dispatch_hooks,
+                    hooks,
+                    "on_cache_hit",
+                    CacheHitContext(
+                        func_name=func.__name__,
+                        input_id=str(iid),
+                        cache_key=ck,
+                        args=args,
+                        kwargs=hook_kwargs,
+                        result=cached,
+                        version=s_ver,
+                    ),
+                )
             return cached
 
         # === 2.5 Thundering Herd Protection ===
@@ -1041,7 +1043,35 @@ class Spot:
 
             if wait_box or fut is not None:
                 if success:
-                    self._dispatch_hooks(
+                    if hooks:
+                        await loop.run_in_executor(
+                            executor,
+                            self._dispatch_hooks,
+                            hooks,
+                            "on_cache_hit",
+                            CacheHitContext(
+                                func_name=func.__name__,
+                                input_id=str(iid),
+                                cache_key=ck,
+                                args=args,
+                                kwargs=hook_kwargs,
+                                result=val,
+                                version=s_ver,
+                            ),
+                        )
+                    return val
+                else:
+                    raise val
+
+            # 再度キャッシュをチェック
+            cached = await loop.run_in_executor(
+                executor, self._check_cache_sync, ck, serializer
+            )
+            if cached is not CACHE_MISS:
+                if hooks:
+                    await loop.run_in_executor(
+                        executor,
+                        self._dispatch_hooks,
                         hooks,
                         "on_cache_hit",
                         CacheHitContext(
@@ -1050,36 +1080,10 @@ class Spot:
                             cache_key=ck,
                             args=args,
                             kwargs=hook_kwargs,
-                            result=val,
+                            result=cached,
                             version=s_ver,
                         ),
                     )
-                    return val
-                else:
-                    try:
-                        new_exc = type(val)(*val.args)
-                    except Exception:
-                        new_exc = RuntimeError(f"Error occurred in another thread during cache evaluation: {repr(val)}")
-                    raise new_exc from val
-
-            # 再度キャッシュをチェック
-            cached = await loop.run_in_executor(
-                executor, self._check_cache_sync, ck, serializer
-            )
-            if cached is not CACHE_MISS:
-                self._dispatch_hooks(
-                    hooks,
-                    "on_cache_hit",
-                    CacheHitContext(
-                        func_name=func.__name__,
-                        input_id=str(iid),
-                        cache_key=ck,
-                        args=args,
-                        kwargs=hook_kwargs,
-                        result=cached,
-                        version=s_ver,
-                    ),
-                )
                 return cached
 
         try:
@@ -1087,19 +1091,22 @@ class Spot:
             res = await func(*args, **kwargs)
 
             # === 4. フック: on_cache_miss ===
-            self._dispatch_hooks(
-                hooks,
-                "on_cache_miss",
-                CacheMissContext(
-                    func_name=func.__name__,
-                    input_id=str(iid),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=hook_kwargs,
-                    result=res,
-                    version=s_ver,
-                ),
-            )
+            if hooks:
+                await loop.run_in_executor(
+                    executor,
+                    self._dispatch_hooks,
+                    hooks,
+                    "on_cache_miss",
+                    CacheMissContext(
+                        func_name=func.__name__,
+                        input_id=str(iid),
+                        cache_key=ck,
+                        args=args,
+                        kwargs=hook_kwargs,
+                        result=res,
+                        version=s_ver,
+                    ),
+                )
             
             # 結果を待機中の他のスレッドに共有する
             result_box.append((True, res))
@@ -1128,7 +1135,7 @@ class Spot:
                     # 返却される concurrent.futures.Future を await することで
                     # イベントループをブロックせず、スレッドプールの占有も避ける
                     bg_loop, exec_pool = self._ensure_bg_resources()
-                    coro = self._save_result_async(executor=exec_pool, **save_kwargs)
+                    coro = self._save_result_async(executor=exec_pool, safe=False, **save_kwargs)
                     try:
                         future = bg_loop.submit(coro)
                         if future is None:
@@ -1225,6 +1232,12 @@ class Spot:
                         f"Failed to deserialize FILE blob for `{cache_key}`: {e}"
                     )
                     return CACHE_MISS
+            
+            else:
+                logger.warning(
+                    f"Unknown result_type '{r_type}' for cache_key `{cache_key}`. Treating as CACHE_MISS."
+                )
+                return CACHE_MISS
 
         return CACHE_MISS
 
@@ -1305,17 +1318,20 @@ class Spot:
         )
         self._invoke_error_callback(err, save_kwargs)
 
-    async def _save_result_async(self, /, executor: Executor, **kwargs) -> None:
+    async def _save_result_async(self, /, executor: Executor, safe: bool = True, **kwargs) -> None:
         """バックグラウンドループで実行される保存コルーチン。
 
         Args:
             executor: 呼び出し元 (_submit_background_save) で確保済みの Executor。
                       コルーチン内で _ensure_bg_resources() を再度呼ぶことを避け、
                       シャットダウン中の RuntimeError を防止する。
+            safe: True の場合 _save_result_safe を使用し、例外をログ出力して握り潰す。
+                  False の場合 _save_result_sync を使用し、例外を呼び出し元に伝播させる。
         """
         loop = asyncio.get_running_loop()
+        target_func = self._save_result_safe if safe else self._save_result_sync
         await loop.run_in_executor(
-            executor, functools.partial(self._save_result_safe, **kwargs)
+            executor, functools.partial(target_func, **kwargs)
         )
 
     # --- 安全なバックグラウンド実行用ラッパー ---

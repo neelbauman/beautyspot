@@ -35,20 +35,6 @@ service = MaintenanceService.from_path(DB_PATH)
 atexit.register(service.close)
 
 
-# --- Helper: Mermaid Renderer ---
-def render_mermaid(code: str, height: int = 500):
-    html_code = f"""
-    <div class="mermaid" style="display: flex; justify-content: center;">
-        {html.escape(code)}
-    </div>
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
-    </script>
-    """
-    components.html(html_code, height=height, scrolling=True)
-
-
 st.set_page_config(page_title="beautyspot Dashboard", layout="wide", page_icon="🌑")
 st.title("🌑 beautyspot Dashboard")
 st.caption(f"Database: `{DB_PATH}`")
@@ -170,9 +156,7 @@ if selected_key:
                         st.code(data)
 
                 elif c_type == ContentType.MERMAID:
-                    render_mermaid(data)
-                    with st.expander("View Source"):
-                        st.code(data, language="mermaid")
+                    st.code(data, language="mermaid")
 
                 elif c_type == ContentType.PNG or c_type == ContentType.JPEG:
                     st.image(data)
