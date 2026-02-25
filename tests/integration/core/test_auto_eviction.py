@@ -6,17 +6,17 @@ from unittest.mock import patch
 import beautyspot as bs
 
 
-def test_auto_eviction_lock_released_on_future_cancel(tmp_path):
+def test_auto_eviction_flag_cleared_on_future_cancel(tmp_path):
     """
     バックグラウンドに投入されたエビクションタスクが、
     イベントループのシャットダウン等によりキャンセルされた場合でも、
-    確実にロック（_eviction_lock）が解放されることを検証する。
+    確実に _eviction_running フラグがリセットされることを検証する。
     """
     # 確実にエビクションがトリガーされるよう eviction_rate=1.0 に設定
     spot = bs.Spot("test_app", eviction_rate=1.0)
 
-    # 実行前の状態: ロックは解放されている
-    assert not spot._eviction_lock.locked()
+    # 実行前の状態: フラグはリセットされている
+    assert not spot._eviction_running
 
     # 内部リソースを初期化して取得
     bg_loop, _ = spot._ensure_bg_resources()
@@ -35,20 +35,20 @@ def test_auto_eviction_lock_released_on_future_cancel(tmp_path):
         spot._trigger_auto_eviction()
 
         # タスクが submit された直後。
-        # まだ Future は完了していないため、多重起動防止ロックは「取得中」になっているべき
-        assert spot._eviction_lock.locked() is True
+        # まだ Future は完了していないため、多重起動防止フラグは True になっているべき
+        assert spot._eviction_running is True
 
         # エッジケースのシミュレート: イベントループ停止により Future がキャンセルされた
         mock_future.cancel()
 
-        # cancel() によって add_done_callback が発火し、ロックが解放されているはず
-        assert spot._eviction_lock.locked() is False
+        # cancel() によって add_done_callback が発火し、フラグがリセットされているはず
+        assert spot._eviction_running is False
 
 
-def test_auto_eviction_lock_released_on_task_rejection(tmp_path):
+def test_auto_eviction_flag_cleared_on_task_rejection(tmp_path):
     """
     シャットダウン中などの理由で bg_loop.submit がタスクを拒否し
-    None を返した場合に、直ちにロックが解放されることを検証する。
+    None を返した場合に、直ちにフラグがリセットされることを検証する。
     """
     spot = bs.Spot("test_app", eviction_rate=1.0)
     bg_loop, _ = spot._ensure_bg_resources()
@@ -62,5 +62,5 @@ def test_auto_eviction_lock_released_on_task_rejection(tmp_path):
     with patch.object(bg_loop, "submit", side_effect=mock_submit_reject):
         spot._trigger_auto_eviction()
 
-        # スケジュール自体に失敗したので、ロックは関数内で即座に解放されていなければならない
-        assert spot._eviction_lock.locked() is False
+        # スケジュール自体に失敗したので、フラグは関数内で即座にリセットされていなければならない
+        assert spot._eviction_running is False

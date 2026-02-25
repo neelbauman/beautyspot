@@ -95,7 +95,7 @@ def Spot(
     # SpotOptionsの型定義に合わせてパッキングしますが、
     # core.Spot が受け取らないレガシー引数はここでは渡さないように注意します。
 
-    return _Spot(
+    spot = _Spot(
         name=name,
         db=resolved_db,
         serializer=resolved_ser,
@@ -110,6 +110,13 @@ def Spot(
         drain_poll_interval=drain_poll_interval,
         on_background_error=on_background_error,
     )
+
+    # ファクトリ関数で内部的に DB を生成した場合のみ、GC 時にシャットダウンする。
+    # ユーザーが明示的に db= を渡した場合はライフサイクルを呼び出し元に委ねる。
+    if db is None:
+        spot._owns_db = True
+
+    return spot
 
 
 # isinstance(spot, bs.SpotType) のための型エクスポート

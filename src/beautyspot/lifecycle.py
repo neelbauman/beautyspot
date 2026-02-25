@@ -2,6 +2,7 @@
 
 import fnmatch
 import re
+import threading
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Optional, List, Union
@@ -20,10 +21,15 @@ class _ForeverSentinel:
     """
 
     _instance: "_ForeverSentinel | None" = None
+    _lock = threading.Lock()
 
     def __new__(cls) -> "_ForeverSentinel":
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                # ダブルチェック: PEP 703 (free-threading) 環境で
+                # 複数スレッドが同時に __new__ を呼んだ場合の重複生成を防止。
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
 
     def __repr__(self) -> str:

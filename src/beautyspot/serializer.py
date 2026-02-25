@@ -119,14 +119,21 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
             # 現在の辞書のコピーを作成し、新しい要素を追加
             new_encoders = self._encoders.copy()
             new_decoders = self._decoders.copy()
-            
+
             new_encoders[type_class] = (code, encoder)
             new_decoders[code] = decoder
-            
-            # 参照をアトミックに差し替え
+
+            # PEP 703 (free-threading) 対応: 世代カウンタを参照差し替えの**前**に
+            # インクリメントする。リーダーが新しい世代番号を見た時点で古いキャッシュを
+            # 破棄するが、参照はまだ旧レジストリを指している可能性がある。
+            # この順序であれば、リーダーは旧レジストリで安全に動作し、
+            # 次回のアクセスで新レジストリを取得する。
+            # 逆順（差し替え→インクリメント）だと、リーダーが新世代番号を見て
+            # キャッシュを破棄した後、旧レジストリを参照して新しい型を見つけられない
+            # 問題が生じる。
+            self._registry_generation += 1
             self._encoders = new_encoders
             self._decoders = new_decoders
-            self._registry_generation += 1
 
     # src/beautyspot/serializer.py
 

@@ -240,9 +240,14 @@ class SQLiteTaskDB(TaskDBBase):
         """
         if self._shutdown_requested:
             raise RuntimeError("SQLiteTaskDB is shutting down.")
-        
+
         wrapper = getattr(self._local, "read_conn_wrapper", None)
         if wrapper is None or wrapper._closed:
+            # シャットダウン後に新しい接続がリークするのを防ぐため再チェック。
+            # 最初のチェック通過後に別スレッドが shutdown() を呼び出し、
+            # 全ラッパーをクローズした場合にここに到達する。
+            if self._shutdown_requested:
+                raise RuntimeError("SQLiteTaskDB is shutting down.")
             conn = sqlite3.connect(self.db_path, timeout=self.timeout, check_same_thread=False)
             try:
                 conn.execute("PRAGMA query_only = ON;")
@@ -251,6 +256,11 @@ class SQLiteTaskDB(TaskDBBase):
                 raise
             wrapper = _ReadConnWrapper(conn)
             with self._read_conns_lock:
+                # ロック内で再度チェックし、shutdown() による _read_wrappers.clear() と
+                # 新規追加の間の競合を完全に排除する。
+                if self._shutdown_requested:
+                    conn.close()
+                    raise RuntimeError("SQLiteTaskDB is shutting down.")
                 self._read_wrappers.add(wrapper)
             self._local.read_conn_wrapper = wrapper
         

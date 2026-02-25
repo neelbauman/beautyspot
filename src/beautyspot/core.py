@@ -282,6 +282,10 @@ class Spot:
 
         self._bg_init_lock = threading.Lock()
         self._shutdown_called = False
+        # True の場合、GC finalizer で db.shutdown() を呼ぶ。
+        # ファクトリ関数 (__init__.py:Spot()) で内部的に DB を生成した場合にのみ設定される。
+        # DI で外部から注入された DB のライフサイクルは呼び出し元が管理する。
+        self._owns_db = False
 
         # 実行中のタスクを管理するセット (ロックで保護)
         self._active_futures: set = set()
@@ -290,7 +294,11 @@ class Spot:
         # MaintenanceService の遅延初期化用
         self._maintenance_service: MaintenanceService | None = None
         self._maintenance_lock = threading.Lock()
-        self._eviction_lock = threading.Lock()
+        # auto-eviction の多重起動防止。threading.Lock を使わず
+        # threading.Event ベースのフラグで管理し、異スレッドからの
+        # ロック解放パターン（デバッグ困難・将来の互換性リスク）を回避する。
+        self._eviction_guard_lock = threading.Lock()
+        self._eviction_running = False
         self._last_eviction_time = 0.0
 
         # サンダリングハード対策: 同一キーの並行実行を直列化する
@@ -329,7 +337,8 @@ class Spot:
         MaintenanceService を遅延評価で生成・取得します。
         Spot初期化時の循環参照や不要なインポートを防ぎます。
         """
-        if self._maintenance_service is None:
+        svc = self._maintenance_service
+        if svc is None:
             with self._maintenance_lock:
                 if self._maintenance_service is None:
                     self._maintenance_service = MaintenanceService(
@@ -337,8 +346,9 @@ class Spot:
                         storage=self.storage_backend,
                         serializer=self.serializer,
                     )
-        assert self._maintenance_service is not None
-        return self._maintenance_service
+                svc = self._maintenance_service
+        assert svc is not None
+        return svc
 
     def _ensure_bg_resources(self) -> tuple[_BackgroundLoop, Executor]:
         """バックグラウンドリソースを遅延初期化し、(bg_loop, executor) を返す。
@@ -347,11 +357,18 @@ class Spot:
         self._save_sync=True で save_sync=False を一度も使わないユーザーには
         スレッドやイベントループを一切作らない。
 
+        Note:
+            PEP 703 (free-threading) 対応: ロック外の fast-path チェックは
+            ローカル変数にキャプチャし、同一スナップショットを参照する。
+            GIL なし環境での参照の可視性問題を防止する。
+
         Raises:
             RuntimeError: shutdown() が既に呼ばれている場合。
         """
-        if self._bg_loop is not None and self._executor is not None:
-            return self._bg_loop, self._executor
+        # ローカル変数にキャプチャし、GILなし環境での参照の一貫性を保証する。
+        bg, ex = self._bg_loop, self._executor
+        if bg is not None and ex is not None:
+            return bg, ex
 
         with self._bg_init_lock:
             if self._shutdown_called:
@@ -372,16 +389,25 @@ class Spot:
                         self._bg_loop,
                         self._executor,
                         self.db,
+                        self._owns_db,
                     )
             return self._bg_loop, self._executor
 
     @staticmethod
     def _shutdown_resources(
-        bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase
+        bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase,
+        owns_db: bool,
     ) -> None:
-        """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
+        """GC finalizer 用: リソースを即座に解放する (save_sync=False)。
+
+        owns_db が True の場合のみ db.shutdown(wait=False) を呼び出し、
+        ライタースレッドに停止を通知する。DI で外部から注入された DB は
+        呼び出し元がライフサイクルを管理する責務を持つため、シャットダウンしない。
+        """
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False, cancel_futures=True)
+        if owns_db:
+            db.shutdown(wait=False)
 
     def shutdown(self, save_sync: bool = True):
         """バックグラウンド IO を停止する。
@@ -467,11 +493,11 @@ class Spot:
         の設計思想に基づいています。そのため、スケジュールの失敗やバックグラウンド
         実行中のエラーはログに記録されるのみで、呼び出し元には伝播（raise）しません。
 
-        スレッドセーフティとデッドロック防止:
-            多重起動を防ぐため、ノンブロッキングロック (`_eviction_lock`) を使用します。
-            タスクのスケジュールに失敗した場合、あるいはタスクが完了・失敗・キャンセル
-            された場合のいずれにおいても、Futureのコールバックを用いて確実にロックを解放し、
-            次回以降のエビクションがデッドロックするのを防ぎます。
+        スレッドセーフティ:
+            多重起動を防ぐため、`_eviction_guard_lock` で保護された
+            `_eviction_running` フラグを使用します。
+            フラグの設定・解除は同一のロック内で行われ、異なるスレッドからの
+            ロック解放パターン（デバッグ困難・互換性リスク）を回避します。
         """
         if self.eviction_rate <= 0.0:
             return
@@ -480,16 +506,18 @@ class Spot:
         if random.random() >= self.eviction_rate:
             return
 
-        # 非ブロッキングでロック取得を試みる。取得できなければ既に実行中なのでスキップ。
-        if not self._eviction_lock.acquire(blocking=False):
-            return
+        # ガードロック内でフラグを確認・設定する。
+        # ロックの取得→解放は同一スレッド内で完結する。
+        with self._eviction_guard_lock:
+            if self._eviction_running:
+                return
 
-        # 2. 時間ベースのガード (最低 60秒間隔)
-        # PEP 703 (free-threading) のデータ競合を防ぐためロック内で読み書きを統一。
-        now = time.monotonic()
-        if now - self._last_eviction_time < 60.0:
-            self._eviction_lock.release()
-            return
+            # 2. 時間ベースのガード (最低 60秒間隔)
+            now = time.monotonic()
+            if now - self._last_eviction_time < 60.0:
+                return
+
+            self._eviction_running = True
 
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
 
@@ -505,6 +533,12 @@ class Spot:
                     f"Auto-eviction failed during background execution: {e}",
                     exc_info=True,
                 )
+
+        def _clear_eviction_flag():
+            """エビクション完了後にフラグをリセットする（同一ロック内で完結）。"""
+            with self._eviction_guard_lock:
+                self._last_eviction_time = time.monotonic()
+                self._eviction_running = False
 
         # スケジュールフェーズの保護
         is_scheduled = False
@@ -534,10 +568,8 @@ class Spot:
             else:
                 self._track_future(future)
 
-                # タスクが完了・失敗・キャンセルされた際に確実にロックを解放する
                 def _on_eviction_done(fut):
-                    self._last_eviction_time = time.monotonic()
-                    self._eviction_lock.release()
+                    _clear_eviction_flag()
                     try:
                         exc = fut.exception()
                         if exc:
@@ -553,9 +585,9 @@ class Spot:
             logger.warning(f"Failed to schedule auto-eviction task: {e}")
 
         finally:
-            # スケジュールに至らなかった場合のみ、ここで直ちに解放する
+            # スケジュールに至らなかった場合のみ、ここで直ちにフラグをリセットする
             if not is_scheduled:
-                self._eviction_lock.release()
+                _clear_eviction_flag()
 
     def _resolve_key_fn(
         self,
@@ -774,6 +806,8 @@ class Spot:
             return cached
 
         # === 2.5 Thundering Herd Protection ===
+        _HERD_POLL = 5.0
+        _HERD_TIMEOUT = 300.0  # 5分: 全体のタイムアウト
         event = None
         result_box = []
         while True:
@@ -788,9 +822,15 @@ class Spot:
 
             # Bug Fix (Bug3): タイムアウトなし wait() は実行者スレッドが event.set() を
             # 呼ばなかった場合（稀な異常終了）に永久ブロックする。
-            # 5秒ポーリングで定期的にウェイクアップし、永久ブロックを防止する。
-            while not wait_event.wait(timeout=5.0):
-                pass
+            # 5秒ポーリングで定期的にウェイクアップし、全体タイムアウトで打ち切る。
+            herd_deadline = time.monotonic() + _HERD_TIMEOUT
+            while not wait_event.wait(timeout=_HERD_POLL):
+                if time.monotonic() >= herd_deadline:
+                    logger.warning(
+                        f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                        f"for cache_key={ck!r}. Falling back to re-execution."
+                    )
+                    break
 
             if wait_box:
                 success, val = wait_box[0]
@@ -986,6 +1026,8 @@ class Spot:
             return cached
 
         # === 2.5 Thundering Herd Protection ===
+        _HERD_POLL = 5.0
+        _HERD_TIMEOUT = 300.0  # 5分: 全体のタイムアウト
         event = None
         result_box = []
         while True:
@@ -1007,8 +1049,17 @@ class Spot:
 
             if fut is not None:
                 try:
-                    val = await fut
+                    val = await asyncio.wait_for(
+                        asyncio.shield(fut), timeout=_HERD_TIMEOUT
+                    )
                     success = True
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                        f"for cache_key={ck!r}. Falling back to re-execution."
+                    )
+                    # タイムアウト: ループ先頭に戻り自分が実行者になることを試みる
+                    continue
                 except Exception as e:
                     val = e
                     success = False
@@ -1018,11 +1069,21 @@ class Spot:
                 else:
                     # 原理的にここには来ないはずだがフォールバック
                     # Bug Fix (Bug3): タイムアウトなし wait はスレッドプールワーカーを
-                    # 無期限に占有する。5秒ポーリングで永久ブロックを防止する。
+                    # 無期限に占有する。ポーリング+全体タイムアウトで打ち切る。
+                    herd_deadline = time.monotonic() + _HERD_TIMEOUT
+                    timed_out = False
                     while not await loop.run_in_executor(
-                        None, functools.partial(wait_event.wait, 5.0)
+                        None, functools.partial(wait_event.wait, _HERD_POLL)
                     ):
-                        pass
+                        if time.monotonic() >= herd_deadline:
+                            logger.warning(
+                                f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                                f"for cache_key={ck!r}. Falling back to re-execution."
+                            )
+                            timed_out = True
+                            break
+                    if timed_out:
+                        continue
                     if wait_box:
                         success, val = wait_box[0]
                     else:
