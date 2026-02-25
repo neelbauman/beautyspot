@@ -82,6 +82,16 @@ class _ExecutionContext(NamedTuple):
     hook_kwargs: dict
 
 
+class _HerdWaitResult(NamedTuple):
+    """Thundering Herd 待機フェーズの結果。"""
+
+    is_executor: bool  # True: 自分が実行者になった
+    result: Any  # is_executor=False のときの結果 or 例外
+    event: threading.Event | None  # is_executor=True のときのイベント
+    result_box: list  # is_executor=True のときの共有リスト
+    is_error: bool  # result が例外の場合 True
+
+
 class _BackgroundLoop:
     """
     バックグラウンドで非同期IOタスクを処理するイベントループ。
@@ -725,6 +735,21 @@ class Spot:
                     exc_info=True,
                 )
 
+    async def _dispatch_hooks_async(
+        self,
+        hooks: Optional[Sequence[HookBase]],
+        method_name: str,
+        context: Any,
+        loop: asyncio.AbstractEventLoop,
+        executor: Executor,
+    ) -> None:
+        """async パスでフックを executor 上で安全にディスパッチする。"""
+        if not hooks:
+            return
+        await loop.run_in_executor(
+            executor, self._dispatch_hooks, hooks, method_name, context
+        )
+
     # --- Core Logic (Sync) ---
     def _resolve_settings(
         self,
@@ -939,6 +964,163 @@ class Spot:
                                 fut.set_exception, wrapped
                             )
 
+    # ------------------------------------------------------------------
+    # Thundering Herd Protection helpers
+    # ------------------------------------------------------------------
+
+    def _wait_herd_sync(
+        self,
+        cache_key: str,
+        serializer: Optional[SerializerProtocol],
+        hooks: Optional[Sequence[HookBase]],
+        func_name: str,
+        input_id: str,
+        args: tuple,
+        hook_kwargs: dict,
+        version: str | None,
+    ) -> _HerdWaitResult:
+        """sync パスの Thundering Herd 待機ループ。_HerdWaitResult を返す。"""
+        while True:
+            with self._inflight_lock:
+                if cache_key not in self._inflight:
+                    event = threading.Event()
+                    result_box: list = []
+                    self._inflight[cache_key] = (event, [], result_box)
+                    return _HerdWaitResult(
+                        is_executor=True,
+                        result=None,
+                        event=event,
+                        result_box=result_box,
+                        is_error=False,
+                    )
+                wait_event, _, wait_box = self._inflight[cache_key]
+
+            herd_deadline = time.monotonic() + self._HERD_TIMEOUT
+            while not wait_event.wait(timeout=self._HERD_POLL):
+                if time.monotonic() >= herd_deadline:
+                    logger.warning(
+                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
+                        f"for cache_key={cache_key!r}. Falling back to re-execution."
+                    )
+                    break
+
+            if wait_box:
+                success, val = wait_box[0]
+                return _HerdWaitResult(
+                    is_executor=False,
+                    result=val,
+                    event=None,
+                    result_box=[],
+                    is_error=not success,
+                )
+
+            cached = self._check_cache_sync(cache_key, serializer)
+            if cached is not CACHE_MISS:
+                return _HerdWaitResult(
+                    is_executor=False,
+                    result=cached,
+                    event=None,
+                    result_box=[],
+                    is_error=False,
+                )
+            # キャッシュがまだない場合はループして自分が実行者になることを試みる
+
+    async def _await_herd_signal_async(
+        self,
+        fut: asyncio.Future | None,
+        wait_event: threading.Event,
+        wait_box: list,
+        cache_key: str,
+        loop: asyncio.AbstractEventLoop,
+    ) -> tuple[bool, Any] | None:
+        """async herd 待機の3パスを集約。結果 (success, val) を返す。None はタイムアウト。"""
+        if fut is not None:
+            try:
+                val = await asyncio.wait_for(
+                    asyncio.shield(fut), timeout=self._HERD_TIMEOUT
+                )
+                return (True, val)
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
+                    f"for cache_key={cache_key!r}. Falling back to re-execution."
+                )
+                return None
+            except Exception as e:
+                return (False, e)
+
+        if wait_box:
+            return wait_box[0]
+
+        # フォールバック: Event ベースのポーリング
+        herd_deadline = time.monotonic() + self._HERD_TIMEOUT
+        while not await loop.run_in_executor(
+            None, functools.partial(wait_event.wait, self._HERD_POLL)
+        ):
+            if time.monotonic() >= herd_deadline:
+                logger.warning(
+                    f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
+                    f"for cache_key={cache_key!r}. Falling back to re-execution."
+                )
+                return None
+        if wait_box:
+            return wait_box[0]
+        return None
+
+    async def _wait_herd_async(
+        self,
+        cache_key: str,
+        serializer: Optional[SerializerProtocol],
+        loop: asyncio.AbstractEventLoop,
+        executor: Executor,
+    ) -> _HerdWaitResult:
+        """async パスの Thundering Herd 待機ループ。_HerdWaitResult を返す。"""
+        while True:
+            fut = None
+            with self._inflight_lock:
+                if cache_key not in self._inflight:
+                    event = threading.Event()
+                    result_box: list = []
+                    self._inflight[cache_key] = (event, [], result_box)
+                    return _HerdWaitResult(
+                        is_executor=True,
+                        result=None,
+                        event=event,
+                        result_box=result_box,
+                        is_error=False,
+                    )
+                wait_event, futs, wait_box = self._inflight[cache_key]
+                if not wait_box:
+                    fut = loop.create_future()
+                    futs.append(fut)
+
+            signal = await self._await_herd_signal_async(
+                fut, wait_event, wait_box, cache_key, loop
+            )
+            if signal is None:
+                # タイムアウト: ループ先頭に戻り自分が実行者になることを試みる
+                continue
+
+            success, val = signal
+            if success:
+                return _HerdWaitResult(
+                    is_executor=False,
+                    result=val,
+                    event=None,
+                    result_box=[],
+                    is_error=False,
+                )
+            else:
+                return _HerdWaitResult(
+                    is_executor=False,
+                    result=val,
+                    event=None,
+                    result_box=[],
+                    is_error=True,
+                )
+
+    # ------------------------------------------------------------------
+
     def _execute_sync(
         self,
         func: Callable,
@@ -986,58 +1168,22 @@ class Spot:
             return cached
 
         # === 2.5 Thundering Herd Protection ===
-        event = None
-        result_box: list = []
-        while True:
-            with self._inflight_lock:
-                if ck not in self._inflight:
-                    # 自分が実行者になる
-                    event = threading.Event()
-                    self._inflight[ck] = (event, [], result_box)
-                    break
-                # 他の実行者がいる場合はその完了を待つ
-                wait_event, _, wait_box = self._inflight[ck]
-
-            # Bug Fix (Bug3): タイムアウトなし wait() は実行者スレッドが event.set() を
-            # 呼ばなかった場合（稀な異常終了）に永久ブロックする。
-            # 5秒ポーリングで定期的にウェイクアップし、全体タイムアウトで打ち切る。
-            herd_deadline = time.monotonic() + self._HERD_TIMEOUT
-            while not wait_event.wait(timeout=self._HERD_POLL):
-                if time.monotonic() >= herd_deadline:
-                    logger.warning(
-                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                        f"for cache_key={ck!r}. Falling back to re-execution."
-                    )
-                    break
-
-            if wait_box:
-                success, val = wait_box[0]
-                if success:
-                    self._dispatch_hooks(
-                        hooks,
-                        "on_cache_hit",
-                        self._build_cache_hit_context(
-                            func.__name__, ctx.input_id, ck, args,
-                            ctx.hook_kwargs, val, ctx.version,
-                        ),
-                    )
-                    return val
-                else:
-                    raise val
-
-            # 再度キャッシュをチェック
-            cached = self._check_cache_sync(ck, serializer)
-            if cached is not CACHE_MISS:
-                self._dispatch_hooks(
-                    hooks,
-                    "on_cache_hit",
-                    self._build_cache_hit_context(
-                        func.__name__, ctx.input_id, ck, args,
-                        ctx.hook_kwargs, cached, ctx.version,
-                    ),
-                )
-                return cached
-            # キャッシュがまだない（失敗したなど）場合はループして自分が実行者になることを試みる
+        herd = self._wait_herd_sync(
+            ck, serializer, hooks,
+            func.__name__, ctx.input_id, args, ctx.hook_kwargs, ctx.version,
+        )
+        if not herd.is_executor:
+            if herd.is_error:
+                raise herd.result
+            self._dispatch_hooks(
+                hooks,
+                "on_cache_hit",
+                self._build_cache_hit_context(
+                    func.__name__, ctx.input_id, ck, args,
+                    ctx.hook_kwargs, herd.result, ctx.version,
+                ),
+            )
+            return herd.result
 
         try:
             # === 3. Execute ===
@@ -1059,7 +1205,7 @@ class Spot:
             )
 
             # 結果を待機中の他のスレッドに共有する
-            result_box.append((True, res))
+            herd.result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
             save_kwargs = self._build_save_kwargs(
@@ -1069,11 +1215,11 @@ class Spot:
             )
             self._persist_result_sync(ctx.save_sync, save_kwargs)
         except BaseException as e:
-            if not result_box:
-                result_box.append((False, e))
+            if not herd.result_box:
+                herd.result_box.append((False, e))
             raise
         finally:
-            self._notify_and_cleanup_inflight(ck, event, result_box)
+            self._notify_and_cleanup_inflight(ck, herd.event, herd.result_box)
 
         self._trigger_auto_eviction()
 
@@ -1103,160 +1249,77 @@ class Spot:
         _, executor = self._ensure_bg_resources()
 
         # === 1. フック: pre_execute ===
-        if hooks:
-            await loop.run_in_executor(
-                executor,
-                self._dispatch_hooks,
-                hooks,
-                "pre_execute",
-                PreExecuteContext(
-                    func_name=func.__name__,
-                    input_id=str(ctx.input_id),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=ctx.hook_kwargs,
-                ),
-            )
+        await self._dispatch_hooks_async(
+            hooks,
+            "pre_execute",
+            PreExecuteContext(
+                func_name=func.__name__,
+                input_id=str(ctx.input_id),
+                cache_key=ck,
+                args=args,
+                kwargs=ctx.hook_kwargs,
+            ),
+            loop,
+            executor,
+        )
 
         # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
             executor, self._check_cache_sync, ck, serializer
         )
         if cached is not CACHE_MISS:
-            if hooks:
-                await loop.run_in_executor(
-                    executor,
-                    self._dispatch_hooks,
-                    hooks,
-                    "on_cache_hit",
-                    self._build_cache_hit_context(
-                        func.__name__, ctx.input_id, ck, args,
-                        ctx.hook_kwargs, cached, ctx.version,
-                    ),
-                )
+            await self._dispatch_hooks_async(
+                hooks,
+                "on_cache_hit",
+                self._build_cache_hit_context(
+                    func.__name__, ctx.input_id, ck, args,
+                    ctx.hook_kwargs, cached, ctx.version,
+                ),
+                loop,
+                executor,
+            )
             return cached
 
         # === 2.5 Thundering Herd Protection ===
-        event = None
-        result_box: list = []
-        while True:
-            fut = None
-            with self._inflight_lock:
-                if ck not in self._inflight:
-                    # 自分が実行者になる
-                    event = threading.Event()
-                    self._inflight[ck] = (event, [], result_box)
-                    break
-                # 他の実行者がいる場合はその完了を待つ
-                wait_event, futs, wait_box = self._inflight[ck]
-                if wait_box:
-                    # 既に結果が出ている場合はそのまま取得するパスへ
-                    pass
-                else:
-                    fut = loop.create_future()
-                    futs.append(fut)
-
-            if fut is not None:
-                try:
-                    val = await asyncio.wait_for(
-                        asyncio.shield(fut), timeout=self._HERD_TIMEOUT
-                    )
-                    success = True
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                        f"for cache_key={ck!r}. Falling back to re-execution."
-                    )
-                    # タイムアウト: ループ先頭に戻り自分が実行者になることを試みる
-                    continue
-                except Exception as e:
-                    val = e
-                    success = False
-            else:
-                if wait_box:
-                    success, val = wait_box[0]
-                else:
-                    # 原理的にここには来ないはずだがフォールバック
-                    # Bug Fix (Bug3): タイムアウトなし wait はスレッドプールワーカーを
-                    # 無期限に占有する。ポーリング+全体タイムアウトで打ち切る。
-                    herd_deadline = time.monotonic() + self._HERD_TIMEOUT
-                    timed_out = False
-                    while not await loop.run_in_executor(
-                        None, functools.partial(wait_event.wait, self._HERD_POLL)
-                    ):
-                        if time.monotonic() >= herd_deadline:
-                            logger.warning(
-                                f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                                f"for cache_key={ck!r}. Falling back to re-execution."
-                            )
-                            timed_out = True
-                            break
-                    if timed_out:
-                        continue
-                    if wait_box:
-                        success, val = wait_box[0]
-                    else:
-                        continue
-
-            if wait_box or fut is not None:
-                if success:
-                    if hooks:
-                        await loop.run_in_executor(
-                            executor,
-                            self._dispatch_hooks,
-                            hooks,
-                            "on_cache_hit",
-                            self._build_cache_hit_context(
-                                func.__name__, ctx.input_id, ck, args,
-                                ctx.hook_kwargs, val, ctx.version,
-                            ),
-                        )
-                    return val
-                else:
-                    raise val
-
-            # 再度キャッシュをチェック
-            cached = await loop.run_in_executor(
-                executor, self._check_cache_sync, ck, serializer
+        herd = await self._wait_herd_async(ck, serializer, loop, executor)
+        if not herd.is_executor:
+            if herd.is_error:
+                raise herd.result
+            await self._dispatch_hooks_async(
+                hooks,
+                "on_cache_hit",
+                self._build_cache_hit_context(
+                    func.__name__, ctx.input_id, ck, args,
+                    ctx.hook_kwargs, herd.result, ctx.version,
+                ),
+                loop,
+                executor,
             )
-            if cached is not CACHE_MISS:
-                if hooks:
-                    await loop.run_in_executor(
-                        executor,
-                        self._dispatch_hooks,
-                        hooks,
-                        "on_cache_hit",
-                        self._build_cache_hit_context(
-                            func.__name__, ctx.input_id, ck, args,
-                            ctx.hook_kwargs, cached, ctx.version,
-                        ),
-                    )
-                return cached
+            return herd.result
 
         try:
             # === 3. Execute (async) ===
             res = await func(*args, **kwargs)
 
             # === 4. フック: on_cache_miss ===
-            if hooks:
-                await loop.run_in_executor(
-                    executor,
-                    self._dispatch_hooks,
-                    hooks,
-                    "on_cache_miss",
-                    CacheMissContext(
-                        func_name=func.__name__,
-                        input_id=str(ctx.input_id),
-                        cache_key=ck,
-                        args=args,
-                        kwargs=ctx.hook_kwargs,
-                        result=res,
-                        version=ctx.version,
-                    ),
-                )
+            await self._dispatch_hooks_async(
+                hooks,
+                "on_cache_miss",
+                CacheMissContext(
+                    func_name=func.__name__,
+                    input_id=str(ctx.input_id),
+                    cache_key=ck,
+                    args=args,
+                    kwargs=ctx.hook_kwargs,
+                    result=res,
+                    version=ctx.version,
+                ),
+                loop,
+                executor,
+            )
 
             # 結果を待機中の他のスレッドに共有する
-            result_box.append((True, res))
+            herd.result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
             save_kwargs = self._build_save_kwargs(
@@ -1266,11 +1329,11 @@ class Spot:
             )
             await self._persist_result_async(ctx.save_sync, save_kwargs)
         except BaseException as e:
-            if not result_box:
-                result_box.append((False, e))
+            if not herd.result_box:
+                herd.result_box.append((False, e))
             raise
         finally:
-            self._notify_and_cleanup_inflight(ck, event, result_box)
+            self._notify_and_cleanup_inflight(ck, herd.event, herd.result_box)
 
         self._trigger_auto_eviction()
 
