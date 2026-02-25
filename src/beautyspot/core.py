@@ -18,6 +18,7 @@ from typing import (
     Any,
     Coroutine,
     Callable,
+    NamedTuple,
     Optional,
     Union,
     Type,
@@ -66,6 +67,19 @@ CACHE_MISS = object()
 # --- ロガー ---
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class _ExecutionContext(NamedTuple):
+    """_execute_sync / _execute_async の初期化フェーズで共通する解決済み値。"""
+
+    save_blob: bool | None
+    version: str | None
+    content_type: str | None
+    save_sync: bool
+    func_identifier: str
+    input_id: str
+    cache_key: str
+    hook_kwargs: dict
 
 
 class _BackgroundLoop:
@@ -228,6 +242,9 @@ class Spot:
             コールバックには、発生した `Exception` と詳細な `SaveErrorContext` が渡されます。
             この関数内で発生した例外は安全にキャッチされ、アプリケーションはクラッシュしません。
     """
+
+    _HERD_POLL: float = 5.0
+    _HERD_TIMEOUT: float = 300.0  # 5分: 全体のタイムアウト
 
     def __init__(
         self,
@@ -747,6 +764,181 @@ class Spot:
         ck = hashlib.sha256(key_source.encode()).hexdigest()
         return iid, ck
 
+    # ------------------------------------------------------------------
+    # _execute_sync / _execute_async 共通ヘルパー
+    # ------------------------------------------------------------------
+
+    def _prepare_execution(
+        self,
+        func: Callable,
+        args: tuple,
+        kwargs: dict,
+        save_blob: bool | None,
+        effective_key_fn: Optional[Callable],
+        version: str | None,
+        content_type: Optional[str | ContentType],
+        save_sync: bool | None,
+        hooks: Optional[Sequence[HookBase]],
+    ) -> _ExecutionContext:
+        """初期化フェーズの共通処理: 設定解決 → キャッシュキー生成 → hook_kwargs 作成。"""
+        s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
+            save_blob, version, content_type, save_sync
+        )
+        func_identifier = self._get_func_identifier(func)
+        iid, ck = self._make_cache_key(
+            func_identifier, args, kwargs, effective_key_fn, s_ver
+        )
+        hook_kwargs = dict(kwargs) if hooks else kwargs
+        return _ExecutionContext(
+            save_blob=s_blob,
+            version=s_ver,
+            content_type=s_ct,
+            save_sync=s_save_sync,
+            func_identifier=func_identifier,
+            input_id=iid,
+            cache_key=ck,
+            hook_kwargs=hook_kwargs,
+        )
+
+    def _build_cache_hit_context(
+        self,
+        func_name: str,
+        input_id: str,
+        cache_key: str,
+        args: tuple,
+        hook_kwargs: dict,
+        result: Any,
+        version: str | None,
+    ) -> CacheHitContext:
+        """CacheHitContext の構築を一箇所に集約する。"""
+        return CacheHitContext(
+            func_name=func_name,
+            input_id=str(input_id),
+            cache_key=cache_key,
+            args=args,
+            kwargs=hook_kwargs,
+            result=result,
+            version=version,
+        )
+
+    def _build_save_kwargs(
+        self,
+        cache_key: str,
+        func: Callable,
+        func_identifier: str,
+        input_id: str,
+        version: str | None,
+        result: Any,
+        content_type: str | None,
+        save_blob: bool | None,
+        serializer: Optional[SerializerProtocol],
+        retention: RetentionSpec,
+    ) -> dict:
+        """保存パラメータ辞書の構築を一箇所に集約する。"""
+        expires_at = self._calculate_expires_at(
+            func_identifier, func.__name__, retention
+        )
+        return {
+            "cache_key": cache_key,
+            "func_name": func.__name__,
+            "func_identifier": func_identifier,
+            "input_id": str(input_id),
+            "version": version,
+            "result": result,
+            "content_type": content_type,
+            "save_blob": save_blob,
+            "serializer": serializer,
+            "expires_at": expires_at,
+        }
+
+    def _persist_result_sync(
+        self, save_sync: bool, save_kwargs: dict
+    ) -> None:
+        """同期実行パスでの保存処理 (save_sync=True/False 両方を処理)。"""
+        if save_sync:
+            try:
+                self._save_result_sync(**save_kwargs)
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+        else:
+            try:
+                self._submit_background_save(**save_kwargs)
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+
+    async def _persist_result_async(
+        self, save_sync: bool, save_kwargs: dict
+    ) -> None:
+        """非同期実行パスでの保存処理。save_sync=True 時は bg_loop 経由で await する。"""
+        if save_sync:
+            try:
+                bg_loop, exec_pool = self._ensure_bg_resources()
+                coro = self._save_result_async(
+                    executor=exec_pool, safe=False, **save_kwargs
+                )
+                try:
+                    future = bg_loop.submit(coro)
+                    if future is None:
+                        self._notify_save_discarded(save_kwargs)
+                    else:
+                        await asyncio.wrap_future(future)
+                except RuntimeError:
+                    coro.close()
+                    raise
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+        else:
+            try:
+                self._submit_background_save(**save_kwargs)
+            except Exception as e:
+                self._handle_save_error(e, save_kwargs)
+                if self.on_background_error is None:
+                    raise
+
+    def _notify_and_cleanup_inflight(
+        self,
+        cache_key: str,
+        event: threading.Event | None,
+        result_box: list,
+    ) -> None:
+        """inflight 管理のクリーンアップと待機中 Future への通知。"""
+        futs_to_notify: list = []
+        with self._inflight_lock:
+            val = self._inflight.get(cache_key)
+            if val is not None and val[0] is event:
+                _, futs_to_notify, _ = val
+                del self._inflight[cache_key]
+        if event is not None:
+            event.set()
+            # 実行結果があれば、待機中の asyncio.Future にも通知する
+            if result_box and futs_to_notify:
+                success, res_val = result_box[0]
+                for fut in futs_to_notify:
+                    if not fut.done():
+                        if success:
+                            fut.get_loop().call_soon_threadsafe(
+                                fut.set_result, res_val
+                            )
+                        elif isinstance(res_val, Exception):
+                            fut.get_loop().call_soon_threadsafe(
+                                fut.set_exception, res_val
+                            )
+                        else:
+                            # BaseException は asyncio.Future.set_exception に渡せないためラップ
+                            wrapped = RuntimeError(
+                                f"Non-Exception error: {repr(res_val)}"
+                            )
+                            wrapped.__cause__ = res_val
+                            fut.get_loop().call_soon_threadsafe(
+                                fut.set_exception, wrapped
+                            )
+
     def _execute_sync(
         self,
         func: Callable,
@@ -761,18 +953,11 @@ class Spot:
         save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
-        # Resolve Defaults (save_sync もここで解決)
-        s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
-            save_blob, version, content_type, save_sync
+        ctx = self._prepare_execution(
+            func, args, kwargs, save_blob, effective_key_fn,
+            version, content_type, save_sync, hooks,
         )
-
-        func_identifier = self._get_func_identifier(func)
-        iid, ck = self._make_cache_key(
-            func_identifier, args, kwargs, effective_key_fn, s_ver
-        )
-
-        # kwargs をコピーしてフックからの変更を防止
-        hook_kwargs = dict(kwargs) if hooks else kwargs
+        ck = ctx.cache_key
 
         # === 1. フック: pre_execute ===
         self._dispatch_hooks(
@@ -780,10 +965,10 @@ class Spot:
             "pre_execute",
             PreExecuteContext(
                 func_name=func.__name__,
-                input_id=str(iid),
+                input_id=str(ctx.input_id),
                 cache_key=ck,
                 args=args,
-                kwargs=hook_kwargs,
+                kwargs=ctx.hook_kwargs,
             ),
         )
 
@@ -793,23 +978,16 @@ class Spot:
             self._dispatch_hooks(
                 hooks,
                 "on_cache_hit",
-                CacheHitContext(
-                    func_name=func.__name__,
-                    input_id=str(iid),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=hook_kwargs,
-                    result=cached,
-                    version=s_ver,
+                self._build_cache_hit_context(
+                    func.__name__, ctx.input_id, ck, args,
+                    ctx.hook_kwargs, cached, ctx.version,
                 ),
             )
             return cached
 
         # === 2.5 Thundering Herd Protection ===
-        _HERD_POLL = 5.0
-        _HERD_TIMEOUT = 300.0  # 5分: 全体のタイムアウト
         event = None
-        result_box = []
+        result_box: list = []
         while True:
             with self._inflight_lock:
                 if ck not in self._inflight:
@@ -823,11 +1001,11 @@ class Spot:
             # Bug Fix (Bug3): タイムアウトなし wait() は実行者スレッドが event.set() を
             # 呼ばなかった場合（稀な異常終了）に永久ブロックする。
             # 5秒ポーリングで定期的にウェイクアップし、全体タイムアウトで打ち切る。
-            herd_deadline = time.monotonic() + _HERD_TIMEOUT
-            while not wait_event.wait(timeout=_HERD_POLL):
+            herd_deadline = time.monotonic() + self._HERD_TIMEOUT
+            while not wait_event.wait(timeout=self._HERD_POLL):
                 if time.monotonic() >= herd_deadline:
                     logger.warning(
-                        f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
                         f"for cache_key={ck!r}. Falling back to re-execution."
                     )
                     break
@@ -838,14 +1016,9 @@ class Spot:
                     self._dispatch_hooks(
                         hooks,
                         "on_cache_hit",
-                        CacheHitContext(
-                            func_name=func.__name__,
-                            input_id=str(iid),
-                            cache_key=ck,
-                            args=args,
-                            kwargs=hook_kwargs,
-                            result=val,
-                            version=s_ver,
+                        self._build_cache_hit_context(
+                            func.__name__, ctx.input_id, ck, args,
+                            ctx.hook_kwargs, val, ctx.version,
                         ),
                     )
                     return val
@@ -858,14 +1031,9 @@ class Spot:
                 self._dispatch_hooks(
                     hooks,
                     "on_cache_hit",
-                    CacheHitContext(
-                        func_name=func.__name__,
-                        input_id=str(iid),
-                        cache_key=ck,
-                        args=args,
-                        kwargs=hook_kwargs,
-                        result=cached,
-                        version=s_ver,
+                    self._build_cache_hit_context(
+                        func.__name__, ctx.input_id, ck, args,
+                        ctx.hook_kwargs, cached, ctx.version,
                     ),
                 )
                 return cached
@@ -881,76 +1049,31 @@ class Spot:
                 "on_cache_miss",
                 CacheMissContext(
                     func_name=func.__name__,
-                    input_id=str(iid),
+                    input_id=str(ctx.input_id),
                     cache_key=ck,
                     args=args,
-                    kwargs=hook_kwargs,
+                    kwargs=ctx.hook_kwargs,
                     result=res,
-                    version=s_ver,
+                    version=ctx.version,
                 ),
             )
-            
+
             # 結果を待機中の他のスレッドに共有する
             result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
-            expires_at = self._calculate_expires_at(
-                func_identifier, func.__name__, retention
+            save_kwargs = self._build_save_kwargs(
+                ck, func, ctx.func_identifier, ctx.input_id,
+                ctx.version, res, ctx.content_type, ctx.save_blob,
+                serializer, retention,
             )
-            save_kwargs = {
-                "cache_key": ck,
-                "func_name": func.__name__,
-                "func_identifier": func_identifier,
-                "input_id": str(iid),
-                "version": s_ver,
-                "result": res,
-                "content_type": s_ct,
-                "save_blob": s_blob,
-                "serializer": serializer,
-                "expires_at": expires_at,
-            }
-
-            if s_save_sync:
-                try:
-                    self._save_result_sync(**save_kwargs)
-                except Exception as e:
-                    self._handle_save_error(e, save_kwargs)
-                    if self.on_background_error is None:
-                        raise
-            else:
-                try:
-                    self._submit_background_save(**save_kwargs)
-                except Exception as e:
-                    self._handle_save_error(e, save_kwargs)
-                    if self.on_background_error is None:
-                        raise
+            self._persist_result_sync(ctx.save_sync, save_kwargs)
         except BaseException as e:
             if not result_box:
                 result_box.append((False, e))
             raise
         finally:
-            futs_to_notify = []
-            with self._inflight_lock:
-                val = self._inflight.get(ck)
-                if val is not None and val[0] is event:
-                    _, futs_to_notify, _ = val
-                    del self._inflight[ck]
-            if event is not None:
-                event.set()
-                # 実行結果があれば、待機中の asyncio.Future にも通知する
-                if result_box and futs_to_notify:
-                    success, res_val = result_box[0]
-                    for fut in futs_to_notify:
-                        if not fut.done():
-                            if success:
-                                fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
-                            elif isinstance(res_val, Exception):
-                                fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
-                            else:
-                                # BaseException は asyncio.Future.set_exception に渡せないためラップ
-                                wrapped = RuntimeError(f"Non-Exception error: {repr(res_val)}")
-                                wrapped.__cause__ = res_val
-                                fut.get_loop().call_soon_threadsafe(fut.set_exception, wrapped)
+            self._notify_and_cleanup_inflight(ck, event, result_box)
 
         self._trigger_auto_eviction()
 
@@ -970,21 +1093,14 @@ class Spot:
         save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
-        # Resolve Defaults
-        s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
-            save_blob, version, content_type, save_sync
+        ctx = self._prepare_execution(
+            func, args, kwargs, save_blob, effective_key_fn,
+            version, content_type, save_sync, hooks,
         )
-
-        func_identifier = self._get_func_identifier(func)
-        iid, ck = self._make_cache_key(
-            func_identifier, args, kwargs, effective_key_fn, s_ver
-        )
+        ck = ctx.cache_key
         loop = asyncio.get_running_loop()
         # async パスでは常にエグゼキュータが必要なので遅延初期化
         _, executor = self._ensure_bg_resources()
-
-        # kwargs をコピーしてフックからの変更を防止
-        hook_kwargs = dict(kwargs) if hooks else kwargs
 
         # === 1. フック: pre_execute ===
         if hooks:
@@ -995,10 +1111,10 @@ class Spot:
                 "pre_execute",
                 PreExecuteContext(
                     func_name=func.__name__,
-                    input_id=str(iid),
+                    input_id=str(ctx.input_id),
                     cache_key=ck,
                     args=args,
-                    kwargs=hook_kwargs,
+                    kwargs=ctx.hook_kwargs,
                 ),
             )
 
@@ -1013,23 +1129,16 @@ class Spot:
                     self._dispatch_hooks,
                     hooks,
                     "on_cache_hit",
-                    CacheHitContext(
-                        func_name=func.__name__,
-                        input_id=str(iid),
-                        cache_key=ck,
-                        args=args,
-                        kwargs=hook_kwargs,
-                        result=cached,
-                        version=s_ver,
+                    self._build_cache_hit_context(
+                        func.__name__, ctx.input_id, ck, args,
+                        ctx.hook_kwargs, cached, ctx.version,
                     ),
                 )
             return cached
 
         # === 2.5 Thundering Herd Protection ===
-        _HERD_POLL = 5.0
-        _HERD_TIMEOUT = 300.0  # 5分: 全体のタイムアウト
         event = None
-        result_box = []
+        result_box: list = []
         while True:
             fut = None
             with self._inflight_lock:
@@ -1050,12 +1159,12 @@ class Spot:
             if fut is not None:
                 try:
                     val = await asyncio.wait_for(
-                        asyncio.shield(fut), timeout=_HERD_TIMEOUT
+                        asyncio.shield(fut), timeout=self._HERD_TIMEOUT
                     )
                     success = True
                 except asyncio.TimeoutError:
                     logger.warning(
-                        f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
                         f"for cache_key={ck!r}. Falling back to re-execution."
                     )
                     # タイムアウト: ループ先頭に戻り自分が実行者になることを試みる
@@ -1070,14 +1179,14 @@ class Spot:
                     # 原理的にここには来ないはずだがフォールバック
                     # Bug Fix (Bug3): タイムアウトなし wait はスレッドプールワーカーを
                     # 無期限に占有する。ポーリング+全体タイムアウトで打ち切る。
-                    herd_deadline = time.monotonic() + _HERD_TIMEOUT
+                    herd_deadline = time.monotonic() + self._HERD_TIMEOUT
                     timed_out = False
                     while not await loop.run_in_executor(
-                        None, functools.partial(wait_event.wait, _HERD_POLL)
+                        None, functools.partial(wait_event.wait, self._HERD_POLL)
                     ):
                         if time.monotonic() >= herd_deadline:
                             logger.warning(
-                                f"Thundering herd wait timed out after {_HERD_TIMEOUT}s "
+                                f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
                                 f"for cache_key={ck!r}. Falling back to re-execution."
                             )
                             timed_out = True
@@ -1097,14 +1206,9 @@ class Spot:
                             self._dispatch_hooks,
                             hooks,
                             "on_cache_hit",
-                            CacheHitContext(
-                                func_name=func.__name__,
-                                input_id=str(iid),
-                                cache_key=ck,
-                                args=args,
-                                kwargs=hook_kwargs,
-                                result=val,
-                                version=s_ver,
+                            self._build_cache_hit_context(
+                                func.__name__, ctx.input_id, ck, args,
+                                ctx.hook_kwargs, val, ctx.version,
                             ),
                         )
                     return val
@@ -1122,14 +1226,9 @@ class Spot:
                         self._dispatch_hooks,
                         hooks,
                         "on_cache_hit",
-                        CacheHitContext(
-                            func_name=func.__name__,
-                            input_id=str(iid),
-                            cache_key=ck,
-                            args=args,
-                            kwargs=hook_kwargs,
-                            result=cached,
-                            version=s_ver,
+                        self._build_cache_hit_context(
+                            func.__name__, ctx.input_id, ck, args,
+                            ctx.hook_kwargs, cached, ctx.version,
                         ),
                     )
                 return cached
@@ -1147,90 +1246,31 @@ class Spot:
                     "on_cache_miss",
                     CacheMissContext(
                         func_name=func.__name__,
-                        input_id=str(iid),
+                        input_id=str(ctx.input_id),
                         cache_key=ck,
                         args=args,
-                        kwargs=hook_kwargs,
+                        kwargs=ctx.hook_kwargs,
                         result=res,
-                        version=s_ver,
+                        version=ctx.version,
                     ),
                 )
-            
+
             # 結果を待機中の他のスレッドに共有する
             result_box.append((True, res))
 
             # === 5. Calculate Expiration & Save ===
-            expires_at = self._calculate_expires_at(
-                func_identifier, func.__name__, retention
+            save_kwargs = self._build_save_kwargs(
+                ck, func, ctx.func_identifier, ctx.input_id,
+                ctx.version, res, ctx.content_type, ctx.save_blob,
+                serializer, retention,
             )
-
-            save_kwargs = {
-                "cache_key": ck,
-                "func_name": func.__name__,
-                "func_identifier": func_identifier,
-                "input_id": str(iid),
-                "version": s_ver,
-                "result": res,
-                "content_type": s_ct,
-                "save_blob": s_blob,
-                "serializer": serializer,
-                "expires_at": expires_at,
-            }
-
-            if s_save_sync:
-                try:
-                    # _submit_background_saveと同様にbg_loopにタスクを投入し、
-                    # 返却される concurrent.futures.Future を await することで
-                    # イベントループをブロックせず、スレッドプールの占有も避ける
-                    bg_loop, exec_pool = self._ensure_bg_resources()
-                    coro = self._save_result_async(executor=exec_pool, safe=False, **save_kwargs)
-                    try:
-                        future = bg_loop.submit(coro)
-                        if future is None:
-                            self._notify_save_discarded(save_kwargs)
-                        else:
-                            await asyncio.wrap_future(future)
-                    except RuntimeError:
-                        coro.close()
-                        raise
-                except Exception as e:
-                    self._handle_save_error(e, save_kwargs)
-                    if self.on_background_error is None:
-                        raise
-            else:
-                try:
-                    self._submit_background_save(**save_kwargs)
-                except Exception as e:
-                    self._handle_save_error(e, save_kwargs)
-                    if self.on_background_error is None:
-                        raise
+            await self._persist_result_async(ctx.save_sync, save_kwargs)
         except BaseException as e:
             if not result_box:
                 result_box.append((False, e))
             raise
         finally:
-            futs_to_notify = []
-            with self._inflight_lock:
-                val = self._inflight.get(ck)
-                if val is not None and val[0] is event:
-                    _, futs_to_notify, _ = val
-                    del self._inflight[ck]
-            if event is not None:
-                event.set()
-                # 実行結果があれば、待機中の asyncio.Future にも通知する
-                if result_box and futs_to_notify:
-                    success, res_val = result_box[0]
-                    for fut in futs_to_notify:
-                        if not fut.done():
-                            if success:
-                                fut.get_loop().call_soon_threadsafe(fut.set_result, res_val)
-                            elif isinstance(res_val, Exception):
-                                fut.get_loop().call_soon_threadsafe(fut.set_exception, res_val)
-                            else:
-                                # BaseException は asyncio.Future.set_exception に渡せないためラップ
-                                wrapped = RuntimeError(f"Non-Exception error: {repr(res_val)}")
-                                wrapped.__cause__ = res_val
-                                fut.get_loop().call_soon_threadsafe(fut.set_exception, wrapped)
+            self._notify_and_cleanup_inflight(ck, event, result_box)
 
         self._trigger_auto_eviction()
 
