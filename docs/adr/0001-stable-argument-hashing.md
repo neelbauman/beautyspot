@@ -5,9 +5,9 @@ date: 2025-11-21
 context: Issue 1
 ---
 
-# 1. Stable Hashing for Function Arguments
+# Stable Hashing for Function Arguments
 
-## Context / コンテキスト
+## Context and Problem Statement / コンテキスト
 
 `beautyspot` のコア機能である「関数のメモ化（キャッシュ）」において、関数の引数 (`args`, `kwargs`) から一意なキャッシュキーを生成する必要があります。
 
@@ -22,7 +22,22 @@ context: Issue 1
 
 外部ライブラリ（`joblib` 等）を使えば解決しますが、`beautyspot` は軽量な「黒子」ライブラリを目指しており、依存関係を増やしたくありません。
 
-## Decision / 決定
+## Decision Drivers / 要求
+
+* **Stability across restarts**: プロセス再起動後もキャッシュが有効に機能すること。
+* **Environment Independence**: 異なるマシンや環境間でも一貫したハッシュ値が得られること。
+* **Zero External Dependencies**: 軽量さを維持するため、外部ライブラリ（joblib, numpy等）に依存しないこと。
+* **Broad Type Support**: `pydantic` モデルや `dataclass` 等、一般的なPythonオブジェクトを透過的に扱えること。
+
+## Considered Options / 検討
+
+* **Option 1**: 現状維持（`str()` によるフォールバック）。
+* **Option 2**: 外部ライブラリ（`joblib` 等）の導入。
+* **Option 3**: 標準ライブラリの `json` を拡張した、独自の安定化シリアライザの実装。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 3**.
 
 標準ライブラリの `json` モジュールを使用し、独自の `default` シリアライザ (`_stable_serialize_default`) を実装することで、**依存関係なしで** 堅牢なハッシュ生成を実現します。
 
@@ -33,14 +48,13 @@ context: Issue 1
 3.  **Bytes型:** 16進数文字列 (`hex`) に変換します。
 4.  **最終手段:** それでもシリアライズできない型（循環参照など）については、例外的に `str()` を使用します（この場合のみ不安定になるリスクを許容します）。
 
-## Consequences / 結果
+## Consequences / 決定
 
-* **メリット:**
+* **Positive**:
     * アプリ再起動後もキャッシュが有効に機能する（永続化の信頼性向上）。
     * `pydantic` モデルや `dataclass` も設定なしでキャッシュ可能になる。
     * 外部依存（`numpy`, `joblib` 等）を増やさずに済む。
-
-* **デメリット:**
+* **Negative**:
     * 単なる `str()` 変換よりも、シリアライズ処理のオーバーヘッド（CPUコスト）がわずかに増加する。
     * 循環参照を持つオブジェクトを渡された場合の完全な解決策ではない（ただし、タスクの入力引数としては稀であると判断）。
 

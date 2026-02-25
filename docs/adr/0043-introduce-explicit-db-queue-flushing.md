@@ -1,12 +1,40 @@
-# ADR 0043: Introduce Explicit DB Queue Flushing
+---
+title: Introduce Explicit DB Queue Flushing
+status: Accepted
+date: 2026-02-24
+context: Ensuring Metadata Persistence on Shutdown
+---
 
-## Context (背景)
-`SQLiteTaskDB` はパフォーマンス向上のため、専用のライタースレッドと `queue.Queue` を用いた非同期書き込みを行っています。しかし、メインプロセスの終了時やコンテキストマネージャを抜ける際 (`Spot.flush()`) に、ストレージへのIOタスクは待機するものの、**DBへの書き込みキューのフラッシュ（ドレイン）を明示的に待機する仕組みがありませんでした**。これにより、短命なスクリプト等でDBへのデータ書き込みが完了する前にプロセスが終了してしまうリスクがありました。
+# Introduce Explicit DB Queue Flushing
 
-## Decision (決定事項)
-`TaskDBBase` に `flush(timeout: float)` インターフェースを追加し、`SQLiteTaskDB` に実装します。
-`SQLiteTaskDB` のフラッシュ実装は、既存のキューのセマンティクスを破壊しないよう、**「No-op（何もしない）書き込みタスク」をエンキューし、そのタスクの完了イベントを待機する**というスレッドセーフなアプローチを採用します。この `flush` メソッドを `Spot.flush()` 内から呼び出すことで、ストレージ保存とDB保存の両方の完了を確実に待機させます。
+## Context and Problem Statement / コンテキスト
 
-## Rationale (理由)
-1. **データロストの防止**: アプリケーション終了時にキャッシュデータが確実に永続化されることを保証するため。
-2. **キューの設計のシンプルさ維持**: `queue.Queue` はタイムアウト付きの `join` を持たないため、No-op タスクを用いることで、ロックや追加の状態変数を導入することなく、既存のタスク処理ループの枠組みの中で安全に待機を実現できます。
+`SQLiteTaskDB` は、ライタースレッドとキューを用いた非同期書き込みを行っています。しかし、メインプロセスの終了時や `Spot.flush()` 実行時に、ストレージへの I/O は待機するものの、DB への書き込みキューのフラッシュ（全タスクの完了）を明示的に待機する仕組みがありませんでした。これにより、短命なスクリプト等で DB へのデータ書き込みが完了する前にプロセスが終了し、メタデータが消失するリスクがありました。
+
+## Decision Drivers / 要求
+
+* **Persistence Guarantee**: アプリケーションの終了前、あるいは明示的な `flush()` 実行時に、全ての DB 書き込みタスクが完了していることを保証すること。
+* **Thread Safety**: 既に走っているライタースレッドの処理を妨げたり、デッドロックを引き起こしたりすることなく、安全に待機できること。
+* **Consistency**: ストレージへの保存（Blob）と DB への保存（メタデータ）の完了タイミングを一致させること。
+
+## Considered Options / 検討
+
+* **Option 1**: 明示的なフラッシュを実装せず、OS のシャットダウン時のバッファリングに任せる。データロストのリスクが高い。
+* **Option 2**: `TaskDBBase` に `flush(timeout)` を追加する。`SQLiteTaskDB` では「No-op タスク」をキューに投入し、その完了を待機する方式を採用する。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 2**.
+
+`TaskDBBase` に `flush(timeout)` インターフェースを追加し、`SQLiteTaskDB` で実装します。
+
+`SQLiteTaskDB` の実装では、**「何もしない (No-op) 書き込みタスク」をエンキューし、そのタスクの完了イベントを待機する**というアプローチを採用します。この `flush` メソッドを `Spot.flush()` から呼び出すことで、ストレージと DB の両方の完了を確実に待機させます。
+
+## Consequences / 決定
+
+* **Positive**:
+    * アプリケーション終了時にキャッシュデータが確実に永続化されることが保証された。
+    * ロックや追加の状態変数を導入することなく、既存のタスク処理ループの中で安全に待機を実現できた。
+* **Negative**:
+    * `flush()` 呼び出し時に、キューに積まれた既存タスクの量に応じて待機時間が発生する。
+    * `timeout` を超えた場合の挙動（ログ出力等）を適切に定義・管理する必要がある。

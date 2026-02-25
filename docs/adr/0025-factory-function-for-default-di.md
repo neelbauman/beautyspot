@@ -1,40 +1,58 @@
-# 25. Factory Function for Default Dependency Injection
+---
+title: Factory Function for Default Dependency Injection
+status: Accepted
+date: 2026-02-17
+context: Balancing Flexibility with Ease of Use
+---
 
-Date: 2024-02-17
+# Factory Function for Default Dependency Injection
 
-## Status
+## Context and Problem Statement / コンテキスト
 
-Accepted
+v2.0 以降、`beautyspot` は依存性注入 (DI) アーキテクチャを採用しました。`Spot` クラス（`core.py`）の初期化には、`TaskDB`, `Serializer`, `Storage` の各インスタンスを明示的に渡す必要があります。
 
-## Context
-
-In v2.0, `beautyspot` adopted a Dependency Injection (DI) architecture. The `Spot` class (in `core.py`) requires explicit instances of `TaskDB`, `Serializer`, and `Storage` for initialization.
-
-While this is excellent for testability and flexibility, it creates a verbose API for end-users who just want a "quick start" experience:
+これはテスト容易性と柔軟性の観点では優れていますが、単に「すぐに使い始めたい」だけのユーザーにとっては、初期化が非常に冗長になってしまうという課題がありました。
 
 ```python
-# Too verbose for simple scripts
+# 一般的なスクリプトには冗長すぎる
 db = SQLiteTaskDB(...)
 storage = LocalStorage(...)
 serializer = MsgpackSerializer()
 spot = Spot(name="app", db=db, storage=storage, serializer=serializer)
-
 ```
 
-## Decision
+## Decision Drivers / 要求
 
-We decided to expose a **factory function** named `Spot` in `beautyspot/__init__.py`, which constructs the underlying `_Spot` class with sensible default implementations.
+* **Developer Experience (DX)**: ライトユーザーが最小限の設定（名前のみなど）で即座に開始できること。
+* **Clean Architecture**: `core.py` の `Spot` クラスを具象クラス（SQLite 等）の詳細から保護し、ピュアな状態に保つこと。
+* **Flexibility**: 高度なユーザーが引き続き任意のコンポーネントを注入できる余地を残すこと。
+
+## Considered Options / 検討
+
+* **Option 1**: ユーザーに常に全ての DI コンポーネントを手動で提供させる。
+* **Option 2**: `Spot.__init__` の引数にデフォルト値（具象クラス）を設定する。
+* **Option 3**: `__init__.py` でファクトリ関数 `Spot` を提供し、そこでデフォルトの組み立てを行う。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 3**.
+
+`beautyspot/__init__.py` において、具象クラスのインスタンス化を伴う**ファクトリ関数 `Spot`** を公開します。
 
 ```python
+# beautyspot/__init__.py
 def Spot(name: str, db=None, ...):
     resolved_db = db or SQLiteTaskDB(...)
+    # ... 他の解決ロジック ...
     return _Spot(name, db=resolved_db, ...)
-
 ```
 
-## Consequences
+これにより、ライブラリのトップレベルからインポートされる `Spot` は関数となり、内部で `core.py` の `_Spot` クラスを組み立てて返します。
 
-* **Positive**: **"Opinionated Defaults, Flexible Internals"**. Beginners get a one-liner initialization, while advanced users can still inject custom components.
-* **Positive**: Keeps the core `_Spot` class pure and free from default implementation details (it doesn't need to import `SQLiteTaskDB`).
-* **Negative**: Users cannot easily subclass `Spot` because the public symbol is a function, not a class. If inheritance is needed, they must import `_Spot` (aliased) from `core`. We consider composition preferable to inheritance for this library, so this is an acceptable trade-off.
+## Consequences / 決定
 
+* **Positive**:
+    * **"Opinionated Defaults, Flexible Internals"**: 初心者は1行で初期化でき、上級者はカスタムコンポーネントを注入できる。
+    * コアとなる `_Spot` クラスが、`SQLiteTaskDB` などの具象実装をインポートする必要がなくなる（関心の分離）。
+* **Negative**:
+    * 公開シンボル `Spot` がクラスではなく関数になるため、`Spot` を直接継承することが難しくなる。継承が必要な場合は `core` から `_Spot` をインポートする必要があるが、本ライブラリでは継承よりもコンポジションを推奨するため、許容範囲とする。

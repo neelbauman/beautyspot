@@ -19,12 +19,30 @@ import weakref
 class _ReadConnWrapper:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
+        self.lock = threading.RLock()
+        self._closed = False
 
-    def close(self):
+    def close(self, wait: bool = True):
+        """
+        Args:
+            wait: True の場合はロック解放を待機。
+                  False (シャットダウン時) の場合は即座に試行し、他が使用中ならスキップする。
+        """
+        # wait=False の場合は blocking=False になり、取得できなければ直ちに False を返す
+        if not self.lock.acquire(blocking=wait):
+            # 誰かがクエリ実行中なので、強制クローズによるクラッシュを防ぐために諦める。
+            # (次回のアクセス時に self._shutdown_requested で弾かれるため問題ない)
+            return
+
         try:
-            self.conn.close()
-        except Exception:
-            pass
+            if not self._closed:
+                try:
+                    self.conn.close()
+                except Exception:
+                    pass
+                self._closed = True
+        finally:
+            self.lock.release()
 
     def __del__(self):
         self.close()
@@ -174,8 +192,8 @@ class SQLiteTaskDB(TaskDBBase):
     Default implementation using SQLite.
     """
 
-    def __init__(self, db_path: str | Path, timeout: float = 30.0):
-        self.db_path = Path(db_path).resolve()
+    def __init__(self, db_path: str | Path | None = None, timeout: float = 30.0):
+        self.db_path = Path(db_path).resolve() if db_path else Path(f".beautyspot/{hash(self)}.db")
         self._ensure_cache_dir(self.db_path.parent)
         self.timeout = timeout
         self._local = threading.local()
@@ -184,7 +202,7 @@ class SQLiteTaskDB(TaskDBBase):
         self._shutdown_requested = False
         self._writer_ready = threading.Event()
         self._writer_error: Exception | None = None
-        # Bug Fix (Bug5): 読み取り専用スレッドローカル接続を追跡し、
+        # 読み取り専用スレッドローカル接続を追跡し、
         # shutdown() 時に一括クローズする。WAL チェックポイントの妨げを防ぐ。
         self._read_wrappers = weakref.WeakSet()
         self._read_conns_lock = threading.Lock()
@@ -216,7 +234,7 @@ class SQLiteTaskDB(TaskDBBase):
         Uses a thread-local pool to reuse connections and reduce overhead.
         PRAGMA query_only = ON により、誤った書き込みを接続レベルで防止する。
 
-        Bug Fix (Bug5): 新規接続を _read_wrappers に登録し、
+        新規接続を _read_wrappers に登録し、
         shutdown() 時の一括クローズで WAL チェックポイント妨害を防ぐ。
         また、_ReadConnWrapper によってスレッド終了時に接続がクローズされ、メモリリークを防止。
         """
@@ -224,8 +242,8 @@ class SQLiteTaskDB(TaskDBBase):
             raise RuntimeError("SQLiteTaskDB is shutting down.")
         
         wrapper = getattr(self._local, "read_conn_wrapper", None)
-        if wrapper is None:
-            conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+        if wrapper is None or wrapper._closed:
+            conn = sqlite3.connect(self.db_path, timeout=self.timeout, check_same_thread=False)
             try:
                 conn.execute("PRAGMA query_only = ON;")
             except Exception:
@@ -236,16 +254,19 @@ class SQLiteTaskDB(TaskDBBase):
                 self._read_wrappers.add(wrapper)
             self._local.read_conn_wrapper = wrapper
         
-        try:
-            yield wrapper.conn
-        except sqlite3.Error:
-            # 接続が壊れた場合等のリカバリ (BUG-3)
-            # 現在の接続を破棄し、次回のアクセス時に新しく作り直す
-            wrapper.close()
-            with self._read_conns_lock:
-                self._read_wrappers.discard(wrapper)
-            self._local.read_conn_wrapper = None
-            raise
+        with wrapper.lock:
+            if wrapper._closed:
+                raise RuntimeError("Database connection was closed")
+            try:
+                yield wrapper.conn
+            except sqlite3.Error:
+                # 接続が壊れた場合等のリカバリ (BUG-3)
+                # 現在の接続を破棄し、次回のアクセス時に新しく作り直す
+                wrapper.close()
+                with self._read_conns_lock:
+                    self._read_wrappers.discard(wrapper)
+                self._local.read_conn_wrapper = None
+                raise
 
     def _writer_loop(self) -> None:
         conn: sqlite3.Connection | None = None
@@ -310,12 +331,12 @@ class SQLiteTaskDB(TaskDBBase):
             elapsed = time.monotonic() - start
             if elapsed > self.timeout:
                 if task.try_cancel():
-                    # Bug Fix (Bug2): PENDING（未着手）のタスクはキャンセル可能
+                    # PENDING（未着手）のタスクはキャンセル可能
                     raise TimeoutError(
                         f"SQLite write did not start within {self.timeout}s and was cancelled."
                     )
                 elif not _warned_running:
-                    # Bug Fix (Bug2): RUNNING（実行中）のタスクはキャンセル不可。
+                    # RUNNING（実行中）のタスクはキャンセル不可。
                     # 旧実装では RUNNING でも TimeoutError を送出していたが、
                     # DB への書き込みは継続されるため呼び出し元との整合性が取れなかった。
                     # 修正後は完了まで待ち続け、警告ログのみ出力する。
@@ -347,12 +368,12 @@ class SQLiteTaskDB(TaskDBBase):
         if wait:
             self._writer_thread.join()
 
-        # Bug Fix (Bug5): 全スレッドのread-only接続を一括クローズ。
+        # 全スレッドのread-only接続を一括クローズ。
         # スレッドローカル接続が開いたままだと WAL チェックポイントを妨げるため。
         with self._read_conns_lock:
             for wrapper in self._read_wrappers:
                 try:
-                    wrapper.close()
+                    wrapper.close(wait=False)
                 except Exception:
                     pass
             self._read_wrappers.clear()
@@ -638,7 +659,7 @@ class SQLiteTaskDB(TaskDBBase):
         try:
             conn = sqlite3.connect(str(db_path), timeout=timeout)
             try:
-                # Bug Fix (Bug9): 読み取り専用ユーティリティに journal_mode=WAL 設定は不要。
+                # 読み取り専用ユーティリティに journal_mode=WAL 設定は不要。
                 # query_only=ON との組み合わせで動作が曖昧になる可能性もあるため削除。
                 conn.execute("PRAGMA query_only = ON;")
                 cursor = conn.execute("SELECT COUNT(*) FROM tasks")

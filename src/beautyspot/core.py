@@ -183,13 +183,6 @@ class Spot:
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
 
-    .. note::
-        **v3.0 アーキテクチャの変更点**
-        以前のバージョンで存在した `executor` および `io_workers` パラメータは廃止されました。
-        Spotは現在、自律的にバックグラウンド用のイベントループとスレッドプールを内部で管理します。
-        これにより、アプリケーションのライフサイクル（シャットダウン時の安全なデータドレインなど）
-        と完全に統合され、ユーザーがインフラストラクチャを意識することなく安全に非同期保存を
-        利用できるようになっています。スレッド数はPython標準の最適値が自動的に割り当てられます。
 
     .. warning::
         **リソース管理とデータロストに関する注意**
@@ -205,6 +198,12 @@ class Spot:
 
         ※ プロセス終了時 (`atexit`) には安全網として未完了タスクのドレインを試みますが、
            GCによる破棄に対しては無力であることに注意してください。
+
+    .. warning::
+        **データベースのライフサイクル管理**
+        `Spot` クラスは注入された `db` (TaskDBBase) のシャットダウンを行いません。
+        プロセス終了時やアプリケーションのシャットダウン時に、呼び出し元が責任を持って
+        `db.shutdown()` を呼び出す必要があります。
 
     Args:
         name: The name of the Spot instance.
@@ -383,11 +382,6 @@ class Spot:
         """GC finalizer 用: リソースを即座に解放する (save_sync=False)。"""
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False, cancel_futures=True)
-        try:
-            db.shutdown(wait=False)
-        except Exception as e:
-            # GC時のエラーは最小限のログに留める
-            logger.debug(f"Failed to shut down DB during GC (ignored): {e}")
 
     def shutdown(self, save_sync: bool = True):
         """バックグラウンド IO を停止する。
@@ -407,13 +401,6 @@ class Spot:
 
         if self._executor is not None:
             self._executor.shutdown(wait=save_sync, cancel_futures=not save_sync)
-
-        try:
-            self.db.shutdown(wait=save_sync)
-        except Exception as e:
-            logger.error(
-                f"Failed to shut down DB cleanly (ignored): {e}", exc_info=True
-            )
 
     def flush(self, timeout: Optional[float] = None) -> None:
         """

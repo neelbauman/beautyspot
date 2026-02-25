@@ -11,7 +11,7 @@ from beautyspot.db import SQLiteTaskDB
 @pytest.fixture
 def spot():
     # Use in-memory DB for fast testing
-    return Spot("test_spot", db=SQLiteTaskDB(":memory:"))
+    return Spot("test_spot", db=SQLiteTaskDB())
 
 
 # ----------------------------------------------------------------

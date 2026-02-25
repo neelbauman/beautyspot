@@ -1,38 +1,49 @@
-# 22. Service Layer for Maintenance Operations
+---
+title: Service Layer for Maintenance Operations
+status: Accepted
+date: 2026-02-16
+context: Decoupling Administrative Logic from CLI
+---
 
-* Status: Accepted
-* Date: 2026-02-16
+# Service Layer for Maintenance Operations
 
-## Context
+## Context and Problem Statement / コンテキスト
 
-Currently, `src/beautyspot/cli.py` contains significant business logic for:
-1.  **Pruning**: Deleting old tasks based on timestamps.
-2.  **Cleaning**: Identifying and deleting orphaned blob files (garbage collection).
+現在、`src/beautyspot/cli.py` には以下のビジネスロジックが直接記述されています：
+1.  **Pruning**: タイムスタンプに基づく古いタスクの削除。
+2.  **Cleaning**: 孤立した Blob ファイルの特定と削除（ガベージコレクション）。
 
-This logic directly accesses the `sqlite3` driver and manipulates file paths, bypassing the `TaskDB` and `BlobStorageBase` abstractions. This leads to:
-* **Coupling**: CLI is tightly coupled to SQLite and local file storage details.
-* **Duplication**: If we want to run maintenance from a script or Web UI, we must duplicate this logic.
-* **Inconsistency**: S3 storage support for "cleaning" is missing because logic is hardcoded for local paths.
+これらのロジックは `sqlite3` ドライバに直接アクセスしたり、ファイルパスを操作したりしており、`TaskDB` や `BlobStorageBase` の抽象化をバイパスしています。これにより、CLI が SQLite やローカルファイルストレージの詳細に密結合し、他のインターフェース（スクリプトや Web UI）から同じロジックを再利用できないという問題が発生しています。また、S3 などの外部ストレージに対する「掃除」機能の実装も困難になっています。
 
-## Decision
+## Decision Drivers / 要求
 
-We will extract the maintenance logic from `cli.py` into a dedicated service layer, **`MaintenanceService`** (`src/beautyspot/maintenance.py`).
+* **Decoupling**: CLI を特定のデータベース実装やファイルシステム詳細から切り離すこと。
+* **Reusability**: メンテナンスロジック（整理や掃除）をプログラムから、あるいは Dashboard からも利用可能にすること。
+* **Abstraction Support**: S3 などの異なるストレージバックエンドでも、一貫したガベージコレクションが行えるようにすること。
 
-Instead of adding these responsibilities to the `Spot` class (which focuses on runtime execution context and caching), we separate the concerns:
+## Considered Options / 検討
 
-* **`MaintenanceService`**: Handles administrative tasks such as pruning records, cleaning orphaned blobs, and querying history. It orchestrates `TaskDB` and `BlobStorageBase`.
-* **`Spot`**: Remains focused on `mark` (registration) and `cached_run` (execution) for the application runtime.
+* **Option 1**: メンテナンスロジックを CLI に残したままにする。
+* **Option 2**: 全てのロジックを `Spot` クラスに追加する。
+* **Option 3**: 専用のサービスレイヤー `MaintenanceService` を新設し、管理ロジックを分離する。
 
-Both classes will share the underlying `TaskDB` and `BlobStorageBase` abstractions.
+## Decision Outcome / 決定
 
-## Consequences
+Chosen option: **Option 3**.
 
-### Positive
-* **Separation of Concerns**: The runtime logic (`Spot`) is kept lightweight and focused, while administrative logic resides in its own service.
-* **Testability**: Core maintenance logic can be unit-tested without invoking the CLI.
-* **Reusability**: Pruning/Cleaning can be triggered programmatically from other scripts or the dashboard.
-* **Abstraction**: S3 and other storage backends will automatically support garbage collection if they implement `list_keys`.
+メンテナンスロジックを `cli.py` から抽出し、専用の **`MaintenanceService`** (`src/beautyspot/maintenance.py`) に移動します。
 
-### Negative
-* **Interface Expansion**: `TaskDB` and `BlobStorageBase` interfaces need to expand to support maintenance operations (e.g., `list_keys`, `get_blob_refs`), affecting all backend implementations.
+`Spot` クラスはアプリケーションの実行コンテキストとキャッシュ制御に集中させ、メンテナンス（行政的タスク）は別の関心事として分離します。
 
+* **`MaintenanceService`**: レコードの整理、孤立した Blob の掃除、履歴の照会などを担当。`TaskDB` と `BlobStorageBase` を調整（Orchestrate）する。
+* **`Spot`**: 実行時の登録 (`mark`) と実行 (`run`) に専念する。
+
+## Consequences / 決定
+
+* **Positive**:
+    * **関心の分離**: 実行時ロジック (`Spot`) を軽量に保ちつつ、管理ロジックを独立して進化させることができる。
+    * **テスト容易性**: CLI を起動することなく、メンテナンスロジックのユニットテストが可能になる。
+    * **再利用性**: 整理や掃除を他のスクリプトや Dashboard からトリガーできる。
+    * **抽象化の恩恵**: バックエンドが `list_keys` 等を実装していれば、S3 等でも自動的に GC がサポートされる。
+* **Negative**:
+    * **インターフェースの拡張**: メンテナンス支援のため、`TaskDB` や `BlobStorageBase` に新たなメソッド（`list_keys`, `get_blob_refs` 等）を追加する必要がある。

@@ -14,12 +14,15 @@ class NoLimiter:
         pass
 
 
-def test_db_writer_thread_cleanup_on_gc(tmp_path):
+def test_db_remains_alive_on_spot_gc(tmp_path):
+    """
+    Spot インスタンスが GC されても、DI で注入された DB インスタンスは
+    勝手にシャットダウンされない（ライフサイクルが分離されている）ことを確認する。
+    """
     db_path = tmp_path / "test.db"
     blob_dir = tmp_path / "blobs"
 
     db = SQLiteTaskDB(db_path)
-    # ライタースレッドが生きていることを確認
     assert db._writer_thread.is_alive()
     writer_thread = db._writer_thread
 
@@ -32,33 +35,35 @@ def test_db_writer_thread_cleanup_on_gc(tmp_path):
         limiter=NoLimiter(),
     )
 
-    # バックグラウンドリソースを初期化させるために一度保存を試みる
     @spot.mark(save_sync=False)
     def dummy():
         return 1
 
     dummy()
 
-    # この時点で Spot の _finalizer がセットされているはず
     assert spot._finalizer is not None
 
-    # dummy 関数が spot を参照し続けているので削除する
     del dummy
-
-    # Spot インスタンスを削除
     del spot
     gc.collect()
 
-    # 猶予を与える
     time.sleep(1.0)
 
-    # ライタースレッドが停止していることを確認
-    assert not writer_thread.is_alive(), (
-        "DB writer thread should be stopped after Spot is GC'd"
+    # 【変更点】 Spot が GC されても、DBのライタースレッドは生きているべき
+    assert writer_thread.is_alive(), (
+        "DB writer thread should NOT be stopped when Spot is GC'd (DI principle)"
     )
+    
+    # 呼び出し元の責任で DB をクリーンアップする
+    db.shutdown(wait=True)
+    time.sleep(0.5)
+    assert not writer_thread.is_alive()
 
 
-def test_manual_shutdown_still_works(tmp_path):
+def test_spot_shutdown_does_not_close_db(tmp_path):
+    """
+    Spot の明示的な shutdown() を呼んでも、DB はクローズされないことを確認する。
+    """
     db_path = tmp_path / "test2.db"
     db = SQLiteTaskDB(db_path)
     writer_thread = db._writer_thread
@@ -72,11 +77,16 @@ def test_manual_shutdown_still_works(tmp_path):
         limiter=NoLimiter(),
     )
 
-    # ensure_bg_resources を呼んで finalizer を作成しておく
     spot._ensure_bg_resources()
 
     spot.shutdown(save_sync=False)
-    # スレッドの終了を少し待つ
+    time.sleep(0.5)
+    
+    # 【変更点】 Spot のバックグラウンドリソースは解放されるが、DB は生きている
+    assert writer_thread.is_alive()
+    assert not spot._finalizer.alive
+    
+    # 呼び出し元の責任で DB をクリーンアップ
+    db.shutdown(wait=True)
     time.sleep(0.5)
     assert not writer_thread.is_alive()
-    assert not spot._finalizer.alive

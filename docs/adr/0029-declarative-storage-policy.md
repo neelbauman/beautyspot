@@ -1,37 +1,52 @@
-# 29. Declarative Storage Policy
+---
+title: Declarative Storage Policy
+status: Accepted
+date: 2026-02-18
+context: Automating Persistence Decisions
+---
 
-Date: 2026-02-18
-Status: Accepted
+# Declarative Storage Policy
 
-## Context
-これまでの `beautyspot` では、関数の実行結果をBlobストレージ（ファイル）に保存するか、DBのレコードに直接埋め込むかは、ユーザーが `save_blob=True` フラグで明示的に指定する必要があった。
-また、データサイズが大きい場合に警告を出す機能 (`blob_warning_threshold`) はあったが、自動的に対処する機能はなかった。
-これにより、ユーザーはデータのサイズを予測してフラグを管理する「How」の負担を強いられていた。
+## Context and Problem Statement / コンテキスト
 
-## Decision
-ストレージ保存方式の決定ロジックを抽象化した `StoragePolicy` プロトコルを導入し、宣言的な設定を可能にする。
+これまでの `beautyspot` では、関数の実行結果を Blob ストレージ（ファイル）に保存するか、DB のレコードに直接埋め込むかは、ユーザーが `save_blob=True` フラグで明示的に指定する必要がありました。
+また、データサイズが大きい場合に警告を出す機能はありましたが、自動的に対処する機能はありませんでした。これにより、ユーザーはデータのサイズを予測してフラグを管理するという負担を強いられていました。
+
+## Decision Drivers / 要求
+
+* **Automation**: データサイズに応じて最適な保存先（DB または Blob）を自動的に選択し、ユーザーの負担を軽減すること。
+* **Declarative Configuration**: 「1MB以上はファイルに保存する」といったルールを宣言的に記述できるようにすること。
+* **Separation of Concerns**: キャッシュキー生成（Identity）と保存方式（Persistence）の責務を明確に分離すること。
+
+## Considered Options / 検討
+
+* **Option 1**: 引き続きユーザーによる手動の `save_blob` フラグ管理に任せる。
+* **Option 2**: 宣言的な `StoragePolicy` プロトコルを導入し、データ内容に基づいて自動的に保存方式を決定する仕組みを構築する。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 2**.
+
+ストレージ保存方式の決定ロジックを抽象化した `StoragePolicy` プロトコルを導入します。
 
 1. **StoragePolicy Interface**:
-    * `should_save_as_blob(data: bytes) -> bool` を持つプロトコルを定義する。
-    * 配置場所は `src/beautyspot/storage.py` とし、ストレージ関連の責務を凝集させる（`KeyGenPolicy` とは混ぜない）。
+    * `should_save_as_blob(data: bytes) -> bool` を持つプロトコルを定義します。
+    * 配置場所は `src/beautyspot/storage.py` とし、ストレージ関連の責務を凝集させます。
 
 2. **Standard Implementations**:
-    * `ThresholdStoragePolicy`: 指定したバイト数を超えた場合にBlob保存を選択する（推奨デフォルト）。
-    * `WarningOnlyPolicy`: 従来動作互換。Blob化はせず、閾値超えでログ警告のみ行う。
+    * `ThresholdStoragePolicy`: 指定したバイト数を超えた場合に Blob 保存を選択する（推奨デフォルト）。
+    * `WarningOnlyPolicy`: 従来動作互換。Blob 化はせず、閾値超えでログ警告のみ行う。
 
-3. **Configuration**: `Spot` 初期化時に `storage_policy` 引数で注入可能にする。
+3. **Precedence (優先順位)**:
+    * 優先度1: 関数ごとの明示的指定 (`@mark(save_blob=...)`)。
+    * 優先度2: ポリシーによる自動判定。
 
-4. **Precedence (優先順位)**:
-    * Level 1 (最強): 関数ごとの指定 (`@mark(save_blob=...)`) - ユーザーが意図を持って指定した場合は常に最優先。
-    * Level 2 (デフォルト): ポリシーによる自動判定 (`storage_policy.should_save_as_blob(...)`)
+## Consequences / 決定
 
-## Consequences
-### Positive
-* ユーザーは「1MB以上はBlob」というルール（What）を定義するだけで、個々の関数のデータサイズを気にせず最適化できる。
-* DBの肥大化を自動的に防げる。
-* `KeyGenPolicy` と配置を分けることで、モジュールの役割分担（Identity vs Persistence）が明確に保たれる。
-
-### Negative
-* シリアライズ後のデータサイズを見てから判定するため、一度メモリ上に全データを展開する必要がある。
-* `Spot` クラスのコンストラクタ引数が増えるため、移行期間中は `blob_warning_threshold` 等の旧引数との共存・非推奨警告の管理が必要になる。
-
+* **Positive**:
+    * ユーザーは個々の関数のデータサイズを気にせず、全体的なルールを定義するだけで最適化が可能になる。
+    * DB の肥大化を自動的に防げる。
+    * 責務の分離により、モジュールの保守性が向上する。
+* **Negative**:
+    * シリアライズ後のデータサイズを見てから判定するため、メモリ上に全データを一時的に展開する必要がある。
+    * `Spot` クラスのコンストラクタ引数が増え、旧引数（`blob_warning_threshold` 等）との互換性管理が必要になる。

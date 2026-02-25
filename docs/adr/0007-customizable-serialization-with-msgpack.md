@@ -91,7 +91,7 @@ class MsgpackSerializer:
         raise SerializationError(f"Object of type '{type(obj).__name__}' is not serializable...")
 ```
 
-## Consequences / 結果
+## Consequences / 決定
 
   * **Positive:**
       * **安全性:** `pickle` を排除することで、デフォルトでの脆弱性を解消できる。

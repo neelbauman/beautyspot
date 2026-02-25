@@ -1,28 +1,43 @@
-# 21. Refactoring Complex Modules with Single Dispatch
+---
+title: Refactoring Complex Modules with Single Dispatch
+status: Accepted
+date: 2026-02-16
+context: Improving Code Maintainability
+---
 
-* Status: Accepted
-* Date: 2026-02-16
+# Refactoring Complex Modules with Single Dispatch
 
-## Context
+## Context and Problem Statement / コンテキスト
 
-The `quality_report` highlighted that `src/beautyspot/cachekey.py` has a high Cyclomatic Complexity (Rank D), specifically in the `canonicalize` function. This function uses a long chain of `if-elif-else` statements checking for various types (`dict`, `list`, `set`, `numpy`, `type`, etc.) to normalize objects for hashing.
+`quality_report` により、`src/beautyspot/cachekey.py` の `canonicalize` 関数が非常に高い循環的複雑度（ランク D）を持っていることが判明しました。この関数は、ハッシュ化のためのオブジェクト正規化において、`dict`, `list`, `set`, `numpy`, `type` など多岐にわたる型をチェックするために長い `if-elif-else` チェーンを使用していました。
 
-This structure violates the Open-Closed Principle: adding support for a new type requires modifying the core function, increasing the risk of regression.
+この構造は開放閉鎖の原則 (Open-Closed Principle) に違反しており、新しい型のサポートを追加するたびにコア関数を修正する必要があるため、退行（デグレード）のリスクを高めていました。
 
-## Decision
+## Decision Drivers / 要求
 
-We will refactor `canonicalize` using Python's standard library `functools.singledispatch`.
+* **Maintainability**: 高い複雑度を解消し、各型の処理ロジックを独立させること。
+* **Extensibility**: 既存のコードを変更することなく、新しい型への対応を容易にすること。
+* **Readability**: 1つの関数が負うべき責任を明確にし、コードの可読性を向上させること。
 
-* **Default Dispatch**: Handles primitives, fallback logic (`str`), and duck-typing checks (e.g., Numpy arrays, objects with `__dict__`).
-* **Registered Handlers**: Specific logic for `dict`, `list`, `tuple`, `set`, `frozenset`, and `type` will be moved to decorated functions.
+## Considered Options / 検討
 
-## Consequences
+* **Option 1**: 現状の巨大な `if-elif` チェーンを維持する。
+* **Option 2**: Python 標準ライブラリの `functools.singledispatch` を使用してリファクタリングする。
 
-### Positive
-* **Reduced Complexity**: The main function logic is split into smaller, focused handlers.
-* **Extensibility**: Future types can be supported by registering new handlers without changing existing code.
-* **Readability**: Each handler focuses on a single type responsibility.
+## Decision Outcome / 決定
 
-### Negative
-* **Duck Typing Limitation**: `singledispatch` relies on types. Duck typing logic (like checking for `.shape` on Numpy-like objects) must still reside in the default handler or a base checking layer.
+Chosen option: **Option 2**.
 
+`canonicalize` 関数を `functools.singledispatch` を用いて刷新します。
+
+* **Default Dispatch**: プリミティブ型、フォールバックロジック (`str`)、およびダックタイピングによるチェック（Numpy 配列や `__dict__` を持つオブジェクト等）を処理する。
+* **Registered Handlers**: `dict`, `list`, `tuple`, `set`, `frozenset`, `type` 等の特定のロジックは、装飾された独立した関数に移動する。
+
+## Consequences / 決定
+
+* **Positive**:
+    * **複雑度の低減**: メイン関数のロジックが、焦点を絞った小さなハンドラに分割される。
+    * **拡張性**: 既存コードを変更せずに、新しいハンドラを登録するだけで将来の型をサポートできる。
+    * **可読性**: 各ハンドラが単一の型に対する責任に集中できる。
+* **Negative**:
+    * **ダックタイピングの制限**: `singledispatch` は厳密な型に基づいているため、Numpy のようなダックタイピングによるチェックは依然としてデフォルトハンドラや基底層で行う必要がある。

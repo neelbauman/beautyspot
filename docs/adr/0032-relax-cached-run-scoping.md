@@ -1,41 +1,43 @@
-# 32. cached_run スコープ制限の廃止
+---
+title: cached_run スコープ制限の廃止
+status: Accepted
+date: 2026-02-21
+context: Simplification of Imperative Execution Scoping
+---
 
-Date: 2026-02-21
-Status: Accepted
-Supersedes: [ADR-0014](0014-strict-scoping-for-cached-run.md)
+# cached_run スコープ制限の廃止
 
-## Context
+## Context and Problem Statement / コンテキスト
 
-ADR-0014 では、`cached_run` が返すラッパー関数を `with` ブロック外から呼び出した場合に
-`RuntimeError` を raise する Runtime Guard パターンを導入した。
+ADR-0014 では、`cached_run` が返すラッパー関数を `with` ブロック外から呼び出した場合に `RuntimeError` を送出する Runtime Guard パターンを導入しました。しかし、ADR-0023 で `Spot` インスタンス自体の再利用性（`with spot:` はフラッシュのみを目的とし、インスタンスの無効化ではない）が確立されたことにより、`cached_run` のラッパーについても同様にスコープ外での利用を妨げない方針が自然な帰結となりました。
 
-しかし、ADR-0023 で `Spot` インスタンス自体の再利用性（`with spot:` はフラッシュのみで
-制限ではない）が確立されたことにより、`cached_run` のラッパーについても同様に
-スコープ外での利用を妨げない方針が自然な帰結となった。
+また、Runtime Guard の実装において `ContextVar` を使用していましたが、呼び出しごとに新規の `ContextVar` を作成する構造になっており、コンテキスト分離の恩恵が得られていませんでした。さらに、asyncio の一部のパターンにおいてガードが機能しないバグも内包していました。
 
-また、Runtime Guard の実装に `ContextVar` を使用していたが、
-`cached_run` 呼び出しごとに新規の `ContextVar` を作成するため、
-コンテキスト分離の恩恵が得られない構造になっていた。
-さらに asyncio のデタッチドタスクパターンでは `reset()` が伝播せず、
-`with` 外から呼べてしまうという逆効果のバグも内包していた。
+## Decision Drivers / 要求
 
-## Decision
+* **Consistency**: `Spot` インスタンスのライフサイクル管理方針と、`cached_run` ラッパーの挙動に一貫性を持たせること。
+* **Simplicity**: 複雑でバグを含みやすい `ContextVar` によるガードロジックを排除し、コードを簡素化すること。
+* **Predictability**: asyncio を含む非同期コンテキストにおいても、一貫した挙動を提供すること。
 
-`cached_run` の Runtime Guard を廃止し、返されたラッパー関数は
-`with` ブロック外でも呼び出し可能とする。
+## Considered Options / 検討
 
-- `ContextVar`、`is_active`、`make_scoped_guard`、`_sync_guard`、`_async_guard` を削除
-- `make_cached` に簡略化（`self.mark()` を適用して返すだけ）
-- `try/finally` による `reset()` も不要のため削除
+* **Option 1**: ADR-0014 の方針を維持し、`ContextVar` の実装を修正してガードを強化する。
+* **Option 2**: スコープ制限（ガード）を廃止し、ラッパー関数をブロック外でも呼び出し可能とする。
 
-## Consequences
+## Decision Outcome / 決定
 
-### Positive
-* **シンプルな実装**: ガード層がなくなり、`cached_run` は単純な `@mark` の一括適用に帰結する。
-* **バグの除去**: `ContextVar` の誤用に起因する asyncio デタッチドタスクでのガード素通りが解消される。
-* **ADR-0023 との一貫性**: `Spot` インスタンスと同様に、ラッパーもスコープに縛られない利用が可能になる。
+Chosen option: **Option 2**.
 
-### Negative
-* **誤用の検出不可**: `with` ブロック外でのラッパー使用がランタイムで検出されなくなる。
-  ただし、ラッパー自体は通常の `@spot.mark()` 相当の関数であり、
-  呼び出しても意図しない副作用は生じない。
+`cached_run` の Runtime Guard を廃止し、返されたラッパー関数は `with` ブロック外でも呼び出し可能とします。
+
+1. **簡略化**: `ContextVar`, `is_active`, `make_scoped_guard` などの関連ロジックを全て削除します。
+2. **実装の純粋化**: `cached_run` は単に `self.mark()` を対象関数に適用して返すだけの、直感的な実装に変更します。
+
+## Consequences / 決定
+
+* **Positive**:
+    * **シンプルな実装**: ガード層がなくなり、コードの保守性が向上した。
+    * **バグの除去**: `ContextVar` の誤用や非同期タスクでの不整合リスクが解消された。
+    * **一貫性**: `Spot` インスタンスと同様、ラッパーもスコープに縛られず柔軟に利用可能になった。
+* **Negative**:
+    * **誤用の検出不可**: `with` ブロック外でのラッパー使用がランタイムで検出されなくなる。ただし、ラッパー自体は `@spot.mark` 相当の正当な関数であり、副作用は生じないため問題視しない。

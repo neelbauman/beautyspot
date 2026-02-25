@@ -7,7 +7,7 @@ context: Issue3
 
 # Manage Executor Lifecycle via Instance Ownership and Weak References
 
-## Context and Problem Statement
+## Context and Problem Statement / コンテキスト
 
 `src/beautyspot/core.py` において、非同期タスクのIOオフロード用に `ThreadPoolExecutor` がグローバル変数 `_io_executor` として定義されている。
 
@@ -19,21 +19,21 @@ context: Issue3
 
 代替案として `with` 文（Context Manager）による管理も検討されたが、`beautyspot` の「デコレータを付与するだけで動作する」という簡易な利用体験（DX）を損なうため、採用には至らなかった。ユーザーコードを変更させずに、安全にリソースをクリーンアップする仕組みが必要である。
 
-## Decision Drivers
+## Decision Drivers / 要求
 
   * **Developer Experience (DX)**: ユーザーに `shutdown()` の呼び出しや `with` 文を強制したくない。
   * **Configurability**: スレッド数や Executor の実装をユーザーが制御できるようにしたい。
   * **Safety**: プロセス終了時やインスタンス破棄時に、確実にスレッドプールを閉じたい。
   * **Memory Safety**: クリーンアップ処理の登録によって、メモリリーク（循環参照）を引き起こしてはならない。
 
-## Considered Options
+## Considered Options / 検討
 
   * **Option 1**: 現状維持（グローバル変数のまま）。
   * **Option 2**: `Project` を Context Manager 化し、`__exit__` で `shutdown()` を呼ぶ。
   * **Option 3**: `atexit` モジュールを使い、終了時に `shutdown()` を呼ぶ。
   * **Option 4**: インスタンス管理に変更し、`weakref.finalize` で自動クリーンアップを行う。
 
-## Decision Outcome
+## Decision Outcome / 決定
 
 Chosen option: **Option 4**.
 
@@ -49,7 +49,7 @@ Chosen option: **Option 4**.
 4.  **自動クリーンアップ**:
     内部生成した場合に限り、`weakref.finalize` を使用してシャットダウンを自動化する。
 
-### Technical Details: Why `weakref.finalize` instead of `atexit`?
+### Technical Details / 技術詳細: Why `weakref.finalize` instead of `atexit`?
 
 単純な `atexit.register(self.shutdown)` を採用しなかった理由は、**メモリリーク（循環参照）のリスク** である。
 
@@ -73,7 +73,7 @@ class Project:
         executor.shutdown(wait=True)
 ```
 
-## Consequences
+## Consequences / 決定
 
   * **Positive**:
       * ユーザーはリソース管理を意識する必要がなくなり、APIもシンプルに保たれる。

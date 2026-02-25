@@ -5,9 +5,9 @@ date: 2025-11-21
 context: Issue4 & Bug Fix
 ---
 
-# 2. Smooth Rate Limiter (GCRA)
+# Smooth Rate Limiter (GCRA)
 
-## Context / コンテキスト
+## Context and Problem Statement / コンテキスト
 
 `beautyspot` のレート制限機能 (`limiter`) において、以下の課題があった。
 
@@ -18,22 +18,36 @@ context: Issue4 & Bug Fix
     * これを超えるコストが `consume()` に渡された場合、即座に `ValueError` を送出する。
     * 理由: APIの物理的なレート制限を超えるリクエストは、待機したところで成功する見込みが薄く、早期に設定ミスや入力ミスをユーザーに通知すべきであるため。
 
-## Decision / 決定
+## Decision Drivers / 要求
 
-アルゴリズムをトークンバケットから **GCRA (Generic Cell Rate Algorithm)**、あるいは "Leaky Bucket as a Meter" と呼ばれる方式に変更する。
+* **Burst Prevention**: 長時間のアイドル後に大量のタスクが集中するのを防ぎ、一定のレートを維持すること。
+* **Deadlock Freedom**: レート制限設定値（TPM）以下のコストであれば、どんなに大きなコストのタスクでも（待機時間を経て）実行可能であること。
+* **Zero Initial Latency**: 最初のタスクは待機時間なしで即座に開始できること。
+* **Fail Fast**: システムの設定（TPM）で物理的に不可能なリクエストは、実行前に即座にエラーにすること。
+
+## Considered Options / 検討
+
+* **Option 1**: トークンバケット（既存実装）。バーストしやすく、容量設定によってはデッドロックのリスクがある。
+* **Option 2**: GCRA (Generic Cell Rate Algorithm)。別名 "Leaky Bucket as a Meter"。定速性が高く、貯金を許さないためバーストに強い。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 2**.
+
+アルゴリズムをトークンバケットから **GCRA (Generic Cell Rate Algorithm)** に変更する。
 
 * **理論的到達時刻 (TAT: Theoretical Arrival Time)** を管理する。
 * タスクが来ると、そのコスト分だけ TAT を未来へ進める。
 * `現在時刻 < TAT` ならば、その差分だけ待機（sleep）してから実行する。
 * `現在時刻 >= TAT` （アイドル状態）ならば、TAT を現在時刻にリセットしてから計算する（過去の貯金は捨てる）。
 
-## Consequences / 結果
+## Consequences / 決定
 
-* **メリット:**
+* **Positive**:
     * **完全な定速運転:** アイドル後でもバーストせず、設定されたレート（TPM）を厳守する。
     * **デッドロックフリー:** どんなに大きなコストのタスクでも、必要な待機時間を計算して処理できる。
     * **即時起動:** 最初の1回のリクエストは待ち時間なしで実行され、2回目以降からペーシングが効く。
     * **Fail Fast:** 設定値を超える無茶なリクエストを早期発見できる。
-* **デメリット:**
+* **Negative**:
     * 実装が「トークンを消費する」という直感的なメタファーから少し離れる（コード内の説明で補足する）。
 

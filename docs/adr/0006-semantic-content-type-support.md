@@ -1,5 +1,5 @@
 ---
-title:  Semantic Content Type Support
+title: Semantic Content Type Support
 status: Proposed
 date: 2025-11-21
 context: Issue and Bugfix
@@ -7,13 +7,28 @@ context: Issue and Bugfix
 
 # Semantic Content Type Support
 
-## Context
-生成AIタスクの出力は、テキストだけでなく、画像、構造化データ、ダイアグラム（Mermaid, Graphviz/DOT, HTML）など多岐にわたる。
-現状のデータベーススキーマ（`result_type` = `FILE` | `DIRECT`）は「データの保存形式」しか保持しておらず、「データの意味的種類（Semantic Type）」が不明であるため、ダッシュボードでの復元時に適切な可視化（レンダリング）ができない。
+## Context and Problem Statement / コンテキスト
 
-また、`beautyspot` はライブラリとしてユーザーの手元で動作するため、複雑なマイグレーション手順や重量級の依存関係（Alembicなど）を強制することはUXを損なう。
+生成AIタスクの出力は、テキストだけでなく、画像、構造化データ、ダイアグラム（Mermaid, Graphviz/DOT, HTML）など多岐にわたります。
+現状のデータベーススキーマ（`result_type` = `FILE` | `DIRECT`）は「データの保存形式」しか保持しておらず、「データの意味的種類（Semantic Type）」が不明であるため、ダッシュボードでの復元時に適切な可視化（レンダリング）ができません。
 
-## Decision
+また、`beautyspot` はライブラリとしてユーザーの手元で動作するため、複雑なマイグレーション手順や重量級の依存関係（Alembicなど）を強制することはUXを損なうという課題があります。
+
+## Decision Drivers / 要求
+
+* **Rich Visualization**: 生成された図やデータを、ダッシュボード上で適切な形式で閲覧できること。
+* **Zero-Touch Upgrade**: スキーマ変更時にユーザーが手動でマイグレーションコマンドを打つ必要がないこと。
+* **Lightweight**: ライブラリの依存関係を最小限に保つこと。
+* **Type Safety**: データの保存形式（Blob/Text）と意味（Mermaid/Image等）を明確に分離すること。
+
+## Considered Options / 検討
+
+* **Option 1**: 保存されたデータの拡張子や中身から動的に型を推論する。
+* **Option 2**: スキーマに `content_type` カラムを追加し、開発者が `@task` で明示的に指定できるようにする。あわせて自動マイグレーション機能を実装する。
+
+## Decision Outcome / 決定
+
+Chosen option: **Option 2**.
 
 ### 1. Database Schema & Migration
 * **Schema Change:** `tasks` テーブルに `content_type` (TEXT) カラムを追加する。
@@ -37,14 +52,13 @@ context: Issue and Bugfix
 ### 5. Dependencies
 * `pyproject.toml` に `graphviz>=0.20.1` を追加する。
 
-## Consequences
+## Consequences / 決定
 
-### Positive
-* ダッシュボードで、生成AIが出力したアーキテクチャ図やフローチャートを直感的に閲覧できるようになる。
-* ユーザーはデータベースのアップグレード作業を意識する必要がない（自動化）。
-* データの「中身」を解析して表示形式を推測する不安定なロジックを排除できる。
-
-### Negative / Risks
-* **OS依存:** Graphvizのレンダリングには、ユーザー環境に `dot` コマンド（OSレベルのパッケージ）がインストールされている必要がある。
-* **Client-Side Rendering:** MermaidはCDN経由のJS実行となるため、オフライン環境では表示されない場合がある。
+* **Positive**:
+    * ダッシュボードで、生成AIが出力したアーキテクチャ図やフローチャートを直感的に閲覧できるようになる。
+    * ユーザーはデータベースのアップグレード作業を意識する必要がない（自動化）。
+    * データの「中身」を解析して表示形式を推測する不安定なロジックを排除できる。
+* **Negative**:
+    * **OS依存:** Graphvizのレンダリングには、ユーザー環境に `dot` コマンド（OSレベルのパッケージ）がインストールされている必要がある。
+    * **Client-Side Rendering:** MermaidはCDN経由のJS実行となるため、オフライン環境では表示されない場合がある。
 
