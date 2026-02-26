@@ -85,21 +85,21 @@ audit:  ## [Console] コードの複雑度と保守性をコンソール出力
 visualize: ## [Image] 依存関係グラフのみ生成
 	@mkdir -p docs/statics/img/generated
 	# 1. pydeps で DOT 形式を出力
-	uv run pydeps src/beautyspot \
+	-uv run pydeps src/beautyspot \
 		--noshow \
 		--max-bacon=2 \
 		--cluster \
 		--show-dot > docs/statics/img/generated/dependency_graph.dot
 	
 	# 2. 明示的に PNG レンダリング
-	dot -Tpng docs/statics/img/generated/dependency_graph.dot -o docs/statics/img/generated/dependency_graph.png
+	-dot -Tpng docs/statics/img/generated/dependency_graph.dot -o docs/statics/img/generated/dependency_graph.png
 	
 	@ls -lh docs/statics/img/generated/dependency_graph.png
 	@rm docs/statics/img/generated/dependency_graph.dot
 	@rm beautyspot.svg
 	
-	uv run python tools/analyze_structure.py
-	uv run --with pylint pyreverse -o png -p beautyspot src/beautyspot --output-directory docs/statics/img/generated/
+	-uv run python tools/analyze_structure.py
+	-uv run --with pylint pyreverse -o png -p beautyspot src/beautyspot --output-directory docs/statics/img/generated/
 
 report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
@@ -110,3 +110,8 @@ report: audit visualize## [Report] 全解析を実行し、docs/quality_report.m
 update-claude:  ## CLAUDE.md の自動生成セクションを更新
 	uv run python tools/generate_claude_ref.py
 
+.PHONY: specification
+
+specification:
+	-spec-weaver build specification/
+	-uvx --with mkdocs-material zensical serve -f .specification/mkdocs.yml
