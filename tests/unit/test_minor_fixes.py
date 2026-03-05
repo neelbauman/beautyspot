@@ -14,7 +14,7 @@ def test_check_cache_sync_unknown_result_type(tmp_path, caplog):
             ("unknown_key", "GHOST_TYPE", "1.0"),
         )
 
-    spot.db._enqueue_write(inject_data)
+    spot.cache.db._enqueue_write(inject_data)
 
     with caplog.at_level(logging.WARNING):
         # 内部メソッドを直接呼んでチェック

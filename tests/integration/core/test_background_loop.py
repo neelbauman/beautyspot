@@ -31,7 +31,7 @@ def test_background_loop_saves_correctly(tmp_path):
         assert result == 7
 
     # __exit__ でドレイン完了後、DB にレコードが存在することを確認
-    rows = spot.db.get_history()
+    rows = spot.cache.db.get_history()
     assert len(rows) == 1
     assert rows.iloc[0]["func_name"] == "add"
 
@@ -55,7 +55,7 @@ def test_background_loop_serializes_saves(tmp_path):
             identity(i)
 
     # 全レコードが保存されていること
-    rows = spot.db.get_history()
+    rows = spot.cache.db.get_history()
     assert len(rows) == 5
 
 
@@ -68,7 +68,7 @@ def test_background_loop_with_blob_storage(tmp_path):
         db=SQLiteTaskDB(db_path),
         storage_backend=bs.LocalStorage(blob_dir),
         save_sync=False,
-        default_save_blob=True,
+        save_blob=True,
     )
 
     @spot.mark()
@@ -79,7 +79,7 @@ def test_background_loop_with_blob_storage(tmp_path):
         result = make_data(100)
         assert result == list(range(100))
 
-    rows = spot.db.get_history()
+    rows = spot.cache.db.get_history()
     assert len(rows) == 1
     assert rows.iloc[0]["result_type"] == "FILE"
 
@@ -125,7 +125,7 @@ def test_shutdown_after_background_saves(tmp_path):
         db=SQLiteTaskDB(tmp_path / "s.db"),
         storage_backend=slow_storage,
         save_sync=False,
-        default_save_blob=True,
+        save_blob=True,
     )
 
     @spot.mark()

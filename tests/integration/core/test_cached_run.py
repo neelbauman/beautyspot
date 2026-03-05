@@ -36,7 +36,7 @@ def test_cached_run_single_function(spot):
 
     # Verify context exit doesn't kill the spot
     # (Checking if spot is still usable)
-    assert spot.db is not None
+    assert spot.cache.db is not None
 
 
 def test_cached_run_multiple_functions(spot):

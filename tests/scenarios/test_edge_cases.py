@@ -19,20 +19,20 @@ def test_path_traversal_prevention(tmp_path):
 
 
 def test_storage_failure_handling(tmp_path):
-    """Test that Project handles storage failures gracefully (or raises as expected)."""
-    # In the current implementation, Project doesn't catch storage errors during save,
+    """Test that spot handles storage failures gracefully (or raises as expected)."""
+    # In the current implementation, spot doesn't catch storage errors during save,
     # so we expect it to propagate. This test documents that behavior.
 
-    project = Spot(
+    spot = Spot(
         name="test_proj",
         db=SQLiteTaskDB(tmp_path / "test.db"),
         storage_backend=LocalStorage(tmp_path / "blobs"),
     )
 
     # Mock storage.save to fail
-    project.storage_backend.save = MagicMock(side_effect=PermissionError("Disk full"))
+    spot.cache.storage.save = MagicMock(side_effect=PermissionError("Disk full"))
 
-    @project.mark(save_blob=True)
+    @spot.mark(save_blob=True)
     def my_task():
         return "data"
 
@@ -42,12 +42,12 @@ def test_storage_failure_handling(tmp_path):
 
 def test_db_failure_handling(tmp_path):
     """Test behavior when DB fails."""
-    project = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
+    spot = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     # Mock db.save to fail
-    project.db.save = MagicMock(side_effect=Exception("DB Connection Lost"))
+    spot.cache.db.save = MagicMock(side_effect=Exception("DB Connection Lost"))
 
-    @project.mark
+    @spot.mark
     def my_task():
         return "data"
 
@@ -60,12 +60,12 @@ def test_invalid_json_serialization(tmp_path):
     """Test behavior when unserializable object is returned."""
     from beautyspot.serializer import SerializationError
 
-    project = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
+    spot = Spot(name="test_proj", db=SQLiteTaskDB(tmp_path / "test.db"))
 
     class Unserializable:
         pass
 
-    @project.mark(save_blob=False)
+    @spot.mark(save_blob=False)
     def bad_task():
         return Unserializable()
 

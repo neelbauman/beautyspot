@@ -12,7 +12,7 @@ async def test_async_save_sync_propagates_exception(tmp_path):
     spot = Spot("test_bug1", db=SQLiteTaskDB(db_path))
 
     # DBのsaveメソッドをモックして例外を投げさせる
-    with patch.object(spot.db, "save", side_effect=RuntimeError("DB Save Error")):
+    with patch.object(spot.cache.db, "save", side_effect=RuntimeError("DB Save Error")):
 
         @spot.mark(save_sync=True)
         async def my_async_func(x):

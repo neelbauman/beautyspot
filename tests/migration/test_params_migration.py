@@ -72,7 +72,7 @@ def test_mark_deprecation_warning(spot):
     """
     # 修正: KeyGen._default ではなく、(*args, **kwargs) を受け取るラムダを使用
 
-    with pytest.warns(DeprecationWarning, match="use 'keygen' instead"):
+    with pytest.warns(DeprecationWarning, match="use `keygen` instead"):
 
         @spot.mark(input_key_fn=lambda x: "legacy-key")
         def old_style(x):
@@ -91,7 +91,7 @@ def test_cached_run_deprecation_warning(spot):
 
     # 修正: KeyGen._default ではなく、(*args, **kwargs) を受け取るラムダを使用
 
-    with pytest.warns(DeprecationWarning, match="use 'keygen' instead"):
+    with pytest.warns(DeprecationWarning, match="use `keygen` instead"):
         with spot.cached_run(func, input_key_fn=lambda x: "legacy-key") as task:
             task(1)
 

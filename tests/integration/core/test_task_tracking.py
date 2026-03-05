@@ -26,7 +26,7 @@ def spot_with_slow_storage(tmp_path):
         storage_backend=slow_storage,
         serializer=MagicMock(),  # デコード不要のためモックでOK
         save_sync=False,
-        default_save_blob=True,
+        save_blob=True,
     )
     return spot, slow_storage
 
@@ -82,7 +82,7 @@ def test_spot_reusability(spot_with_slow_storage):
         pytest.fail(f"Spot should be reusable, but failed with: {e}")
 
     # 両方のタスクが保存されているか確認
-    df = spot.db.get_history()
+    df = spot.cache.db.get_history()
     assert len(df) == 2
 
 

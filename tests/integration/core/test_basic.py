@@ -42,7 +42,7 @@ def test_mark_with_blob(spot):
     assert len(res) == 1000
 
     # DBにはパスが保存されているはず (中身ではなく)
-    record = spot.db.get_history(limit=1)
+    record = spot.cache.db.get_history(limit=1)
     # result_type が FILE になっているか確認
     assert record.iloc[0]["result_type"] == "FILE"
 

@@ -83,7 +83,7 @@ async def test_async_task(spot):
     assert res == 30
 
     # 結果が保存されていること
-    hist = spot.db.get_history()
+    hist = spot.cache.db.get_history()
     assert len(hist) == 1
 
     row = hist.iloc[0]

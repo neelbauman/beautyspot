@@ -31,7 +31,7 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
         db=SQLiteTaskDB(db_path),
         storage_backend=slow_storage,  # Mockストレージ注入
         save_sync=False,  # ★ Fire-and-Forgetモード
-        default_save_blob=True,  # Storageを使わせるため
+        save_blob=True,  # Storageを使わせるため
     )
 
     call_count = 0
@@ -70,7 +70,7 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
 
     # 3. データ整合性の検証
     # ちゃんと保存処理が走ったか確認
-    df = spot.db.get_history()
+    df = spot.cache.db.get_history()
     assert len(df) == 1
     assert df.iloc[0]["result_type"] == "FILE"
 

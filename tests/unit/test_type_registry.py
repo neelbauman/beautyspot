@@ -36,7 +36,7 @@ def test_register_decorator_basic(spot):
             return isinstance(other, Point) and self.x == other.x and self.y == other.y
 
     p = Point(10, 20)
-    serialized = spot.serializer.dumps(p)
+    serialized = spot.cache.serializer.dumps(p)
 
     # Check raw structure
     unpacked_raw = msgpack.unpackb(serialized)
@@ -47,7 +47,7 @@ def test_register_decorator_basic(spot):
     assert payload_content == b"10,20"
 
     # Verify round-trip
-    restored = spot.serializer.loads(serialized)
+    restored = spot.cache.serializer.loads(serialized)
     assert restored == p
 
 
@@ -68,7 +68,7 @@ def test_register_decorator_late_binding_custom(spot):
             return cls(value=data.decode())
 
     w = Wrapper("test")
-    restored = spot.serializer.loads(spot.serializer.dumps(w))
+    restored = spot.cache.serializer.loads(spot.cache.serializer.dumps(w))
     assert restored.value == "test"
 
 
@@ -105,8 +105,8 @@ def test_register_pydantic_complex(spot):
         name="experiment-1", params={"lr": 0.01, "epochs": 10.0}, tags=["v1", "beta"]
     )
 
-    data = spot.serializer.dumps(original)
-    restored = spot.serializer.loads(data)
+    data = spot.cache.serializer.dumps(original)
+    restored = spot.cache.serializer.loads(data)
 
     assert restored == original
     assert restored.params["lr"] == 0.01
@@ -152,7 +152,7 @@ def test_unregistered_object_error(spot):
         pass
 
     with pytest.raises(SerializationError) as excinfo:
-        spot.serializer.dumps(Stranger())
+        spot.cache.serializer.dumps(Stranger())
 
     assert "Object of type 'Stranger' is not serializable" in str(excinfo.value)
 
@@ -183,7 +183,7 @@ def test_register_numpy_binary(spot):
     )
 
     original_arr = np.random.rand(3, 3).astype(np.float32)
-    packed = spot.serializer.dumps(original_arr)
+    packed = spot.cache.serializer.dumps(original_arr)
 
     # Verify binary structure
     unpacked_ext = msgpack.unpackb(packed)
@@ -191,7 +191,7 @@ def test_register_numpy_binary(spot):
     assert isinstance(actual_binary_payload, bytes)
     assert actual_binary_payload.startswith(b"\x93NUMPY")
 
-    restored_arr = spot.serializer.loads(packed)
+    restored_arr = spot.cache.serializer.loads(packed)
 
     assert isinstance(restored_arr, np.ndarray)
     assert np.array_equal(restored_arr, original_arr)

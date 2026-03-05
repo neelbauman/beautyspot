@@ -28,9 +28,9 @@ def test_pydantic_direct_decoder(spot):
     user = User(id=1, name="Alice")
 
     # シリアライズ
-    packed = spot.serializer.dumps(user)
+    packed = spot.cache.serializer.dumps(user)
     # デシリアライズ
-    restored = spot.serializer.loads(packed)
+    restored = spot.cache.serializer.loads(packed)
 
     assert isinstance(restored, User)
     assert restored.id == 1
@@ -54,8 +54,8 @@ def test_pydantic_with_factory(spot):
 
     item = Item(sku="BS-001", price=1200.0)
 
-    packed = spot.serializer.dumps(item)
-    restored = spot.serializer.loads(packed)
+    packed = spot.cache.serializer.dumps(item)
+    restored = spot.cache.serializer.loads(packed)
 
     assert isinstance(restored, Item)
     assert restored.sku == "BS-001"
