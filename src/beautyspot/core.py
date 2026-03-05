@@ -2,7 +2,6 @@
 
 import atexit
 import asyncio
-import hashlib
 import logging
 import functools
 import inspect
@@ -13,7 +12,6 @@ import weakref
 import time
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from typing import (
     Any,
     Coroutine,
@@ -25,28 +23,20 @@ from typing import (
     overload,
     TypeVar,
     TypeVarTuple,
-    Unpack,
     ParamSpec,
-    ContextManager,
     Sequence,
 )
 
 from beautyspot.maintenance import MaintenanceService
 from beautyspot.limiter import LimiterProtocol
-from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
 from beautyspot.types import SaveErrorContext
 from beautyspot.lifecycle import (
-    LifecyclePolicy,
     RetentionSpec,
-    _ForeverSentinel,
-    parse_retention,
-    _FOREVER,
 )
 from beautyspot.db import TaskDBBase
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
-from beautyspot.cachekey import KeyGen, KeyGenPolicy
+from beautyspot.cachekey import KeyGenPolicy
 from beautyspot.exceptions import (
-    CacheCorruptedError,
     ConfigurationError,
     IncompatibleProviderError,
     ValidationError,
@@ -54,15 +44,13 @@ from beautyspot.exceptions import (
 from beautyspot.hooks import HookBase
 from beautyspot.types import PreExecuteContext, CacheHitContext, CacheMissContext
 from beautyspot.content_types import ContentType
+from beautyspot.cache import CacheManager, CACHE_MISS
 
 # ジェネリクスの定義
 P = ParamSpec("P")
 R = TypeVar("R")
 T = TypeVar("T")
 Ts = TypeVarTuple("Ts")
-
-# --- キャッシュミスを表す番兵オブジェクト ---
-CACHE_MISS = object()
 
 # --- ロガー ---
 logger = logging.getLogger(__name__)
@@ -80,16 +68,6 @@ class _ExecutionContext(NamedTuple):
     input_id: str
     cache_key: str
     hook_kwargs: dict
-
-
-class _HerdWaitResult(NamedTuple):
-    """Thundering Herd 待機フェーズの結果。"""
-
-    is_executor: bool  # True: 自分が実行者になった
-    result: Any  # is_executor=False のときの結果 or 例外
-    event: threading.Event | None  # is_executor=True のときのイベント
-    result_box: list  # is_executor=True のときの共有リスト
-    is_error: bool  # result が例外の場合 True
 
 
 class _BackgroundLoop:
@@ -207,68 +185,21 @@ class Spot:
     Spot class that handles task management, serialization, and
     resource management for marked functions including caching and storage.
 
-
-    .. warning::
-        **リソース管理とデータロストに関する注意**
-        `Spot` インスタンスは内部でバックグラウンドIO用の専用スレッドを起動します。
-        関数内で一時的にインスタンスを生成して破棄するような使い方をした場合、
-        ガベージコレクション(GC)時にメインスレッドのフリーズを防ぐため、未完了の保存タスクが
-        **強制キャンセル（データロスト）** される可能性があります。
-
-        安全に利用するためには、以下のいずれかのアプローチを推奨します。
-        1. アプリケーションのライフサイクル全体で1つの `Spot` インスタンスを使い回す（シングルトン的利用）。
-        2. コンテキストマネージャ (`with Spot(...) as spot:`) を使用し、スコープを抜ける際に確実にリソースをドレインする。
-        3. 利用終了時に明示的に `spot.shutdown(save_sync=True)` を呼び出す。
-
-        ※ プロセス終了時 (`atexit`) には安全網として未完了タスクのドレインを試みますが、
-           GCによる破棄に対しては無力であることに注意してください。
-
-    .. warning::
-        **データベースのライフサイクル管理**
-        `Spot` クラスは注入された `db` (TaskDBBase) のシャットダウンを行いません。
-        プロセス終了時やアプリケーションのシャットダウン時に、呼び出し元が責任を持って
-        `db.shutdown()` を呼び出す必要があります。
-
     Args:
         name: The name of the Spot instance.
-        db: The database backend for task tracking.
-        serializer: The serializer for cache values.
-        storage_backend: The blob storage backend.
-        storage_policy: The policy to decide whether to save as blob.
+        cache: The cache manager instance.
         limiter: The rate limiter instance.
         save_sync: Default behavior for save_sync flag in saving cache.
-        version: Default version string for cache entries.
-        content_type: Default content type string.
-        lifecycle_policy: The lifecycle retention policy.
         eviction_rate: float, optional
-            The probability (0.0 to 1.0) of triggering an automatic background
-            cleanup of expired cache entries and orphaned blob files after a cache miss.
-            Defaults to 0.0 (disabled). Set to a small value (e.g., 0.01) for
-            long-running applications to prevent storage bloat without blocking the main thread.
-        on_background_error: キャッシュ保存 (save_sync=False/True) 時に
-            例外が発生した際に呼び出されるコールバック関数。
-            メインスレッドの処理を阻害することなく、保存失敗のログ収集や
-            監視ツールへの通知を行うために使用します。
-            コールバックには、発生した `Exception` と詳細な `SaveErrorContext` が渡されます。
-            この関数内で発生した例外は安全にキャッチされ、アプリケーションはクラッシュしません。
+        on_background_error: Callback function for errors in background saves.
     """
-
-    _HERD_POLL: float = 5.0
-    _HERD_TIMEOUT: float = 300.0  # 5分: 全体のタイムアウト
 
     def __init__(
         self,
         name: str,
-        # 必須の依存オブジェクト (DI)
-        db: TaskDBBase,
-        serializer: SerializerProtocol,
-        storage_backend: BlobStorageBase,
-        storage_policy: StoragePolicyProtocol,
+        cache: CacheManager,
         limiter: LimiterProtocol,
-        # オプション設定
         save_sync: bool = True,
-        # デフォルト動作設定
-        lifecycle_policy: Optional[LifecyclePolicy] = None,
         eviction_rate: float = 0.0,
         drain_timeout: float = 5.0,
         drain_poll_interval: float = 0.5,
@@ -287,66 +218,42 @@ class Spot:
         self._drain_timeout = drain_timeout
         self._drain_poll_interval = drain_poll_interval
 
-        # --- 依存オブジェクトの注入 ---
-        self.db = db
-        self.serializer = serializer
-        self.storage_backend = storage_backend
-        self.storage_policy = storage_policy
+        # --- コンポーネントの保持 ---
+        self.cache = cache
         self.limiter = limiter
 
         # --- オプション設定の適用 ---
         self._save_sync = save_sync
-        self.lifecycle_policy = lifecycle_policy or LifecyclePolicy.default()
         self.on_background_error = on_background_error
 
         # --- DBの初期化 ---
-        self.db.init_schema()
+        self.cache.db.init_schema()
 
-        # --- バックグラウンド IO 管理 (遅延初期化用) ---
+        # --- バックグラウンド IO 管理 ---
         self._bg_loop: _BackgroundLoop | None = None
         self._executor: Executor | None = None
         self._finalizer: weakref.finalize | None = None
 
         self._bg_init_lock = threading.Lock()
         self._shutdown_called = False
-        # True の場合、GC finalizer で db.shutdown() を呼ぶ。
-        # ファクトリ関数 (__init__.py:Spot()) で内部的に DB を生成した場合にのみ設定される。
-        # DI で外部から注入された DB のライフサイクルは呼び出し元が管理する。
         self._owns_db = False
 
-        # 実行中のタスクを管理するセット (ロックで保護)
         self._active_futures: set = set()
         self._futures_lock = threading.Lock()
 
-        # MaintenanceService の遅延初期化用
         self._maintenance_service: MaintenanceService | None = None
         self._maintenance_lock = threading.Lock()
-        # auto-eviction の多重起動防止。threading.Lock を使わず
-        # threading.Event ベースのフラグで管理し、異スレッドからの
-        # ロック解放パターン（デバッグ困難・将来の互換性リスク）を回避する。
         self._eviction_guard_lock = threading.Lock()
         self._eviction_running = False
         self._last_eviction_time = 0.0
-
-        # サンダリングハード対策: 同一キーの並行実行を直列化する
-        # キャッシュミスを検出した複数スレッドが同時に同じ関数を実行するのを防ぐ。
-        # tuple: (threading.Event, list[asyncio.Future], list[result])
-        self._inflight: dict[str, tuple[threading.Event, list[asyncio.Future], list]] = {}
-        self._inflight_lock = threading.Lock()
 
     def __enter__(self) -> "Spot":
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-        コンテキストを抜ける際の処理。
-        バックグラウンドループは停止させず、現在実行中のタスクの完了だけを待つ。
-        これにより、同じSpotインスタンスを別の with ブロックで再利用可能にする。
-        """
         self._drain_futures()
 
     def _track_future(self, future: Any):
-        """Futureを追跡セットに加え、完了したら削除する"""
         if future is None:
             return
         with self._futures_lock:
@@ -360,39 +267,20 @@ class Spot:
 
     @property
     def maintenance(self) -> MaintenanceService:
-        """
-        MaintenanceService を遅延評価で生成・取得します。
-        Spot初期化時の循環参照や不要なインポートを防ぎます。
-        """
         svc = self._maintenance_service
         if svc is None:
             with self._maintenance_lock:
                 if self._maintenance_service is None:
                     self._maintenance_service = MaintenanceService(
-                        db=self.db,
-                        storage=self.storage_backend,
-                        serializer=self.serializer,
+                        db=self.cache.db,
+                        storage=self.cache.storage,
+                        serializer=self.cache.serializer,
                     )
                 svc = self._maintenance_service
         assert svc is not None
         return svc
 
     def _ensure_bg_resources(self) -> tuple[_BackgroundLoop, Executor]:
-        """バックグラウンドリソースを遅延初期化し、(bg_loop, executor) を返す。
-
-        初回の save_sync=False 保存や async パスで呼ばれた時点でリソースを生成する。
-        self._save_sync=True で save_sync=False を一度も使わないユーザーには
-        スレッドやイベントループを一切作らない。
-
-        Note:
-            PEP 703 (free-threading) 対応: ロック外の fast-path チェックは
-            ローカル変数にキャプチャし、同一スナップショットを参照する。
-            GIL なし環境での参照の可視性問題を防止する。
-
-        Raises:
-            RuntimeError: shutdown() が既に呼ばれている場合。
-        """
-        # ローカル変数にキャプチャし、GILなし環境での参照の一貫性を保証する。
         bg, ex = self._bg_loop, self._executor
         if bg is not None and ex is not None:
             return bg, ex
@@ -402,12 +290,10 @@ class Spot:
                 raise RuntimeError(
                     "Cannot submit background tasks after shutdown() has been called."
                 )
-            # Double-checked locking: 各リソースを独立チェックし既存のものは上書きしない
             if self._bg_loop is None or self._executor is None:
                 if self._bg_loop is None:
                     self._bg_loop = _BackgroundLoop(drain_timeout=self._drain_timeout)
                 if self._executor is None:
-                    # I/OプールはPython標準の最適値(min(32, os.cpu_count() + 4))に委ねる
                     self._executor = ThreadPoolExecutor()
                 if self._finalizer is None:
                     self._finalizer = weakref.finalize(
@@ -415,33 +301,24 @@ class Spot:
                         Spot._shutdown_resources,
                         self._bg_loop,
                         self._executor,
-                        self.db,
+                        self.cache.db,
                         self._owns_db,
                     )
             return self._bg_loop, self._executor
 
     @staticmethod
     def _shutdown_resources(
-        bg_loop: _BackgroundLoop, executor: Executor, db: TaskDBBase,
+        bg_loop: _BackgroundLoop,
+        executor: Executor,
+        db: TaskDBBase,
         owns_db: bool,
     ) -> None:
-        """GC finalizer 用: リソースを即座に解放する (save_sync=False)。
-
-        owns_db が True の場合のみ db.shutdown(wait=False) を呼び出し、
-        ライタースレッドに停止を通知する。DI で外部から注入された DB は
-        呼び出し元がライフサイクルを管理する責務を持つため、シャットダウンしない。
-        """
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False, cancel_futures=True)
         if owns_db:
             db.shutdown(wait=False)
 
     def shutdown(self, save_sync: bool = True):
-        """バックグラウンド IO を停止する。
-
-        save_sync=True の場合、保留中のすべての Future を先にドレインしてから停止する。
-        _bg_loop と executor は Spot 自身が所有するため、常にシャットダウンする。
-        """
         with self._bg_init_lock:
             self._shutdown_called = True
         if self._finalizer is not None and self._finalizer.alive:
@@ -456,16 +333,6 @@ class Spot:
             self._executor.shutdown(wait=save_sync, cancel_futures=not save_sync)
 
     def flush(self, timeout: Optional[float] = None) -> None:
-        """
-        バックグラウンドで実行中のすべての保存タスクが完了するまで待機します。
-
-        バッチ処理や単発のスクリプトにおいて、プログラムが終了する前に
-        キャッシュが確実に永続化されることを保証するために使用します。
-
-        Args:
-            timeout: 待機する最大秒数。指定しない場合は Spot 初期化時の
-                     drain_timeout が使用されます。
-        """
         timeout_val = timeout if timeout is not None else self._drain_timeout
         deadline = time.monotonic() + timeout_val
 
@@ -478,72 +345,32 @@ class Spot:
             if remaining <= 0:
                 break
             wait_timeout = min(self._drain_poll_interval, remaining)
-            # 現在のスナップショットの完了を待機し、ループの先頭に戻って
-            # 新たに追加されたタスクがないか再チェックする。
             wait(snapshot, timeout=wait_timeout)
 
-        with self._futures_lock:
-            remaining_count = len(self._active_futures)
-        if remaining_count:
-            logger.warning(
-                f"Drain timeout reached with {remaining_count} futures still pending."
-            )
-
-        # 2. DBの書き込みキューをドレイン
         db_remaining = deadline - time.monotonic()
         if db_remaining > 0:
-            success = self.db.flush(timeout=db_remaining)
-            if not success:
-                logger.warning(
-                    "DB flush timed out. Pending writes may still be in the queue."
-                )
-        else:
-            # 既にタイムアウト時間を使い切っている場合
-            logger.warning(
-                "DB flush skipped due to overall timeout. Pending writes may exist."
-            )
+            self.cache.db.flush(timeout=db_remaining)
 
     def _drain_futures(self) -> None:
         self.flush()
 
     def _get_func_identifier(self, func: Callable) -> str:
-        """Derive a fully-qualified identifier for cache key namespacing."""
         module = getattr(func, "__module__", None) or func.__class__.__module__
         qualname = getattr(func, "__qualname__", None) or func.__class__.__qualname__
         return f"{module}.{qualname}"
 
     def _trigger_auto_eviction(self) -> None:
-        """
-        確率に応じてバックグラウンドで自動クリーンアップ（エビクション）をエンキューします。
-
-        このメソッドは、メインスレッドのレイテンシに影響を与えない「ベストエフォート」
-        の設計思想に基づいています。そのため、スケジュールの失敗やバックグラウンド
-        実行中のエラーはログに記録されるのみで、呼び出し元には伝播（raise）しません。
-
-        スレッドセーフティ:
-            多重起動を防ぐため、`_eviction_guard_lock` で保護された
-            `_eviction_running` フラグを使用します。
-            フラグの設定・解除は同一のロック内で行われ、異なるスレッドからの
-            ロック解放パターン（デバッグ困難・互換性リスク）を回避します。
-        """
         if self.eviction_rate <= 0.0:
             return
-
-        # 1. 確率チェック
         if random.random() >= self.eviction_rate:
             return
 
-        # ガードロック内でフラグを確認・設定する。
-        # ロックの取得→解放は同一スレッド内で完結する。
         with self._eviction_guard_lock:
             if self._eviction_running:
                 return
-
-            # 2. 時間ベースのガード (最低 60秒間隔)
             now = time.monotonic()
             if now - self._last_eviction_time < 60.0:
                 return
-
             self._eviction_running = True
 
         logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
@@ -551,70 +378,37 @@ class Spot:
         with self._futures_lock:
             pending_futures = list(self._active_futures)
 
-        # バックグラウンド実行用の安全なラッパー
         def _run_clean_safe():
             try:
                 self.maintenance.clean_garbage(orphan_grace_seconds=60.0)
             except Exception as e:
-                logger.error(
-                    f"Auto-eviction failed during background execution: {e}",
-                    exc_info=True,
-                )
+                logger.error(f"Auto-eviction failed: {e}", exc_info=True)
 
         def _clear_eviction_flag():
-            """エビクション完了後にフラグをリセットする（同一ロック内で完結）。"""
             with self._eviction_guard_lock:
                 self._last_eviction_time = time.monotonic()
                 self._eviction_running = False
 
-        # スケジュールフェーズの保護
-        is_scheduled = False
         try:
             bg_loop, executor = self._ensure_bg_resources()
 
             async def _run_clean_coro():
                 loop = asyncio.get_running_loop()
-                # 1. 保存タスクの完了を非同期に待機 (レースコンディション防止)
-                # このエビクションがスケジュールされた時点までの保存がDBに反映されるのを保証する
                 if pending_futures:
-                    # concurrent.futures.Future を asyncio.Future にラップして待つ
                     await asyncio.wait(
                         [asyncio.wrap_future(f) for f in pending_futures],
                         timeout=self._drain_timeout,
                     )
-                # 2. クリーンアップ実行 (猶予期間 60秒) を別スレッドで実行
                 await loop.run_in_executor(executor, _run_clean_safe)
 
-            coro = _run_clean_coro()
-            future = bg_loop.submit(coro)
-
-            if future is None:
-                # シャットダウン中などでタスクが拒否された場合
-                # submit() 内で coro.close() は実行済み
-                logger.debug("Auto-eviction task rejected (shutting down).")
-            else:
+            future = bg_loop.submit(_run_clean_coro())
+            if future:
                 self._track_future(future)
-
-                def _on_eviction_done(fut):
-                    _clear_eviction_flag()
-                    try:
-                        exc = fut.exception()
-                        if exc:
-                            logger.error(f"Auto-eviction task failed: {exc}")
-                    except (asyncio.CancelledError, Exception):
-                        pass
-
-                future.add_done_callback(_on_eviction_done)
-                is_scheduled = True
-
-        except Exception as e:
-            # スケジュール自体（リソース初期化など）に失敗した場合
-            logger.warning(f"Failed to schedule auto-eviction task: {e}")
-
-        finally:
-            # スケジュールに至らなかった場合のみ、ここで直ちにフラグをリセットする
-            if not is_scheduled:
+                future.add_done_callback(lambda f: _clear_eviction_flag())
+            else:
                 _clear_eviction_flag()
+        except Exception:
+            _clear_eviction_flag()
 
     def _resolve_key_fn(
         self,
@@ -623,24 +417,12 @@ class Spot:
         input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
     ) -> Optional[Callable]:
         if keygen is not None and input_key_fn is not None:
-            raise IncompatibleProviderError(
-                "Cannot specify both 'keygen' and 'input_key_fn'. Please use 'keygen'."
-            )
-
-        target = keygen
-
+            raise IncompatibleProviderError("Cannot specify both 'keygen' and 'input_key_fn'.")
         if input_key_fn is not None:
-            warnings.warn(
-                "The 'input_key_fn' argument is deprecated and will be removed in v3.0. "
-                "Please use 'keygen' instead.",
-                DeprecationWarning,
-                stacklevel=3,
-            )
-            target = input_key_fn
-
+            warnings.warn("`input_key_fn` is deprecated, use `keygen` instead.", DeprecationWarning, stacklevel=3)
+        target = keygen or input_key_fn
         if isinstance(target, KeyGenPolicy):
             return target.bind(func)
-
         return target
 
     def register(
@@ -675,55 +457,17 @@ class Spot:
         encoder: Callable[[T], Any],
         decoder: Callable[[Any], T],
     ):
-        if isinstance(self.serializer, TypeRegistryProtocol):
-            self.serializer.register(type_class, code, encoder, decoder)
+        if isinstance(self.cache.serializer, TypeRegistryProtocol):
+            self.cache.serializer.register(type_class, code, encoder, decoder)
         else:
             raise NotImplementedError(
-                f"The current serializer '{type(self.serializer).__name__}' does not support type registration.\n"
-                "The `@spot.register` decorator is only compatible with the default MsgpackSerializer."
+                "Current serializer does not support type registration."
             )
 
-    # --- ヘルパーメソッド: 有効期限の計算 ---
-    def _calculate_expires_at(
-        self,
-        func_identifier: str,
-        func_name: str,
-        local_retention: RetentionSpec,
-    ) -> Optional[datetime]:
-
-        # 0. FOREVER: ライフサイクルポリシーを明示的にバイパスして無期限保持
-        if local_retention is _FOREVER:
-            return None
-
-        # 1. ローカル指定 (優先度: 高)
-        # _FOREVER は上で除外済みなので、ここに到達した時点で _ForeverSentinel は想定外。
-        # Bug Fix (Bug8): assert は python -O で無効化されるため if/raise に変更。
-        if isinstance(local_retention, _ForeverSentinel):
-            raise RuntimeError(
-                "内部エラー: _ForeverSentinel が parse_retention に到達しました。"
-                "これはバグです。Issue として報告してください。"
-            )
-        retention = parse_retention(local_retention)
-
-        # 2. ポリシー指定 (優先度: 低)
-        if retention is None:
-            retention = self.lifecycle_policy.resolve_with_fallback(
-                func_identifier, func_name
-            )
-
-        if retention is None:
-            return None  # 無期限
-
-        return datetime.now(timezone.utc) + retention
-
-    # --- Hook ディスパッチヘルパー ---
     @staticmethod
     def _dispatch_hooks(
-        hooks: Optional[Sequence[HookBase]],
-        method_name: str,
-        context: Any,
+        hooks: Optional[Sequence[HookBase]], method_name: str, context: Any
     ) -> None:
-        """フックのコールバックを安全に呼び出す。例外はログに記録し、呼び出し元には伝播しない。"""
         if not hooks:
             return
         for hook in hooks:
@@ -743,14 +487,14 @@ class Spot:
         loop: asyncio.AbstractEventLoop,
         executor: Executor,
     ) -> None:
-        """async パスでフックを executor 上で安全にディスパッチする。"""
         if not hooks:
             return
         await loop.run_in_executor(
             executor, self._dispatch_hooks, hooks, method_name, context
         )
 
-    # --- Core Logic (Sync) ---
+    # --- Core Logic ---
+
     def _resolve_settings(
         self,
         save_blob: bool | None,
@@ -758,40 +502,12 @@ class Spot:
         content_type: str | ContentType | None,
         save_sync: bool | None,
     ) -> tuple[bool | None, str | None, str | None, bool]:
-        # [CHANGED] save_blob が None の場合、ここで False に解決せず None のまま通す。
-        # これにより _save_result_sync で policy.should_save_as_blob() が呼ばれるようになる。
-        final_save_blob = save_blob
-
-        final_version = version
-        final_content_type = content_type
-        final_save_sync = save_sync if save_sync is not None else self._save_sync
-
-        return final_save_blob, final_version, final_content_type, final_save_sync
-
-    def _make_cache_key(
-        self,
-        func_identifier: str,
-        args: tuple,
-        kwargs: dict,
-        resolved_key_fn: Optional[Callable],
-        version: str | None,
-    ) -> tuple[str, str]:
-        iid = (
-            resolved_key_fn(*args, **kwargs)
-            if resolved_key_fn
-            else KeyGen._default(args, kwargs)
+        return (
+            save_blob,
+            version,
+            content_type,
+            (save_sync if save_sync is not None else self._save_sync),
         )
-
-        key_source = f"{func_identifier}:{iid}"
-        if version:
-            key_source += f":{version}"
-
-        ck = hashlib.sha256(key_source.encode()).hexdigest()
-        return iid, ck
-
-    # ------------------------------------------------------------------
-    # _execute_sync / _execute_async 共通ヘルパー
-    # ------------------------------------------------------------------
 
     def _prepare_execution(
         self,
@@ -805,24 +521,22 @@ class Spot:
         save_sync: bool | None,
         hooks: Optional[Sequence[HookBase]],
     ) -> _ExecutionContext:
-        """初期化フェーズの共通処理: 設定解決 → キャッシュキー生成 → hook_kwargs 作成。"""
         s_blob, s_ver, s_ct, s_save_sync = self._resolve_settings(
             save_blob, version, content_type, save_sync
         )
         func_identifier = self._get_func_identifier(func)
-        iid, ck = self._make_cache_key(
+        iid, ck = self.cache.make_cache_key(
             func_identifier, args, kwargs, effective_key_fn, s_ver
         )
-        hook_kwargs = dict(kwargs) if hooks else kwargs
         return _ExecutionContext(
-            save_blob=s_blob,
-            version=s_ver,
-            content_type=s_ct,
-            save_sync=s_save_sync,
-            func_identifier=func_identifier,
-            input_id=iid,
-            cache_key=ck,
-            hook_kwargs=hook_kwargs,
+            s_blob,
+            s_ver,
+            s_ct,
+            s_save_sync,
+            func_identifier,
+            iid,
+            ck,
+            dict(kwargs) if hooks else kwargs,
         )
 
     def _build_cache_hit_context(
@@ -835,7 +549,6 @@ class Spot:
         result: Any,
         version: str | None,
     ) -> CacheHitContext:
-        """CacheHitContext の構築を一箇所に集約する。"""
         return CacheHitContext(
             func_name=func_name,
             input_id=str(input_id),
@@ -859,8 +572,7 @@ class Spot:
         serializer: Optional[SerializerProtocol],
         retention: RetentionSpec,
     ) -> dict:
-        """保存パラメータ辞書の構築を一箇所に集約する。"""
-        expires_at = self._calculate_expires_at(
+        expires_at = self.cache.calculate_expires_at(
             func_identifier, func.__name__, retention
         )
         return {
@@ -876,13 +588,10 @@ class Spot:
             "expires_at": expires_at,
         }
 
-    def _persist_result_sync(
-        self, save_sync: bool, save_kwargs: dict
-    ) -> None:
-        """同期実行パスでの保存処理 (save_sync=True/False 両方を処理)。"""
+    def _persist_result_sync(self, save_sync: bool, save_kwargs: dict) -> None:
         if save_sync:
             try:
-                self._save_result_sync(**save_kwargs)
+                self.cache.set(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
@@ -895,25 +604,18 @@ class Spot:
                 if self.on_background_error is None:
                     raise
 
-    async def _persist_result_async(
-        self, save_sync: bool, save_kwargs: dict
-    ) -> None:
-        """非同期実行パスでの保存処理。save_sync=True 時は bg_loop 経由で await する。"""
+    async def _persist_result_async(self, save_sync: bool, save_kwargs: dict) -> None:
         if save_sync:
             try:
                 bg_loop, exec_pool = self._ensure_bg_resources()
                 coro = self._save_result_async(
                     executor=exec_pool, safe=False, **save_kwargs
                 )
-                try:
-                    future = bg_loop.submit(coro)
-                    if future is None:
-                        self._notify_save_discarded(save_kwargs)
-                    else:
-                        await asyncio.wrap_future(future)
-                except RuntimeError:
-                    coro.close()
-                    raise
+                future = bg_loop.submit(coro)
+                if future is None:
+                    self._notify_save_discarded(save_kwargs)
+                else:
+                    await asyncio.wrap_future(future)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
@@ -925,201 +627,6 @@ class Spot:
                 self._handle_save_error(e, save_kwargs)
                 if self.on_background_error is None:
                     raise
-
-    def _notify_and_cleanup_inflight(
-        self,
-        cache_key: str,
-        event: threading.Event | None,
-        result_box: list,
-    ) -> None:
-        """inflight 管理のクリーンアップと待機中 Future への通知。"""
-        futs_to_notify: list = []
-        with self._inflight_lock:
-            val = self._inflight.get(cache_key)
-            if val is not None and val[0] is event:
-                _, futs_to_notify, _ = val
-                del self._inflight[cache_key]
-        if event is not None:
-            event.set()
-            # 実行結果があれば、待機中の asyncio.Future にも通知する
-            if result_box and futs_to_notify:
-                success, res_val = result_box[0]
-                for fut in futs_to_notify:
-                    if not fut.done():
-                        if success:
-                            fut.get_loop().call_soon_threadsafe(
-                                fut.set_result, res_val
-                            )
-                        elif isinstance(res_val, Exception):
-                            fut.get_loop().call_soon_threadsafe(
-                                fut.set_exception, res_val
-                            )
-                        else:
-                            # BaseException は asyncio.Future.set_exception に渡せないためラップ
-                            wrapped = RuntimeError(
-                                f"Non-Exception error: {repr(res_val)}"
-                            )
-                            wrapped.__cause__ = res_val
-                            fut.get_loop().call_soon_threadsafe(
-                                fut.set_exception, wrapped
-                            )
-
-    # ------------------------------------------------------------------
-    # Thundering Herd Protection helpers
-    # ------------------------------------------------------------------
-
-    def _wait_herd_sync(
-        self,
-        cache_key: str,
-        serializer: Optional[SerializerProtocol],
-        hooks: Optional[Sequence[HookBase]],
-        func_name: str,
-        input_id: str,
-        args: tuple,
-        hook_kwargs: dict,
-        version: str | None,
-    ) -> _HerdWaitResult:
-        """sync パスの Thundering Herd 待機ループ。_HerdWaitResult を返す。"""
-        while True:
-            with self._inflight_lock:
-                if cache_key not in self._inflight:
-                    event = threading.Event()
-                    result_box: list = []
-                    self._inflight[cache_key] = (event, [], result_box)
-                    return _HerdWaitResult(
-                        is_executor=True,
-                        result=None,
-                        event=event,
-                        result_box=result_box,
-                        is_error=False,
-                    )
-                wait_event, _, wait_box = self._inflight[cache_key]
-
-            herd_deadline = time.monotonic() + self._HERD_TIMEOUT
-            while not wait_event.wait(timeout=self._HERD_POLL):
-                if time.monotonic() >= herd_deadline:
-                    logger.warning(
-                        f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                        f"for cache_key={cache_key!r}. Falling back to re-execution."
-                    )
-                    break
-
-            if wait_box:
-                success, val = wait_box[0]
-                return _HerdWaitResult(
-                    is_executor=False,
-                    result=val,
-                    event=None,
-                    result_box=[],
-                    is_error=not success,
-                )
-
-            cached = self._check_cache_sync(cache_key, serializer)
-            if cached is not CACHE_MISS:
-                return _HerdWaitResult(
-                    is_executor=False,
-                    result=cached,
-                    event=None,
-                    result_box=[],
-                    is_error=False,
-                )
-            # キャッシュがまだない場合はループして自分が実行者になることを試みる
-
-    async def _await_herd_signal_async(
-        self,
-        fut: asyncio.Future | None,
-        wait_event: threading.Event,
-        wait_box: list,
-        cache_key: str,
-        loop: asyncio.AbstractEventLoop,
-    ) -> tuple[bool, Any] | None:
-        """async herd 待機の3パスを集約。結果 (success, val) を返す。None はタイムアウト。"""
-        if fut is not None:
-            try:
-                val = await asyncio.wait_for(
-                    asyncio.shield(fut), timeout=self._HERD_TIMEOUT
-                )
-                return (True, val)
-            except asyncio.TimeoutError:
-                logger.warning(
-                    f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                    f"for cache_key={cache_key!r}. Falling back to re-execution."
-                )
-                return None
-            except Exception as e:
-                return (False, e)
-
-        if wait_box:
-            return wait_box[0]
-
-        # フォールバック: Event ベースのポーリング
-        herd_deadline = time.monotonic() + self._HERD_TIMEOUT
-        while not await loop.run_in_executor(
-            None, functools.partial(wait_event.wait, self._HERD_POLL)
-        ):
-            if time.monotonic() >= herd_deadline:
-                logger.warning(
-                    f"Thundering herd wait timed out after {self._HERD_TIMEOUT}s "
-                    f"for cache_key={cache_key!r}. Falling back to re-execution."
-                )
-                return None
-        if wait_box:
-            return wait_box[0]
-        return None
-
-    async def _wait_herd_async(
-        self,
-        cache_key: str,
-        serializer: Optional[SerializerProtocol],
-        loop: asyncio.AbstractEventLoop,
-        executor: Executor,
-    ) -> _HerdWaitResult:
-        """async パスの Thundering Herd 待機ループ。_HerdWaitResult を返す。"""
-        while True:
-            fut = None
-            with self._inflight_lock:
-                if cache_key not in self._inflight:
-                    event = threading.Event()
-                    result_box: list = []
-                    self._inflight[cache_key] = (event, [], result_box)
-                    return _HerdWaitResult(
-                        is_executor=True,
-                        result=None,
-                        event=event,
-                        result_box=result_box,
-                        is_error=False,
-                    )
-                wait_event, futs, wait_box = self._inflight[cache_key]
-                if not wait_box:
-                    fut = loop.create_future()
-                    futs.append(fut)
-
-            signal = await self._await_herd_signal_async(
-                fut, wait_event, wait_box, cache_key, loop
-            )
-            if signal is None:
-                # タイムアウト: ループ先頭に戻り自分が実行者になることを試みる
-                continue
-
-            success, val = signal
-            if success:
-                return _HerdWaitResult(
-                    is_executor=False,
-                    result=val,
-                    event=None,
-                    result_box=[],
-                    is_error=False,
-                )
-            else:
-                return _HerdWaitResult(
-                    is_executor=False,
-                    result=val,
-                    event=None,
-                    result_box=[],
-                    is_error=True,
-                )
-
-    # ------------------------------------------------------------------
 
     def _execute_sync(
         self,
@@ -1136,42 +643,40 @@ class Spot:
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         ctx = self._prepare_execution(
-            func, args, kwargs, save_blob, effective_key_fn,
-            version, content_type, save_sync, hooks,
+            func,
+            args,
+            kwargs,
+            save_blob,
+            effective_key_fn,
+            version,
+            content_type,
+            save_sync,
+            hooks,
         )
-        ck = ctx.cache_key
-
-        # === 1. フック: pre_execute ===
         self._dispatch_hooks(
             hooks,
             "pre_execute",
             PreExecuteContext(
-                func_name=func.__name__,
-                input_id=str(ctx.input_id),
-                cache_key=ck,
-                args=args,
-                kwargs=ctx.hook_kwargs,
+                func.__name__, str(ctx.input_id), ctx.cache_key, args, ctx.hook_kwargs
             ),
         )
-
-        # === 2. Check Cache ===
-        cached = self._check_cache_sync(ck, serializer)
+        cached = self.cache.get(ctx.cache_key, serializer)
         if cached is not CACHE_MISS:
             self._dispatch_hooks(
                 hooks,
                 "on_cache_hit",
                 self._build_cache_hit_context(
-                    func.__name__, ctx.input_id, ck, args,
-                    ctx.hook_kwargs, cached, ctx.version,
+                    func.__name__,
+                    ctx.input_id,
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    cached,
+                    ctx.version,
                 ),
             )
             return cached
-
-        # === 2.5 Thundering Herd Protection ===
-        herd = self._wait_herd_sync(
-            ck, serializer, hooks,
-            func.__name__, ctx.input_id, args, ctx.hook_kwargs, ctx.version,
-        )
+        herd = self.cache.wait_herd_sync(ctx.cache_key, serializer)
         if not herd.is_executor:
             if herd.is_error:
                 raise herd.result
@@ -1179,51 +684,55 @@ class Spot:
                 hooks,
                 "on_cache_hit",
                 self._build_cache_hit_context(
-                    func.__name__, ctx.input_id, ck, args,
-                    ctx.hook_kwargs, herd.result, ctx.version,
+                    func.__name__,
+                    ctx.input_id,
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    herd.result,
+                    ctx.version,
                 ),
             )
             return herd.result
-
         try:
-            # === 3. Execute ===
             res = func(*args, **kwargs)
-
-            # === 4. フック: on_cache_miss ===
             self._dispatch_hooks(
                 hooks,
                 "on_cache_miss",
                 CacheMissContext(
-                    func_name=func.__name__,
-                    input_id=str(ctx.input_id),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=ctx.hook_kwargs,
-                    result=res,
-                    version=ctx.version,
+                    func.__name__,
+                    str(ctx.input_id),
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    res,
+                    ctx.version,
                 ),
             )
-
-            # 結果を待機中の他のスレッドに共有する
             herd.result_box.append((True, res))
-
-            # === 5. Calculate Expiration & Save ===
             save_kwargs = self._build_save_kwargs(
-                ck, func, ctx.func_identifier, ctx.input_id,
-                ctx.version, res, ctx.content_type, ctx.save_blob,
-                serializer, retention,
+                ctx.cache_key,
+                func,
+                ctx.func_identifier,
+                ctx.input_id,
+                ctx.version,
+                res,
+                ctx.content_type,
+                ctx.save_blob,
+                serializer,
+                retention,
             )
             self._persist_result_sync(ctx.save_sync, save_kwargs)
+            return res
         except BaseException as e:
             if not herd.result_box:
                 herd.result_box.append((False, e))
             raise
         finally:
-            self._notify_and_cleanup_inflight(ck, herd.event, herd.result_box)
-
-        self._trigger_auto_eviction()
-
-        return res
+            self.cache.notify_and_cleanup_inflight(
+                ctx.cache_key, herd.event, herd.result_box
+            )
+            self._trigger_auto_eviction()
 
     async def _execute_async(
         self,
@@ -1240,48 +749,50 @@ class Spot:
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Any:
         ctx = self._prepare_execution(
-            func, args, kwargs, save_blob, effective_key_fn,
-            version, content_type, save_sync, hooks,
+            func,
+            args,
+            kwargs,
+            save_blob,
+            effective_key_fn,
+            version,
+            content_type,
+            save_sync,
+            hooks,
         )
-        ck = ctx.cache_key
         loop = asyncio.get_running_loop()
-        # async パスでは常にエグゼキュータが必要なので遅延初期化
         _, executor = self._ensure_bg_resources()
-
-        # === 1. フック: pre_execute ===
         await self._dispatch_hooks_async(
             hooks,
             "pre_execute",
             PreExecuteContext(
-                func_name=func.__name__,
-                input_id=str(ctx.input_id),
-                cache_key=ck,
-                args=args,
-                kwargs=ctx.hook_kwargs,
+                func.__name__, str(ctx.input_id), ctx.cache_key, args, ctx.hook_kwargs
             ),
             loop,
             executor,
         )
-
-        # === 2. Check Cache (Offload IO) ===
         cached = await loop.run_in_executor(
-            executor, self._check_cache_sync, ck, serializer
+            executor, self.cache.get, ctx.cache_key, serializer
         )
         if cached is not CACHE_MISS:
             await self._dispatch_hooks_async(
                 hooks,
                 "on_cache_hit",
                 self._build_cache_hit_context(
-                    func.__name__, ctx.input_id, ck, args,
-                    ctx.hook_kwargs, cached, ctx.version,
+                    func.__name__,
+                    ctx.input_id,
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    cached,
+                    ctx.version,
                 ),
                 loop,
                 executor,
             )
             return cached
-
-        # === 2.5 Thundering Herd Protection ===
-        herd = await self._wait_herd_async(ck, serializer, loop, executor)
+        herd = await self.cache.wait_herd_async(
+            ctx.cache_key, serializer, loop, executor
+        )
         if not herd.is_executor:
             if herd.is_error:
                 raise herd.result
@@ -1289,279 +800,117 @@ class Spot:
                 hooks,
                 "on_cache_hit",
                 self._build_cache_hit_context(
-                    func.__name__, ctx.input_id, ck, args,
-                    ctx.hook_kwargs, herd.result, ctx.version,
+                    func.__name__,
+                    ctx.input_id,
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    herd.result,
+                    ctx.version,
                 ),
                 loop,
                 executor,
             )
             return herd.result
-
         try:
-            # === 3. Execute (async) ===
             res = await func(*args, **kwargs)
-
-            # === 4. フック: on_cache_miss ===
             await self._dispatch_hooks_async(
                 hooks,
                 "on_cache_miss",
                 CacheMissContext(
-                    func_name=func.__name__,
-                    input_id=str(ctx.input_id),
-                    cache_key=ck,
-                    args=args,
-                    kwargs=ctx.hook_kwargs,
-                    result=res,
-                    version=ctx.version,
+                    func.__name__,
+                    str(ctx.input_id),
+                    ctx.cache_key,
+                    args,
+                    ctx.hook_kwargs,
+                    res,
+                    ctx.version,
                 ),
                 loop,
                 executor,
             )
-
-            # 結果を待機中の他のスレッドに共有する
             herd.result_box.append((True, res))
-
-            # === 5. Calculate Expiration & Save ===
             save_kwargs = self._build_save_kwargs(
-                ck, func, ctx.func_identifier, ctx.input_id,
-                ctx.version, res, ctx.content_type, ctx.save_blob,
-                serializer, retention,
+                ctx.cache_key,
+                func,
+                ctx.func_identifier,
+                ctx.input_id,
+                ctx.version,
+                res,
+                ctx.content_type,
+                ctx.save_blob,
+                serializer,
+                retention,
             )
             await self._persist_result_async(ctx.save_sync, save_kwargs)
+            return res
         except BaseException as e:
             if not herd.result_box:
                 herd.result_box.append((False, e))
             raise
         finally:
-            self._notify_and_cleanup_inflight(ck, herd.event, herd.result_box)
+            self.cache.notify_and_cleanup_inflight(
+                ctx.cache_key, herd.event, herd.result_box
+            )
+            self._trigger_auto_eviction()
 
-        self._trigger_auto_eviction()
-
-        return res
-
-    def _check_cache_sync(
-        self, cache_key: str, serializer: Optional[SerializerProtocol] = None
-    ) -> Any:
-        use_serializer = serializer or self.serializer
-
-        entry = self.db.get(cache_key)
-
-        if entry:
-            r_type = entry["result_type"]
-            r_val = entry["result_value"]
-            r_data = entry.get("result_data")
-
-            # Case 1: Native SQLite BLOB
-            if r_type == "DIRECT_BLOB":
-                if r_data is None:
-                    return CACHE_MISS
-                try:
-                    return use_serializer.loads(r_data)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to deserialize DIRECT_BLOB for `{cache_key}`: {e}"
-                    )
-                    return CACHE_MISS
-
-            # Case 2: External Blob
-            elif r_type == "FILE":
-                if r_val is None:
-                    logger.warning(
-                        f"Data corruption: 'FILE' type record has no path for key `{cache_key}`"
-                    )
-                    return CACHE_MISS
-                try:
-                    data_bytes = self.storage_backend.load(r_val)
-                    return use_serializer.loads(data_bytes)
-                except CacheCorruptedError as e:
-                    logger.debug(
-                        f"Cache corrupted or lost for {cache_key}, falling back to CACHE_MISS: {e}"
-                    )
-                    return CACHE_MISS
-                except Exception as e:
-                    logger.error(
-                        f"Failed to deserialize FILE blob for `{cache_key}`: {e}"
-                    )
-                    return CACHE_MISS
-            
-            else:
-                logger.warning(
-                    f"Unknown result_type '{r_type}' for cache_key `{cache_key}`. Treating as CACHE_MISS."
-                )
-                return CACHE_MISS
-
-        return CACHE_MISS
-
-    # --- バックグラウンド保存の投入 ---
-    def _submit_background_save(self, **save_kwargs) -> None:
-        """save_sync=False 時にバックグラウンドへ保存処理を投入する。"""
-        bg_loop, executor = self._ensure_bg_resources()
-        coro = self._save_result_async(executor=executor, **save_kwargs)
-        try:
-            future = bg_loop.submit(coro)
-            if future is None:
-                # submit() 内で coro.close() は実行済み
-                self._notify_save_discarded(save_kwargs)
-                return
-        except RuntimeError:
-            # submit() がスケジュール前に例外を投げた場合、coro は未消費のまま
-            coro.close()
-            raise
-
-        self._track_future(future)
-
-    @staticmethod
-    def _build_save_error_context(save_kwargs: dict) -> SaveErrorContext:
-        """save_kwargs から SaveErrorContext を構築する共通ヘルパー。"""
-        import sys
-        result = save_kwargs.get("result")
-        result_type = type(result).__name__
-        try:
-            result_size = sys.getsizeof(result)
-        except Exception:
-            result_size = None
-
-        return SaveErrorContext(
-            func_name=save_kwargs.get("func_name", "unknown"),
-            cache_key=save_kwargs.get("cache_key", ""),
-            input_id=save_kwargs.get("input_id", ""),
-            version=save_kwargs.get("version"),
-            content_type=save_kwargs.get("content_type"),
-            save_blob=save_kwargs.get("save_blob"),
-            expires_at=save_kwargs.get("expires_at"),
-            result_type=result_type,
-            result_size=result_size,
+    def _handle_save_error(self, err: Exception, save_kwargs: dict) -> None:
+        logger.error(
+            f"Cache save failed for '{save_kwargs.get('func_name')}': {err}",
+            exc_info=True,
         )
-
-    def _invoke_error_callback(self, err: Exception, save_kwargs: dict) -> None:
-        """on_background_error コールバックを安全に呼び出す。"""
         if self.on_background_error:
             try:
-                context = self._build_save_error_context(save_kwargs)
-                self.on_background_error(err, context)
-            except Exception as cb_err:
+                import sys
+
+                res = save_kwargs.get("result")
+                self.on_background_error(
+                    err,
+                    SaveErrorContext(
+                        func_name=save_kwargs.get("func_name", "unknown"),
+                        cache_key=save_kwargs.get("cache_key", ""),
+                        input_id=save_kwargs.get("input_id", ""),
+                        version=save_kwargs.get("version"),
+                        content_type=save_kwargs.get("content_type"),
+                        save_blob=save_kwargs.get("save_blob"),
+                        expires_at=save_kwargs.get("expires_at"),
+                        result_type=type(res).__name__,
+                        result_size=sys.getsizeof(res) if res is not None else None,
+                    ),
+                )
+            except Exception:
                 logger.error(
-                    f"Error occurred within the 'on_background_error' callback: {cb_err}",
+                    "Error occurred within the 'on_background_error' callback",
                     exc_info=True,
                 )
 
     def _notify_save_discarded(self, save_kwargs: dict) -> None:
-        """シャットダウンにより破棄された保存の警告ログとコールバック通知。"""
-        func_name = save_kwargs.get("func_name", "unknown")
-
-        # ユーザーに解決策（with句の利用）を提示する親切なエラーメッセージ
-        msg = (
-            f"Background save for task '{func_name}' was discarded because the Spot instance "
-            "is being destroyed or shut down without waiting for completion. "
-            "To prevent data loss, always use the Spot instance as a context manager "
-            "(`with spot:`) or call `spot.shutdown(save_sync=True)` explicitly."
-        )
-
+        msg = f"Background save for '{save_kwargs.get('func_name')}' discarded during shutdown."
         logger.warning(msg)
-        warnings.warn(msg, ResourceWarning, stacklevel=2)
-        self._invoke_error_callback(RuntimeError(msg), save_kwargs)
+        warnings.warn(msg, ResourceWarning)
+        self._handle_save_error(RuntimeError(msg), save_kwargs)
 
-    def _handle_save_error(self, err: Exception, save_kwargs: dict) -> None:
-        """保存失敗をログし、必要ならコールバックで通知する。"""
-        func_name = save_kwargs.get("func_name", "unknown")
-        logger.error(
-            f"Cache save failed for '{func_name}' (ignored): {err}", exc_info=True
-        )
-        self._invoke_error_callback(err, save_kwargs)
+    def _submit_background_save(self, **save_kwargs) -> None:
+        bg_loop, executor = self._ensure_bg_resources()
+        coro = self._save_result_async(executor=executor, **save_kwargs)
+        future = bg_loop.submit(coro)
+        if future:
+            self._track_future(future)
+        else:
+            self._notify_save_discarded(save_kwargs)
 
-    async def _save_result_async(self, /, executor: Executor, safe: bool = True, **kwargs) -> None:
-        """バックグラウンドループで実行される保存コルーチン。
-
-        Args:
-            executor: 呼び出し元 (_submit_background_save) で確保済みの Executor。
-                      コルーチン内で _ensure_bg_resources() を再度呼ぶことを避け、
-                      シャットダウン中の RuntimeError を防止する。
-            safe: True の場合 _save_result_safe を使用し、例外をログ出力して握り潰す。
-                  False の場合 _save_result_sync を使用し、例外を呼び出し元に伝播させる。
-        """
+    async def _save_result_async(
+        self, /, executor: Executor, safe: bool = True, **kwargs
+    ) -> None:
         loop = asyncio.get_running_loop()
-        target_func = self._save_result_safe if safe else self._save_result_sync
-        await loop.run_in_executor(
-            executor, functools.partial(target_func, **kwargs)
-        )
+        target = (lambda **kw: self._save_result_safe(**kw)) if safe else self.cache.set
+        await loop.run_in_executor(executor, functools.partial(target, **kwargs))
 
-    # --- 安全なバックグラウンド実行用ラッパー ---
-    def _save_result_safe(self, /, **kwargs):
-        """
-        Wrapper for _save_result_sync to handle exceptions in background threads.
-        """
+    def _save_result_safe(self, **kwargs):
         try:
-            self._save_result_sync(**kwargs)
+            self.cache.set(**kwargs)
         except Exception as e:
-            func_name = kwargs.get("func_name", "unknown")
-            logger.error(
-                f"Background save failed for task '{func_name}': {e}", exc_info=True
-            )
-            self._invoke_error_callback(e, kwargs)
-
-    def _save_result_sync(
-        self,
-        cache_key: str,
-        func_name: str,
-        func_identifier: Optional[str],
-        input_id: str,
-        version: str | None,
-        result: Any,
-        content_type: str | ContentType | None,
-        save_blob: bool | None,
-        serializer: Optional[SerializerProtocol] = None,
-        expires_at: Optional[datetime] = None,
-    ):
-        use_serializer = serializer or self.serializer
-
-        data_bytes = use_serializer.dumps(result)
-
-        # 1. 明示的な指定(True/False)があればそれに従う
-        # 2. なければ(Noneであれば)ポリシーに問い合わせる
-        if save_blob is not None:
-            should_use_blob = save_blob
-        else:
-            should_use_blob = self.storage_policy.should_save_as_blob(data_bytes)
-
-        if should_use_blob:
-            r_val = self.storage_backend.save(cache_key, data_bytes)
-            try:
-                self.db.save(
-                    cache_key=cache_key,
-                    func_name=func_name,
-                    func_identifier=func_identifier,
-                    input_id=input_id,
-                    version=version,
-                    result_type="FILE",
-                    content_type=content_type,
-                    result_value=r_val,
-                    result_data=None,
-                    expires_at=expires_at,
-                )
-            except Exception:
-                # DB 書き込み失敗時、Blob が孤立しないようベストエフォートでロールバックする。
-                # 削除にも失敗した場合は GC (scan_garbage) が最終的に回収する。
-                try:
-                    self.storage_backend.delete(r_val)
-                except Exception as rollback_err:
-                    logger.warning(
-                        f"Failed to rollback blob '{r_val}' after DB save failure: {rollback_err}. "
-                        "The blob may be orphaned and will be collected by GC."
-                    )
-                raise
-        else:
-            self.db.save(
-                cache_key=cache_key,
-                func_name=func_name,
-                func_identifier=func_identifier,
-                input_id=input_id,
-                version=version,
-                result_type="DIRECT_BLOB",
-                content_type=content_type,
-                result_value=None,
-                result_data=data_bytes,
-                expires_at=expires_at,
-            )
+            self._handle_save_error(e, kwargs)
 
     def consume(self, cost: Union[int, Callable] = 1):
         def decorator(func):
@@ -1569,22 +918,14 @@ class Spot:
 
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
-                c = cost(*args, **kwargs) if callable(cost) else cost
-                if not isinstance(c, int):
-                    raise TypeError(
-                        f"cost function must return an int, got {type(c).__name__}"
-                    )
-                self.limiter.consume(c)
+                self.limiter.consume(cost(*args, **kwargs) if callable(cost) else cost)
                 return func(*args, **kwargs)
 
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
-                c = cost(*args, **kwargs) if callable(cost) else cost
-                if not isinstance(c, int):
-                    raise TypeError(
-                        f"cost function must return an int, got {type(c).__name__}"
-                    )
-                await self.limiter.consume_async(c)
+                await self.limiter.consume_async(
+                    cost(*args, **kwargs) if callable(cost) else cost
+                )
                 return await func(*args, **kwargs)
 
             return async_wrapper if is_async else sync_wrapper
@@ -1609,151 +950,56 @@ class Spot:
         hooks: Optional[Sequence[HookBase]] = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
-    def mark(
-        self,
-        _func: Optional[Callable] = None,
-        *,
-        save_blob: Optional[bool] = None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-        version: str | None = None,
-        content_type: Optional[str | ContentType] = None,
-        serializer: Optional[SerializerProtocol] = None,
-        save_sync: Optional[bool] = None,
-        retention: RetentionSpec = None,
-        hooks: Optional[Sequence[HookBase]] = None,
-    ) -> Any:
-        """
-        Decorator to mark a function for caching and persistence.
-        All logic is delegated to _execute_sync or _execute_async.
-        """
-
+    def mark(self, _func: Optional[Callable] = None, **kwargs) -> Any:
         def decorator(func):
             if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
-                raise ConfigurationError(
-                    f"Generators and async generators are not supported for caching. "
-                    f"Function: {func.__name__}"
-                )
-
-            # --- 1. Eager Validation (定義時チェック) ---
-            # ここで _resolve_key_fn を呼ぶことで、不正な引数の組み合わせや
-            # 非推奨パラメータの使用に対して、定義時に即座にエラー/警告を出します。
-            # これにより既存のテスト (test_params_migration.py) が通るようになります。
-            effective_key_fn = self._resolve_key_fn(func, keygen, input_key_fn)
-
+                raise ConfigurationError(f"Generators not supported: {func.__name__}")
+            key_fn = self._resolve_key_fn(
+                func, kwargs.get("keygen"), kwargs.get("input_key_fn")
+            )
             is_async = inspect.iscoroutinefunction(func)
 
             @functools.wraps(func)
-            def sync_wrapper(*args, **kwargs):
+            def sync_wrapper(*args, **kw):
                 return self._execute_sync(
-                    func=func,
-                    args=args,
-                    kwargs=kwargs,
-                    save_blob=save_blob,
-                    effective_key_fn=effective_key_fn,
-                    version=version,
-                    content_type=content_type,
-                    serializer=serializer,
-                    save_sync=save_sync,  # None のまま渡す
-                    retention=retention,
-                    hooks=hooks,
+                    func,
+                    args,
+                    kw,
+                    kwargs.get("save_blob"),
+                    key_fn,
+                    kwargs.get("version"),
+                    kwargs.get("content_type"),
+                    kwargs.get("serializer"),
+                    kwargs.get("retention"),
+                    kwargs.get("save_sync"),
+                    kwargs.get("hooks"),
                 )
 
             @functools.wraps(func)
-            async def async_wrapper(*args, **kwargs):
+            async def async_wrapper(*args, **kw):
                 return await self._execute_async(
-                    func=func,
-                    args=args,
-                    kwargs=kwargs,
-                    save_blob=save_blob,
-                    effective_key_fn=effective_key_fn,
-                    version=version,
-                    content_type=content_type,
-                    serializer=serializer,
-                    save_sync=save_sync,  # None のまま渡す
-                    retention=retention,
-                    hooks=hooks,
+                    func,
+                    args,
+                    kw,
+                    kwargs.get("save_blob"),
+                    key_fn,
+                    kwargs.get("version"),
+                    kwargs.get("content_type"),
+                    kwargs.get("serializer"),
+                    kwargs.get("retention"),
+                    kwargs.get("save_sync"),
+                    kwargs.get("hooks"),
                 )
 
             return async_wrapper if is_async else sync_wrapper
 
-        if _func is not None and callable(_func):
-            return decorator(_func)
-        return decorator
-
-    @overload
-    def cached_run(
-        self,
-        func: T,
-        /,
-        *,
-        save_blob: Optional[bool] = None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-        version: str | None = None,
-        content_type: Optional[str | ContentType] = None,
-        serializer: Optional[SerializerProtocol] = None,
-        save_sync: Optional[bool] = None,
-        retention: RetentionSpec = None,
-        hooks: Optional[Sequence[HookBase]] = None,
-    ) -> ContextManager[T]: ...
-
-    @overload
-    def cached_run(
-        self,
-        *funcs: Unpack[Ts],
-        save_blob: Optional[bool] = None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-        version: str | None = None,
-        content_type: Optional[str | ContentType] = None,
-        serializer: Optional[SerializerProtocol] = None,
-        save_sync: Optional[bool] = None,
-        retention: RetentionSpec = None,
-        hooks: Optional[Sequence[HookBase]] = None,
-    ) -> ContextManager[tuple[Unpack[Ts]]]: ...
+        return decorator(_func) if _func else decorator
 
     @contextmanager
-    def cached_run(
-        self,
-        *funcs: Any,
-        save_blob: Optional[bool] = None,
-        keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
-        input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
-        version: str | None = None,
-        content_type: Optional[str | ContentType] = None,
-        serializer: Optional[SerializerProtocol] = None,
-        save_sync: Optional[bool] = None,
-        retention: RetentionSpec = None,
-        hooks: Optional[Sequence[HookBase]] = None,
-    ):
+    def cached_run(self, *funcs: Any, **kwargs):
         if not funcs:
             raise ValidationError(
                 "At least one function must be provided to cached_run."
             )
-
-        for f in funcs:
-            if not callable(f):
-                raise ValidationError(
-                    f"All arguments to cached_run must be callable. Got: {type(f)}"
-                )
-
-        def make_cached(func):
-            cache_decorator = self.mark(
-                save_blob=save_blob,
-                keygen=keygen,
-                input_key_fn=input_key_fn,
-                version=version,
-                content_type=content_type,
-                serializer=serializer,
-                save_sync=save_sync,
-                retention=retention,
-                hooks=hooks,
-            )
-            return cache_decorator(func)
-
-        wrappers = [make_cached(f) for f in funcs]
-        if len(wrappers) == 1:
-            yield wrappers[0]
-        else:
-            yield tuple(wrappers)
+        wrappers = [self.mark(**kwargs)(f) for f in funcs]
+        yield wrappers[0] if len(wrappers) == 1 else tuple(wrappers)

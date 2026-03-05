@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Callable
 
 from beautyspot.core import Spot as _Spot
+from beautyspot.cache import CacheManager as _CacheManager
 
 from beautyspot.types import (
     SaveErrorContext,
@@ -50,11 +51,12 @@ def Spot(
     limiter: Optional[LimiterProtocol] = None,
     storage_backend: Optional[BlobStorageBase] = None,
     storage_policy: Optional[StoragePolicyProtocol] = None,
+    cache: Optional[_CacheManager] = None,
     # --- Configuration Options ---
     lifecycle_policy: Optional[LifecyclePolicy] = None,
     eviction_rate: float = 0.0,
     blob_warning_threshold: int = 1024 * 1024,
-    default_save_blob: bool = False,
+    save_blob: bool = False,
     tpm: int = 10000,
     save_sync: bool = True,
     drain_timeout: float = 5.0,
@@ -75,37 +77,35 @@ def Spot(
     resolved_stg = storage_backend or LocalStorage(_default_workspace / "blobs" / name)
     resolved_limiter = limiter or TokenBucket(tokens_per_minute=tpm)
 
-    # 2. Storage Policy の解決 (Factory側でロジックを担保)
-    #    ユーザーがポリシーを直接渡した場合はそれを優先
+    # 2. Storage Policy の解決
     resolved_policy: StoragePolicyProtocol
-
     if storage_policy is not None:
         resolved_policy = storage_policy
-    elif default_save_blob:
-        # レガシーフラグ互換: 常にBlob保存
+    elif save_blob:
         resolved_policy = AlwaysBlobPolicy()
     else:
-        # デフォルト動作: 警告のみ (ロガー注入)
         logger = logging.getLogger("beautyspot")
         resolved_policy = WarningOnlyPolicy(
             warning_threshold=blob_warning_threshold, logger=logger
         )
 
-    # 3. Coreへ渡すオプションの整理
-    # SpotOptionsの型定義に合わせてパッキングしますが、
-    # core.Spot が受け取らないレガシー引数はここでは渡さないように注意します。
+    # 3. CacheManager の組み立て (Composition)
+    resolved_cache = cache or _CacheManager(
+        db=resolved_db,
+        storage=resolved_stg,
+        serializer=resolved_ser,
+        storage_policy=resolved_policy,
+        lifecycle_policy=lifecycle_policy,
+    )
 
+    # 4. Core Spot の生成
     spot = _Spot(
         name=name,
-        db=resolved_db,
-        serializer=resolved_ser,
-        storage_backend=resolved_stg,
-        storage_policy=resolved_policy,
+        cache=resolved_cache,
         limiter=resolved_limiter,
         # その他のオプション
-        lifecycle_policy=lifecycle_policy,
-        eviction_rate=eviction_rate,
         save_sync=save_sync,
+        eviction_rate=eviction_rate,
         drain_timeout=drain_timeout,
         drain_poll_interval=drain_poll_interval,
         on_background_error=on_background_error,

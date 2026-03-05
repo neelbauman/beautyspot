@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING, TypedDict, Any, Callable
 import weakref
 
+
 class _ReadConnWrapper:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
@@ -46,6 +47,7 @@ class _ReadConnWrapper:
 
     def __del__(self):
         self.close()
+
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -78,7 +80,7 @@ class _WriteTask:
     event: threading.Event
     result: Any = None
     error: Exception | None = None
-    state: str = "PENDING" # "PENDING", "RUNNING", "DONE", "CANCELLED"
+    state: str = "PENDING"  # "PENDING", "RUNNING", "DONE", "CANCELLED"
     _state_lock: threading.Lock = dataclasses.field(default_factory=threading.Lock)
 
     def try_cancel(self) -> bool:
@@ -193,7 +195,9 @@ class SQLiteTaskDB(TaskDBBase):
     """
 
     def __init__(self, db_path: str | Path | None = None, timeout: float = 30.0):
-        self.db_path = Path(db_path).resolve() if db_path else Path(f".beautyspot/{hash(self)}.db")
+        self.db_path = (
+            Path(db_path).resolve() if db_path else Path(f".beautyspot/{hash(self)}.db")
+        )
         self._ensure_cache_dir(self.db_path.parent)
         self.timeout = timeout
         self._local = threading.local()
@@ -248,7 +252,9 @@ class SQLiteTaskDB(TaskDBBase):
             # 全ラッパーをクローズした場合にここに到達する。
             if self._shutdown_requested:
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
-            conn = sqlite3.connect(self.db_path, timeout=self.timeout, check_same_thread=False)
+            conn = sqlite3.connect(
+                self.db_path, timeout=self.timeout, check_same_thread=False
+            )
             try:
                 conn.execute("PRAGMA query_only = ON;")
             except Exception:
@@ -263,7 +269,7 @@ class SQLiteTaskDB(TaskDBBase):
                     raise RuntimeError("SQLiteTaskDB is shutting down.")
                 self._read_wrappers.add(wrapper)
             self._local.read_conn_wrapper = wrapper
-        
+
         with wrapper.lock:
             if wrapper._closed:
                 raise RuntimeError("Database connection was closed")

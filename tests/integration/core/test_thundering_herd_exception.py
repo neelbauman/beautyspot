@@ -40,9 +40,7 @@ async def test_thundering_herd_sync_exception_propagation(tmp_path):
         except TaskError as e:
             exceptions[idx] = e
 
-    await asyncio.gather(
-        *(loop.run_in_executor(None, worker, i) for i in range(5))
-    )
+    await asyncio.gather(*(loop.run_in_executor(None, worker, i) for i in range(5)))
 
     # 関数は1回だけ実行される
     assert call_count == 1

@@ -89,17 +89,12 @@ def test_background_loop_fires_error_callback(tmp_path, mocker):
     mock_callback = MagicMock()
     spot = bs.Spot(
         name="err_test",
-        db=MagicMock(),
-        serializer=MagicMock(),
-        storage_backend=MagicMock(),
-        storage_policy=MagicMock(),
-        limiter=MagicMock(),
         save_sync=False,
         on_background_error=mock_callback,
     )
 
     test_exc = RuntimeError("disk full")
-    mocker.patch.object(spot, "_save_result_sync", side_effect=test_exc)
+    mocker.patch.object(spot.cache, "set", side_effect=test_exc)
 
     @spot.mark()
     def task(x):

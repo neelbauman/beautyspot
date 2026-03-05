@@ -62,7 +62,7 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         # 共有レジストリ（Copy-on-Write）
         self._encoders: Dict[Type, Tuple[int, Callable[[Any], Any]]] = {}
         self._decoders: Dict[int, Callable[[Any], Any]] = {}
-        
+
         self._max_cache_size = max_cache_size
 
         # スレッドローカルなLRUキャッシュ
@@ -75,15 +75,19 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
         # スレッドローカルキャッシュの無効化に使用する。
         self._registry_generation = 0
 
-    def _get_local_cache(self) -> OrderedDict[Type, Tuple[int, Callable[[Any], Any]] | None]:
+    def _get_local_cache(
+        self,
+    ) -> OrderedDict[Type, Tuple[int, Callable[[Any], Any]] | None]:
         """現在のスレッド固有のLRUキャッシュを取得（必要なら初期化）する。
 
         register() によりレジストリ世代が進んでいた場合、
         キャッシュをクリアして stale エントリの参照を防ぐ。
         """
         gen = self._registry_generation
-        if not hasattr(self._local, "subclass_cache") or \
-           getattr(self._local, "_cache_generation", -1) != gen:
+        if (
+            not hasattr(self._local, "subclass_cache")
+            or getattr(self._local, "_cache_generation", -1) != gen
+        ):
             self._local.subclass_cache = OrderedDict()
             self._local._cache_generation = gen
         return self._local.subclass_cache
@@ -114,7 +118,7 @@ class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
                     "Registering the same type twice would silently overwrite the "
                     "encoder while leaving the old decoder orphaned."
                 )
-            
+
             # Copy-on-Write (CoW)
             # 現在の辞書のコピーを作成し、新しい要素を追加
             new_encoders = self._encoders.copy()

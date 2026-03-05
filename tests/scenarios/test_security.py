@@ -60,6 +60,7 @@ def test_load_outside_base_dir(storage, tmp_path):
 
         # Try to load it via LocalStorage
         from beautyspot.exceptions import CacheCorruptedError
+
         with pytest.raises(CacheCorruptedError, match="Access denied"):
             storage.load(abs_path)
     finally:

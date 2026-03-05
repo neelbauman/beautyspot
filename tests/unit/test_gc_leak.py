@@ -53,7 +53,7 @@ def test_db_remains_alive_on_spot_gc(tmp_path):
     assert writer_thread.is_alive(), (
         "DB writer thread should NOT be stopped when Spot is GC'd (DI principle)"
     )
-    
+
     # 呼び出し元の責任で DB をクリーンアップする
     db.shutdown(wait=True)
     time.sleep(0.5)
@@ -81,11 +81,11 @@ def test_spot_shutdown_does_not_close_db(tmp_path):
 
     spot.shutdown(save_sync=False)
     time.sleep(0.5)
-    
+
     # 【変更点】 Spot のバックグラウンドリソースは解放されるが、DB は生きている
     assert writer_thread.is_alive()
     assert not spot._finalizer.alive
-    
+
     # 呼び出し元の責任で DB をクリーンアップ
     db.shutdown(wait=True)
     time.sleep(0.5)

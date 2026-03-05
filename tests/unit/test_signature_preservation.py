@@ -4,7 +4,6 @@
 import inspect
 
 
-
 def test_mark_preserves_sync_function_name(spot):
     """@mark がデコレートした同期関数の __name__ を保持すること"""
 

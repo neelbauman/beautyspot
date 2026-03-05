@@ -6,7 +6,8 @@ import time
 import gc
 import threading
 from unittest.mock import MagicMock
-from beautyspot.core import Spot
+from beautyspot import Spot
+from beautyspot.cache import CacheManager
 
 
 def test_zombie_thread_completes_tasks():
@@ -31,16 +32,19 @@ def test_zombie_thread_completes_tasks():
 
     def run_temp_spot():
         # 関数ローカルなスコープでSpotを初期化
+        cache = CacheManager(
+            db=mock_db,
+            storage=mock_storage,
+            serializer=mock_serializer,
+            storage_policy=mock_policy,
+        )
         spot = Spot(
             name="temp",
-            db=mock_db,
-            serializer=mock_serializer,
-            storage_backend=mock_storage,
-            storage_policy=mock_policy,
+            cache=cache,
             limiter=mock_limiter,
         )
         # 保存ロジックをモックに差し替え
-        spot._save_result_sync = slow_mock_save
+        spot.cache.set = slow_mock_save
 
         # wait=Falseで非同期保存を投入
         spot._submit_background_save(

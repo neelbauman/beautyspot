@@ -46,7 +46,9 @@ _FOREVER = _ForeverSentinel()
 RetentionSpec = Union[str, timedelta, int, float, _ForeverSentinel, None]
 
 
-def parse_retention(value: Union[str, timedelta, int, float, None]) -> Optional[timedelta]:
+def parse_retention(
+    value: Union[str, timedelta, int, float, None],
+) -> Optional[timedelta]:
     """
     Helper function to normalize retention specification to timedelta.
     None means 'indefinite' (defers to lifecycle policy).

@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-02-25 18:22:54
+**最終更新:** 2026-03-05 16:07:09
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -15,21 +15,22 @@
 ```text
 Module          | Ca  | Ce  | I (Instability)
 ---------------------------------------------
-exceptions      | 4   | 0   | 0.00
+exceptions      | 5   | 0   | 0.00
 _version        | 0   | 0   | 0.00
-content_types   | 2   | 0   | 0.00
+content_types   | 3   | 0   | 0.00
 cli             | 0   | 2   | 1.00
 maintenance     | 3   | 3   | 0.50
 types           | 2   | 0   | 0.00
-cachekey        | 1   | 0   | 0.00
-storage         | 2   | 1   | 0.33
+cachekey        | 2   | 0   | 0.00
+storage         | 3   | 1   | 0.25
 hooks           | 1   | 1   | 0.50
 limiter         | 1   | 0   | 0.00
 dashboard       | 0   | 2   | 1.00
-db              | 3   | 0   | 0.00
-serializer      | 2   | 1   | 0.33
-lifecycle       | 1   | 1   | 0.50
-core            | 0   | 11  | 1.00
+db              | 4   | 0   | 0.00
+serializer      | 3   | 1   | 0.25
+lifecycle       | 2   | 1   | 0.33
+core            | 0   | 12  | 1.00
+cache           | 1   | 7   | 0.88
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
 ```
@@ -290,68 +291,68 @@ src/beautyspot/lifecycle.py
     M 129:4 LifecyclePolicy.__init__ - A
     M 161:4 LifecyclePolicy.default - A
 src/beautyspot/__init__.py
-    F 46:0 Spot - B
+    F 47:0 Spot - B
 src/beautyspot/core.py
-    M 929:4 Spot._notify_and_cleanup_inflight - B
-    M 1342:4 Spot._check_cache_sync - B
-    M 380:4 Spot._ensure_bg_resources - B
-    M 458:4 Spot.flush - B
-    M 515:4 Spot._trigger_auto_eviction - B
-    M 898:4 Spot._persist_result_async - B
-    M 1028:4 Spot._await_herd_signal_async - B
-    M 137:4 _BackgroundLoop.submit - B
-    M 971:4 Spot._wait_herd_sync - B
-    M 439:4 Spot.shutdown - B
-    M 879:4 Spot._persist_result_sync - B
-    M 1070:4 Spot._wait_herd_async - B
-    M 1124:4 Spot._execute_sync - B
-    M 1228:4 Spot._execute_async - B
-    M 1502:4 Spot._save_result_sync - B
-    M 1717:4 Spot.cached_run - B
-    M 168:4 _BackgroundLoop.stop - A
-    M 259:4 Spot.__init__ - A
-    M 619:4 Spot._resolve_key_fn - A
-    M 687:4 Spot._calculate_expires_at - A
-    C 95:0 _BackgroundLoop - A
-    C 205:0 Spot - A
-    M 362:4 Spot.maintenance - A
-    M 721:4 Spot._dispatch_hooks - A
-    M 126:4 _BackgroundLoop._task_wrapper - A
-    M 509:4 Spot._get_func_identifier - A
-    M 646:4 Spot.register - A
-    M 771:4 Spot._make_cache_key - A
-    M 1396:4 Spot._submit_background_save - A
-    M 1436:4 Spot._invoke_error_callback - A
-    M 1612:4 Spot.mark - A
-    M 348:4 Spot._track_future - A
-    M 424:4 Spot._shutdown_resources - A
-    M 671:4 Spot.register_type - A
-    M 738:4 Spot._dispatch_hooks_async - A
-    M 754:4 Spot._resolve_settings - A
-    M 796:4 Spot._prepare_execution - A
-    M 1414:4 Spot._build_save_error_context - A
-    M 1472:4 Spot._save_result_async - A
-    M 1489:4 Spot._save_result_safe - A
-    C 72:0 _ExecutionContext - A
-    C 85:0 _HerdWaitResult - A
-    M 101:4 _BackgroundLoop.__init__ - A
-    M 118:4 _BackgroundLoop._run_event_loop - A
-    M 197:4 _BackgroundLoop._shutdown - A
-    M 337:4 Spot.__enter__ - A
-    M 340:4 Spot.__exit__ - A
-    M 506:4 Spot._drain_futures - A
-    M 828:4 Spot._build_cache_hit_context - A
-    M 849:4 Spot._build_save_kwargs - A
-    M 1448:4 Spot._notify_save_discarded - A
-    M 1464:4 Spot._handle_save_error - A
-    M 1566:4 Spot.consume - A
-    M 1595:4 Spot.mark - A
-    M 1598:4 Spot.mark - A
-    M 1685:4 Spot.cached_run - A
-    M 1702:4 Spot.cached_run - A
+    M 292:4 Spot._ensure_bg_resources - B
+    M 124:4 _BackgroundLoop.submit - B
+    M 369:4 Spot._trigger_auto_eviction - B
+    M 513:4 Spot._persist_result_async - B
+    M 328:4 Spot.shutdown - B
+    M 342:4 Spot.flush - B
+    M 497:4 Spot._persist_result_sync - B
+    M 535:4 Spot._execute_sync - B
+    M 561:4 Spot._execute_async - B
+    M 155:4 _BackgroundLoop.stop - A
+    M 420:4 Spot._resolve_key_fn - A
+    C 82:0 _BackgroundLoop - A
+    C 192:0 Spot - A
+    M 206:4 Spot.__init__ - A
+    M 278:4 Spot.maintenance - A
+    M 465:4 Spot._dispatch_hooks - A
+    M 589:4 Spot._handle_save_error - A
+    M 664:4 Spot.cached_run - A
+    M 113:4 _BackgroundLoop._task_wrapper - A
+    M 364:4 Spot._get_func_identifier - A
+    M 433:4 Spot.register - A
+    M 265:4 Spot._track_future - A
+    M 319:4 Spot._shutdown_resources - A
+    M 458:4 Spot.register_type - A
+    M 474:4 Spot._dispatch_hooks_async - A
+    M 481:4 Spot._resolve_settings - A
+    M 484:4 Spot._prepare_execution - A
+    M 615:4 Spot._submit_background_save - A
+    M 622:4 Spot._save_result_async - A
+    M 627:4 Spot._save_result_safe - A
+    M 650:4 Spot.mark - A
+    C 69:0 _ExecutionContext - A
+    M 88:4 _BackgroundLoop.__init__ - A
+    M 105:4 _BackgroundLoop._run_event_loop - A
+    M 184:4 _BackgroundLoop._shutdown - A
+    M 259:4 Spot.__enter__ - A
+    M 262:4 Spot.__exit__ - A
+    M 361:4 Spot._drain_futures - A
+    M 490:4 Spot._build_cache_hit_context - A
+    M 493:4 Spot._build_save_kwargs - A
+    M 609:4 Spot._notify_save_discarded - A
+    M 631:4 Spot.consume - A
+    M 646:4 Spot.mark - A
+    M 648:4 Spot.mark - A
+src/beautyspot/cache.py
+    M 115:4 CacheManager.get - B
+    M 265:4 CacheManager._await_herd_signal_async - B
+    M 293:4 CacheManager.notify_and_cleanup_inflight - B
+    M 209:4 CacheManager.wait_herd_sync - B
+    C 35:0 CacheManager - B
+    M 151:4 CacheManager.set - B
+    M 90:4 CacheManager.calculate_expires_at - A
+    M 236:4 CacheManager.wait_herd_async - A
+    M 68:4 CacheManager.make_cache_key - A
+    M 44:4 CacheManager.__init__ - A
+    C 26:0 HerdWaitResult - A
+    M 315:4 CacheManager._notify_future - A
 
-266 blocks (classes, functions, methods) analyzed.
-Average complexity: A (3.1578947368421053)
+265 blocks (classes, functions, methods) analyzed.
+Average complexity: A (3.1433962264150943)
 ```
 </details>
 
@@ -360,7 +361,7 @@ Average complexity: A (3.1578947368421053)
 コードの読みやすさ・保守しやすさに改善の余地があるモジュールです。
 
 ```text
-src/beautyspot/core.py - C
+src/beautyspot/core.py - B
 ```
 
 <details>
@@ -382,7 +383,8 @@ src/beautyspot/db.py - A
 src/beautyspot/serializer.py - A
 src/beautyspot/lifecycle.py - A
 src/beautyspot/__init__.py - A
-src/beautyspot/core.py - C
+src/beautyspot/core.py - B
+src/beautyspot/cache.py - A
 ```
 </details>
 
@@ -397,6 +399,10 @@ graph LR
     class SerializerProtocol protocol;
     class TypeRegistryProtocol protocol;
     AlwaysBlobPolicy -. "implements" .-> StoragePolicyProtocol
+    CacheManager -- "creates" --> HerdWaitResult
+    CacheManager -. "uses" .-> KeyGen._default
+    CacheManager -. "uses" .-> LifecyclePolicy.default
+    CacheManager -- "creates" --> RuntimeError
     HookContextBase -- "creates" --> MappingProxyType
     KeyGen -- "creates" --> KeyGenPolicy
     KeyGen -- "creates" --> ValueError
@@ -427,8 +433,6 @@ graph LR
     Spot -- "creates" --> CacheMissContext
     Spot -- "creates" --> ConfigurationError
     Spot -- "creates" --> IncompatibleProviderError
-    Spot -. "uses" .-> KeyGen._default
-    Spot -. "uses" .-> LifecyclePolicy.default
     Spot -. "implements" .-> LimiterProtocol
     Spot -- "creates" --> MaintenanceService
     Spot -- "creates" --> NotImplementedError
@@ -436,7 +440,6 @@ graph LR
     Spot -- "creates" --> RuntimeError
     Spot -- "creates" --> SaveErrorContext
     Spot -- "creates" --> ThreadPoolExecutor
-    Spot -- "creates" --> TypeError
     Spot -. "implements" .-> TypeRegistryProtocol
     Spot -- "creates" --> ValidationError
     Spot -- "creates" --> ValueError
