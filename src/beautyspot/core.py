@@ -1,3 +1,7 @@
+"""BeautySpot コアモジュール。
+
+タスク管理、シリアライズ、キャッシュとストレージを含むリソース管理を行うメインクラス群を提供します。
+"""
 # src/beautyspot/core.py
 
 import atexit
@@ -71,30 +75,38 @@ class _ExecutionContext(NamedTuple):
 
 
 class _BackgroundLoop:
-    """
-    バックグラウンドで非同期IOタスクを処理するイベントループ。
+    """バックグラウンドで非同期IOタスクを処理するイベントループ。
+
     明示的なタスク追跡とスレッドロックにより、シャットダウン時の競合状態を完全に排除します。
+
+    Args:
+        drain_timeout (float, optional): シャットダウン時のタスク完了待機タイムアウト（秒）。デフォルトは5.0。
     """
 
     def __init__(self, drain_timeout: float = 5.0):
         self._drain_timeout = drain_timeout
+
+        # メインスレッドで loop オブジェクトを生成
         self._loop = asyncio.new_event_loop()
 
         self._lock = threading.Lock()
         self._is_shutting_down = False
         self._active_tasks = 0  # 実行中（またはスケジュール待ち）のタスク数
 
+        # 新しい Thread を設定
         # daemon=True により、プロセス終了時の Python の無限ハングアップを防ぐ
         self._thread = threading.Thread(
             target=self._run_event_loop, daemon=True, name="BeautySpot-BGLoop"
         )
+
+        # 設定した Thread を実行
         self._thread.start()
 
         # インスタンス自身が atexit を管理するため、グローバルな _active_loops 管理は不要
         atexit.register(self._shutdown)
 
     def _run_event_loop(self):
-        """専用スレッド内でイベントループを実行する"""
+        """スレッドローカルでイベントループを実行する"""
         asyncio.set_event_loop(self._loop)
         try:
             self._loop.run_forever()
@@ -181,17 +193,20 @@ class _BackgroundLoop:
 
 
 class Spot:
-    """
-    Spot class that handles task management, serialization, and
-    resource management for marked functions including caching and storage.
+    """タスク管理、シリアライズ、キャッシュとストレージを含むリソース管理を行うメインクラス。
+
+    依存オブジェクト（CacheManagerやLimiterProtocolなど）を注入して初期化されます。
+    通常は直接インスタンス化せず、`bs.Spot(...)` ファクトリ関数を通じて使用することが推奨されます。
 
     Args:
-        name: The name of the Spot instance.
-        cache: The cache manager instance.
-        limiter: The rate limiter instance.
-        save_sync: Default behavior for save_sync flag in saving cache.
-        eviction_rate: float, optional
-        on_background_error: Callback function for errors in background saves.
+        name (str): Spotインスタンスの名前。
+        cache (CacheManager): キャッシュマネージャーのインスタンス。
+        limiter (LimiterProtocol): レートリミッターのインスタンス。
+        save_sync (bool, optional): キャッシュ保存のデフォルト同期動作。デフォルトはTrue。
+        eviction_rate (float, optional): キャッシュの自動破棄を実行する確率（0.0〜1.0）。デフォルトは0.0。
+        drain_timeout (float, optional): バックグラウンドタスク完了待機のタイムアウト（秒）。デフォルトは5.0。
+        drain_poll_interval (float, optional): バックグラウンドタスク待機時のポーリング間隔（秒）。デフォルトは0.5。
+        on_background_error (Optional[Callable[[Exception, SaveErrorContext], None]], optional): バックグラウンド保存時のエラーハンドラ。
     """
 
     def __init__(
@@ -319,6 +334,11 @@ class Spot:
             db.shutdown(wait=False)
 
     def shutdown(self, save_sync: bool = True):
+        """Spotインスタンスをシャットダウンし、バックグラウンドリソースを解放する。
+
+        Args:
+            save_sync (bool, optional): 同期的に未完了の保存タスクを待機するかどうか。Trueの場合は完了を待つ。デフォルトはTrue。
+        """
         with self._bg_init_lock:
             self._shutdown_called = True
         if self._finalizer is not None and self._finalizer.alive:
@@ -333,6 +353,11 @@ class Spot:
             self._executor.shutdown(wait=save_sync, cancel_futures=not save_sync)
 
     def flush(self, timeout: Optional[float] = None) -> None:
+        """バックグラウンドで実行中のすべての保存タスクとDBの書き込みの完了を待機する。
+
+        Args:
+            timeout (Optional[float], optional): 待機する最大時間（秒）。指定しない場合は初期化時の `drain_timeout` が使用される。
+        """
         timeout_val = timeout if timeout is not None else self._drain_timeout
         deadline = time.monotonic() + timeout_val
 
@@ -432,6 +457,22 @@ class Spot:
         decoder: Optional[Callable[[Any], T]] = None,
         decoder_factory: Optional[Callable[[Type[T]], Callable[[Any], T]]] = None,
     ) -> Callable[[Type[T]], Type[T]]:
+        """カスタム型をシリアライザに登録するためのデコレータ。
+
+        `decoder` または `decoder_factory` のいずれかを必ず提供する必要があります。
+
+        Args:
+            code (int): カスタム型の一意な識別コード。
+            encoder (Callable[[T], Any]): カスタム型オブジェクトからシリアライズ可能な形式（辞書など）に変換する関数。
+            decoder (Optional[Callable[[Any], T]], optional): デシリアライズ時にデータをカスタム型オブジェクトに復元する関数。
+            decoder_factory (Optional[Callable[[Type[T]], Callable[[Any], T]]], optional): 型に基づいてデコーダ関数を生成するファクトリ関数。
+
+        Returns:
+            Callable[[Type[T]], Type[T]]: クラスデコレータ。
+
+        Raises:
+            IncompatibleProviderError: `decoder` と `decoder_factory` の両方が未指定の場合に発生。
+        """
         if decoder is None and decoder_factory is None:
             raise IncompatibleProviderError(
                 "Must provide either `decoder` or `decoder_factory`."
@@ -457,6 +498,17 @@ class Spot:
         encoder: Callable[[T], Any],
         decoder: Callable[[Any], T],
     ):
+        """カスタム型を直接シリアライザに登録する。
+
+        Args:
+            type_class (Type[T]): 登録するカスタム型のクラス。
+            code (int): カスタム型の一意な識別コード。
+            encoder (Callable[[T], Any]): エンコーダ関数。
+            decoder (Callable[[Any], T]): デコーダ関数。
+
+        Raises:
+            NotImplementedError: 現在のシリアライザが型登録をサポートしていない場合。
+        """
         if isinstance(self.cache.serializer, TypeRegistryProtocol):
             self.cache.serializer.register(type_class, code, encoder, decoder)
         else:
@@ -913,6 +965,14 @@ class Spot:
             self._handle_save_error(e, kwargs)
 
     def consume(self, cost: Union[int, Callable] = 1):
+        """関数実行前にレートリミッターのトークンを消費するデコレータ。
+
+        Args:
+            cost (Union[int, Callable], optional): 消費するコスト。整数、または実行時の引数を受け取りコストを計算する関数を指定可能。デフォルトは1。
+
+        Returns:
+            Callable: デコレートされた関数。
+        """
         def decorator(func):
             is_async = inspect.iscoroutinefunction(func)
 
@@ -951,6 +1011,25 @@ class Spot:
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     def mark(self, _func: Optional[Callable] = None, **kwargs) -> Any:
+        """関数を修飾し、実行結果のキャッシュ機能とメタデータ管理を追加するデコレータ。
+
+        関数の実行結果は、引数とその他の設定から計算されたキャッシュキーに基づいて保存・再利用されます。
+
+        Args:
+            _func (Optional[Callable], optional): デコレート対象の関数。
+            save_blob (Optional[bool], optional): 大きな戻り値をBlobストレージに保存するかどうか。
+            keygen (Optional[Union[Callable, KeyGenPolicy]], optional): キャッシュキーの生成ロジックを指定する。
+            input_key_fn (Optional[Union[Callable, KeyGenPolicy]], optional): 非推奨。`keygen` を使用すること。
+            version (Optional[str], optional): 関数のキャッシュバージョン。ロジック変更時にインクリメントすることでキャッシュを無効化できる。
+            content_type (Optional[Union[str, ContentType]], optional): 戻り値のMIMEタイプ。
+            serializer (Optional[SerializerProtocol], optional): この関数に適用するカスタムシリアライザ。
+            save_sync (Optional[bool], optional): 保存処理を同期的に行うかどうか。
+            retention (RetentionSpec, optional): キャッシュの保持ポリシー。
+            hooks (Optional[Sequence[HookBase]], optional): 実行前後やキャッシュヒット時に発火するフックのリスト。
+
+        Returns:
+            Any: デコレートされた関数、またはデコレータ関数。
+        """
         def decorator(func):
             if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
                 raise ConfigurationError(f"Generators not supported: {func.__name__}")
@@ -997,6 +1076,20 @@ class Spot:
 
     @contextmanager
     def cached_run(self, *funcs: Any, **kwargs):
+        """コンテキストマネージャ内で一時的に関数を `mark` し、キャッシュ機能を適用する。
+
+        デコレータを直接付与できない外部ライブラリの関数などをキャッシュする際に使用します。
+
+        Args:
+            *funcs (Any): キャッシュ対象にする関数（複数可）。
+            **kwargs: `mark` デコレータに渡すオプションパラメータ。
+
+        Yields:
+            Callable | tuple[Callable, ...]: キャッシュ機能が付与された関数。複数の場合はタプルで返る。
+
+        Raises:
+            ValidationError: 関数が1つも指定されなかった場合。
+        """
         if not funcs:
             raise ValidationError(
                 "At least one function must be provided to cached_run."

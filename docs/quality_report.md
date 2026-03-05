@@ -1,5 +1,5 @@
 # 📊 Beautyspot Quality Report
-**最終更新:** 2026-03-05 16:07:09
+**最終更新:** 2026-03-05 18:23:41
 
 ## 1. アーキテクチャ可視化
 ### 1.1 依存関係図 (Pydeps)
@@ -8,6 +8,9 @@
 ### 1.2 安定度分析 (Instability Analysis)
 青: 安定(Core系) / 赤: 不安定(高依存系)。矢印は依存の方向を示します。
 ![Stability Graph](statics/img/generated/architecture_metrics.png)
+
+### 1.3 クラス図 (Class Diagram)
+![Class Diagram](statics/img/generated/classes_beautyspot.png)
 
 <details>
 <summary>🔍 安定度メトリクスの詳細（Ca/Ce/I）を表示</summary>
@@ -22,14 +25,14 @@ cli             | 0   | 2   | 1.00
 maintenance     | 3   | 3   | 0.50
 types           | 2   | 0   | 0.00
 cachekey        | 2   | 0   | 0.00
-storage         | 3   | 1   | 0.25
+storage         | 2   | 1   | 0.33
 hooks           | 1   | 1   | 0.50
 limiter         | 1   | 0   | 0.00
 dashboard       | 0   | 2   | 1.00
 db              | 4   | 0   | 0.00
 serializer      | 3   | 1   | 0.25
 lifecycle       | 2   | 1   | 0.33
-core            | 0   | 12  | 1.00
+core            | 0   | 11  | 1.00
 cache           | 1   | 7   | 0.88
 
 Graph generated at: docs/statics/img/generated/architecture_metrics.png
@@ -54,10 +57,10 @@ src/beautyspot/maintenance.py
 src/beautyspot/cachekey.py
     F 234:0 _canonicalize_type - C
 src/beautyspot/db.py
-    M 319:4 SQLiteTaskDB._enqueue_write - C
-    M 683:4 SQLiteTaskDB.flush - C
+    M 325:4 SQLiteTaskDB._enqueue_write - C
+    M 689:4 SQLiteTaskDB.flush - C
 src/beautyspot/serializer.py
-    M 140:4 MsgpackSerializer._default_packer - C
+    M 144:4 MsgpackSerializer._default_packer - C
 src/beautyspot/lifecycle.py
     F 49:0 parse_retention - C
 
@@ -218,141 +221,141 @@ src/beautyspot/dashboard.py
     F 44:0 load_data - A
     F 15:0 get_args - A
 src/beautyspot/db.py
-    M 319:4 SQLiteTaskDB._enqueue_write - C
-    M 683:4 SQLiteTaskDB.flush - C
-    M 231:4 SQLiteTaskDB._read_connect - B
-    M 281:4 SQLiteTaskDB._writer_loop - B
-    M 363:4 SQLiteTaskDB.shutdown - B
-    M 463:4 SQLiteTaskDB.get - B
-    C 190:0 SQLiteTaskDB - A
-    M 25:4 _ReadConnWrapper.close - A
-    M 599:4 SQLiteTaskDB.get_outdated_tasks - A
-    M 636:4 SQLiteTaskDB.get_blob_refs - A
-    F 57:0 _ensure_utc_isoformat - A
-    C 19:0 _ReadConnWrapper - A
-    C 76:0 _WriteTask - A
-    M 195:4 SQLiteTaskDB.__init__ - A
-    M 218:4 SQLiteTaskDB._ensure_cache_dir - A
-    M 542:4 SQLiteTaskDB.get_history - A
-    M 647:4 SQLiteTaskDB.get_keys_start_with - A
-    M 663:4 SQLiteTaskDB.count_tasks - A
-    M 84:4 _WriteTask.try_cancel - A
-    M 92:4 _WriteTask.try_start - A
-    M 100:4 _WriteTask.mark_done - A
-    C 110:0 TaskDBBase - A
-    M 620:4 SQLiteTaskDB.delete_expired - A
-    M 20:4 _ReadConnWrapper.__init__ - A
-    M 47:4 _ReadConnWrapper.__del__ - A
-    C 68:0 TaskRecord - A
-    M 116:4 TaskDBBase.init_schema - A
-    M 120:4 TaskDBBase.get - A
-    M 126:4 TaskDBBase.save - A
-    M 142:4 TaskDBBase.get_history - A
-    M 146:4 TaskDBBase.delete - A
-    M 150:4 TaskDBBase.delete_expired - A
-    M 154:4 TaskDBBase.prune - A
-    M 161:4 TaskDBBase.get_outdated_tasks - A
-    M 169:4 TaskDBBase.get_blob_refs - A
-    M 173:4 TaskDBBase.delete_all - A
-    M 177:4 TaskDBBase.get_keys_start_with - A
-    M 181:4 TaskDBBase.flush - A
-    M 185:4 TaskDBBase.shutdown - A
-    M 391:4 SQLiteTaskDB.init_schema - A
-    M 499:4 SQLiteTaskDB.save - A
-    M 561:4 SQLiteTaskDB.delete - A
-    M 568:4 SQLiteTaskDB.delete_all - A
-    M 581:4 SQLiteTaskDB.prune - A
+    M 325:4 SQLiteTaskDB._enqueue_write - C
+    M 689:4 SQLiteTaskDB.flush - C
+    M 235:4 SQLiteTaskDB._read_connect - B
+    M 287:4 SQLiteTaskDB._writer_loop - B
+    M 369:4 SQLiteTaskDB.shutdown - B
+    M 469:4 SQLiteTaskDB.get - B
+    C 192:0 SQLiteTaskDB - A
+    M 26:4 _ReadConnWrapper.close - A
+    M 605:4 SQLiteTaskDB.get_outdated_tasks - A
+    M 642:4 SQLiteTaskDB.get_blob_refs - A
+    F 59:0 _ensure_utc_isoformat - A
+    C 20:0 _ReadConnWrapper - A
+    C 78:0 _WriteTask - A
+    M 197:4 SQLiteTaskDB.__init__ - A
+    M 222:4 SQLiteTaskDB._ensure_cache_dir - A
+    M 548:4 SQLiteTaskDB.get_history - A
+    M 653:4 SQLiteTaskDB.get_keys_start_with - A
+    M 669:4 SQLiteTaskDB.count_tasks - A
+    M 86:4 _WriteTask.try_cancel - A
+    M 94:4 _WriteTask.try_start - A
+    M 102:4 _WriteTask.mark_done - A
+    C 112:0 TaskDBBase - A
+    M 626:4 SQLiteTaskDB.delete_expired - A
+    M 21:4 _ReadConnWrapper.__init__ - A
+    M 48:4 _ReadConnWrapper.__del__ - A
+    C 70:0 TaskRecord - A
+    M 118:4 TaskDBBase.init_schema - A
+    M 122:4 TaskDBBase.get - A
+    M 128:4 TaskDBBase.save - A
+    M 144:4 TaskDBBase.get_history - A
+    M 148:4 TaskDBBase.delete - A
+    M 152:4 TaskDBBase.delete_expired - A
+    M 156:4 TaskDBBase.prune - A
+    M 163:4 TaskDBBase.get_outdated_tasks - A
+    M 171:4 TaskDBBase.get_blob_refs - A
+    M 175:4 TaskDBBase.delete_all - A
+    M 179:4 TaskDBBase.get_keys_start_with - A
+    M 183:4 TaskDBBase.flush - A
+    M 187:4 TaskDBBase.shutdown - A
+    M 397:4 SQLiteTaskDB.init_schema - A
+    M 505:4 SQLiteTaskDB.save - A
+    M 567:4 SQLiteTaskDB.delete - A
+    M 574:4 SQLiteTaskDB.delete_all - A
+    M 587:4 SQLiteTaskDB.prune - A
 src/beautyspot/serializer.py
-    M 140:4 MsgpackSerializer._default_packer - C
+    M 144:4 MsgpackSerializer._default_packer - C
     C 38:0 MsgpackSerializer - A
-    M 96:4 MsgpackSerializer.register - A
-    M 199:4 MsgpackSerializer._ext_hook - A
-    M 222:4 MsgpackSerializer.dumps - A
+    M 100:4 MsgpackSerializer.register - A
+    M 203:4 MsgpackSerializer._ext_hook - A
+    M 226:4 MsgpackSerializer.dumps - A
     M 78:4 MsgpackSerializer._get_local_cache - A
-    M 233:4 MsgpackSerializer.loads - A
+    M 237:4 MsgpackSerializer.loads - A
     C 22:0 SerializerProtocol - A
     C 28:0 TypeRegistryProtocol - A
-    M 91:4 MsgpackSerializer._enforce_cache_size - A
+    M 95:4 MsgpackSerializer._enforce_cache_size - A
     M 23:4 SerializerProtocol.dumps - A
     M 24:4 SerializerProtocol.loads - A
     M 29:4 TypeRegistryProtocol.register - A
     M 61:4 MsgpackSerializer.__init__ - A
 src/beautyspot/lifecycle.py
     F 49:0 parse_retention - C
-    M 143:4 LifecyclePolicy.resolve_with_fallback - A
+    M 145:4 LifecyclePolicy.resolve_with_fallback - A
     C 15:0 _ForeverSentinel - A
     M 26:4 _ForeverSentinel.__new__ - A
-    C 124:0 LifecyclePolicy - A
-    M 132:4 LifecyclePolicy.resolve - A
+    C 126:0 LifecyclePolicy - A
+    M 134:4 LifecyclePolicy.resolve - A
     M 35:4 _ForeverSentinel.__repr__ - A
     M 38:4 _ForeverSentinel.__bool__ - A
-    C 98:0 Retention - A
-    C 115:0 Rule - A
-    M 129:4 LifecyclePolicy.__init__ - A
-    M 161:4 LifecyclePolicy.default - A
+    C 100:0 Retention - A
+    C 117:0 Rule - A
+    M 131:4 LifecyclePolicy.__init__ - A
+    M 163:4 LifecyclePolicy.default - A
 src/beautyspot/__init__.py
     F 47:0 Spot - B
 src/beautyspot/core.py
-    M 292:4 Spot._ensure_bg_resources - B
-    M 124:4 _BackgroundLoop.submit - B
-    M 369:4 Spot._trigger_auto_eviction - B
-    M 513:4 Spot._persist_result_async - B
-    M 328:4 Spot.shutdown - B
-    M 342:4 Spot.flush - B
-    M 497:4 Spot._persist_result_sync - B
-    M 535:4 Spot._execute_sync - B
-    M 561:4 Spot._execute_async - B
-    M 155:4 _BackgroundLoop.stop - A
-    M 420:4 Spot._resolve_key_fn - A
-    C 82:0 _BackgroundLoop - A
-    C 192:0 Spot - A
-    M 206:4 Spot.__init__ - A
-    M 278:4 Spot.maintenance - A
-    M 465:4 Spot._dispatch_hooks - A
-    M 589:4 Spot._handle_save_error - A
-    M 664:4 Spot.cached_run - A
-    M 113:4 _BackgroundLoop._task_wrapper - A
-    M 364:4 Spot._get_func_identifier - A
-    M 433:4 Spot.register - A
-    M 265:4 Spot._track_future - A
-    M 319:4 Spot._shutdown_resources - A
-    M 458:4 Spot.register_type - A
-    M 474:4 Spot._dispatch_hooks_async - A
-    M 481:4 Spot._resolve_settings - A
-    M 484:4 Spot._prepare_execution - A
-    M 615:4 Spot._submit_background_save - A
-    M 622:4 Spot._save_result_async - A
-    M 627:4 Spot._save_result_safe - A
-    M 650:4 Spot.mark - A
-    C 69:0 _ExecutionContext - A
-    M 88:4 _BackgroundLoop.__init__ - A
-    M 105:4 _BackgroundLoop._run_event_loop - A
-    M 184:4 _BackgroundLoop._shutdown - A
-    M 259:4 Spot.__enter__ - A
-    M 262:4 Spot.__exit__ - A
-    M 361:4 Spot._drain_futures - A
-    M 490:4 Spot._build_cache_hit_context - A
-    M 493:4 Spot._build_save_kwargs - A
-    M 609:4 Spot._notify_save_discarded - A
-    M 631:4 Spot.consume - A
-    M 646:4 Spot.mark - A
-    M 648:4 Spot.mark - A
+    M 283:4 Spot._ensure_bg_resources - B
+    M 115:4 _BackgroundLoop.submit - B
+    M 362:4 Spot._trigger_auto_eviction - B
+    M 607:4 Spot._persist_result_async - B
+    M 321:4 Spot.shutdown - B
+    M 335:4 Spot.flush - B
+    M 413:4 Spot._resolve_key_fn - B
+    M 591:4 Spot._persist_result_sync - B
+    M 631:4 Spot._execute_sync - B
+    M 737:4 Spot._execute_async - B
+    M 146:4 _BackgroundLoop.stop - A
+    C 73:0 _BackgroundLoop - A
+    C 183:0 Spot - A
+    M 197:4 Spot.__init__ - A
+    M 269:4 Spot.maintenance - A
+    M 468:4 Spot._dispatch_hooks - A
+    M 857:4 Spot._handle_save_error - A
+    M 999:4 Spot.cached_run - A
+    M 104:4 _BackgroundLoop._task_wrapper - A
+    M 357:4 Spot._get_func_identifier - A
+    M 428:4 Spot.register - A
+    M 256:4 Spot._track_future - A
+    M 310:4 Spot._shutdown_resources - A
+    M 453:4 Spot.register_type - A
+    M 482:4 Spot._dispatch_hooks_async - A
+    M 498:4 Spot._resolve_settings - A
+    M 512:4 Spot._prepare_execution - A
+    M 893:4 Spot._submit_background_save - A
+    M 902:4 Spot._save_result_async - A
+    M 909:4 Spot._save_result_safe - A
+    M 953:4 Spot.mark - A
+    C 60:0 _ExecutionContext - A
+    M 79:4 _BackgroundLoop.__init__ - A
+    M 96:4 _BackgroundLoop._run_event_loop - A
+    M 175:4 _BackgroundLoop._shutdown - A
+    M 250:4 Spot.__enter__ - A
+    M 253:4 Spot.__exit__ - A
+    M 354:4 Spot._drain_futures - A
+    M 542:4 Spot._build_cache_hit_context - A
+    M 562:4 Spot._build_save_kwargs - A
+    M 887:4 Spot._notify_save_discarded - A
+    M 915:4 Spot.consume - A
+    M 936:4 Spot.mark - A
+    M 939:4 Spot.mark - A
 src/beautyspot/cache.py
-    M 115:4 CacheManager.get - B
-    M 265:4 CacheManager._await_herd_signal_async - B
-    M 293:4 CacheManager.notify_and_cleanup_inflight - B
-    M 209:4 CacheManager.wait_herd_sync - B
-    C 35:0 CacheManager - B
-    M 151:4 CacheManager.set - B
-    M 90:4 CacheManager.calculate_expires_at - A
-    M 236:4 CacheManager.wait_herd_async - A
-    M 68:4 CacheManager.make_cache_key - A
-    M 44:4 CacheManager.__init__ - A
-    C 26:0 HerdWaitResult - A
-    M 315:4 CacheManager._notify_future - A
+    M 125:4 CacheManager.get - B
+    M 287:4 CacheManager._await_herd_signal_async - B
+    M 317:4 CacheManager.notify_and_cleanup_inflight - B
+    M 227:4 CacheManager.wait_herd_sync - B
+    C 42:0 CacheManager - B
+    M 169:4 CacheManager.set - B
+    M 98:4 CacheManager.calculate_expires_at - A
+    M 256:4 CacheManager.wait_herd_async - A
+    M 76:4 CacheManager.make_cache_key - A
+    M 51:4 CacheManager.__init__ - A
+    C 32:0 HerdWaitResult - A
+    M 339:4 CacheManager._notify_future - A
 
 265 blocks (classes, functions, methods) analyzed.
-Average complexity: A (3.1433962264150943)
+Average complexity: A (3.147169811320755)
 ```
 </details>
 

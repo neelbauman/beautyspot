@@ -76,6 +76,7 @@ nav:
       - Rate Limiting: guides/rate_limiting.md
       - CLI & Dashboard: guides/cli.md
   - Reference:
+      - CacheManager: reference/cache.md
       - CacheKey: reference/cachekey.md
       - Spot (Core): reference/core.md
       - Content Types: reference/content_types.md

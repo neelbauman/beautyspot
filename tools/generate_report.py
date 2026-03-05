@@ -35,6 +35,9 @@ def generate_report():
         "青: 安定(Core系) / 赤: 不安定(高依存系)。矢印は依存の方向を示します。",
         "![Stability Graph](statics/img/generated/architecture_metrics.png)",
         "",
+        "### 1.3 クラス図 (Class Diagram)",
+        "![Class Diagram](statics/img/generated/classes_beautyspot.png)",
+        "",
     ]
 
     # --- 安定度テーブル ---
