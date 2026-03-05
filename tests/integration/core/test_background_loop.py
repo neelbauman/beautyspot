@@ -244,3 +244,41 @@ def test_background_loop_stop_no_wait():
     elapsed = time.time() - start_time
 
     assert elapsed < 0.5  # 2秒待たずにすぐ返ってきていること
+
+def test_shutdown_with_running_executor_tasks_force(tmp_path, mocker, caplog):
+    """
+    シャットダウン時(save_sync=False)に、Executorが強制終了されても
+    バックグラウンドの非同期タスクがクラッシュせずに安全にキャンセルされること。
+    """
+    import logging
+    caplog.set_level(logging.WARNING)
+
+    spot = bs.Spot(
+        name="force_shutdown_test",
+        db=SQLiteTaskDB(tmp_path / "force.db"),
+        storage_backend=bs.LocalStorage(tmp_path / "blobs"),
+        save_sync=False,
+    )
+    
+    # Executor内の処理をブロックさせる
+    def slow_save(*args, **kwargs):
+        time.sleep(2.0)
+    
+    mocker.patch.object(spot.cache, "set", side_effect=slow_save)
+
+    @spot.mark()
+    def fn(x):
+        return x
+
+    # タスクを投入（バックグラウンドでslow_saveが実行される）
+    fn(42)
+    
+    # 意図的に即時強制シャットダウン（save_sync=False）
+    # これにより bg_loop のタスクが完了する前に executor.shutdown(cancel_futures=True) が呼ばれる
+    spot.shutdown(save_sync=False)
+    
+    # バックグラウンドスレッドが例外を捕捉してログを記録するまで少し待つ
+    time.sleep(0.5)
+    
+    # キャンセル警告がログに出力されていることを確認
+    assert any("cancelled during shutdown" in record.message for record in caplog.records)

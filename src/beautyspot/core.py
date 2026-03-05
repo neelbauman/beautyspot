@@ -956,7 +956,15 @@ class Spot:
     ) -> None:
         loop = asyncio.get_running_loop()
         target = (lambda **kw: self._save_result_safe(**kw)) if safe else self.cache.set
-        await loop.run_in_executor(executor, functools.partial(target, **kwargs))
+        try:
+            await loop.run_in_executor(executor, functools.partial(target, **kwargs))
+        except (asyncio.CancelledError, RuntimeError) as e:
+            # Executor might be forcibly shut down during program exit or Spot.shutdown(save_sync=False)
+            msg = f"Background save for '{kwargs.get('func_name')}' cancelled during shutdown."
+            logger.warning(msg)
+            self._handle_save_error(e, kwargs)
+            if not safe and self.on_background_error is None:
+                raise
 
     def _save_result_safe(self, **kwargs):
         try:

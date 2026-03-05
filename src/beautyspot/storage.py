@@ -184,6 +184,22 @@ class LocalStorage(BlobStorageBase):
             )
 
     def save(self, key: str, data: ReadableBuffer) -> str:
+        """
+        指定されたキーでデータをローカルディスクに保存し、ファイル名（location）を返す。
+
+        単純な `open(..., 'wb')` による上書きは行わず、`tempfile.mkstemp` で一意な
+        一時ファイルを作成して書き込んだ後、`os.replace` でアトミックにリネームする手法を採用している。
+        これは以下の2点を防ぐためである。
+        1. 並行実行時（複数スレッド/プロセス）に同じキャッシュキーに同時に書き込もうとした際のファイルの競合・破損。
+        2. 書き込み中のプロセス強制終了などによる、不完全で壊れたファイルの残留。
+
+        Args:
+            key (str): 保存するキャッシュキー
+            data (ReadableBuffer): 保存するバイトデータ
+
+        Returns:
+            str: 保存されたファイル名
+        """
         self._validate_key(key)
         filename = f"{key}.bin"
         filepath = self.base_dir / filename

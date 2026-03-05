@@ -483,7 +483,8 @@ class SQLiteTaskDB(TaskDBBase):
                 if exp_str and not include_expired:
                     try:
                         # SQLite returns timestamps as strings usually
-                        expires_at = datetime.fromisoformat(exp_str)
+                        # Replace space with T for compatibility with Python <= 3.10
+                        expires_at = datetime.fromisoformat(exp_str.replace(" ", "T"))
                         # Naive datetimes stored before timezone support are treated as UTC
                         if expires_at.tzinfo is None:
                             expires_at = expires_at.replace(tzinfo=timezone.utc)

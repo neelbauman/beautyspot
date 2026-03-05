@@ -63,3 +63,52 @@ def test_sqlite_read_connection_leak_prevention(tmp_path):
 
     # wrapper が __del__ で close() を呼ぶため、ファイルハンドルもリークしない
     assert len(db._read_wrappers) == 0
+
+def test_sqlite_expiration_handling(tmp_path):
+    """
+    保存時に古い日付を expires_at として設定し、
+    直後に get した際に None が返ること（キャッシュミス扱い）を確認するテスト。
+    また、古いフォーマット(スペース区切り)のパースが正しく行われることも確認する。
+    """
+    from datetime import datetime, timezone, timedelta
+    
+    db_path = tmp_path / "test_exp.db"
+    db = SQLiteTaskDB(db_path)
+    db.init_schema()
+    
+    past_time = datetime.now(timezone.utc) - timedelta(days=1)
+    
+    db.save(
+        cache_key="test_key",
+        func_name="test_func",
+        func_identifier="test_func",
+        input_id="input1",
+        version="v1",
+        result_type="VALUE",
+        content_type=None,
+        result_value="hello",
+        result_data=None,
+        expires_at=past_time,
+    )
+    db.flush()
+    
+    # 期限切れなので None が返るはず
+    res = db.get("test_key")
+    assert res is None
+    
+    # include_expired=True なら値が取得できること
+    res_expired = db.get("test_key", include_expired=True)
+    assert res_expired is not None
+    assert res_expired["result_value"] == "hello"
+
+    # 古いフォーマット（スペース区切り）が保存されていた場合のパーステスト
+    def _op(conn):
+        conn.execute(
+            "UPDATE tasks SET expires_at = ? WHERE cache_key = ?",
+            ("2020-01-01 00:00:00+00:00", "test_key")
+        )
+    db._enqueue_write(_op)
+    db.flush()
+    
+    # パースに失敗せず、期限切れとして処理されれば成功（Noneが返る）
+    assert db.get("test_key") is None
