@@ -77,3 +77,17 @@ venv = ".venv"
 pythonVersion = "3.12"
 typeCheckingMode = "standard"
 
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = [
+    "src/config.py",
+    "src/**/*_generated.py",
+]
+
+[tool.coverage.report]
+show_missing = true
