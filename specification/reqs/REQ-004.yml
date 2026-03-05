@@ -1,0 +1,23 @@
+active: true
+derived: false
+header: ''
+level: 1.3
+links: []
+normative: true
+ref: ''
+reviewed: -n16jaHSc95kOIV_cRhprBh0KdqKgP4rRqZiMjGG8rs=
+text: |
+  ## 概要
+  DI（依存性注入）に基づく拡張可能なアーキテクチャを提供する。
+
+  ## 背景・動機
+  ユーザーごとにストレージ、シリアライザ、DB等の要件が異なるため、
+  各コンポーネントをプロトコルベースで差し替え可能にする必要がある。
+  カスタムオブジェクトのシリアライズやライフサイクルフックなど、
+  ユーザー固有の拡張ポイントを提供する。
+
+  ## 受け入れ基準
+  - すべての主要コンポーネント（DB、シリアライザ、ストレージ等）が注入可能である
+  - ファクトリ関数（bs.Spot()）でデフォルトの組み合わせが自動構成される
+  - カスタム型のシリアライズ登録が可能である（register_type）
+  - ライフサイクルフック（pre_execute, on_cache_hit, on_cache_miss）が利用可能である

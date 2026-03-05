@@ -1,0 +1,34 @@
+active: true
+derived: false
+header: ''
+level: 1.9
+links:
+- REQ-005: ynT0GOJdtkPpBSbX5IgrK231vYiZnDC5briE2ZIMAr8=
+normative: true
+ref: ''
+reviewed: mP_vfcwEV30zPJg2VoOxp8sm5ZdV_j4pXeSVL3-OP6c=
+text: |
+  ## 概要
+  管理・保守用サービスレイヤー（MaintenanceService）。
+
+  ## 詳細仕様
+
+  ### 入力
+  - DBパスまたは既存のDB/Storageインスタンス
+
+  ### 処理
+  - from_path() ファクトリでパスからサービスを構築
+  - get_history(): キャッシュ済みタスクの一覧取得（pandas DataFrame）
+  - get_task_detail(): 特定タスクの詳細取得（cache_key 指定）
+  - delete_task(): 個別タスクの削除
+  - delete_expired_tasks(): 有効期限切れタスクの一括削除
+  - clear(): 関数名指定でのキャッシュ削除
+  - scan_garbage(): 孤立Blobファイルのスキャン（削除なし）
+  - clean_garbage(): 期限切れタスク + 孤立Blobの一括削除
+  - prune() / get_prunable_tasks(): 時間ベースの失効処理
+  - resolve_key_prefix(): キャッシュキーのプレフィックス解決
+  - scan_orphan_projects() / delete_project_storage(): 孤立プロジェクトのGC（static）
+
+  ### 出力・結果
+  - CLIおよびダッシュボードのバックエンドとして機能
+  - コンテキストマネージャ対応（close() によるリソース解放）

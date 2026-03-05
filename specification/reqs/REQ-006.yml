@@ -1,0 +1,22 @@
+active: true
+derived: false
+header: ''
+level: 1.5
+links: []
+normative: true
+ref: ''
+reviewed: hHV83of77XW7iE6tMaRi_gz8UG358ycCVKfoeOj2SHw=
+text: |
+  ## 概要
+  マルチスレッド環境でのスレッドセーフティを保証する。
+
+  ## 背景・動機
+  データパイプラインやWebアプリケーションでは、複数スレッドから同時に
+  キャッシュの読み書きが行われる。データ競合や破損を防ぎ、
+  安全に並行動作する必要がある。
+
+  ## 受け入れ基準
+  - 複数スレッドからの同時キャッシュ読み書きでデータ競合が発生しない
+  - DB書き込みがライターキューによりシリアライズされる
+  - シリアライザの型レジストリがCopy-on-Writeで安全に更新される
+  - フックがスレッドセーフに実行できる（ThreadSafeHookBase）

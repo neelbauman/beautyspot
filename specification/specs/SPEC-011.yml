@@ -1,0 +1,32 @@
+active: true
+derived: false
+header: ''
+level: '1.10'
+links:
+- REQ-005: ynT0GOJdtkPpBSbX5IgrK231vYiZnDC5briE2ZIMAr8=
+normative: true
+ref: ''
+reviewed: mRxtCpAr97HAHpFkXHwcKWrOTO1pSwLtIgMWekFoPrU=
+text: |
+  ## 概要
+  Typerベースのコマンドラインインターフェース。
+
+  ## 詳細仕様
+
+  ### 入力
+  - コマンド名とオプション引数（--db, --name, --pattern 等）
+
+  ### 処理
+  - ui: Textualダッシュボードの起動
+  - list: キャッシュ済みタスクまたはDB一覧の表示
+  - show: 特定タスクの詳細表示
+  - stats: キャッシュ統計の表示
+  - clear: 指定条件でのキャッシュ削除
+  - clean: 孤立Blobのクリーンアップ
+  - gc: ガベージコレクション
+  - prune: 時間ベースの失効処理
+  - version: バージョン情報の表示
+
+  ### 出力・結果
+  - rich Console/Table/Panel によるフォーマット済み出力
+  - 各コマンドは MaintenanceService を通じてDB/Storageを操作

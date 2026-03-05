@@ -1,0 +1,28 @@
+active: true
+derived: false
+header: ''
+level: 1.5
+links:
+- REQ-002: -61SreZIkaYe76t4rqpVoEXv791u6pFWiJl6fKP70mA=
+normative: true
+ref: ''
+reviewed: Cg8KgZvSzvNAJXuxcCh257W_0dfGYE58_jNBxelGTpo=
+text: |
+  ## 概要
+  データサイズに基づくストレージ振り分けポリシー。
+
+  ## 詳細仕様
+
+  ### 入力
+  - シリアライズ済みデータ（bytes）
+  - ポリシー設定（閾値サイズ等）
+
+  ### 処理
+  - StoragePolicyProtocol: should_save_as_blob(data) -> bool
+  - ThresholdStoragePolicy: サイズ閾値を超えた場合にBlob保存
+  - WarningOnlyPolicy: 常にDB保存、大サイズ時にwarningログ（v2.0互換）
+  - AlwaysBlobPolicy: 常にBlob保存
+  - 明示的な save_blob=True/False 指定が最優先
+
+  ### 出力・結果
+  - DB保存（DIRECT_BLOB）またはBlobストレージ保存（FILE）の判定

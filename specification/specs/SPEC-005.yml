@@ -1,0 +1,29 @@
+active: true
+derived: false
+header: ''
+level: 1.4
+links:
+- REQ-002: -61SreZIkaYe76t4rqpVoEXv791u6pFWiJl6fKP70mA=
+normative: true
+ref: ''
+reviewed: WLTpJMf_MjQE3EquXMfKKbWJ3IkTVUnBatcd201EMbA=
+text: |
+  ## 概要
+  大容量データ用Blobストレージバックエンド。
+
+  ## 詳細仕様
+
+  ### 入力
+  - ストレージパス（LocalStorage）またはバケット/プレフィックス（S3Storage）
+  - キー文字列、バイト列データ
+
+  ### 処理
+  - LocalStorage: 一時ファイル経由のアトミック書き込み（rename パターン）
+  - S3Storage: boto3 によるオブジェクト操作
+  - save(key, data) -> location文字列
+  - load(key) -> bytes
+  - delete(key), list_keys() -> Iterator[str]
+
+  ### 出力・結果
+  - BlobStorageBase プロトコルに準拠
+  - ファイルシステム/S3上にバイナリBlobとして永続化
