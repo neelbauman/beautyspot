@@ -20,6 +20,7 @@ from typing import (
     Any,
     Coroutine,
     Callable,
+    Iterator,
     NamedTuple,
     Optional,
     Union,
@@ -1101,8 +1102,14 @@ class Spot:
 
         return decorator(_func) if _func else decorator
 
+    @overload
+    def cached_run(self, __func: Callable[P, R], **kwargs: Any) -> Iterator[Callable[P, R]]: ...
+
+    @overload
+    def cached_run(self, *funcs: *Ts, **kwargs: Any) -> Iterator[tuple[*Ts]]: ...
+
     @contextmanager
-    def cached_run(self, *funcs: Any, **kwargs):
+    def cached_run(self, *funcs: Any, **kwargs) -> Iterator[Any]:
         """コンテキストマネージャ内で一時的に関数を `mark` し、キャッシュ機能を適用する。
 
         デコレータを直接付与できない外部ライブラリの関数などをキャッシュする際に使用します。
