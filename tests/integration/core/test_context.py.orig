@@ -34,23 +34,15 @@ def test_spot_context_manager_reusability(tmp_path):
 def test_spot_explicit_shutdown(tmp_path):
     """明示的に shutdown を呼んだ後は、Executorが停止することを確認する。"""
     db_path = str(tmp_path / "test.db")
-    
-    error_raised = None
-    def on_error(e, ctx):
-        nonlocal error_raised
-        error_raised = e
-        
-    spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path), on_background_error=on_error)
+    spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path))
 
     spot.shutdown(save_sync=True)
 
-    @spot.mark(save_sync=False)
-    def task(x):
-        return x
+    # シャットダウン後はタスクを投げると RuntimeError になるのが正しい挙動
+    with pytest.raises(RuntimeError):
 
-    # シャットダウン後はバックグラウンド保存に失敗するが、実行自体は成功する
-    result = task(1)
-    assert result == 1
-    
-    assert isinstance(error_raised, RuntimeError)
-    assert "shutdown" in str(error_raised).lower()
+        @spot.mark(save_sync=False)
+        def task(x):
+            return x
+
+        task(1)

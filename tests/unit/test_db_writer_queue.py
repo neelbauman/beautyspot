@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 import pytest
+from typing import Any
 from beautyspot import Spot
 from beautyspot.db import SQLiteTaskDB, TaskDBBase
 from beautyspot.storage import LocalStorage
@@ -31,7 +32,7 @@ class FailingDB(TaskDBBase):
     ):
         raise RuntimeError("db save failed")
 
-    def get_history(self, limit: int = 1000):
+    def get_history(self, limit: int = 1000) -> Any:
         return []
 
     def delete(self, cache_key: str) -> bool:

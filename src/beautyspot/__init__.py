@@ -61,7 +61,7 @@ def Spot(
     save_sync: bool = True,
     drain_timeout: float = 5.0,
     drain_poll_interval: float = 0.5,
-    on_background_error: Optional[Callable[[Exception, SaveErrorContext], None]] = None,
+    on_background_error: Optional[Callable[[BaseException, SaveErrorContext], None]] = None,
 ) -> _Spot:
     """
     Beautyspotのメインエントリポイント（Factory Function）。

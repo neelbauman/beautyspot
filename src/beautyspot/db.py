@@ -22,6 +22,7 @@ class _ReadConnWrapper:
         self.conn = conn
         self.lock = threading.RLock()
         self._closed = False
+        self._shutdown_requested = False
 
     def close(self, wait: bool = True):
         """
@@ -32,7 +33,9 @@ class _ReadConnWrapper:
         # wait=False の場合は blocking=False になり、取得できなければ直ちに False を返す
         if not self.lock.acquire(blocking=wait):
             # 誰かがクエリ実行中なので、強制クローズによるクラッシュを防ぐために諦める。
-            # (次回のアクセス時に self._shutdown_requested で弾かれるため問題ない)
+            # 代わりにシャットダウン要求フラグを立てて、クエリ完了後に自身でクローズさせる。
+            if not wait:
+                self._shutdown_requested = True
             return
 
         try:
@@ -79,7 +82,7 @@ class _WriteTask:
     fn: Callable[[sqlite3.Connection], Any]
     event: threading.Event
     result: Any = None
-    error: Exception | None = None
+    error: Exception | BaseException | None = None
     state: str = "PENDING"  # "PENDING", "RUNNING", "DONE", "CANCELLED"
     _state_lock: threading.Lock = dataclasses.field(default_factory=threading.Lock)
 
@@ -284,6 +287,13 @@ class SQLiteTaskDB(TaskDBBase):
                 self._local.read_conn_wrapper = None
                 raise
 
+        # クエリ実行中にシャットダウン要求があった場合、自身でクローズする
+        if getattr(wrapper, "_shutdown_requested", False):
+            wrapper.close()
+            with self._read_conns_lock:
+                self._read_wrappers.discard(wrapper)
+            self._local.read_conn_wrapper = None
+
     def _writer_loop(self) -> None:
         conn: sqlite3.Connection | None = None
         try:
@@ -311,7 +321,7 @@ class SQLiteTaskDB(TaskDBBase):
                 try:
                     task.result = task.fn(conn)
                     conn.commit()
-                except Exception as e:
+                except BaseException as e:
                     conn.rollback()
                     task.error = e
                 finally:

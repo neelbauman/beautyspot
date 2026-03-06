@@ -6,6 +6,7 @@ import threading
 import time
 
 import pytest
+from typing import Any
 import beautyspot as bs
 from beautyspot.db import SQLiteTaskDB
 
@@ -30,7 +31,7 @@ async def test_thundering_herd_sync_exception_propagation(tmp_path):
         time.sleep(0.5)
         raise TaskError("sync failure")
 
-    exceptions = [None] * 5
+    exceptions: list[Any] = [None] * 5
 
     loop = asyncio.get_running_loop()
 

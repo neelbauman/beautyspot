@@ -219,7 +219,7 @@ class Spot:
         drain_timeout: float = 5.0,
         drain_poll_interval: float = 0.5,
         on_background_error: Optional[
-            Callable[[Exception, SaveErrorContext], None]
+            Callable[[Exception | BaseException, SaveErrorContext], None]
         ] = None,
     ) -> None:
         self.name = name
@@ -319,6 +319,7 @@ class Spot:
                         self.cache.db,
                         self._owns_db,
                     )
+                    self._finalizer.atexit = False
             return self._bg_loop, self._executor
 
     @staticmethod
@@ -762,20 +763,29 @@ class Spot:
                 ),
             )
             herd.result_box.append((True, res))
-            save_kwargs = self._build_save_kwargs(
-                ctx.cache_key,
-                func,
-                ctx.func_identifier,
-                ctx.input_id,
-                ctx.version,
-                res,
-                ctx.content_type,
-                ctx.save_blob,
-                serializer,
-                retention,
-            )
-            self._persist_result_sync(ctx.save_sync, save_kwargs)
+            
+            # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
+            try:
+                save_kwargs = self._build_save_kwargs(
+                    ctx.cache_key,
+                    func,
+                    ctx.func_identifier,
+                    ctx.input_id,
+                    ctx.version,
+                    res,
+                    ctx.content_type,
+                    ctx.save_blob,
+                    serializer,
+                    retention,
+                )
+                self._persist_result_sync(ctx.save_sync, save_kwargs)
+            except Exception as e:
+                if ctx.save_sync:
+                    raise
+                logger.error(f"Failed to persist cache synchronously, but execution succeeded: {e}")
+                
             return res
+
         except BaseException as e:
             if not herd.result_box:
                 herd.result_box.append((False, e))
@@ -882,20 +892,29 @@ class Spot:
                 executor,
             )
             herd.result_box.append((True, res))
-            save_kwargs = self._build_save_kwargs(
-                ctx.cache_key,
-                func,
-                ctx.func_identifier,
-                ctx.input_id,
-                ctx.version,
-                res,
-                ctx.content_type,
-                ctx.save_blob,
-                serializer,
-                retention,
-            )
-            await self._persist_result_async(ctx.save_sync, save_kwargs)
+            
+            # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
+            try:
+                save_kwargs = self._build_save_kwargs(
+                    ctx.cache_key,
+                    func,
+                    ctx.func_identifier,
+                    ctx.input_id,
+                    ctx.version,
+                    res,
+                    ctx.content_type,
+                    ctx.save_blob,
+                    serializer,
+                    retention,
+                )
+                await self._persist_result_async(ctx.save_sync, save_kwargs)
+            except Exception as e:
+                if ctx.save_sync:
+                    raise
+                logger.error(f"Failed to persist cache asynchronously, but execution succeeded: {e}")
+
             return res
+
         except BaseException as e:
             if not herd.result_box:
                 herd.result_box.append((False, e))
@@ -906,7 +925,7 @@ class Spot:
             )
             self._trigger_auto_eviction()
 
-    def _handle_save_error(self, err: Exception, save_kwargs: dict) -> None:
+    def _handle_save_error(self, err: BaseException | Exception, save_kwargs: dict) -> None:
         logger.error(
             f"Cache save failed for '{save_kwargs.get('func_name')}': {err}",
             exc_info=True,

@@ -47,6 +47,7 @@ class CacheManager:
 
     HERD_POLL: float = 5.0
     HERD_TIMEOUT: float = 300.0
+    HERD_MAX_RETRIES: int = 3
 
     def __init__(
         self,
@@ -228,6 +229,7 @@ class CacheManager:
         self, cache_key: str, serializer: Optional[SerializerProtocol] = None
     ) -> HerdWaitResult:
         """同期パスでの Thundering Herd 待機。"""
+        retries = 0
         while True:
             with self._inflight_lock:
                 if cache_key not in self._inflight:
@@ -241,7 +243,10 @@ class CacheManager:
             deadline = time.monotonic() + self.HERD_TIMEOUT
             while not wait_event.wait(timeout=self.HERD_POLL):
                 if time.monotonic() >= deadline:
-                    logger.warning(f"Herd wait timeout for {cache_key}")
+                    retries += 1
+                    if retries > self.HERD_MAX_RETRIES:
+                        raise TimeoutError(f"Herd wait timeout for {cache_key} exceeded max retries ({self.HERD_MAX_RETRIES})")
+                    logger.warning(f"Herd wait timeout for {cache_key} (retry {retries}/{self.HERD_MAX_RETRIES})")
                     break
 
             if wait_box:
@@ -261,6 +266,7 @@ class CacheManager:
         executor: Any,
     ) -> HerdWaitResult:
         """非同期パスでの Thundering Herd 待機。"""
+        retries = 0
         while True:
             fut = None
             with self._inflight_lock:
@@ -279,6 +285,10 @@ class CacheManager:
                 fut, wait_event, wait_box, cache_key, loop, executor
             )
             if signal is None:
+                retries += 1
+                if retries > self.HERD_MAX_RETRIES:
+                    raise TimeoutError(f"Herd wait timeout for {cache_key} exceeded max retries ({self.HERD_MAX_RETRIES})")
+                logger.warning(f"Herd wait timeout for {cache_key} (retry {retries}/{self.HERD_MAX_RETRIES})")
                 continue
 
             success, val = signal
@@ -341,7 +351,7 @@ class CacheManager:
             if not fut.done():
                 if success:
                     fut.set_result(val)
-                elif isinstance(val, Exception):
+                elif isinstance(val, BaseException):
                     fut.set_exception(val)
                 else:
                     fut.set_exception(RuntimeError(f"Non-Exception error: {repr(val)}"))

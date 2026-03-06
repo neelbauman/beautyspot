@@ -121,6 +121,11 @@ def canonicalize(obj: Any) -> Any:
     if hasattr(obj, "__dict__") or hasattr(obj, "__slots__"):
         return _canonicalize_instance(obj)
 
+    logger.warning(
+        f"Using str() fallback for unhandled type {type(obj)}. "
+        "This may cause unstable cache keys across processes. "
+        "Consider explicit type registration."
+    )
     return str(obj)
 
 

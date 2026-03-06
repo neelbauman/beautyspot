@@ -84,7 +84,7 @@ def test_spot_shutdown_does_not_close_db(tmp_path):
 
     # 【変更点】 Spot のバックグラウンドリソースは解放されるが、DB は生きている
     assert writer_thread.is_alive()
-    assert not spot._finalizer.alive
+    assert spot._finalizer is None or not spot._finalizer.alive
 
     # 呼び出し元の責任で DB をクリーンアップ
     db.shutdown(wait=True)

@@ -1,0 +1,14 @@
+--- tests/integration/core/test_basic.py
++++ tests/integration/core/test_basic.py
+@@ -66,7 +66,10 @@
+         return ComplexObj("test")
+ 
+     # キャッシュ保存はエラーになるが、実行自体は成功してオブジェクトが返る
+-    res_fail = fail_task()
++    import pytest
++    from beautyspot.exceptions import SerializationError
++    with pytest.raises(SerializationError, match="not serializable"):
++        res_fail = fail_task()
+ 
+     # 2. 登録してから実行 -> 成功するはず
+     spot.register_type(

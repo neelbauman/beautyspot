@@ -79,7 +79,7 @@ async def test_thundering_herd_cross_sync_async():
     # 通常のユーザーコードでは推奨されませんが、テストのために
     # _get_func_identifier をパッチします。
     original_get_id = Spot._get_func_identifier
-    Spot._get_func_identifier = lambda self, f: "shared_task"
+    Spot._get_func_identifier = lambda self, func: "shared_task"  # type: ignore
 
     try:
         spot.maintenance.clear()
