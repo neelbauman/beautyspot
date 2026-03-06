@@ -147,6 +147,10 @@ class _BackgroundLoop:
             )
         except Exception:
             # 万が一スケジュールに失敗した場合はカウンタを戻す
+            try:
+                coro.close()
+            except Exception:
+                pass
             with self._lock:
                 self._active_tasks -= 1
                 # シャットダウン中かつ最後のタスクだった場合、ループ停止を通知する
@@ -649,8 +653,7 @@ class Spot:
                 self.cache.set(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
+                raise
         else:
             try:
                 self._submit_background_save(**save_kwargs)
@@ -669,12 +672,15 @@ class Spot:
                 future = bg_loop.submit(coro)
                 if future is None:
                     self._notify_save_discarded(save_kwargs)
+                    raise RuntimeError(
+                        f"Cache save for '{save_kwargs.get('func_name')}' "
+                        "was discarded because the background loop is shutting down."
+                    )
                 else:
                     await asyncio.wrap_future(future)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
-                    raise
+                raise
         else:
             try:
                 self._submit_background_save(**save_kwargs)
@@ -784,7 +790,7 @@ class Spot:
             except Exception as e:
                 if ctx.save_sync:
                     raise
-                logger.error(f"Failed to persist cache synchronously, but execution succeeded: {e}")
+                logger.error(f"Failed to submit background cache save, but execution succeeded: {e}")
                 
             return res
 
@@ -984,7 +990,7 @@ class Spot:
             msg = f"Background save for '{kwargs.get('func_name')}' cancelled during shutdown."
             logger.warning(msg)
             self._handle_save_error(e, kwargs)
-            if not safe and self.on_background_error is None:
+            if not safe:
                 raise
 
     def _save_result_safe(self, **kwargs):

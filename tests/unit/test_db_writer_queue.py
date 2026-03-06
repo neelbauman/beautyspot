@@ -39,7 +39,8 @@ class FailingDB(TaskDBBase):
         return False
 
 
-def test_save_failure_does_not_raise_sync(tmp_path):
+def test_save_failure_raises_sync_even_with_callback(tmp_path):
+    """save_sync=True の場合、on_background_error が設定されていても例外が伝播する。"""
     errors: list[Exception] = []
 
     def on_error(err, _ctx):
@@ -56,13 +57,16 @@ def test_save_failure_does_not_raise_sync(tmp_path):
     def add_one(x):
         return x + 1
 
-    assert add_one(1) == 2
+    with pytest.raises(RuntimeError, match="db save failed"):
+        add_one(1)
+    # コールバックも呼ばれていること
     assert errors
     assert isinstance(errors[0], RuntimeError)
 
 
 @pytest.mark.asyncio
-async def test_save_failure_does_not_raise_async(tmp_path):
+async def test_save_failure_raises_async_even_with_callback(tmp_path):
+    """save_sync=True の場合、async関数でもon_background_error設定時に例外が伝播する。"""
     errors: list[Exception] = []
 
     def on_error(err, _ctx):
@@ -79,7 +83,9 @@ async def test_save_failure_does_not_raise_async(tmp_path):
     async def add_one_async(x):
         return x + 1
 
-    assert await add_one_async(1) == 2
+    with pytest.raises(RuntimeError, match="db save failed"):
+        await add_one_async(1)
+    # コールバックも呼ばれていること
     assert errors
     assert isinstance(errors[0], RuntimeError)
 
