@@ -1,0 +1,29 @@
+active: true
+derived: false
+header: ''
+level: 1.15
+links:
+- REQ-005: hHV83of77XW7iE6tMaRi_gz8UG358ycCVKfoeOj2SHw=
+normative: true
+ref: ''
+reviewed: null
+text: |
+  ## 概要
+  SQLite への書き込み競合を防止するライターキュー。
+
+  ## 詳細仕様
+
+  ### 入力
+  - DB書き込みタスク（保存、削除、更新）
+  - _DbWriterQueue への投入
+
+  ### 処理
+  - バックグラウンドで単一の書き込みスレッドを起動
+  - すべてのメタデータDB書き込み（UPSERT, DELETE 等）はキューを通じてこのスレッドで実行
+  - 読み取りはスレッドセーフ（WALモード利用）
+  - db.flush() によりキュー内の全タスク完了を待機
+  - 書き込みスレッドのヘルスチェック（死活監視）
+
+  ### 出力・結果
+  - SQLite の "database is locked" エラーを回避
+  - マルチスレッドからの同時書き込みを安全にシリアライズ

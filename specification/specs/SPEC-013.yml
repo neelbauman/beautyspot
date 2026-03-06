@@ -26,8 +26,13 @@ text: |
   - atexit ハンドラでプロセス終了時にリソースを解放（_BackgroundLoop._shutdown）
   - バックグラウンド保存の失敗はERRORログに記録、例外はraiseしない
   - on_background_error コールバックで失敗時の処理をカスタマイズ可能
+  - シャットダウンシーケンス:
+    - 1. executor.shutdown(wait=True): 新規タスクの受け入れ停止と完了待機
+    - 2. _BackgroundLoop の停止とスレッドの join
+    - 3. DB Writer Queue の停止と書き込み完了待機
+    - 4. DB 接続のクローズ
 
   ### 出力・結果
   - メイン処理のレイテンシをゼロ（キャッシュ保存分）にできる
   - with ブロック終了時に全保存が完了することを保証
-  - spot.shutdown() でバックグラウンドループを完全停止可能
+  - spot.shutdown() で全コンポーネントを正しい順序で安全に停止可能

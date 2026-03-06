@@ -1,0 +1,33 @@
+active: true
+derived: false
+header: ''
+level: 1.14
+links:
+- REQ-004: -n16jaHSc95kOIV_cRhprBh0KdqKgP4rRqZiMjGG8rs=
+normative: true
+ref: ''
+reviewed: null
+text: |
+  ## 概要
+  Spot ファクトリ関数によるコンポーネントの統合と依存性の注入（DI）。
+
+  ## 詳細仕様
+
+  ### 入力
+  - db: TaskDBBase（メタデータDB）
+  - storage: BlobStorageBase（バイナリデータ保存）
+  - serializer: SerializerProtocol（オブジェクト直列化）
+  - storage_policy: StoragePolicyProtocol（保存先判定）
+  - limiter: LimiterProtocol（レート制限）
+  - lifecycle_policy: LifecyclePolicy（データ保持期間）
+  - executor: ThreadPoolExecutor（非同期保存用スレッドプール）
+
+  ### 処理
+  - bs.Spot() ファクトリ関数がデフォルト設定の全コンポーネントをインスタンス化
+  - 各コンポーネントは抽象クラス/プロトコルに基づき設計されており、疎結合に結合される
+  - コンストラクタ引数により、特定のコンポーネントのみをカスタム実装に差し替え可能
+  - 内部状態（_SpotState）にコンポーネントを保持し、@mark デコレータや cached_run() で参照
+
+  ### 出力・結果
+  - 構成済みの Spot インスタンス
+  - 疎結合なアーキテクチャにより、単体テスト時のモック差し替えや拡張が容易になる
