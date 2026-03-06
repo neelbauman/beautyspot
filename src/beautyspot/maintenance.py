@@ -8,8 +8,8 @@ from pathlib import Path
 import threading
 from typing import Optional, Any
 
-from beautyspot.db import TaskDBBase
-from beautyspot.storage import BlobStorageBase
+from beautyspot.db import Flushable, Shutdownable, TaskDBMaintenable
+from beautyspot.storage import BlobStorageMaintenable
 from beautyspot.serializer import SerializerProtocol
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,10 @@ class MaintenanceService:
     """
 
     def __init__(
-        self, db: TaskDBBase, storage: BlobStorageBase, serializer: SerializerProtocol
+        self,
+        db: TaskDBMaintenable,
+        storage: BlobStorageMaintenable,
+        serializer: SerializerProtocol,
     ):
         self.db = db
         self.storage = storage
@@ -36,7 +39,7 @@ class MaintenanceService:
         ``from_path`` で作成された場合のみ DB をシャットダウンします。
         外部から注入された DB は呼び出し元の責務でシャットダウンしてください。
         """
-        if self._owns_db:
+        if self._owns_db and isinstance(self.db, Shutdownable):
             self.db.shutdown(wait=True)
 
     def __enter__(self) -> "MaintenanceService":
@@ -275,10 +278,11 @@ class MaintenanceService:
             # save_sync=False で投入された書き込みが未コミットの場合、
             # 直後の scan_garbage() がその blob を孤立ファイルと誤判定して
             # 削除してしまうレースコンディションを防ぐ。
-            try:
-                self.db.flush(timeout=10.0)
-            except Exception as e:
-                logger.warning(f"DB flush before garbage scan failed: {e}")
+            if isinstance(self.db, Flushable):
+                try:
+                    self.db.flush(timeout=10.0)
+                except Exception as e:
+                    logger.warning(f"DB flush before garbage scan failed: {e}")
 
             # Phase 0: 期限切れタスクの削除
             deleted_expired_count = self.delete_expired_tasks()
@@ -304,22 +308,24 @@ class MaintenanceService:
                     logger.info(f"Deleted {deleted_orphan_count} orphaned blob files.")
 
             # [ADD] Phase 2.5: 古い一時ファイルのクリーンアップ
-            try:
-                tmp_count = self.storage.clean_temp_files(
-                    max_age_seconds=tmp_max_age_seconds
-                )
-                if tmp_count > 0:
-                    logger.info(f"Removed {tmp_count} abandoned temporary files.")
-            except Exception as e:
-                logger.warning(f"Failed to clean temporary files: {e}")
+            if hasattr(self.storage, "clean_temp_files"):
+                try:
+                    tmp_count = self.storage.clean_temp_files(  # type: ignore
+                        max_age_seconds=tmp_max_age_seconds
+                    )
+                    if tmp_count > 0:
+                        logger.info(f"Removed {tmp_count} abandoned temporary files.")
+                except Exception as e:
+                    logger.warning(f"Failed to clean temporary files: {e}")
 
             # Phase 3: 空ディレクトリ掃除
-            try:
-                dir_count = self.storage.prune_empty_dirs()
-                if dir_count > 0:
-                    logger.info(f"Removed {dir_count} empty directories.")
-            except Exception as e:
-                logger.warning(f"Failed to prune empty directories: {e}")
+            if hasattr(self.storage, "prune_empty_dirs"):
+                try:
+                    dir_count = self.storage.prune_empty_dirs()  # type: ignore
+                    if dir_count > 0:
+                        logger.info(f"Removed {dir_count} empty directories.")
+                except Exception as e:
+                    logger.warning(f"Failed to prune empty directories: {e}")
 
             return deleted_expired_count, deleted_orphan_count
 

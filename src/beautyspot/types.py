@@ -4,7 +4,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from types import MappingProxyType
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
+
+
+class TaskRecord(TypedDict):
+    """
+    Task metadata record retrieved from the database.
+    """
+
+    result_type: str
+    result_value: Optional[str]
+    result_data: Optional[bytes]
+    expires_at: Optional[str]
 
 
 @dataclass(frozen=True)

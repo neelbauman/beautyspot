@@ -31,6 +31,7 @@ class TestParseRetention:
             ("7d", timedelta(days=7)),
             ("12h", timedelta(hours=12)),
             ("30m", timedelta(minutes=30)),
+            ("10s", timedelta(seconds=10)),
         ],
     )
     def test_parse_str_valid(self, input_str, expected):
@@ -41,6 +42,7 @@ class TestParseRetention:
         "non_positive_value",
         [
             "0d",
+            "0s",
             0,
             -10,
             timedelta(seconds=0),
@@ -58,7 +60,6 @@ class TestParseRetention:
             "7",  # 単位なし
             "d",  # 数字なし
             "1y",  # 未サポートの単位
-            "100s",  # 未サポートの単位 (現状 d, h, m のみ)
             "invalid",  # フォーマット違い
         ],
     )

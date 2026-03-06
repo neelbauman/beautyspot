@@ -30,6 +30,7 @@ from typing import (
     TypeVarTuple,
     ParamSpec,
     Sequence,
+    ContextManager,
 )
 
 from beautyspot.maintenance import MaintenanceService
@@ -38,7 +39,7 @@ from beautyspot.types import SaveErrorContext
 from beautyspot.lifecycle import (
     RetentionSpec,
 )
-from beautyspot.db import TaskDBBase
+from beautyspot.db import TaskDBCore, Flushable, Shutdownable
 from beautyspot.serializer import SerializerProtocol, TypeRegistryProtocol
 from beautyspot.cachekey import KeyGenPolicy
 from beautyspot.exceptions import (
@@ -327,12 +328,12 @@ class Spot:
     def _shutdown_resources(
         bg_loop: _BackgroundLoop,
         executor: Executor,
-        db: TaskDBBase,
+        db: TaskDBCore,
         owns_db: bool,
     ) -> None:
         bg_loop.stop(save_sync=False)
         executor.shutdown(wait=False, cancel_futures=True)
-        if owns_db:
+        if owns_db and isinstance(db, Shutdownable):
             db.shutdown(wait=False)
 
     def shutdown(self, save_sync: bool = True):
@@ -375,7 +376,7 @@ class Spot:
             wait(snapshot, timeout=wait_timeout)
 
         db_remaining = deadline - time.monotonic()
-        if db_remaining > 0:
+        if db_remaining > 0 and isinstance(self.cache.db, Flushable):
             self.cache.db.flush(timeout=db_remaining)
 
     def _drain_futures(self) -> None:
@@ -1103,10 +1104,10 @@ class Spot:
         return decorator(_func) if _func else decorator
 
     @overload
-    def cached_run(self, __func: Callable[P, R], **kwargs: Any) -> Iterator[Callable[P, R]]: ...
+    def cached_run(self, __func: Callable[P, R], **kwargs: Any) -> ContextManager[Callable[P, R]]: ...
 
     @overload
-    def cached_run(self, *funcs: *Ts, **kwargs: Any) -> Iterator[tuple[*Ts]]: ...
+    def cached_run(self, *funcs: *Ts, **kwargs: Any) -> ContextManager[tuple[*Ts]]: ...
 
     @contextmanager
     def cached_run(self, *funcs: Any, **kwargs) -> Iterator[Any]:

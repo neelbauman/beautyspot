@@ -18,7 +18,7 @@ from beautyspot.cachekey import KeyGen
 from beautyspot.lifecycle import LifecyclePolicy, Rule, Retention
 from beautyspot.limiter import TokenBucket, LimiterProtocol
 from beautyspot.content_types import ContentType
-from beautyspot.db import TaskDBBase, SQLiteTaskDB
+from beautyspot.db import TaskDBBase, TaskDBCore, TaskDBMaintenable, SQLiteTaskDB
 from beautyspot.exceptions import (
     BeautySpotError,
     CacheCorruptedError,
@@ -29,6 +29,8 @@ from beautyspot.exceptions import (
 )
 from beautyspot.storage import (
     BlobStorageBase,
+    BlobStorageCore,
+    BlobStorageMaintenable,
     LocalStorage,
     StoragePolicyProtocol,
     WarningOnlyPolicy,
@@ -46,10 +48,10 @@ except PackageNotFoundError:
 
 def Spot(
     name: str,
-    db: Optional[TaskDBBase] = None,
+    db: Optional[TaskDBMaintenable] = None,
     serializer: Optional[SerializerProtocol] = None,
     limiter: Optional[LimiterProtocol] = None,
-    storage_backend: Optional[BlobStorageBase] = None,
+    storage_backend: Optional[BlobStorageMaintenable] = None,
     storage_policy: Optional[StoragePolicyProtocol] = None,
     cache: Optional[_CacheManager] = None,
     # --- Configuration Options ---
@@ -137,7 +139,11 @@ __all__ = [
     "ValidationError",
     "IncompatibleProviderError",
     # --- Protocols & Base Classes (for custom implementations) ---
+    "TaskDBCore",
+    "TaskDBMaintenable",
     "TaskDBBase",
+    "BlobStorageCore",
+    "BlobStorageMaintenable",
     "BlobStorageBase",
     "SerializerProtocol",
     "StoragePolicyProtocol",

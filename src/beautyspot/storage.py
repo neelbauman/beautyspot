@@ -23,7 +23,6 @@ ReadableBuffer: TypeAlias = bytes | bytearray | memoryview
 
 # --- Storage Policies ---
 
-
 @runtime_checkable
 class StoragePolicyProtocol(Protocol):
     """
@@ -85,10 +84,35 @@ class AlwaysBlobPolicy(StoragePolicyProtocol):
 
 # --- Blob Storage Implementations ---
 
+@runtime_checkable
+class BlobStorageCore(Protocol):
+    """
+    Core interface for large object storage required during execution.
+    """
+
+    def save(self, key: str, data: ReadableBuffer) -> str: ...
+    def load(self, location: str) -> bytes: ...
+    def delete(self, location: str) -> None: ...
+
+@runtime_checkable
+class Maintenable(Protocol):
+    """
+    Extended interface for maintenance tasks (GC).
+    """
+
+    def list_keys(self) -> Iterator[str]: ...
+    def get_mtime(self, location: str) -> float: ...
+
+
+@runtime_checkable
+class BlobStorageMaintenable(BlobStorageCore, Maintenable, Protocol):
+    ...
+
 
 class BlobStorageBase(ABC):
     """
     Abstract base class for large object storage (BLOBs).
+    Implementations should at least fulfill BlobStorageCore.
     """
 
     @abstractmethod
@@ -131,24 +155,8 @@ class BlobStorageBase(ABC):
         """
         pass
 
-    def prune_empty_dirs(self) -> int:
-        """
-        Remove empty directories left after blob deletion.
-        Returns the count of removed directories.
-        Default implementation is a no-op (e.g. for S3 which has no directories).
-        """
-        return 0
 
-    def clean_temp_files(self, max_age_seconds: int = 86400) -> int:
-        """
-        Clean up abandoned temporary files older than the specified age.
-        Returns the count of removed files.
-        Default implementation is a no-op.
-        """
-        return 0
-
-
-class LocalStorage(BlobStorageBase):
+class LocalStorage(BlobStorageMaintenable):
     def __init__(self, base_dir: str | Path):
         # Resolve to absolute path explicitly on init
         self.base_dir = Path(base_dir).resolve()
@@ -364,7 +372,7 @@ class LocalStorage(BlobStorageBase):
         return removed_count
 
 
-class S3Storage(BlobStorageBase):
+class S3Storage(BlobStorageMaintenable):
     def __init__(
         self,
         s3_uri: str,
@@ -446,8 +454,9 @@ class S3Storage(BlobStorageBase):
                 yield f"s3://{self.bucket_name}/{obj['Key']}"
 
 
-def create_storage(path: str, options: dict | None = None) -> BlobStorageBase:
+def create_storage(path: str, options: dict | None = None) -> BlobStorageMaintenable:
     if path.startswith("s3://"):
         return S3Storage(path, options)
 
     return LocalStorage(path)
+

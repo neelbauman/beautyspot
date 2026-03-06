@@ -8,8 +8,8 @@ from datetime import timedelta
 from typing import Optional, List, Union
 from beautyspot.exceptions import ValidationError
 
-# Regex for parsing retention strings (e.g., "7d", "12h", "30m")
-_TIME_PATTERN = re.compile(r"^(\d+)([dhm])$")
+# Regex for parsing retention strings (e.g., "7d", "12h", "30m", "10s")
+_TIME_PATTERN = re.compile(r"^(\d+)([dhms])$")
 
 
 class _ForeverSentinel:
@@ -77,7 +77,7 @@ def parse_retention(
         match = _TIME_PATTERN.match(value)
         if not match:
             raise ValidationError(
-                f"Invalid retention format: '{value}'. Use format like '7d', '12h', '30m'."
+                f"Invalid retention format: '{value}'. Use format like '7d', '12h', '30m', '10s'."
             )
 
         amount, unit = int(match.group(1)), match.group(2)
@@ -91,6 +91,8 @@ def parse_retention(
             return timedelta(hours=amount)
         elif unit == "m":
             return timedelta(minutes=amount)
+        elif unit == "s":
+            return timedelta(seconds=amount)
 
     raise ValidationError(
         f"Retention must be str, int, float, or timedelta, got {type(value)}"

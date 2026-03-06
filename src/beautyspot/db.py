@@ -13,8 +13,81 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING, TypedDict, Any, Callable
+from typing import Optional, TYPE_CHECKING, Any, Callable, Protocol, runtime_checkable
 import weakref
+from beautyspot.types import TaskRecord
+
+
+@runtime_checkable
+class TaskDBCore(Protocol):
+    """
+    Core interface for task metadata storage required during execution.
+    """
+
+    def init_schema(self) -> None: ...
+
+    def get(
+        self, cache_key: str, *, include_expired: bool = False
+    ) -> Optional[TaskRecord]: ...
+
+    def save(
+        self,
+        cache_key: str,
+        func_name: str,
+        func_identifier: Optional[str],
+        input_id: str,
+        version: Optional[str],
+        result_type: str,
+        content_type: Optional[str],
+        result_value: Optional[str] = None,
+        result_data: Optional[bytes] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> None: ...
+
+    def delete(self, cache_key: str) -> bool: ...
+
+
+@runtime_checkable
+class Flushable(Protocol):
+    """Protocol for backends that support flushing pending writes."""
+
+    def flush(self, timeout: Optional[float] = None) -> bool: ...
+
+
+@runtime_checkable
+class Shutdownable(Protocol):
+    """Protocol for backends that require graceful shutdown."""
+
+    def shutdown(self, wait: bool = True) -> None: ...
+
+
+@runtime_checkable
+class Maintenable(Protocol):
+    """
+    Extended interface for maintenance tasks (GC, CLI, Dashboard).
+    """
+
+    def delete_expired(self) -> int: ...
+
+    def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int: ...
+
+    def get_outdated_tasks(
+        self, older_than: datetime, func_name: Optional[str] = None
+    ) -> list[tuple[str, str, str]]: ...
+
+    def get_blob_refs(self) -> Optional[set[str]]: ...
+
+    def delete_all(self, func_name: Optional[str] = None) -> int: ...
+
+    def get_keys_start_with(self, prefix: str) -> list[str]: ...
+
+    def get_history(self, limit: int = 1000) -> "pd.DataFrame": ...
+
+
+@runtime_checkable
+class TaskDBMaintenable(TaskDBCore, Maintenable, Protocol):
+    ...
+
 
 
 class _ReadConnWrapper:
@@ -70,13 +143,6 @@ def _ensure_utc_isoformat(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat(" ")
 
 
-class TaskRecord(TypedDict):
-    result_type: str
-    result_value: Optional[str]
-    result_data: Optional[bytes]
-    expires_at: Optional[str]
-
-
 @dataclass
 class _WriteTask:
     fn: Callable[[sqlite3.Connection], Any]
@@ -114,7 +180,8 @@ _STOP = object()
 
 class TaskDBBase(ABC):
     """
-    Abstract interface for task metadata storage.
+    Abstract base class providing default no-op implementations for maintenance methods.
+    Actual backends should implement TaskDBCore and optionally TaskDBMaintenance.
     """
 
     @abstractmethod
@@ -139,36 +206,27 @@ class TaskDBBase(ABC):
         content_type: Optional[str],
         result_value: Optional[str] = None,
         result_data: Optional[bytes] = None,
-        expires_at: Optional[datetime] = None,  # [ADD] Added argument
+        expires_at: Optional[datetime] = None,
     ):
-        pass
-
-    @abstractmethod
-    def get_history(self, limit: int = 1000) -> "pd.DataFrame":
         pass
 
     @abstractmethod
     def delete(self, cache_key: str) -> bool:
         pass
 
-    # --- Optional Maintenance Methods ---
+    # --- Maintenance Methods (Default implementations) ---
     def delete_expired(self) -> int:
         """Delete tasks that have passed their expiration time."""
         return 0
 
     def prune(self, older_than: datetime, func_name: Optional[str] = None) -> int:
         """Delete tasks older than the specified datetime."""
-        logger.warning(
-            f"{self.__class__.__name__} does not support pruning operations."
-        )
         return 0
 
     def get_outdated_tasks(
         self, older_than: datetime, func_name: Optional[str] = None
     ) -> list[tuple[str, str, str]]:
-        """
-        Retrieve tasks older than the specified datetime (Preview for prune).
-        """
+        """Retrieve tasks older than the specified datetime (Preview for prune)."""
         return []
 
     def get_blob_refs(self) -> Optional[set[str]]:
@@ -183,16 +241,17 @@ class TaskDBBase(ABC):
         """Retrieve cache keys that start with the given prefix."""
         return []
 
-    def flush(self, timeout: Optional[float] = None) -> bool:
-        """Wait for all pending background writes to complete."""
-        return True
+    def get_history(self, limit: int = 1000) -> "pd.DataFrame":
+        """Get task history. Returns an empty DataFrame by default."""
+        try:
+            import pandas as pd
 
-    def shutdown(self, wait: bool = True) -> None:
-        """Gracefully shut down the database backend."""
-        return None
+            return pd.DataFrame()
+        except ImportError:
+            raise ImportError("Pandas is required for this feature.")
 
 
-class SQLiteTaskDB(TaskDBBase):
+class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
     """
     Default implementation using SQLite.
     """

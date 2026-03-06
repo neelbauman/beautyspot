@@ -8,8 +8,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, NamedTuple
 
-from beautyspot.db import TaskDBBase
-from beautyspot.storage import BlobStorageBase, StoragePolicyProtocol
+from beautyspot.db import TaskDBMaintenable
+from beautyspot.storage import BlobStorageMaintenable, StoragePolicyProtocol
 from beautyspot.serializer import SerializerProtocol
 from beautyspot.lifecycle import (
     LifecyclePolicy,
@@ -51,8 +51,8 @@ class CacheManager:
 
     def __init__(
         self,
-        db: TaskDBBase,
-        storage: BlobStorageBase,
+        db: TaskDBMaintenable,
+        storage: BlobStorageMaintenable,
         serializer: SerializerProtocol,
         storage_policy: StoragePolicyProtocol,
         lifecycle_policy: Optional[LifecyclePolicy] = None,
