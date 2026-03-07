@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  BackgroundLoop
+level: 1.13
+links:
+- REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
+normative: true
+ref: ''
+reviewed: ZiU2oIfeDZ8sTCfr94Y0pRygBSZMXtM-mliCAEnZODw=
+text: |
+  `_BackgroundLoop` はデーモンスレッドで asyncio イベントループを実行する。 `submit(coro)` でコルーチンをスレッドセーフに投入する。 シャットダウン時は新規タスクの受付を停止し、アクティブタスクの完了を `drain_timeout` 秒まで待機する。atexit ハンドラで安全網を提供する。

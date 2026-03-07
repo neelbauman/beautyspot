@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  cached_run テスト
+level: 1.1
+links:
+- SPEC002: Z-LZR2R2K-JQt47DybEoNa7yroEdNqRn3IrqMlvcS9A=
+normative: true
+ref: ''
+reviewed: ZXdmKcoULIgKHDVUbjL9czGtyu1oLZMsBAD4sGX8bwY=
+text: |
+  `cached_run` コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。

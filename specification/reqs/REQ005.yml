@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  シリアライゼーション
+level: 1.4
+links: []
+normative: true
+ref: ''
+reviewed: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
+text: |
+  関数の戻り値を安全にシリアライズ・デシリアライズできること。ユーザー定義型のカスタムエンコーダ・デコーダを登録可能であること。

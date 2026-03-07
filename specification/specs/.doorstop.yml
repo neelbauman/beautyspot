@@ -1,6 +1,6 @@
 settings:
-  digits: 3
+  digits: '3'
   itemformat: yaml
   parent: REQ
   prefix: SPEC
-  sep: '-'
+  sep: ''

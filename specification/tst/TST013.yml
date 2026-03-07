@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  カスタム型登録テスト
+level: 1.12
+links:
+- SPEC013: Hj5dSvsh58FLKFZXLXvpo-3cKhZWkTdNg58QtdyutVw=
+normative: true
+ref: ''
+reviewed: 4KmN11OQX-GBgnQCq5ouuB3L7QBoTKeuhsAiX6DZoWo=
+text: |
+  カスタム型登録のテスト。@spot.register() デコレータによる登録、 Pydantic モデルの factory デコーダ、 複雑なデータ構造のエンコード/デコードを検証する。

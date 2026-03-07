@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  cached_run コンテキストマネージャ
+level: 1.1
+links:
+- REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
+normative: true
+ref: ''
+reviewed: GBNQJPmXpAvl_EDYji7cVLDmdybTAR7mfk92we0TFPA=
+text: |
+  `spot.cached_run(*funcs, **kwargs)` コンテキストマネージャにより、 デコレータを直接付与できない外部ライブラリの関数に対して一時的にキャッシュ機能を適用する。 複数関数を同時に渡した場合はタプルで返す。関数が0個の場合は `ValidationError` を送出する。

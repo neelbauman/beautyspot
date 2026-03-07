@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: HOOK
+header: |
+  HookBase / ThreadSafeHookBase
+level: 1.18
+links:
+- REQ009: Pz2A0pug8oCFm4G1UmkLY_oBU2CrulUJDQCx4D6WXyk=
+normative: true
+ref: ''
+reviewed: ltPf6RVKIW_PeCLGPRIKrjCAhqzbzEuskKCcHxluKa8=
+text: |
+  `HookBase` は `pre_execute(ctx)`, `on_cache_hit(ctx)`, `on_cache_miss(ctx)` の 3メソッドを提供するベースクラス。デフォルト実装は何もしない。 `ThreadSafeHookBase` は `__init_subclass__` でユーザー定義メソッドを RLock でラップし、スレッドセーフ性を自動適用する。 フック内の例外は ERROR ログに記録されるが、関数の実行結果には影響しない。 コンテキストオブジェクト: `PreExecuteContext`, `CacheHitContext`, `CacheMissContext`。

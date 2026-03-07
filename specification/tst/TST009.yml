@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  LocalStorage テスト
+level: 1.8
+links:
+- SPEC009: LSgFkvwAFG6heFSqgxj5-f3RjzmSqq4k2rFv1WmEdFs=
+normative: true
+ref: ''
+reviewed: LXYIKP56gQ3HueQo4bmjuC_PrUPsKwg1P8rxAp8aAhs=
+text: |
+  LocalStorage のテスト。ワークスペース作成、並行書き込みの一貫性、 一時ファイルクリーンアップ、パストラバーサル防止を検証する。

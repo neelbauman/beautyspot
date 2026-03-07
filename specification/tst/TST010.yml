@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  S3Storage テスト
+level: 1.9
+links:
+- SPEC010: WGNze3U5VPr8AofH7iUCh3r3WcrcYeNgbYhI99KqjiI=
+normative: true
+ref: ''
+reviewed: BCGNLyMWz6QWCOoDOhcAGbNaJqvCJ_sV5b4CFE8W594=
+text: |
+  S3Storage のテスト。S3 互換ストレージへの保存・取得・削除を検証する。 （注: boto3 オプショナル依存のため、現時点で専用テストファイルは未作成）

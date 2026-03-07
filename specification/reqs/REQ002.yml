@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: KEY
+header: |
+  キャッシュキー生成
+level: 1.1
+links: []
+normative: true
+ref: ''
+reviewed: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
+text: |
+  関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。

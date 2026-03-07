@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  カスタム型登録実装
+level: 1.12
+links:
+- SPEC013: Hj5dSvsh58FLKFZXLXvpo-3cKhZWkTdNg58QtdyutVw=
+normative: true
+ref: ''
+reviewed: fUagECQqz7YIElikG__aE0hxaKwIbtKPisBW8T7Jo0w=
+text: |
+  MsgpackSerializer.register() メソッドの実装。 code 0-127 バリデーション、重複チェック、 Copy-on-Write による安全な登録を含む。 Spot.register()/register_type() によるユーザー向けインターフェースも含む。

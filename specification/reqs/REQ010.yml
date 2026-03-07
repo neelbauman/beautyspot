@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: MAINT
+header: |
+  メンテナンス
+level: 1.9
+links: []
+normative: true
+ref: ''
+reviewed: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
+text: |
+  期限切れキャッシュの削除、孤立Blobファイルのガベージコレクション、時間ベースの一括削除（prune）等のメンテナンス操作ができること。

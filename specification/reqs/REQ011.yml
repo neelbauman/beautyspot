@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: CLI
+header: |
+  CLI
+level: '1.10'
+links: []
+normative: true
+ref: ''
+reviewed: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
+text: |
+  コマンドラインインターフェースからキャッシュの一覧表示、詳細確認、統計表示、削除、GC等の管理操作ができること。

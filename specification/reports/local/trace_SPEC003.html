@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>局所トレーサビリティ — SPEC003</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         max-width: 1200px; margin: 0 auto; padding: 20px; background: #fafafa; }
+  h1 { border-bottom: 3px solid #00897b; padding-bottom: 10px; color: #00897b; }
+  h2 { color: #00897b; margin-top: 30px; }
+  table { border-collapse: collapse; width: 100%; margin: 15px 0; background: #fff; }
+  th { background: #00897b; color: #fff; padding: 10px; text-align: left; }
+  td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .text-preview { color: #666; font-size: 0.85em; }
+  .ref-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 1px 6px;
+              border-radius: 3px; font-size: 0.75em; font-family: monospace; margin-top: 2px; }
+  .empty { color: #ccc; text-align: center; }
+  .reviewed { color: #4caf50; font-size: 0.8em; }
+  .unreviewed { color: #bdbdbd; font-size: 0.8em; }
+  .suspect { color: #e65100; font-size: 0.8em; font-weight: bold; }
+  .summary { display: flex; gap: 12px; margin: 15px 0; flex-wrap: wrap; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+           padding: 12px 18px; flex: 1; min-width: 80px; text-align: center; }
+  .card h3 { margin: 0 0 4px; font-size: 0.8em; color: #666; }
+  .card .value { font-size: 1.4em; font-weight: bold; color: #00897b; }
+  .timestamp { color: #999; font-size: 0.85em; }
+  .group-tag { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 2px 8px;
+                border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+  .prefix-tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 2px 6px;
+                 border-radius: 3px; font-size: 0.75em; }
+  .scope-label { display: inline-block; background: #e0f2f1; color: #00695c; padding: 4px 12px;
+                  border-radius: 6px; font-size: 0.9em; font-weight: bold; margin-left: 10px; }
+  .item-detail { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+                  padding: 15px 20px; margin: 10px 0; }
+  .item-detail h3 { margin: 0 0 8px; font-size: 1.05em; }
+  .item-detail p { margin: 5px 0; color: #333; }
+  .item-detail a { color: #00897b; text-decoration: none; }
+  .item-detail a:hover { text-decoration: underline; }
+  .item-text { color: #333; line-height: 1.6; }
+  .item-text p { margin: 6px 0; }
+  .item-text code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px;
+                     font-size: 0.9em; font-family: monospace; }
+  .item-text pre { background: #f5f5f5; padding: 12px; border-radius: 6px;
+                    overflow-x: auto; font-size: 0.85em; }
+  .item-text pre code { background: none; padding: 0; }
+  .item-text ul, .item-text ol { margin: 6px 0; padding-left: 24px; }
+  .item-text table { border-collapse: collapse; margin: 8px 0; }
+  .item-text table th, .item-text table td { border: 1px solid #ddd; padding: 6px 10px; }
+  .item-text table th { background: #f0f0f0; }
+  .chain-nav { margin: 15px 0; padding: 10px 15px; background: #e0f2f1; border-radius: 8px;
+                font-size: 0.9em; }
+  .chain-nav a { color: #00695c; text-decoration: none; margin: 0 6px; }
+  .chain-nav a:hover { text-decoration: underline; }
+  #matrix-table a:hover strong { text-decoration: underline; }
+  @media print {
+    body { max-width: 100%; padding: 10px; }
+    .chain-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<h1>局所トレーサビリティビュー <span class="scope-label">SPEC003</span></h1>
+<p class="timestamp">生成日時: 2026-03-07 13:06:55</p>
+
+<div class="summary">
+  <div class="card">
+    <h3>対象アイテム</h3>
+    <div class="value">2</div>
+  </div>
+  
+      <div class="card">
+        <h3>REQ</h3>
+        <div class="value">1</div>
+      </div>
+      <div class="card">
+        <h3>SPEC</h3>
+        <div class="value">1</div>
+      </div>
+  <div class="card">
+    <h3>レビュー済</h3>
+    <div class="value">2/2</div>
+  </div>
+  <div class="card">
+    <h3>Suspect</h3>
+    <div class="value" style="color:#4caf50">0</div>
+  </div>
+  <div class="card">
+    <h3>グループ</h3>
+    <div class="value">CACHE</div>
+  </div>
+</div>
+
+<div class="chain-nav">
+  <strong>アイテム:</strong>
+  <a href="#detail-REQ001">REQ001</a> <a href="#detail-SPEC003">SPEC003</a>
+</div>
+
+<h2>トレーサビリティマトリクス</h2>
+<p style="font-size:0.85em; color:#888">✓=レビュー済 ○=未レビュー ⚠=Suspect（IDクリックで詳細へ）</p>
+<table id="matrix-table">
+<tr><th>グループ</th><th>REQ</th><th>SPEC</th><th>IMPL</th><th>TST</th></tr>
+<tr data-group="CACHE"><td><span class="group-tag">CACHE</span></td><td><a href="#detail-REQ001" style="text-decoration:none; color:inherit"><strong>REQ001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</span></td><td><a href="#detail-SPEC003" style="text-decoration:none; color:inherit"><strong>SPEC003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`inspect.iscoroutinefunction()` による自動判定で、同期関数には同期ラッパー (`_execute_sync`)、非同期関数には非...</span></td><td class="empty">—</td><td class="empty">—</td></tr>
+</table>
+
+<h2>カバレッジ（局所）</h2>
+<table>
+<tr><th>リンク方向</th><th>カバー数</th><th>カバー率</th><th>未カバー</th></tr>
+
+        <tr>
+          <td>SPEC → REQ</td>
+          <td>1 / 1</td>
+          <td style="color:#4caf50; font-weight:bold">100.0%</td>
+          <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr>
+          <td>IMPL → SPEC</td>
+          <td>0 / 1</td>
+          <td style="color:#f44336; font-weight:bold">0.0%</td>
+          <td style="font-size:0.85em">SPEC003</td>
+        </tr>
+        <tr>
+          <td>TST → SPEC</td>
+          <td>0 / 1</td>
+          <td style="color:#f44336; font-weight:bold">0.0%</td>
+          <td style="font-size:0.85em">SPEC003</td>
+        </tr>
+</table>
+
+<h2>アイテム詳細</h2>
+
+    <div class="item-detail" id="detail-REQ001">
+      <h3>REQ001
+        <span class="prefix-tag">REQ</span>
+        <span class="group-tag">CACHE</span>
+        <span class="reviewed">✓ レビュー済</span>
+      </h3>
+      <div class="item-text"><p>関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</p></div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC003">SPEC003</a></p>
+    </div>
+    <div class="item-detail" id="detail-SPEC003">
+      <h3>SPEC003
+        <span class="prefix-tag">SPEC</span>
+        <span class="group-tag">CACHE</span>
+        <span class="reviewed">✓ レビュー済</span>
+      </h3>
+      <div class="item-text"><p><code>inspect.iscoroutinefunction()</code> による自動判定で、同期関数には同期ラッパー (<code>_execute_sync</code>)、非同期関数には非同期ラッパー (<code>_execute_async</code>) を適用する。 非同期関数のキャッシュ保存は <code>_BackgroundLoop</code> 経由の asyncio イベントループで処理する。</p></div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ001">REQ001</a></p>
+      <p><strong>子:</strong> —</p>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  MsgpackSerializer 実装
+level: 1.11
+links:
+- SPEC012: gJdAPnioKY0pdOMlTWHhoKZ7nsoRUwL_q0VzP7uwgjE=
+normative: true
+ref: ''
+reviewed: RNSmvvUdRjUzayWh4FP63tXbvR9yaW9awc0rJiJSw88=
+text: |
+  MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ラッピング、レジストリ世代管理を含む。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  save_sync / flush / drain 実装
+level: 1.14
+links:
+- SPEC015: WM4zO7qj68RrbxNwclaBaqEHxcw1PKwu_Xih42Uq_YA=
+normative: true
+ref: ''
+reviewed: iMBF_mtdvq3dK-aCNFlcX1wD3_kXJ8SsaUJLy8ZmZKY=
+text: |
+  save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ __exit__ での自動 drain、 on_background_error コールバック呼び出しの実装を含む。

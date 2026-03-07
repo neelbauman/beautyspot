@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: HERD
+header: |
+  Thundering Herd対策
+level: 1.12
+links: []
+normative: true
+ref: ''
+reviewed: tKylQ3MlgP5WxneklHbCBHWMZ7lGffbNKhTuZG9o0Mw=
+text: |
+  同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。

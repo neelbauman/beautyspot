@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  ストレージポリシー
+level: '1.10'
+links:
+- REQ004: rYjqEbhXQ56Fioc3LGz6Mxhc_FXw4CfDj7MiJaTCWm8=
+normative: true
+ref: ''
+reviewed: kmGi6hpm_uNrudOLuKEzqgihrlfhswijHjkVtA0z0xE=
+text: |
+  `StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -> bool` を定義する。 実装3種: `ThresholdStoragePolicy`（閾値超過時にBlob保存）、 `WarningOnlyPolicy`（警告のみでBlob保存しない、デフォルト）、 `AlwaysBlobPolicy`（常にBlob保存）。 `@mark(save_blob=True/False)` による明示指定が最優先。

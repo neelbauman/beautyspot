@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  Retention テスト
+level: 1.16
+links:
+- SPEC017: 7Uxh2AdDt9ACO6u2rPH2ImbnUQO4OYbKiAr-U5mCL18=
+normative: true
+ref: ''
+reviewed: 5XbpDAj7oBcPRritrCpFKqfwTHGzE5ZOycMeZ01dFH0=
+text: |
+  Retention 仕様のテスト。文字列フォーマット ("7d", "12h", "30m", "10s")、 timedelta、秒数のパース、Retention.FOREVER シングルトン、 負値・ゼロの ValidationError を検証する。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: DI
+header: |
+  ファクトリ関数実装
+level: 1.21
+links:
+- SPEC022: Ro6EdCtdpXqIOMyxhJ-Sew9mM05m5Qt07JdpkUa0mmg=
+normative: true
+ref: ''
+reviewed: FjhcgWgBJVBGNjZVVFxUEPeMyTsOlfJbTzlPujpwIrU=
+text: |
+  `bs.Spot()` ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 `CacheManager` の構築、`Protocol/ABC` の定義と `__all__` エクスポートを含む。

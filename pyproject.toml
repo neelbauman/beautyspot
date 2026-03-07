@@ -50,6 +50,7 @@ dev = [
     "pydeps>=3.0.2",
     "pylint>=4.0.4",
     "pytest-mock>=3.15.1",
+    "doorstop>=3.1",
 ]
 
 [project.scripts]

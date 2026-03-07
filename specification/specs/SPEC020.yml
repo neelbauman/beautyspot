@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: MAINT
+header: |
+  MaintenanceService
+level: 1.19
+links:
+- REQ010: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
+normative: true
+ref: ''
+reviewed: r6wVBryB7GCIJVYm-H-x14DeMi-am6J2KWeT5MGo46I=
+text: |
+  `MaintenanceService` は DB・ストレージ・シリアライザを統合したメンテナンスサービス。 `clean_garbage()`: DB flush → 期限切れ削除 → 孤立Blob スキャン → 削除 → 一時ファイル清掃 → 空ディレクトリ削除。 `scan_garbage(grace_period)`: DB に参照のないBlobファイルを列挙。grace_period でインフライト保存との競合を防止。 `prune(days, func_name)`: 指定日数以上古いキャッシュを削除。 `clear(func_name)`: 全キャッシュまたは指定関数のキャッシュを削除。 `delete_task(cache_key)`: DB レコードを先に削除し、次にBlobを削除（安全な削除順序）。 `from_path()` ファクトリでDBパスからサービスを組み立て可能。 `scan_orphan_projects()`: .beautyspot/blobs/ 内の孤立プロジェクトディレクトリを検出。 自動破棄 (`eviction_rate`): 確率的にGCをバックグラウンドで実行（最小間隔60秒）。

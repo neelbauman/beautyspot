@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  Retention 仕様
+level: 1.16
+links:
+- REQ007: FAk1im9qkBhtzNEPuqhcaOz9Xmme-nmrkiZc7bGQDNk=
+normative: true
+ref: ''
+reviewed: _kGwflGBYAjkugR0ggOHJRz_3RX6hWe6J9nVK5W7hEI=
+text: |
+  保持期間は文字列（"7d", "12h", "30m", "10s"）、timedelta、秒数（int/float）で指定する。 `Retention.FOREVER` はグローバルポリシーを明示的にバイパスし無期限保持を宣言する。 `Retention.INDEFINITE` (None) はポリシーに委ねるデフォルト値。 `parse_retention()` で正規化する。負値・ゼロは `ValidationError`。 期限切れ判定は DB の `get()` 時に遅延チェック（Lazy Expiration）で行う。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  カスタム型登録
+level: 1.12
+links:
+- REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
+normative: true
+ref: ''
+reviewed: 7lkv3h9OktHPDgbeD3OMLfhbJz1t3e282CDqfZFEfNs=
+text: |
+  `spot.register(code, encoder, decoder)` デコレータまたは `spot.register_type(cls, code, encoder, decoder)` メソッドにより、 カスタム型をシリアライザに登録する。code は 0-127 の一意な整数。 同一コードまたは同一型の重複登録は ValueError で拒否する。 `decoder_factory` オプションで型に基づくデコーダ自動生成もサポートする。

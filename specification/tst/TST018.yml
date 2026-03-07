@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: LIMIT
+header: |
+  TokenBucket テスト
+level: 1.17
+links:
+- SPEC018: HumtHzAdxKAckcie7tkoLztQbmfp-ExR63YY4j2Ih5c=
+normative: true
+ref: ''
+reviewed: 57bARjJZpzNdfLIlEn5fyDzE3y9BYvu0uXQ_1ZA90l8=
+text: |
+  TokenBucket のテスト。初期化バリデーション、max_cost 超過拒否、 GCRA アルゴリズムの実際の待機動作を検証する。

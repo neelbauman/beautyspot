@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: KEY
+header: |
+  KeyGenPolicy テスト
+level: 1.5
+links:
+- SPEC006: g8tRTaQaFr-uwAmN4mlisB3i800uqqU7y2waN0Nxxug=
+normative: true
+ref: ''
+reviewed: _trUGd0Bh9AIPoMqxRlDSDNFUzeTsbDoMr_cjTiBImk=
+text: |
+  KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。

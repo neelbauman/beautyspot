@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  save_sync / flush / drain テスト
+level: 1.14
+links:
+- SPEC015: WM4zO7qj68RrbxNwclaBaqEHxcw1PKwu_Xih42Uq_YA=
+normative: true
+ref: ''
+reviewed: mpMUmpN1pjrXgY0zoN6GqfZLLXdljdE9gY0Yas7N51c=
+text: |
+  save_sync / flush / drain のテスト。save_sync=False 時の非同期保存、 shutdown 時のペンディングタスク待機、コンテキスト exit 時の flush、 コンテキストマネージャの再利用性を検証する。

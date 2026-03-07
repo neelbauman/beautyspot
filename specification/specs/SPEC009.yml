@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  LocalStorage
+level: 1.8
+links:
+- REQ004: rYjqEbhXQ56Fioc3LGz6Mxhc_FXw4CfDj7MiJaTCWm8=
+normative: true
+ref: ''
+reviewed: ZnDs-fU9oVYwbjinfoqyzahYzQHMk_v_IvnV4SoI2nA=
+text: |
+  `LocalStorage` はローカルファイルシステムにBlobを保存する。 `save()` は `tempfile.mkstemp` + `os.replace` によるアトミック書き込みで、 並行書き込みやプロセスクラッシュ時のファイル破損を防止する。 `load()` はパストラバーサル攻撃を `is_relative_to` で検証する。 `list_keys()` は `.bin` ファイルを再帰的に列挙する。 `clean_temp_files()` で残留一時ファイル (`.spot_tmp`) を清掃する。 `prune_empty_dirs()` で空ディレクトリを再帰的に削除する。

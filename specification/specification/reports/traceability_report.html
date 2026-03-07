@@ -1,0 +1,2452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>トレーサビリティレポート</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         max-width: 1400px; margin: 0 auto; padding: 20px; background: #fafafa; }
+  h1 { border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
+  h2 { color: #1a73e8; margin-top: 30px; }
+  table { border-collapse: collapse; width: 100%; margin: 15px 0; background: #fff; }
+  th { background: #1a73e8; color: #fff; padding: 10px; text-align: left; }
+  td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .text-preview { color: #666; font-size: 0.85em; }
+  .ref-tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 1px 6px;
+              border-radius: 3px; font-size: 0.75em; font-family: monospace; margin-top: 2px; }
+  .empty { color: #ccc; text-align: center; }
+  .error { color: #d32f2f; }
+  .warning { color: #f57c00; }
+  .info { color: #1976d2; }
+  .reviewed { color: #4caf50; font-size: 0.8em; }
+  .unreviewed { color: #bdbdbd; font-size: 0.8em; }
+  .suspect { color: #e65100; font-size: 0.8em; font-weight: bold; }
+  .link-unreviewed { color: #9e9e9e; }
+  .link-unreviewed-label { color: #9e9e9e; font-size: 0.8em; }
+  .link-suspect { color: #e65100; }
+  .link-suspect-label { color: #e65100; font-size: 0.8em; font-weight: bold; }
+  .summary { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+           padding: 15px 20px; flex: 1; min-width: 100px; text-align: center; }
+  .card h3 { margin: 0 0 5px; font-size: 0.85em; color: #666; }
+  .card .value { font-size: 1.6em; font-weight: bold; color: #1a73e8; }
+  .timestamp { color: #999; font-size: 0.85em; }
+  .group-tag { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 2px 8px;
+                border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+  .filter-section { margin: 10px 0; }
+  .filter-section label { font-weight: bold; color: #555; margin-right: 10px; font-size: 0.9em; }
+  .group-filter { margin: 10px 0; }
+  .group-btn { margin: 3px; padding: 6px 14px; border: 1px solid #1a73e8; border-radius: 16px;
+                background: #fff; color: #1a73e8; cursor: pointer; font-size: 0.85em; }
+  .group-btn.active { background: #1a73e8; color: #fff; }
+  .group-btn:hover { background: #e3f2fd; }
+  .group-btn.active:hover { background: #1565c0; }
+  .status-btn { margin: 3px; padding: 6px 14px; border: 1px solid #666; border-radius: 16px;
+                 background: #fff; cursor: pointer; font-size: 0.85em; }
+  .status-btn[data-status="reviewed"] { color: #4caf50; border-color: #4caf50; }
+  .status-btn[data-status="reviewed"].active { background: #4caf50; color: #fff; }
+  .status-btn[data-status="unreviewed"] { color: #9e9e9e; border-color: #9e9e9e; }
+  .status-btn[data-status="unreviewed"].active { background: #9e9e9e; color: #fff; }
+  .status-btn[data-status="suspect"] { color: #e65100; border-color: #e65100; }
+  .status-btn[data-status="suspect"].active { background: #e65100; color: #fff; }
+  .status-btn:hover { opacity: 0.8; }
+  .id-search { padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px;
+                font-size: 0.85em; width: 220px; outline: none; }
+  .id-search:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+  .coverage-group { font-size: 0.9em; }
+  tr.hidden { display: none; }
+  #matrix-table a:hover strong { text-decoration: underline; }
+  .item-detail { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+                  padding: 15px 20px; margin: 10px 0; transition: border-color 0.3s, box-shadow 0.3s; }
+  .item-detail:target, .item-detail.highlighted {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
+    animation: highlightFade 2s ease forwards;
+  }
+  @keyframes highlightFade {
+    0% { background: #e3f2fd; }
+    100% { background: #fff; }
+  }
+  .item-detail h3 { margin: 0 0 8px; font-size: 1.1em; }
+  .item-detail p { margin: 5px 0; color: #333; }
+  .item-detail a { color: #1a73e8; text-decoration: none; }
+  .item-detail a:hover { text-decoration: underline; }
+  .item-text { color: #333; line-height: 1.6; }
+  .item-text p { margin: 6px 0; }
+  .item-text code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px;
+                     font-size: 0.9em; font-family: monospace; }
+  .item-text pre { background: #f5f5f5; padding: 12px; border-radius: 6px;
+                    overflow-x: auto; font-size: 0.85em; }
+  .item-text pre code { background: none; padding: 0; }
+  .item-text ul, .item-text ol { margin: 6px 0; padding-left: 24px; }
+  .item-text table { border-collapse: collapse; margin: 8px 0; }
+  .item-text table th, .item-text table td { border: 1px solid #ddd; padding: 6px 10px; }
+  .item-text table th { background: #f0f0f0; }
+  .local-view-link { float: right; font-size: 0.75em; font-weight: normal; padding: 3px 10px;
+                      background: #e0f2f1; color: #00695c; border-radius: 12px;
+                      text-decoration: none; transition: background 0.15s; }
+  .local-view-link:hover { background: #b2dfdb; text-decoration: none; }
+  .item-actions { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+  .action-btn { padding: 6px 16px; border: 1px solid #ccc; border-radius: 6px;
+                 background: #fff; cursor: pointer; font-size: 0.85em; margin-right: 8px;
+                 transition: background 0.15s; }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .review-btn { color: #4caf50; border-color: #4caf50; }
+  .review-btn:hover:not(:disabled) { background: #e8f5e9; }
+  .edit-btn { color: #1a73e8; border-color: #1a73e8; }
+  .edit-btn:hover:not(:disabled) { background: #e3f2fd; }
+  .clear-btn { color: #e65100; border-color: #e65100; }
+  .clear-btn:hover:not(:disabled) { background: #fff3e0; }
+  .save-btn { color: #fff; background: #1a73e8; border-color: #1a73e8; }
+  .save-btn:hover:not(:disabled) { background: #1565c0; }
+  .cancel-btn { color: #666; border-color: #999; }
+  .cancel-btn:hover { background: #f5f5f5; }
+  .item-editor { margin: 8px 0; }
+  .edit-textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #1a73e8;
+                    border-radius: 6px; font-family: monospace; font-size: 0.9em;
+                    line-height: 1.5; resize: vertical; box-sizing: border-box; }
+  .edit-textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+  .edit-actions { margin-top: 8px; }
+  .hidden { display: none; }
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
+            border-radius: 8px; color: #fff; font-size: 0.9em; z-index: 1000;
+            animation: toastFade 3s ease forwards; pointer-events: none; }
+  .toast.success { background: #4caf50; }
+  .toast.error { background: #d32f2f; }
+  @keyframes toastFade { 0% { opacity:0; transform:translateY(20px); }
+    10% { opacity:1; transform:translateY(0); } 80% { opacity:1; }
+    100% { opacity:0; } }
+</style>
+</head>
+<body>
+<h1>トレーサビリティレポート</h1>
+<p class="timestamp">生成日時: 2026-03-07 15:11:02</p>
+
+<div class="summary">
+  <div class="card">
+    <h3>ドキュメント</h3>
+    <div class="value">4</div>
+  </div>
+  <div class="card">
+    <h3>総アイテム</h3>
+    <div class="value">82</div>
+  </div>
+  <div class="card">
+    <h3>グループ</h3>
+    <div class="value">13</div>
+  </div>
+  <div class="card">
+    <h3>レビュー済</h3>
+    <div class="value">82/82</div>
+  </div>
+  <div class="card">
+    <h3>Suspect</h3>
+    <div class="value" style="color:#4caf50">0</div>
+  </div>
+  <div class="card">
+    <h3>エラー</h3>
+    <div class="value" style="color:#4caf50">0</div>
+  </div>
+  <div class="card">
+    <h3>警告</h3>
+    <div class="value" style="color:#4caf50">0</div>
+  </div>
+</div>
+
+<h2>フィルタ</h2>
+<div class="filter-section">
+  <label>グループ:</label>
+  <div class="group-filter" style="display:inline">
+    <button class="group-btn active" data-group="__all__" onclick="showAllGroups()">すべて</button>
+    <button class="group-btn" data-group="BGIO" onclick="toggleGroup(this)">BGIO</button><button class="group-btn" data-group="CACHE" onclick="toggleGroup(this)">CACHE</button><button class="group-btn" data-group="CLI" onclick="toggleGroup(this)">CLI</button><button class="group-btn" data-group="DB" onclick="toggleGroup(this)">DB</button><button class="group-btn" data-group="DI" onclick="toggleGroup(this)">DI</button><button class="group-btn" data-group="HERD" onclick="toggleGroup(this)">HERD</button><button class="group-btn" data-group="HOOK" onclick="toggleGroup(this)">HOOK</button><button class="group-btn" data-group="KEY" onclick="toggleGroup(this)">KEY</button><button class="group-btn" data-group="LIFE" onclick="toggleGroup(this)">LIFE</button><button class="group-btn" data-group="LIMIT" onclick="toggleGroup(this)">LIMIT</button><button class="group-btn" data-group="MAINT" onclick="toggleGroup(this)">MAINT</button><button class="group-btn" data-group="SERIAL" onclick="toggleGroup(this)">SERIAL</button><button class="group-btn" data-group="STORE" onclick="toggleGroup(this)">STORE</button>
+  </div>
+</div>
+<div class="filter-section">
+  <label>状態:</label>
+  <button class="status-btn" data-status="reviewed" onclick="toggleStatus(this)">✓ レビュー済</button>
+  <button class="status-btn" data-status="unreviewed" onclick="toggleStatus(this)">○ 未レビュー</button>
+  <button class="status-btn" data-status="suspect" onclick="toggleStatus(this)">⚠ Suspect</button>
+</div>
+<div class="filter-section">
+  <label>アイテムID:</label>
+  <input type="text" class="id-search" id="id-search" placeholder="例: SPEC001, REQ00"
+         oninput="applyFilters()">
+</div>
+
+<h2>検証結果</h2>
+<p style='color:#4caf50; font-weight:bold'>問題は検出されませんでした。</p>
+
+<h2>トレーサビリティマトリクス</h2>
+<p style="font-size:0.85em; color:#888">✓=レビュー済　○=未レビュー　⚠=Suspect（複数同時表示あり。アイテムIDをクリックで詳細へ）</p>
+<table id="matrix-table">
+<tr><th>グループ</th><th>REQ</th><th>SPEC</th><th>IMPL</th><th>TST</th></tr>
+<tr data-group="CACHE" data-uids="REQ001 SPEC001 IMPL001 TST001" data-statuses="reviewed"><td><span class="group-tag">CACHE</span></td><td><a href="#detail-REQ001" style="text-decoration:none; color:inherit"><strong>REQ001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</span></td><td><a href="#detail-SPEC001" style="text-decoration:none; color:inherit"><strong>SPEC001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`@spot.mark()` デコレータにより、対象関数の実行結果をキャッシュキーに紐づけて保存する。 2回目以降の同一引数での呼び出しでは関数を実行せずキャッ...</span></td><td><a href="#detail-IMPL001" style="text-decoration:none; color:inherit"><strong>IMPL001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Spot.mark() デコレータの実装。sync/async の自動判定、 save_blob/keygen/version/content_type/ser...</span></td><td><a href="#detail-TST001" style="text-decoration:none; color:inherit"><strong>TST001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">mark デコレータのテスト。基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、...</span></td></tr><tr data-group="KEY" data-uids="REQ002 SPEC004 IMPL004 TST004" data-statuses="reviewed"><td><span class="group-tag">KEY</span></td><td><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td><a href="#detail-SPEC004" style="text-decoration:none; color:inherit"><strong>SPEC004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。fun...</span></td><td><a href="#detail-IMPL004" style="text-decoration:none; color:inherit"><strong>IMPL004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 m...</span></td><td><a href="#detail-TST004" style="text-decoration:none; color:inherit"><strong>TST004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</span></td></tr><tr data-group="DB" data-uids="REQ003 SPEC007 IMPL007 TST007" data-statuses="reviewed"><td><span class="group-tag">DB</span></td><td><a href="#detail-REQ003" style="text-decoration:none; color:inherit"><strong>REQ003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。</span></td><td><a href="#detail-SPEC007" style="text-decoration:none; color:inherit"><strong>SPEC007</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`SQLiteTaskDB` はSQLiteをバックエンドとし、WALモード・専用ライタースレッドで動作する。 読み取りはスレッドローカルな読み取り専用接続（P...</span></td><td><a href="#detail-IMPL007" style="text-decoration:none; color:inherit"><strong>IMPL007</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SQLiteTaskDB の実装。WAL モード、専用ライタースレッド (_writer_loop)、 スレッドローカル読み取り専用接続 (_read_conn...</span></td><td><a href="#detail-TST007" style="text-decoration:none; color:inherit"><strong>TST007</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SQLiteTaskDB のテスト。スキーマ初期化、CRUD操作、 読み取り接続のリカバリとリーク防止、ライタースレッドの タイムアウト処理、GC 時のDB 存...</span></td></tr><tr data-group="STORE" data-uids="REQ004 SPEC009 IMPL009 TST009" data-statuses="reviewed"><td><span class="group-tag">STORE</span></td><td><a href="#detail-REQ004" style="text-decoration:none; color:inherit"><strong>REQ004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。ストレージポリシーによりDB直接保存とBlob保存を自動判定できるこ...</span></td><td><a href="#detail-SPEC009" style="text-decoration:none; color:inherit"><strong>SPEC009</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`LocalStorage` はローカルファイルシステムにBlobを保存する。 `save()` は `tempfile.mkstemp` + `os.repl...</span></td><td><a href="#detail-IMPL009" style="text-decoration:none; color:inherit"><strong>IMPL009</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">LocalStorage の実装。tempfile.mkstemp + os.replace によるアトミック書き込み、 is_relative_to によるパ...</span></td><td><a href="#detail-TST009" style="text-decoration:none; color:inherit"><strong>TST009</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">LocalStorage のテスト。ワークスペース作成、並行書き込みの一貫性、 一時ファイルクリーンアップ、パストラバーサル防止を検証する。</span></td></tr><tr data-group="SERIAL" data-uids="REQ005 SPEC012 IMPL012 TST012" data-statuses="reviewed"><td><span class="group-tag">SERIAL</span></td><td><a href="#detail-REQ005" style="text-decoration:none; color:inherit"><strong>REQ005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の戻り値を安全にシリアライズ・デシリアライズできること。ユーザー定義型のカスタムエンコーダ・デコーダを登録可能であること。</span></td><td><a href="#detail-SPEC012" style="text-decoration:none; color:inherit"><strong>SPEC012</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`MsgpackSerializer` は MessagePack ベースのシリアライザ。 `dumps(obj) -&gt; bytes` と `loads(dat...</span></td><td><a href="#detail-IMPL012" style="text-decoration:none; color:inherit"><strong>IMPL012</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ...</span></td><td><a href="#detail-TST012" style="text-decoration:none; color:inherit"><strong>TST012</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">MsgpackSerializer のテスト。基本的なシリアライズ/デシリアライズ、 Pydantic モデルの dict フロー、スレッドセーフ LRU キャ...</span></td></tr><tr data-group="BGIO" data-uids="REQ006 SPEC014 IMPL014 TST014" data-statuses="reviewed"><td><span class="group-tag">BGIO</span></td><td><a href="#detail-REQ006" style="text-decoration:none; color:inherit"><strong>REQ006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。</span></td><td><a href="#detail-SPEC014" style="text-decoration:none; color:inherit"><strong>SPEC014</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`_BackgroundLoop` はデーモンスレッドで asyncio イベントループを実行する。 `submit(coro)` でコルーチンをスレッドセーフ...</span></td><td><a href="#detail-IMPL014" style="text-decoration:none; color:inherit"><strong>IMPL014</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">_BackgroundLoop の実装。デーモンスレッドでの asyncio イベントループ、 submit(coro) によるスレッドセーフなコルーチン投入、...</span></td><td><a href="#detail-TST014" style="text-decoration:none; color:inherit"><strong>TST014</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">BackgroundLoop のテスト。バックグラウンド保存の正確性、 保存の直列化、ゾンビスレッドのタスク完了を検証する。</span></td></tr><tr data-group="LIFE" data-uids="REQ007 SPEC016 IMPL016 TST016" data-statuses="reviewed"><td><span class="group-tag">LIFE</span></td><td><a href="#detail-REQ007" style="text-decoration:none; color:inherit"><strong>REQ007</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュの有効期限を関数名パターンに基づくルールで設定できること。個別の関数に対して保持期間を指定でき、期限切れのキャッシュを自動的に無効化できること。</span></td><td><a href="#detail-SPEC016" style="text-decoration:none; color:inherit"><strong>SPEC016</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`LifecyclePolicy` は `Rule` のリストに基づき、関数名パターン（fnmatch）で キャッシュの保持期間を決定する。`resolve_w...</span></td><td><a href="#detail-IMPL016" style="text-decoration:none; color:inherit"><strong>IMPL016</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">LifecyclePolicy の実装。Rule リスト、fnmatch パターンマッチング、 resolve() と resolve_with_fallbac...</span></td><td><a href="#detail-TST016" style="text-decoration:none; color:inherit"><strong>TST016</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">LifecyclePolicy のテスト。ルールベースのパターンマッチング、 resolve_with_fallback の完全修飾名→短縮名フォールバックを検...</span></td></tr><tr data-group="LIMIT" data-uids="REQ008 SPEC018 IMPL018 TST018" data-statuses="reviewed"><td><span class="group-tag">LIMIT</span></td><td><a href="#detail-REQ008" style="text-decoration:none; color:inherit"><strong>REQ008</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行頻度をトークンバケット方式で制限し、外部APIの呼び出しレートを制御できること。同期・非同期の両方に対応すること。</span></td><td><a href="#detail-SPEC018" style="text-decoration:none; color:inherit"><strong>SPEC018</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`TokenBucket` は GCRA (Generic Cell Rate Algorithm) ベースのスムースレートリミッター。 tokens_per_...</span></td><td><a href="#detail-IMPL018" style="text-decoration:none; color:inherit"><strong>IMPL018</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">TokenBucket の実装。GCRA アルゴリズム、TAT (Theoretical Arrival Time) 管理、 consume/consume_a...</span></td><td><a href="#detail-TST018" style="text-decoration:none; color:inherit"><strong>TST018</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">TokenBucket のテスト。初期化バリデーション、max_cost 超過拒否、 GCRA アルゴリズムの実際の待機動作を検証する。</span></td></tr><tr data-group="HOOK" data-uids="REQ009 SPEC019 IMPL019 TST019" data-statuses="reviewed"><td><span class="group-tag">HOOK</span></td><td><a href="#detail-REQ009" style="text-decoration:none; color:inherit"><strong>REQ009</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行前、キャッシュヒット時、キャッシュミス時にカスタムコールバック（フック）を実行できること。スレッドセーフなフック実装を提供すること。</span></td><td><a href="#detail-SPEC019" style="text-decoration:none; color:inherit"><strong>SPEC019</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`HookBase` は `pre_execute(ctx)`, `on_cache_hit(ctx)`, `on_cache_miss(ctx)` の 3メソ...</span></td><td><a href="#detail-IMPL019" style="text-decoration:none; color:inherit"><strong>IMPL019</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">HookBase（3メソッドのデフォルト実装）と ThreadSafeHookBase （__init_subclass__ による自動 RLock ラッピング...</span></td><td><a href="#detail-TST019" style="text-decoration:none; color:inherit"><strong>TST019</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">HookBase / ThreadSafeHookBase のテスト。フックライフサイクル （pre_execute/on_cache_hit/on_cache...</span></td></tr><tr data-group="MAINT" data-uids="REQ010 SPEC020 IMPL020 TST020" data-statuses="reviewed"><td><span class="group-tag">MAINT</span></td><td><a href="#detail-REQ010" style="text-decoration:none; color:inherit"><strong>REQ010</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">期限切れキャッシュの削除、孤立Blobファイルのガベージコレクション、時間ベースの一括削除（prune）等のメンテナンス操作ができること。</span></td><td><a href="#detail-SPEC020" style="text-decoration:none; color:inherit"><strong>SPEC020</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`MaintenanceService` は DB・ストレージ・シリアライザを統合したメンテナンスサービス。 `clean_garbage()`: DB flu...</span></td><td><a href="#detail-IMPL020" style="text-decoration:none; color:inherit"><strong>IMPL020</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">MaintenanceService の実装。clean_garbage() の5フェーズ処理、 scan_garbage() の grace_period 付...</span></td><td><a href="#detail-TST020" style="text-decoration:none; color:inherit"><strong>TST020</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">MaintenanceService のテスト。タスク詳細取得、 not found 時の None 返却、メンテナンス操作を検証する。</span></td></tr><tr data-group="CLI" data-uids="REQ011 SPEC021 IMPL021 TST021" data-statuses="reviewed"><td><span class="group-tag">CLI</span></td><td><a href="#detail-REQ011" style="text-decoration:none; color:inherit"><strong>REQ011</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">コマンドラインインターフェースからキャッシュの一覧表示、詳細確認、統計表示、削除、GC等の管理操作ができること。</span></td><td><a href="#detail-SPEC021" style="text-decoration:none; color:inherit"><strong>SPEC021</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`beautyspot` CLIコマンド群を提供する（Typer ベース）。 `list`: キャッシュ済みタスクまたは利用可能なDBの一覧表示。 `show`...</span></td><td><a href="#detail-IMPL021" style="text-decoration:none; color:inherit"><strong>IMPL021</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Typer ベースの CLI コマンド群の実装。 list/show/stats/clear/clean/gc/prune/ui/version の各コマンド、...</span></td><td><a href="#detail-TST021" style="text-decoration:none; color:inherit"><strong>TST021</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">CLI コマンドのテスト。 `CliRunner` による list/show/stats/clear 等の コマンド実行、E2E パイプラインとの統合を検証す...</span></td></tr><tr data-group="DI" data-uids="REQ012 SPEC022 IMPL022 TST022" data-statuses="reviewed"><td><span class="group-tag">DI</span></td><td><a href="#detail-REQ012" style="text-decoration:none; color:inherit"><strong>REQ012</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）が `Protocol/ABC` に基づく依存注入により差し替え可能であること。ファクトリ関数が...</span></td><td><a href="#detail-SPEC022" style="text-decoration:none; color:inherit"><strong>SPEC022</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`bs.Spot(name, ...)` ファクトリ関数が唯一のパブリックエントリポイント。
+引数未指定時のデフォルト:
+- `SQLiteTaskDB (.b...</span></td><td><a href="#detail-IMPL022" style="text-decoration:none; color:inherit"><strong>IMPL022</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`bs.Spot()` ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 `CacheManager` の構築、`Protocol/ABC` の定義と...</span></td><td><a href="#detail-TST022" style="text-decoration:none; color:inherit"><strong>TST022</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">ファクトリ関数と DI のテスト。`Protocol` ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）...</span></td></tr><tr data-group="HERD" data-uids="REQ013 SPEC023 IMPL023 TST023" data-statuses="reviewed"><td><span class="group-tag">HERD</span></td><td><a href="#detail-REQ013" style="text-decoration:none; color:inherit"><strong>REQ013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。</span></td><td><a href="#detail-SPEC023" style="text-decoration:none; color:inherit"><strong>SPEC023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）と...</span></td><td><a href="#detail-IMPL023" style="text-decoration:none; color:inherit"><strong>IMPL023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asy...</span></td><td><a href="#detail-TST023" style="text-decoration:none; color:inherit"><strong>TST023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheM...</span></td></tr><tr data-group="CACHE" data-uids="REQ001 SPEC002 IMPL002 TST002" data-statuses="reviewed"><td><span class="group-tag">CACHE</span></td><td><a href="#detail-REQ001" style="text-decoration:none; color:inherit"><strong>REQ001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</span></td><td><a href="#detail-SPEC002" style="text-decoration:none; color:inherit"><strong>SPEC002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`spot.cached_run(*funcs, **kwargs)` コンテキストマネージャにより、 デコレータを直接付与できない外部ライブラリの関数に対して...</span></td><td><a href="#detail-IMPL002" style="text-decoration:none; color:inherit"><strong>IMPL002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`Spot.cached_run()` コンテキストマネージャの実装。 複数関数のラップ、単一関数時のスマートリターン、 0関数時の `ValidationEr...</span></td><td><a href="#detail-TST002" style="text-decoration:none; color:inherit"><strong>TST002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`cached_run` コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。</span></td></tr><tr data-group="CACHE" data-uids="REQ001 SPEC003 IMPL003 TST003" data-statuses="reviewed"><td><span class="group-tag">CACHE</span></td><td><a href="#detail-REQ001" style="text-decoration:none; color:inherit"><strong>REQ001</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</span></td><td><a href="#detail-SPEC003" style="text-decoration:none; color:inherit"><strong>SPEC003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`inspect.iscoroutinefunction()` による自動判定で、同期関数には同期ラッパー (`_execute_sync`)、非同期関数には非...</span></td><td><a href="#detail-IMPL003" style="text-decoration:none; color:inherit"><strong>IMPL003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">_execute_sync と _execute_async の実装。 inspect.iscoroutinefunction() による自動判定、 _Back...</span></td><td><a href="#detail-TST003" style="text-decoration:none; color:inherit"><strong>TST003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">同期・非同期関数サポートのテスト。非同期例外伝播、 `async thundering herd` 、`async save_sync` 動作を検証する。</span></td></tr><tr data-group="KEY" data-uids="REQ002 SPEC005 IMPL005 TST005" data-statuses="reviewed"><td><span class="group-tag">KEY</span></td><td><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td><a href="#detail-SPEC005" style="text-decoration:none; color:inherit"><strong>SPEC005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/...</span></td><td><a href="#detail-IMPL005" style="text-decoration:none; color:inherit"><strong>IMPL005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/default...</span></td><td><a href="#detail-TST005" style="text-decoration:none; color:inherit"><strong>TST005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/E...</span></td></tr><tr data-group="KEY" data-uids="REQ002 SPEC006 IMPL006 TST006" data-statuses="reviewed"><td><span class="group-tag">KEY</span></td><td><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td><a href="#detail-SPEC006" style="text-decoration:none; color:inherit"><strong>SPEC006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`KeyGen.ignore(*arg_names)`, `KeyGen.map(**strategies)`, `KeyGen.file_content(*a...</span></td><td><a href="#detail-IMPL006" style="text-decoration:none; color:inherit"><strong>IMPL006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド...</span></td><td><a href="#detail-TST006" style="text-decoration:none; color:inherit"><strong>TST006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの...</span></td></tr><tr data-group="DB" data-uids="REQ003 SPEC008 IMPL008 TST008" data-statuses="reviewed"><td><span class="group-tag">DB</span></td><td><a href="#detail-REQ003" style="text-decoration:none; color:inherit"><strong>REQ003</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。</span></td><td><a href="#detail-SPEC008" style="text-decoration:none; color:inherit"><strong>SPEC008</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`TaskDBCore` プロトコルは init_schema/get/save/delete の4メソッドを定義する。 `TaskDBBase` 抽象基底クラ...</span></td><td><a href="#detail-IMPL008" style="text-decoration:none; color:inherit"><strong>IMPL008</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">TaskDBCore/TaskDBBase/Maintenable/Flushable/Shutdownable プロトコル・抽象基底クラスの定義。 TaskD...</span></td><td><a href="#detail-TST008" style="text-decoration:none; color:inherit"><strong>TST008</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">DB プロトコル階層のテスト。TaskDBCore/TaskDBBase の インターフェース準拠、メンテナンスメソッドのデフォルト動作を検証する。</span></td></tr><tr data-group="STORE" data-uids="REQ004 SPEC010 IMPL010 TST010" data-statuses="reviewed"><td><span class="group-tag">STORE</span></td><td><a href="#detail-REQ004" style="text-decoration:none; color:inherit"><strong>REQ004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。ストレージポリシーによりDB直接保存とBlob保存を自動判定できるこ...</span></td><td><a href="#detail-SPEC010" style="text-decoration:none; color:inherit"><strong>SPEC010</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`S3Storage` はAWS S3互換ストレージにBlobを保存する。 boto3 の `upload_fileobj` によるマルチパートアップロードに対...</span></td><td><a href="#detail-IMPL010" style="text-decoration:none; color:inherit"><strong>IMPL010</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">S3Storage の実装。boto3 upload_fileobj によるマルチパートアップロード、 s3:// URI パース、boto3 未インストール時...</span></td><td><a href="#detail-TST010" style="text-decoration:none; color:inherit"><strong>TST010</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">S3Storage のテスト。S3 互換ストレージへの保存・取得・削除を検証する。 （注: boto3 オプショナル依存のため、現時点で専用テストファイルは未作...</span></td></tr><tr data-group="STORE" data-uids="REQ004 SPEC011 IMPL011 TST011" data-statuses="reviewed"><td><span class="group-tag">STORE</span></td><td><a href="#detail-REQ004" style="text-decoration:none; color:inherit"><strong>REQ004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。ストレージポリシーによりDB直接保存とBlob保存を自動判定できるこ...</span></td><td><a href="#detail-SPEC011" style="text-decoration:none; color:inherit"><strong>SPEC011</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -&gt; bool` を定義する。 実装3種...</span></td><td><a href="#detail-IMPL011" style="text-decoration:none; color:inherit"><strong>IMPL011</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告...</span></td><td><a href="#detail-TST011" style="text-decoration:none; color:inherit"><strong>TST011</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">ストレージポリシーのテスト。ThresholdStoragePolicy の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPo...</span></td></tr><tr data-group="SERIAL" data-uids="REQ005 SPEC013 IMPL013 TST013" data-statuses="reviewed"><td><span class="group-tag">SERIAL</span></td><td><a href="#detail-REQ005" style="text-decoration:none; color:inherit"><strong>REQ005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の戻り値を安全にシリアライズ・デシリアライズできること。ユーザー定義型のカスタムエンコーダ・デコーダを登録可能であること。</span></td><td><a href="#detail-SPEC013" style="text-decoration:none; color:inherit"><strong>SPEC013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`spot.register(code, encoder, decoder)` デコレータまたは `spot.register_type(cls, code, ...</span></td><td><a href="#detail-IMPL013" style="text-decoration:none; color:inherit"><strong>IMPL013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">MsgpackSerializer.register() メソッドの実装。 code 0-127 バリデーション、重複チェック、 Copy-on-Write に...</span></td><td><a href="#detail-TST013" style="text-decoration:none; color:inherit"><strong>TST013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">カスタム型登録のテスト。@spot.register() デコレータによる登録、 Pydantic モデルの factory デコーダ、 複雑なデータ構造のエン...</span></td></tr><tr data-group="BGIO" data-uids="REQ006 SPEC015 IMPL015 TST015" data-statuses="reviewed"><td><span class="group-tag">BGIO</span></td><td><a href="#detail-REQ006" style="text-decoration:none; color:inherit"><strong>REQ006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。</span></td><td><a href="#detail-SPEC015" style="text-decoration:none; color:inherit"><strong>SPEC015</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`save_sync` パラメータにより同期/非同期保存を制御する。 Spot レベルのデフォルト (`save_sync=True`) と `@mark(sa...</span></td><td><a href="#detail-IMPL015" style="text-decoration:none; color:inherit"><strong>IMPL015</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ __exit__ での自動 drain、 on_backgro...</span></td><td><a href="#detail-TST015" style="text-decoration:none; color:inherit"><strong>TST015</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">save_sync / flush / drain のテスト。save_sync=False 時の非同期保存、 shutdown 時のペンディングタスク待機、コ...</span></td></tr><tr data-group="LIFE" data-uids="REQ007 SPEC017 IMPL017 TST017" data-statuses="reviewed"><td><span class="group-tag">LIFE</span></td><td><a href="#detail-REQ007" style="text-decoration:none; color:inherit"><strong>REQ007</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュの有効期限を関数名パターンに基づくルールで設定できること。個別の関数に対して保持期間を指定でき、期限切れのキャッシュを自動的に無効化できること。</span></td><td><a href="#detail-SPEC017" style="text-decoration:none; color:inherit"><strong>SPEC017</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">保持期間は文字列（&quot;7d&quot;, &quot;12h&quot;, &quot;30m&quot;, &quot;10s&quot;）、timedelta、秒数（int/float）で指定する。 `Retention.FOR...</span></td><td><a href="#detail-IMPL017" style="text-decoration:none; color:inherit"><strong>IMPL017</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Retention 定数、_ForeverSentinel シングルトン、 parse_retention() による文字列/timedelta/int/flo...</span></td><td><a href="#detail-TST017" style="text-decoration:none; color:inherit"><strong>TST017</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Retention 仕様のテスト。文字列フォーマット (&quot;7d&quot;, &quot;12h&quot;, &quot;30m&quot;, &quot;10s&quot;)、 timedelta、秒数のパース、Retenti...</span></td></tr>
+</table>
+
+<h2>カバレッジ</h2>
+<table id="coverage-table">
+<tr><th>リンク方向</th><th>グループ</th><th>カバー数</th><th>カバー率</th><th>未カバーアイテム</th></tr>
+
+        <tr class="coverage-total">
+            <td><strong>SPEC → REQ</strong></td>
+            <td>—</td>
+            <td>13 / 13</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="BGIO">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">BGIO</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CACHE">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">CACHE</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CLI">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">CLI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DB">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">DB</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DI">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">DI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HERD">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">HERD</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HOOK">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">HOOK</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="KEY">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">KEY</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIFE">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">LIFE</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIMIT">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">LIMIT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="MAINT">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">MAINT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="SERIAL">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">SERIAL</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="STORE">
+            <td style="padding-left:30px">SPEC → REQ</td>
+            <td><span class="group-tag">STORE</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-total">
+            <td><strong>IMPL → SPEC</strong></td>
+            <td>—</td>
+            <td>23 / 23</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="BGIO">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">BGIO</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CACHE">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">CACHE</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CLI">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">CLI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DB">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">DB</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DI">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">DI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HERD">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">HERD</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HOOK">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">HOOK</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="KEY">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">KEY</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIFE">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">LIFE</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIMIT">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">LIMIT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="MAINT">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">MAINT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="SERIAL">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">SERIAL</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="STORE">
+            <td style="padding-left:30px">IMPL → SPEC</td>
+            <td><span class="group-tag">STORE</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-total">
+            <td><strong>TST → SPEC</strong></td>
+            <td>—</td>
+            <td>23 / 23</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="BGIO">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">BGIO</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CACHE">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">CACHE</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="CLI">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">CLI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DB">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">DB</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="DI">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">DI</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HERD">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">HERD</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="HOOK">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">HOOK</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="KEY">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">KEY</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIFE">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">LIFE</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="LIMIT">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">LIMIT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="MAINT">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">MAINT</span></td>
+            <td>1 / 1</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="SERIAL">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">SERIAL</span></td>
+            <td>2 / 2</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr class="coverage-group" data-group="STORE">
+            <td style="padding-left:30px">TST → SPEC</td>
+            <td><span class="group-tag">STORE</span></td>
+            <td>3 / 3</td>
+            <td style="color:#4caf50; font-weight:bold">100.0%</td>
+            <td style="font-size:0.85em">—</td>
+        </tr>
+</table>
+
+<h2 id="item-details">アイテム詳細</h2>
+
+    <div class="item-detail" id="detail-REQ001" data-group="CACHE">
+      <h3>REQ001 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-REQ001">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ001"><p>関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ001">
+        <textarea class="edit-textarea" data-uid="REQ001">関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ001')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ001')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC001">SPEC001</a>, <a href="#detail-SPEC002">SPEC002</a>, <a href="#detail-SPEC003">SPEC003</a></p>
+      <div class="item-actions" data-uid="REQ001">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ001')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ001')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ001')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ002" data-group="KEY">
+      <h3>REQ002 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-REQ002">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ002"><p>関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ002">
+        <textarea class="edit-textarea" data-uid="REQ002">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC004">SPEC004</a>, <a href="#detail-SPEC005">SPEC005</a>, <a href="#detail-SPEC006">SPEC006</a></p>
+      <div class="item-actions" data-uid="REQ002">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ003" data-group="DB">
+      <h3>REQ003 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-REQ003">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ003"><p>キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ003">
+        <textarea class="edit-textarea" data-uid="REQ003">キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ003')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ003')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC007">SPEC007</a>, <a href="#detail-SPEC008">SPEC008</a></p>
+      <div class="item-actions" data-uid="REQ003">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ003')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ003')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ003')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ004" data-group="STORE">
+      <h3>REQ004 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-REQ004">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ004"><p>大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。ストレージポリシーによりDB直接保存とBlob保存を自動判定できること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ004">
+        <textarea class="edit-textarea" data-uid="REQ004">大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。ストレージポリシーによりDB直接保存とBlob保存を自動判定できること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC009">SPEC009</a>, <a href="#detail-SPEC010">SPEC010</a>, <a href="#detail-SPEC011">SPEC011</a></p>
+      <div class="item-actions" data-uid="REQ004">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ005" data-group="SERIAL">
+      <h3>REQ005 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-REQ005">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ005"><p>関数の戻り値を安全にシリアライズ・デシリアライズできること。ユーザー定義型のカスタムエンコーダ・デコーダを登録可能であること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ005">
+        <textarea class="edit-textarea" data-uid="REQ005">関数の戻り値を安全にシリアライズ・デシリアライズできること。ユーザー定義型のカスタムエンコーダ・デコーダを登録可能であること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC012">SPEC012</a>, <a href="#detail-SPEC013">SPEC013</a></p>
+      <div class="item-actions" data-uid="REQ005">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ006" data-group="BGIO">
+      <h3>REQ006 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-REQ006">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ006"><p>キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ006">
+        <textarea class="edit-textarea" data-uid="REQ006">キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC014">SPEC014</a>, <a href="#detail-SPEC015">SPEC015</a></p>
+      <div class="item-actions" data-uid="REQ006">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ007" data-group="LIFE">
+      <h3>REQ007 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-REQ007">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ007"><p>キャッシュの有効期限を関数名パターンに基づくルールで設定できること。個別の関数に対して保持期間を指定でき、期限切れのキャッシュを自動的に無効化できること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ007">
+        <textarea class="edit-textarea" data-uid="REQ007">キャッシュの有効期限を関数名パターンに基づくルールで設定できること。個別の関数に対して保持期間を指定でき、期限切れのキャッシュを自動的に無効化できること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ007')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ007')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC016">SPEC016</a>, <a href="#detail-SPEC017">SPEC017</a></p>
+      <div class="item-actions" data-uid="REQ007">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ007')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ007')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ007')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ008" data-group="LIMIT">
+      <h3>REQ008 <span class="group-tag">LIMIT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIMIT.html#detail-REQ008">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ008"><p>関数の実行頻度をトークンバケット方式で制限し、外部APIの呼び出しレートを制御できること。同期・非同期の両方に対応すること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ008">
+        <textarea class="edit-textarea" data-uid="REQ008">関数の実行頻度をトークンバケット方式で制限し、外部APIの呼び出しレートを制御できること。同期・非同期の両方に対応すること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ008')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ008')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC018">SPEC018</a></p>
+      <div class="item-actions" data-uid="REQ008">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ008')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ008')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ008')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ009" data-group="HOOK">
+      <h3>REQ009 <span class="group-tag">HOOK</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HOOK.html#detail-REQ009">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ009"><p>関数の実行前、キャッシュヒット時、キャッシュミス時にカスタムコールバック（フック）を実行できること。スレッドセーフなフック実装を提供すること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ009">
+        <textarea class="edit-textarea" data-uid="REQ009">関数の実行前、キャッシュヒット時、キャッシュミス時にカスタムコールバック（フック）を実行できること。スレッドセーフなフック実装を提供すること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ009')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ009')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC019">SPEC019</a></p>
+      <div class="item-actions" data-uid="REQ009">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ009')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ009')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ009')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ010" data-group="MAINT">
+      <h3>REQ010 <span class="group-tag">MAINT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_MAINT.html#detail-REQ010">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ010"><p>期限切れキャッシュの削除、孤立Blobファイルのガベージコレクション、時間ベースの一括削除（prune）等のメンテナンス操作ができること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ010">
+        <textarea class="edit-textarea" data-uid="REQ010">期限切れキャッシュの削除、孤立Blobファイルのガベージコレクション、時間ベースの一括削除（prune）等のメンテナンス操作ができること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ010')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ010')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC020">SPEC020</a></p>
+      <div class="item-actions" data-uid="REQ010">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ010')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ010')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ010')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ011" data-group="CLI">
+      <h3>REQ011 <span class="group-tag">CLI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CLI.html#detail-REQ011">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ011"><p>コマンドラインインターフェースからキャッシュの一覧表示、詳細確認、統計表示、削除、GC等の管理操作ができること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ011">
+        <textarea class="edit-textarea" data-uid="REQ011">コマンドラインインターフェースからキャッシュの一覧表示、詳細確認、統計表示、削除、GC等の管理操作ができること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ011')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ011')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC021">SPEC021</a></p>
+      <div class="item-actions" data-uid="REQ011">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ011')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ011')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ011')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ012" data-group="DI">
+      <h3>REQ012 <span class="group-tag">DI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DI.html#detail-REQ012">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ012"><p>全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）が <code>Protocol/ABC</code> に基づく依存注入により差し替え可能であること。ファクトリ関数がデフォルトの組み立てを提供すること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ012">
+        <textarea class="edit-textarea" data-uid="REQ012">全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）が `Protocol/ABC` に基づく依存注入により差し替え可能であること。ファクトリ関数がデフォルトの組み立てを提供すること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ012')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ012')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC022">SPEC022</a></p>
+      <div class="item-actions" data-uid="REQ012">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ012')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ012')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ012')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-REQ013" data-group="HERD">
+      <h3>REQ013 <span class="group-tag">HERD</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HERD.html#detail-REQ013">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="REQ013"><p>同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ013">
+        <textarea class="edit-textarea" data-uid="REQ013">同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ013')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ013')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-SPEC023">SPEC023</a></p>
+      <div class="item-actions" data-uid="REQ013">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ013')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ013')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ013')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC001" data-group="CACHE">
+      <h3>SPEC001 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-SPEC001">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC001"><p><code>@spot.mark()</code> デコレータにより、対象関数の実行結果をキャッシュキーに紐づけて保存する。 2回目以降の同一引数での呼び出しでは関数を実行せずキャッシュから結果を返す。 オプション: save_blob, keygen, version, content_type, serializer, save_sync, retention, hooks。 ジェネレータ関数は <code>ConfigurationError</code> で拒否する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC001">
+        <textarea class="edit-textarea" data-uid="SPEC001">`@spot.mark()` デコレータにより、対象関数の実行結果をキャッシュキーに紐づけて保存する。 2回目以降の同一引数での呼び出しでは関数を実行せずキャッシュから結果を返す。 オプション: save_blob, keygen, version, content_type, serializer, save_sync, retention, hooks。 ジェネレータ関数は `ConfigurationError` で拒否する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC001')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC001')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ001">REQ001</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL001">IMPL001</a>, <a href="#detail-TST001">TST001</a></p>
+      <div class="item-actions" data-uid="SPEC001">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC001')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC001')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC001')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC002" data-group="CACHE">
+      <h3>SPEC002 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-SPEC002">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC002"><p><code>spot.cached_run(*funcs, **kwargs)</code> コンテキストマネージャにより、 デコレータを直接付与できない外部ライブラリの関数に対して一時的にキャッシュ機能を適用する。 複数関数を同時に渡した場合はタプルで返す。関数が0個の場合は <code>ValidationError</code> を送出する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC002">
+        <textarea class="edit-textarea" data-uid="SPEC002">`spot.cached_run(*funcs, **kwargs)` コンテキストマネージャにより、 デコレータを直接付与できない外部ライブラリの関数に対して一時的にキャッシュ機能を適用する。 複数関数を同時に渡した場合はタプルで返す。関数が0個の場合は `ValidationError` を送出する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ001">REQ001</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL002">IMPL002</a>, <a href="#detail-TST002">TST002</a></p>
+      <div class="item-actions" data-uid="SPEC002">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC003" data-group="CACHE">
+      <h3>SPEC003 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-SPEC003">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC003"><p><code>inspect.iscoroutinefunction()</code> による自動判定で、同期関数には同期ラッパー (<code>_execute_sync</code>)、非同期関数には非同期ラッパー (<code>_execute_async</code>) を適用する。 非同期関数のキャッシュ保存は <code>_BackgroundLoop</code> 経由の asyncio イベントループで処理する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC003">
+        <textarea class="edit-textarea" data-uid="SPEC003">`inspect.iscoroutinefunction()` による自動判定で、同期関数には同期ラッパー (`_execute_sync`)、非同期関数には非同期ラッパー (`_execute_async`) を適用する。 非同期関数のキャッシュ保存は `_BackgroundLoop` 経由の asyncio イベントループで処理する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC003')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC003')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ001">REQ001</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL003">IMPL003</a>, <a href="#detail-TST003">TST003</a></p>
+      <div class="item-actions" data-uid="SPEC003">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC003')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC003')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC003')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC004" data-group="KEY">
+      <h3>SPEC004 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-SPEC004">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC004"><p>キャッシュキーは <code>func_identifier:input_id[:version]</code> 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は <code>module.qualname</code> 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC004">
+        <textarea class="edit-textarea" data-uid="SPEC004">キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は `module.qualname` 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ002">REQ002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL004">IMPL004</a>, <a href="#detail-TST004">TST004</a></p>
+      <div class="item-actions" data-uid="SPEC004">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC005" data-group="KEY">
+      <h3>SPEC005 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-SPEC005">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC005"><p><code>canonicalize()</code> 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは <strong>dict</strong>/<strong>slots</strong> を使用。 bool と int の区別（True vs 1）を保証する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC005">
+        <textarea class="edit-textarea" data-uid="SPEC005">`canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは __dict__/__slots__ を使用。 bool と int の区別（True vs 1）を保証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ002">REQ002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL005">IMPL005</a>, <a href="#detail-TST005">TST005</a></p>
+      <div class="item-actions" data-uid="SPEC005">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC006" data-group="KEY">
+      <h3>SPEC006 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-SPEC006">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC006"><p><code>KeyGen.ignore(*arg_names)</code>, <code>KeyGen.map(**strategies)</code>, <code>KeyGen.file_content(*args)</code>, <code>KeyGen.path_stat(*args)</code> のファクトリメソッドにより、引数ごとのキー生成戦略を指定する <code>KeyGenPolicy</code> を生成できる。Strategy は DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種。 <code>KeyGenPolicy.bind(func)</code> で関数シグネチャにバインドされたキー生成関数を返す。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC006">
+        <textarea class="edit-textarea" data-uid="SPEC006">`KeyGen.ignore(*arg_names)`, `KeyGen.map(**strategies)`, `KeyGen.file_content(*args)`, `KeyGen.path_stat(*args)` のファクトリメソッドにより、引数ごとのキー生成戦略を指定する `KeyGenPolicy` を生成できる。Strategy は DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種。 `KeyGenPolicy.bind(func)` で関数シグネチャにバインドされたキー生成関数を返す。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ002">REQ002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL006">IMPL006</a>, <a href="#detail-TST006">TST006</a></p>
+      <div class="item-actions" data-uid="SPEC006">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC007" data-group="DB">
+      <h3>SPEC007 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-SPEC007">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC007"><p><code>SQLiteTaskDB</code> はSQLiteをバックエンドとし、WALモード・専用ライタースレッドで動作する。 読み取りはスレッドローカルな読み取り専用接続（PRAGMA query_only=ON）で並行実行可能。 書き込みは <code>_WriteTask</code> キューを通じてライタースレッドが直列処理する。 自動マイグレーション（content_type, version, result_data, func_identifier, expires_at）を実行する。 <code>Flushable</code>/<code>Shutdownable</code> プロトコルに準拠し、flush/shutdownメソッドを提供する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC007">
+        <textarea class="edit-textarea" data-uid="SPEC007">`SQLiteTaskDB` はSQLiteをバックエンドとし、WALモード・専用ライタースレッドで動作する。 読み取りはスレッドローカルな読み取り専用接続（PRAGMA query_only=ON）で並行実行可能。 書き込みは `_WriteTask` キューを通じてライタースレッドが直列処理する。 自動マイグレーション（content_type, version, result_data, func_identifier, expires_at）を実行する。 `Flushable`/`Shutdownable` プロトコルに準拠し、flush/shutdownメソッドを提供する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC007')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC007')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ003">REQ003</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL007">IMPL007</a>, <a href="#detail-TST007">TST007</a></p>
+      <div class="item-actions" data-uid="SPEC007">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC007')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC007')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC007')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC008" data-group="DB">
+      <h3>SPEC008 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-SPEC008">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC008"><p><code>TaskDBCore</code> プロトコルは init_schema/get/save/delete の4メソッドを定義する。 <code>TaskDBBase</code> 抽象基底クラスはメンテナンス系メソッドのデフォルト実装を提供する。 <code>Maintenable</code> プロトコルは delete_expired/prune/get_outdated_tasks/get_blob_refs/ delete_all/get_keys_start_with/get_history を定義する。 <code>TaskDBMaintenable = TaskDBCore + Maintenable</code>。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC008">
+        <textarea class="edit-textarea" data-uid="SPEC008">`TaskDBCore` プロトコルは init_schema/get/save/delete の4メソッドを定義する。 `TaskDBBase` 抽象基底クラスはメンテナンス系メソッドのデフォルト実装を提供する。 `Maintenable` プロトコルは delete_expired/prune/get_outdated_tasks/get_blob_refs/ delete_all/get_keys_start_with/get_history を定義する。 `TaskDBMaintenable = TaskDBCore + Maintenable`。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC008')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC008')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ003">REQ003</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL008">IMPL008</a>, <a href="#detail-TST008">TST008</a></p>
+      <div class="item-actions" data-uid="SPEC008">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC008')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC008')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC008')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC009" data-group="STORE">
+      <h3>SPEC009 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-SPEC009">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC009"><p><code>LocalStorage</code> はローカルファイルシステムにBlobを保存する。 <code>save()</code> は <code>tempfile.mkstemp</code> + <code>os.replace</code> によるアトミック書き込みで、 並行書き込みやプロセスクラッシュ時のファイル破損を防止する。 <code>load()</code> はパストラバーサル攻撃を <code>is_relative_to</code> で検証する。 <code>list_keys()</code> は <code>.bin</code> ファイルを再帰的に列挙する。 <code>clean_temp_files()</code> で残留一時ファイル (<code>.spot_tmp</code>) を清掃する。 <code>prune_empty_dirs()</code> で空ディレクトリを再帰的に削除する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC009">
+        <textarea class="edit-textarea" data-uid="SPEC009">`LocalStorage` はローカルファイルシステムにBlobを保存する。 `save()` は `tempfile.mkstemp` + `os.replace` によるアトミック書き込みで、 並行書き込みやプロセスクラッシュ時のファイル破損を防止する。 `load()` はパストラバーサル攻撃を `is_relative_to` で検証する。 `list_keys()` は `.bin` ファイルを再帰的に列挙する。 `clean_temp_files()` で残留一時ファイル (`.spot_tmp`) を清掃する。 `prune_empty_dirs()` で空ディレクトリを再帰的に削除する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC009')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC009')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ004">REQ004</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL009">IMPL009</a>, <a href="#detail-TST009">TST009</a></p>
+      <div class="item-actions" data-uid="SPEC009">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC009')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC009')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC009')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC010" data-group="STORE">
+      <h3>SPEC010 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-SPEC010">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC010"><p><code>S3Storage</code> はAWS S3互換ストレージにBlobを保存する。 boto3 の <code>upload_fileobj</code> によるマルチパートアップロードに対応（5GB超対応）。 s3:// URI 形式でバケット名・プレフィックスを指定する。 boto3 がインストールされていない場合は ImportError を送出する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC010">
+        <textarea class="edit-textarea" data-uid="SPEC010">`S3Storage` はAWS S3互換ストレージにBlobを保存する。 boto3 の `upload_fileobj` によるマルチパートアップロードに対応（5GB超対応）。 s3:// URI 形式でバケット名・プレフィックスを指定する。 boto3 がインストールされていない場合は ImportError を送出する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC010')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC010')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ004">REQ004</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL010">IMPL010</a>, <a href="#detail-TST010">TST010</a></p>
+      <div class="item-actions" data-uid="SPEC010">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC010')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC010')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC010')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC011" data-group="STORE">
+      <h3>SPEC011 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-SPEC011">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC011"><p><code>StoragePolicyProtocol</code> は <code>should_save_as_blob(data: bytes) -&gt; bool</code> を定義する。 実装3種: <code>ThresholdStoragePolicy</code>（閾値超過時にBlob保存）、 <code>WarningOnlyPolicy</code>（警告のみでBlob保存しない、デフォルト）、 <code>AlwaysBlobPolicy</code>（常にBlob保存）。 <code>@mark(save_blob=True/False)</code> による明示指定が最優先。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC011">
+        <textarea class="edit-textarea" data-uid="SPEC011">`StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -&gt; bool` を定義する。 実装3種: `ThresholdStoragePolicy`（閾値超過時にBlob保存）、 `WarningOnlyPolicy`（警告のみでBlob保存しない、デフォルト）、 `AlwaysBlobPolicy`（常にBlob保存）。 `@mark(save_blob=True/False)` による明示指定が最優先。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC011')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC011')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ004">REQ004</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL011">IMPL011</a>, <a href="#detail-TST011">TST011</a></p>
+      <div class="item-actions" data-uid="SPEC011">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC011')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC011')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC011')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC012" data-group="SERIAL">
+      <h3>SPEC012 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-SPEC012">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC012"><p><code>MsgpackSerializer</code> は MessagePack ベースのシリアライザ。 <code>dumps(obj) -&gt; bytes</code> と <code>loads(data) -&gt; Any</code> を提供する。 カスタム型は ExtType (code 0-127) で拡張する。 スレッドセーフ: レジストリは Copy-on-Write、サブクラスキャッシュはスレッドローカル LRU。 MRO スキャンによりサブクラスの自動解決を行う。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC012">
+        <textarea class="edit-textarea" data-uid="SPEC012">`MsgpackSerializer` は MessagePack ベースのシリアライザ。 `dumps(obj) -&gt; bytes` と `loads(data) -&gt; Any` を提供する。 カスタム型は ExtType (code 0-127) で拡張する。 スレッドセーフ: レジストリは Copy-on-Write、サブクラスキャッシュはスレッドローカル LRU。 MRO スキャンによりサブクラスの自動解決を行う。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC012')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC012')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ005">REQ005</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL012">IMPL012</a>, <a href="#detail-TST012">TST012</a></p>
+      <div class="item-actions" data-uid="SPEC012">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC012')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC012')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC012')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC013" data-group="SERIAL">
+      <h3>SPEC013 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-SPEC013">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC013"><p><code>spot.register(code, encoder, decoder)</code> デコレータまたは <code>spot.register_type(cls, code, encoder, decoder)</code> メソッドにより、 カスタム型をシリアライザに登録する。code は 0-127 の一意な整数。 同一コードまたは同一型の重複登録は ValueError で拒否する。 <code>decoder_factory</code> オプションで型に基づくデコーダ自動生成もサポートする。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC013">
+        <textarea class="edit-textarea" data-uid="SPEC013">`spot.register(code, encoder, decoder)` デコレータまたは `spot.register_type(cls, code, encoder, decoder)` メソッドにより、 カスタム型をシリアライザに登録する。code は 0-127 の一意な整数。 同一コードまたは同一型の重複登録は ValueError で拒否する。 `decoder_factory` オプションで型に基づくデコーダ自動生成もサポートする。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC013')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC013')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ005">REQ005</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL013">IMPL013</a>, <a href="#detail-TST013">TST013</a></p>
+      <div class="item-actions" data-uid="SPEC013">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC013')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC013')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC013')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC014" data-group="BGIO">
+      <h3>SPEC014 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-SPEC014">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC014"><p><code>_BackgroundLoop</code> はデーモンスレッドで asyncio イベントループを実行する。 <code>submit(coro)</code> でコルーチンをスレッドセーフに投入する。 シャットダウン時は新規タスクの受付を停止し、アクティブタスクの完了を <code>drain_timeout</code> 秒まで待機する。atexit ハンドラで安全網を提供する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC014">
+        <textarea class="edit-textarea" data-uid="SPEC014">`_BackgroundLoop` はデーモンスレッドで asyncio イベントループを実行する。 `submit(coro)` でコルーチンをスレッドセーフに投入する。 シャットダウン時は新規タスクの受付を停止し、アクティブタスクの完了を `drain_timeout` 秒まで待機する。atexit ハンドラで安全網を提供する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC014')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC014')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ006">REQ006</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL014">IMPL014</a>, <a href="#detail-TST014">TST014</a></p>
+      <div class="item-actions" data-uid="SPEC014">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC014')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC014')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC014')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC015" data-group="BGIO">
+      <h3>SPEC015 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-SPEC015">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC015"><p><code>save_sync</code> パラメータにより同期/非同期保存を制御する。 Spot レベルのデフォルト (<code>save_sync=True</code>) と <code>@mark(save_sync=False)</code> による 関数レベルのオーバーライドをサポートする。 <code>spot.flush(timeout)</code> で全バックグラウンド保存の完了を待機する。 <code>with spot:</code> コンテキストマネージャの <code>__exit__</code> で自動的に drain を実行する。 バックグラウンド保存失敗時は <code>on_background_error</code> コールバックで通知する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC015">
+        <textarea class="edit-textarea" data-uid="SPEC015">`save_sync` パラメータにより同期/非同期保存を制御する。 Spot レベルのデフォルト (`save_sync=True`) と `@mark(save_sync=False)` による 関数レベルのオーバーライドをサポートする。 `spot.flush(timeout)` で全バックグラウンド保存の完了を待機する。 `with spot:` コンテキストマネージャの `__exit__` で自動的に drain を実行する。 バックグラウンド保存失敗時は `on_background_error` コールバックで通知する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC015')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC015')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ006">REQ006</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL015">IMPL015</a>, <a href="#detail-TST015">TST015</a></p>
+      <div class="item-actions" data-uid="SPEC015">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC015')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC015')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC015')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC016" data-group="LIFE">
+      <h3>SPEC016 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-SPEC016">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC016"><p><code>LifecyclePolicy</code> は <code>Rule</code> のリストに基づき、関数名パターン（fnmatch）で キャッシュの保持期間を決定する。<code>resolve_with_fallback()</code> は完全修飾名 → 短縮名の順でマッチングする。マッチしなければ無期限保持（None）を返す。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC016">
+        <textarea class="edit-textarea" data-uid="SPEC016">`LifecyclePolicy` は `Rule` のリストに基づき、関数名パターン（fnmatch）で キャッシュの保持期間を決定する。`resolve_with_fallback()` は完全修飾名 → 短縮名の順でマッチングする。マッチしなければ無期限保持（None）を返す。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC016')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC016')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ007">REQ007</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL016">IMPL016</a>, <a href="#detail-TST016">TST016</a></p>
+      <div class="item-actions" data-uid="SPEC016">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC016')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC016')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC016')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC017" data-group="LIFE">
+      <h3>SPEC017 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-SPEC017">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC017"><p>保持期間は文字列（"7d", "12h", "30m", "10s"）、timedelta、秒数（int/float）で指定する。 <code>Retention.FOREVER</code> はグローバルポリシーを明示的にバイパスし無期限保持を宣言する。 <code>Retention.INDEFINITE</code> (None) はポリシーに委ねるデフォルト値。 <code>parse_retention()</code> で正規化する。負値・ゼロは <code>ValidationError</code>。 期限切れ判定は DB の <code>get()</code> 時に遅延チェック（Lazy Expiration）で行う。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC017">
+        <textarea class="edit-textarea" data-uid="SPEC017">保持期間は文字列（&quot;7d&quot;, &quot;12h&quot;, &quot;30m&quot;, &quot;10s&quot;）、timedelta、秒数（int/float）で指定する。 `Retention.FOREVER` はグローバルポリシーを明示的にバイパスし無期限保持を宣言する。 `Retention.INDEFINITE` (None) はポリシーに委ねるデフォルト値。 `parse_retention()` で正規化する。負値・ゼロは `ValidationError`。 期限切れ判定は DB の `get()` 時に遅延チェック（Lazy Expiration）で行う。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC017')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC017')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ007">REQ007</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL017">IMPL017</a>, <a href="#detail-TST017">TST017</a></p>
+      <div class="item-actions" data-uid="SPEC017">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC017')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC017')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC017')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC018" data-group="LIMIT">
+      <h3>SPEC018 <span class="group-tag">LIMIT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIMIT.html#detail-SPEC018">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC018"><p><code>TokenBucket</code> は GCRA (Generic Cell Rate Algorithm) ベースのスムースレートリミッター。 tokens_per_minute で分あたりのトークン数を指定する。 アイドル後のバースト防止（Strict Pacing）、初回リクエストの遅延なし、 TPM 超過コストの即時拒否 (ValueError) を実装する。 モノトニッククロック使用。スレッドセーフ (threading.Lock)。 <code>consume(cost)</code> で同期ブロック、<code>consume_async(cost)</code> で非同期待機。 <code>@spot.consume(cost)</code> デコレータで関数に適用する。cost は整数またはコスト計算関数。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC018">
+        <textarea class="edit-textarea" data-uid="SPEC018">`TokenBucket` は GCRA (Generic Cell Rate Algorithm) ベースのスムースレートリミッター。 tokens_per_minute で分あたりのトークン数を指定する。 アイドル後のバースト防止（Strict Pacing）、初回リクエストの遅延なし、 TPM 超過コストの即時拒否 (ValueError) を実装する。 モノトニッククロック使用。スレッドセーフ (threading.Lock)。 `consume(cost)` で同期ブロック、`consume_async(cost)` で非同期待機。 `@spot.consume(cost)` デコレータで関数に適用する。cost は整数またはコスト計算関数。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC018')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC018')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ008">REQ008</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL018">IMPL018</a>, <a href="#detail-TST018">TST018</a></p>
+      <div class="item-actions" data-uid="SPEC018">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC018')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC018')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC018')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC019" data-group="HOOK">
+      <h3>SPEC019 <span class="group-tag">HOOK</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HOOK.html#detail-SPEC019">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC019"><p><code>HookBase</code> は <code>pre_execute(ctx)</code>, <code>on_cache_hit(ctx)</code>, <code>on_cache_miss(ctx)</code> の 3メソッドを提供するベースクラス。デフォルト実装は何もしない。 <code>ThreadSafeHookBase</code> は <code>__init_subclass__</code> でユーザー定義メソッドを RLock でラップし、スレッドセーフ性を自動適用する。 フック内の例外は ERROR ログに記録されるが、関数の実行結果には影響しない。 コンテキストオブジェクト: <code>PreExecuteContext</code>, <code>CacheHitContext</code>, <code>CacheMissContext</code>。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC019">
+        <textarea class="edit-textarea" data-uid="SPEC019">`HookBase` は `pre_execute(ctx)`, `on_cache_hit(ctx)`, `on_cache_miss(ctx)` の 3メソッドを提供するベースクラス。デフォルト実装は何もしない。 `ThreadSafeHookBase` は `__init_subclass__` でユーザー定義メソッドを RLock でラップし、スレッドセーフ性を自動適用する。 フック内の例外は ERROR ログに記録されるが、関数の実行結果には影響しない。 コンテキストオブジェクト: `PreExecuteContext`, `CacheHitContext`, `CacheMissContext`。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC019')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC019')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ009">REQ009</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL019">IMPL019</a>, <a href="#detail-TST019">TST019</a></p>
+      <div class="item-actions" data-uid="SPEC019">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC019')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC019')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC019')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC020" data-group="MAINT">
+      <h3>SPEC020 <span class="group-tag">MAINT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_MAINT.html#detail-SPEC020">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC020"><p><code>MaintenanceService</code> は DB・ストレージ・シリアライザを統合したメンテナンスサービス。 <code>clean_garbage()</code>: DB flush → 期限切れ削除 → 孤立Blob スキャン → 削除 → 一時ファイル清掃 → 空ディレクトリ削除。 <code>scan_garbage(grace_period)</code>: DB に参照のないBlobファイルを列挙。grace_period でインフライト保存との競合を防止。 <code>prune(days, func_name)</code>: 指定日数以上古いキャッシュを削除。 <code>clear(func_name)</code>: 全キャッシュまたは指定関数のキャッシュを削除。 <code>delete_task(cache_key)</code>: DB レコードを先に削除し、次にBlobを削除（安全な削除順序）。 <code>from_path()</code> ファクトリでDBパスからサービスを組み立て可能。 <code>scan_orphan_projects()</code>: .beautyspot/blobs/ 内の孤立プロジェクトディレクトリを検出。 自動破棄 (<code>eviction_rate</code>): 確率的にGCをバックグラウンドで実行（最小間隔60秒）。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC020">
+        <textarea class="edit-textarea" data-uid="SPEC020">`MaintenanceService` は DB・ストレージ・シリアライザを統合したメンテナンスサービス。 `clean_garbage()`: DB flush → 期限切れ削除 → 孤立Blob スキャン → 削除 → 一時ファイル清掃 → 空ディレクトリ削除。 `scan_garbage(grace_period)`: DB に参照のないBlobファイルを列挙。grace_period でインフライト保存との競合を防止。 `prune(days, func_name)`: 指定日数以上古いキャッシュを削除。 `clear(func_name)`: 全キャッシュまたは指定関数のキャッシュを削除。 `delete_task(cache_key)`: DB レコードを先に削除し、次にBlobを削除（安全な削除順序）。 `from_path()` ファクトリでDBパスからサービスを組み立て可能。 `scan_orphan_projects()`: .beautyspot/blobs/ 内の孤立プロジェクトディレクトリを検出。 自動破棄 (`eviction_rate`): 確率的にGCをバックグラウンドで実行（最小間隔60秒）。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC020')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC020')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ010">REQ010</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL020">IMPL020</a>, <a href="#detail-TST020">TST020</a></p>
+      <div class="item-actions" data-uid="SPEC020">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC020')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC020')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC020')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC021" data-group="CLI">
+      <h3>SPEC021 <span class="group-tag">CLI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CLI.html#detail-SPEC021">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC021"><p><code>beautyspot</code> CLIコマンド群を提供する（Typer ベース）。 <code>list</code>: キャッシュ済みタスクまたは利用可能なDBの一覧表示。 <code>show</code>: 特定キャッシュキーの詳細表示。 <code>stats</code>: キャッシュ統計の表示。 <code>clear</code>: キャッシュの削除。 <code>clean</code>: 孤立Blobファイルのガベージコレクション。 <code>gc</code>: 期限切れタスクと孤立ストレージの一括クリーンアップ。 <code>prune</code>: 時間ベースの一括削除。 <code>ui</code>: インタラクティブダッシュボードの起動。 <code>version</code>: バージョン情報の表示。 出力は rich (Console, Table, Panel) でフォーマットする。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC021">
+        <textarea class="edit-textarea" data-uid="SPEC021">`beautyspot` CLIコマンド群を提供する（Typer ベース）。 `list`: キャッシュ済みタスクまたは利用可能なDBの一覧表示。 `show`: 特定キャッシュキーの詳細表示。 `stats`: キャッシュ統計の表示。 `clear`: キャッシュの削除。 `clean`: 孤立Blobファイルのガベージコレクション。 `gc`: 期限切れタスクと孤立ストレージの一括クリーンアップ。 `prune`: 時間ベースの一括削除。 `ui`: インタラクティブダッシュボードの起動。 `version`: バージョン情報の表示。 出力は rich (Console, Table, Panel) でフォーマットする。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC021')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC021')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ011">REQ011</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL021">IMPL021</a>, <a href="#detail-TST021">TST021</a></p>
+      <div class="item-actions" data-uid="SPEC021">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC021')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC021')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC021')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC022" data-group="DI">
+      <h3>SPEC022 <span class="group-tag">DI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DI.html#detail-SPEC022">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC022"><p><code>bs.Spot(name, ...)</code> ファクトリ関数が唯一のパブリックエントリポイント。
+引数未指定時のデフォルト:
+- <code>SQLiteTaskDB (.beautyspot/{name}.db)</code>
+- <code>LocalStorage (.beautyspot/blobs/{name})</code>
+- <code>MsgpackSerializer</code>
+- <code>TokenBucket (10000 TPM)</code>
+- <code>WarningOnlyPolicy</code></p>
+<p>全コンポーネントは <code>Protocol/ABC</code> で定義:
+<code>TaskDBCore</code>, <code>BlobStorageCore</code>, <code>SerializerProtocol</code>, <code>StoragePolicyProtocol</code>, <code>LimiterProtocol</code>。</p>
+<p><code>core.Spot</code> は <code>CacheManager</code> と <code>LimiterProtocol</code> を直接受け取り、 ファクトリ外での直接インスタンス化は非推奨。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC022">
+        <textarea class="edit-textarea" data-uid="SPEC022">`bs.Spot(name, ...)` ファクトリ関数が唯一のパブリックエントリポイント。
+引数未指定時のデフォルト:
+- `SQLiteTaskDB (.beautyspot/{name}.db)`
+- `LocalStorage (.beautyspot/blobs/{name})`
+- `MsgpackSerializer`
+- `TokenBucket (10000 TPM)`
+- `WarningOnlyPolicy`
+
+全コンポーネントは `Protocol/ABC` で定義:
+`TaskDBCore`, `BlobStorageCore`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`。
+
+`core.Spot` は `CacheManager` と `LimiterProtocol` を直接受け取り、 ファクトリ外での直接インスタンス化は非推奨。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC022')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC022')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ012">REQ012</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL022">IMPL022</a>, <a href="#detail-TST022">TST022</a></p>
+      <div class="item-actions" data-uid="SPEC022">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC022')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC022')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC022')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC023" data-group="HERD">
+      <h3>SPEC023 <span class="group-tag">HERD</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HERD.html#detail-SPEC023">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="SPEC023"><p><code>CacheManager</code> 内の <code>_inflight</code> 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは threading.Event (同期) または asyncio.Future (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC023">
+        <textarea class="edit-textarea" data-uid="SPEC023">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは threading.Event (同期) または asyncio.Future (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC023')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC023')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ013">REQ013</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL023">IMPL023</a>, <a href="#detail-TST023">TST023</a></p>
+      <div class="item-actions" data-uid="SPEC023">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC023')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC023')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC023')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL001" data-group="CACHE">
+      <h3>IMPL001 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-IMPL001">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL001"><p>Spot.mark() デコレータの実装。sync/async の自動判定、 save_blob/keygen/version/content_type/serializer/save_sync/retention/hooks オプションの処理、 ジェネレータ関数の拒否（ConfigurationError）を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL001">
+        <textarea class="edit-textarea" data-uid="IMPL001">Spot.mark() デコレータの実装。sync/async の自動判定、 save_blob/keygen/version/content_type/serializer/save_sync/retention/hooks オプションの処理、 ジェネレータ関数の拒否（ConfigurationError）を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL001')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL001')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC001">SPEC001</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL001">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL001')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL001')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL001')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL002" data-group="CACHE">
+      <h3>IMPL002 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-IMPL002">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL002"><p><code>Spot.cached_run()</code> コンテキストマネージャの実装。 複数関数のラップ、単一関数時のスマートリターン、 0関数時の <code>ValidationError</code> を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL002">
+        <textarea class="edit-textarea" data-uid="IMPL002">`Spot.cached_run()` コンテキストマネージャの実装。 複数関数のラップ、単一関数時のスマートリターン、 0関数時の `ValidationError` を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC002">SPEC002</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL002">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL003" data-group="CACHE">
+      <h3>IMPL003 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-IMPL003">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL003"><p>_execute_sync と _execute_async の実装。 inspect.iscoroutinefunction() による自動判定、 _BackgroundLoop 経由の非同期保存処理を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL003">
+        <textarea class="edit-textarea" data-uid="IMPL003">_execute_sync と _execute_async の実装。 inspect.iscoroutinefunction() による自動判定、 _BackgroundLoop 経由の非同期保存処理を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL003')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL003')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC003">SPEC003</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL003">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL003')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL003')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL003')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL004" data-group="KEY">
+      <h3>IMPL004 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-IMPL004">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL004"><p>KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL004">
+        <textarea class="edit-textarea" data-uid="IMPL004">KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC004">SPEC004</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL004">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL005" data-group="KEY">
+      <h3>IMPL005 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-IMPL005">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL005"><p>canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL005">
+        <textarea class="edit-textarea" data-uid="IMPL005">canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC005">SPEC005</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL005">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL006" data-group="KEY">
+      <h3>IMPL006 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-IMPL006">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL006"><p>KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL006">
+        <textarea class="edit-textarea" data-uid="IMPL006">KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC006">SPEC006</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL006">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL007" data-group="DB">
+      <h3>IMPL007 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-IMPL007">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL007"><p>SQLiteTaskDB の実装。WAL モード、専用ライタースレッド (_writer_loop)、 スレッドローカル読み取り専用接続 (_read_connect)、 自動マイグレーション、_WriteTask キュー、flush/shutdown を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL007">
+        <textarea class="edit-textarea" data-uid="IMPL007">SQLiteTaskDB の実装。WAL モード、専用ライタースレッド (_writer_loop)、 スレッドローカル読み取り専用接続 (_read_connect)、 自動マイグレーション、_WriteTask キュー、flush/shutdown を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL007')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL007')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC007">SPEC007</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL007">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL007')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL007')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL007')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL008" data-group="DB">
+      <h3>IMPL008 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-IMPL008">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL008"><p>TaskDBCore/TaskDBBase/Maintenable/Flushable/Shutdownable プロトコル・抽象基底クラスの定義。 TaskDBBase のメンテナンスメソッドのデフォルト実装を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL008">
+        <textarea class="edit-textarea" data-uid="IMPL008">TaskDBCore/TaskDBBase/Maintenable/Flushable/Shutdownable プロトコル・抽象基底クラスの定義。 TaskDBBase のメンテナンスメソッドのデフォルト実装を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL008')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL008')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC008">SPEC008</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL008">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL008')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL008')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL008')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL009" data-group="STORE">
+      <h3>IMPL009 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-IMPL009">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL009"><p>LocalStorage の実装。tempfile.mkstemp + os.replace によるアトミック書き込み、 is_relative_to によるパストラバーサル防止、.bin 再帰列挙、 clean_temp_files/prune_empty_dirs を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL009">
+        <textarea class="edit-textarea" data-uid="IMPL009">LocalStorage の実装。tempfile.mkstemp + os.replace によるアトミック書き込み、 is_relative_to によるパストラバーサル防止、.bin 再帰列挙、 clean_temp_files/prune_empty_dirs を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL009')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL009')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC009">SPEC009</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL009">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL009')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL009')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL009')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL010" data-group="STORE">
+      <h3>IMPL010 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-IMPL010">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL010"><p>S3Storage の実装。boto3 upload_fileobj によるマルチパートアップロード、 s3:// URI パース、boto3 未インストール時の ImportError を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL010">
+        <textarea class="edit-textarea" data-uid="IMPL010">S3Storage の実装。boto3 upload_fileobj によるマルチパートアップロード、 s3:// URI パース、boto3 未インストール時の ImportError を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL010')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL010')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC010">SPEC010</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL010">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL010')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL010')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL010')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL011" data-group="STORE">
+      <h3>IMPL011 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-IMPL011">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL011"><p>StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告のみ）、 AlwaysBlobPolicy（常にBlob）を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL011">
+        <textarea class="edit-textarea" data-uid="IMPL011">StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告のみ）、 AlwaysBlobPolicy（常にBlob）を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL011')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL011')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC011">SPEC011</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL011">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL011')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL011')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL011')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL012" data-group="SERIAL">
+      <h3>IMPL012 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-IMPL012">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL012"><p>MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ラッピング、レジストリ世代管理を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL012">
+        <textarea class="edit-textarea" data-uid="IMPL012">MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ラッピング、レジストリ世代管理を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL012')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL012')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC012">SPEC012</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL012">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL012')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL012')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL012')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL013" data-group="SERIAL">
+      <h3>IMPL013 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-IMPL013">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL013"><p>MsgpackSerializer.register() メソッドの実装。 code 0-127 バリデーション、重複チェック、 Copy-on-Write による安全な登録を含む。 Spot.register()/register_type() によるユーザー向けインターフェースも含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL013">
+        <textarea class="edit-textarea" data-uid="IMPL013">MsgpackSerializer.register() メソッドの実装。 code 0-127 バリデーション、重複チェック、 Copy-on-Write による安全な登録を含む。 Spot.register()/register_type() によるユーザー向けインターフェースも含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL013')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL013')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC013">SPEC013</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL013">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL013')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL013')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL013')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL014" data-group="BGIO">
+      <h3>IMPL014 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-IMPL014">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL014"><p>_BackgroundLoop の実装。デーモンスレッドでの asyncio イベントループ、 submit(coro) によるスレッドセーフなコルーチン投入、 シャットダウン時の drain_timeout 待機、atexit ハンドラを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL014">
+        <textarea class="edit-textarea" data-uid="IMPL014">_BackgroundLoop の実装。デーモンスレッドでの asyncio イベントループ、 submit(coro) によるスレッドセーフなコルーチン投入、 シャットダウン時の drain_timeout 待機、atexit ハンドラを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL014')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL014')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC014">SPEC014</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL014">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL014')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL014')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL014')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL015" data-group="BGIO">
+      <h3>IMPL015 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-IMPL015">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL015"><p>save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ <strong>exit</strong> での自動 drain、 on_background_error コールバック呼び出しの実装を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL015">
+        <textarea class="edit-textarea" data-uid="IMPL015">save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ __exit__ での自動 drain、 on_background_error コールバック呼び出しの実装を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL015')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL015')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC015">SPEC015</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL015">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL015')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL015')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL015')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL016" data-group="LIFE">
+      <h3>IMPL016 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-IMPL016">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL016"><p>LifecyclePolicy の実装。Rule リスト、fnmatch パターンマッチング、 resolve() と resolve_with_fallback() メソッドを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL016">
+        <textarea class="edit-textarea" data-uid="IMPL016">LifecyclePolicy の実装。Rule リスト、fnmatch パターンマッチング、 resolve() と resolve_with_fallback() メソッドを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL016')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL016')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC016">SPEC016</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL016">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL016')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL016')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL016')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL017" data-group="LIFE">
+      <h3>IMPL017 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-IMPL017">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL017"><p>Retention 定数、_ForeverSentinel シングルトン、 parse_retention() による文字列/timedelta/int/float の正規化、 SQLiteTaskDB.get() での Lazy Expiration チェックの実装を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL017">
+        <textarea class="edit-textarea" data-uid="IMPL017">Retention 定数、_ForeverSentinel シングルトン、 parse_retention() による文字列/timedelta/int/float の正規化、 SQLiteTaskDB.get() での Lazy Expiration チェックの実装を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL017')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL017')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC017">SPEC017</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL017">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL017')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL017')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL017')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL018" data-group="LIMIT">
+      <h3>IMPL018 <span class="group-tag">LIMIT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIMIT.html#detail-IMPL018">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL018"><p>TokenBucket の実装。GCRA アルゴリズム、TAT (Theoretical Arrival Time) 管理、 consume/consume_async メソッド、threading.Lock によるスレッドセーフ、 max_cost バリデーションを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL018">
+        <textarea class="edit-textarea" data-uid="IMPL018">TokenBucket の実装。GCRA アルゴリズム、TAT (Theoretical Arrival Time) 管理、 consume/consume_async メソッド、threading.Lock によるスレッドセーフ、 max_cost バリデーションを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL018')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL018')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC018">SPEC018</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL018">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL018')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL018')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL018')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL019" data-group="HOOK">
+      <h3>IMPL019 <span class="group-tag">HOOK</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HOOK.html#detail-IMPL019">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL019"><p>HookBase（3メソッドのデフォルト実装）と ThreadSafeHookBase （<strong>init_subclass</strong> による自動 RLock ラッピング）の実装。 _wrap_with_lock ヘルパーを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL019">
+        <textarea class="edit-textarea" data-uid="IMPL019">HookBase（3メソッドのデフォルト実装）と ThreadSafeHookBase （__init_subclass__ による自動 RLock ラッピング）の実装。 _wrap_with_lock ヘルパーを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL019')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL019')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC019">SPEC019</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL019">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL019')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL019')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL019')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL020" data-group="MAINT">
+      <h3>IMPL020 <span class="group-tag">MAINT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_MAINT.html#detail-IMPL020">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL020"><p>MaintenanceService の実装。clean_garbage() の5フェーズ処理、 scan_garbage() の grace_period 付き孤立検出、 from_path() ファクトリ、scan_orphan_projects()、 resolve_key_prefix() を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL020">
+        <textarea class="edit-textarea" data-uid="IMPL020">MaintenanceService の実装。clean_garbage() の5フェーズ処理、 scan_garbage() の grace_period 付き孤立検出、 from_path() ファクトリ、scan_orphan_projects()、 resolve_key_prefix() を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL020')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL020')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC020">SPEC020</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL020">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL020')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL020')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL020')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL021" data-group="CLI">
+      <h3>IMPL021 <span class="group-tag">CLI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CLI.html#detail-IMPL021">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL021"><p>Typer ベースの CLI コマンド群の実装。 list/show/stats/clear/clean/gc/prune/ui/version の各コマンド、 rich による出力フォーマットを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL021">
+        <textarea class="edit-textarea" data-uid="IMPL021">Typer ベースの CLI コマンド群の実装。 list/show/stats/clear/clean/gc/prune/ui/version の各コマンド、 rich による出力フォーマットを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL021')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL021')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC021">SPEC021</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL021">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL021')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL021')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL021')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL022" data-group="DI">
+      <h3>IMPL022 <span class="group-tag">DI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DI.html#detail-IMPL022">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL022"><p><code>bs.Spot()</code> ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 <code>CacheManager</code> の構築、<code>Protocol/ABC</code> の定義と <code>__all__</code> エクスポートを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL022">
+        <textarea class="edit-textarea" data-uid="IMPL022">`bs.Spot()` ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 `CacheManager` の構築、`Protocol/ABC` の定義と `__all__` エクスポートを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL022')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL022')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC022">SPEC022</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL022">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL022')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL022')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL022')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL023" data-group="HERD">
+      <h3>IMPL023 <span class="group-tag">HERD</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HERD.html#detail-IMPL023">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="IMPL023"><p>CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asyncio.Future による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL023">
+        <textarea class="edit-textarea" data-uid="IMPL023">CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asyncio.Future による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL023')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL023')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC023">SPEC023</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL023">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL023')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL023')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL023')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST001" data-group="CACHE">
+      <h3>TST001 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-TST001">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST001"><p>mark デコレータのテスト。基本キャッシュ動作、Blobモード、シグネチャ保持 (<strong>name</strong>, <strong>doc</strong>, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST001">
+        <textarea class="edit-textarea" data-uid="TST001">mark デコレータのテスト。基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST001')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST001')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC001">SPEC001</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST001">
+        <button class="action-btn edit-btn" onclick="startEdit('TST001')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST001')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST001')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST002" data-group="CACHE">
+      <h3>TST002 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-TST002">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST002"><p><code>cached_run</code> コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST002">
+        <textarea class="edit-textarea" data-uid="TST002">`cached_run` コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC002">SPEC002</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST002">
+        <button class="action-btn edit-btn" onclick="startEdit('TST002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST003" data-group="CACHE">
+      <h3>TST003 <span class="group-tag">CACHE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CACHE.html#detail-TST003">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST003"><p>同期・非同期関数サポートのテスト。非同期例外伝播、 <code>async thundering herd</code> 、<code>async save_sync</code> 動作を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST003">
+        <textarea class="edit-textarea" data-uid="TST003">同期・非同期関数サポートのテスト。非同期例外伝播、 `async thundering herd` 、`async save_sync` 動作を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST003')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST003')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC003">SPEC003</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST003">
+        <button class="action-btn edit-btn" onclick="startEdit('TST003')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST003')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST003')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST004" data-group="KEY">
+      <h3>TST004 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-TST004">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST004"><p>SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST004">
+        <textarea class="edit-textarea" data-uid="TST004">SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC004">SPEC004</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST004">
+        <button class="action-btn edit-btn" onclick="startEdit('TST004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST005" data-group="KEY">
+      <h3>TST005 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-TST005">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST005"><p>canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST005">
+        <textarea class="edit-textarea" data-uid="TST005">canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC005">SPEC005</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST005">
+        <button class="action-btn edit-btn" onclick="startEdit('TST005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST006" data-group="KEY">
+      <h3>TST006 <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_KEY.html#detail-TST006">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST006"><p>KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST006">
+        <textarea class="edit-textarea" data-uid="TST006">KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC006">SPEC006</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST006">
+        <button class="action-btn edit-btn" onclick="startEdit('TST006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST007" data-group="DB">
+      <h3>TST007 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-TST007">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST007"><p>SQLiteTaskDB のテスト。スキーマ初期化、CRUD操作、 読み取り接続のリカバリとリーク防止、ライタースレッドの タイムアウト処理、GC 時のDB 存続性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST007">
+        <textarea class="edit-textarea" data-uid="TST007">SQLiteTaskDB のテスト。スキーマ初期化、CRUD操作、 読み取り接続のリカバリとリーク防止、ライタースレッドの タイムアウト処理、GC 時のDB 存続性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST007')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST007')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC007">SPEC007</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST007">
+        <button class="action-btn edit-btn" onclick="startEdit('TST007')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST007')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST007')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST008" data-group="DB">
+      <h3>TST008 <span class="group-tag">DB</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DB.html#detail-TST008">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST008"><p>DB プロトコル階層のテスト。TaskDBCore/TaskDBBase の インターフェース準拠、メンテナンスメソッドのデフォルト動作を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST008">
+        <textarea class="edit-textarea" data-uid="TST008">DB プロトコル階層のテスト。TaskDBCore/TaskDBBase の インターフェース準拠、メンテナンスメソッドのデフォルト動作を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST008')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST008')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC008">SPEC008</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST008">
+        <button class="action-btn edit-btn" onclick="startEdit('TST008')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST008')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST008')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST009" data-group="STORE">
+      <h3>TST009 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-TST009">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST009"><p>LocalStorage のテスト。ワークスペース作成、並行書き込みの一貫性、 一時ファイルクリーンアップ、パストラバーサル防止を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST009">
+        <textarea class="edit-textarea" data-uid="TST009">LocalStorage のテスト。ワークスペース作成、並行書き込みの一貫性、 一時ファイルクリーンアップ、パストラバーサル防止を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST009')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST009')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC009">SPEC009</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST009">
+        <button class="action-btn edit-btn" onclick="startEdit('TST009')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST009')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST009')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST010" data-group="STORE">
+      <h3>TST010 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-TST010">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST010"><p>S3Storage のテスト。S3 互換ストレージへの保存・取得・削除を検証する。 （注: boto3 オプショナル依存のため、現時点で専用テストファイルは未作成）</p></div>
+      <div class="item-editor hidden" data-uid="TST010">
+        <textarea class="edit-textarea" data-uid="TST010">S3Storage のテスト。S3 互換ストレージへの保存・取得・削除を検証する。 （注: boto3 オプショナル依存のため、現時点で専用テストファイルは未作成）</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST010')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST010')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC010">SPEC010</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST010">
+        <button class="action-btn edit-btn" onclick="startEdit('TST010')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST010')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST010')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST011" data-group="STORE">
+      <h3>TST011 <span class="group-tag">STORE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_STORE.html#detail-TST011">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST011"><p>ストレージポリシーのテスト。ThresholdStoragePolicy の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPolicy の常時Blob保存、 大サイズデータの警告統合を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST011">
+        <textarea class="edit-textarea" data-uid="TST011">ストレージポリシーのテスト。ThresholdStoragePolicy の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPolicy の常時Blob保存、 大サイズデータの警告統合を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST011')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST011')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC011">SPEC011</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST011">
+        <button class="action-btn edit-btn" onclick="startEdit('TST011')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST011')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST011')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST012" data-group="SERIAL">
+      <h3>TST012 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-TST012">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST012"><p>MsgpackSerializer のテスト。基本的なシリアライズ/デシリアライズ、 Pydantic モデルの dict フロー、スレッドセーフ LRU キャッシュ、 numpy シリアライズの一貫性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST012">
+        <textarea class="edit-textarea" data-uid="TST012">MsgpackSerializer のテスト。基本的なシリアライズ/デシリアライズ、 Pydantic モデルの dict フロー、スレッドセーフ LRU キャッシュ、 numpy シリアライズの一貫性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST012')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST012')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC012">SPEC012</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST012">
+        <button class="action-btn edit-btn" onclick="startEdit('TST012')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST012')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST012')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST013" data-group="SERIAL">
+      <h3>TST013 <span class="group-tag">SERIAL</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_SERIAL.html#detail-TST013">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST013"><p>カスタム型登録のテスト。@spot.register() デコレータによる登録、 Pydantic モデルの factory デコーダ、 複雑なデータ構造のエンコード/デコードを検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST013">
+        <textarea class="edit-textarea" data-uid="TST013">カスタム型登録のテスト。@spot.register() デコレータによる登録、 Pydantic モデルの factory デコーダ、 複雑なデータ構造のエンコード/デコードを検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST013')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST013')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC013">SPEC013</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST013">
+        <button class="action-btn edit-btn" onclick="startEdit('TST013')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST013')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST013')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST014" data-group="BGIO">
+      <h3>TST014 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-TST014">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST014"><p>BackgroundLoop のテスト。バックグラウンド保存の正確性、 保存の直列化、ゾンビスレッドのタスク完了を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST014">
+        <textarea class="edit-textarea" data-uid="TST014">BackgroundLoop のテスト。バックグラウンド保存の正確性、 保存の直列化、ゾンビスレッドのタスク完了を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST014')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST014')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC014">SPEC014</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST014">
+        <button class="action-btn edit-btn" onclick="startEdit('TST014')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST014')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST014')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST015" data-group="BGIO">
+      <h3>TST015 <span class="group-tag">BGIO</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_BGIO.html#detail-TST015">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST015"><p>save_sync / flush / drain のテスト。save_sync=False 時の非同期保存、 shutdown 時のペンディングタスク待機、コンテキスト exit 時の flush、 コンテキストマネージャの再利用性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST015">
+        <textarea class="edit-textarea" data-uid="TST015">save_sync / flush / drain のテスト。save_sync=False 時の非同期保存、 shutdown 時のペンディングタスク待機、コンテキスト exit 時の flush、 コンテキストマネージャの再利用性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST015')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST015')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC015">SPEC015</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST015">
+        <button class="action-btn edit-btn" onclick="startEdit('TST015')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST015')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST015')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST016" data-group="LIFE">
+      <h3>TST016 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-TST016">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST016"><p>LifecyclePolicy のテスト。ルールベースのパターンマッチング、 resolve_with_fallback の完全修飾名→短縮名フォールバックを検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST016">
+        <textarea class="edit-textarea" data-uid="TST016">LifecyclePolicy のテスト。ルールベースのパターンマッチング、 resolve_with_fallback の完全修飾名→短縮名フォールバックを検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST016')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST016')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC016">SPEC016</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST016">
+        <button class="action-btn edit-btn" onclick="startEdit('TST016')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST016')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST016')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST017" data-group="LIFE">
+      <h3>TST017 <span class="group-tag">LIFE</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIFE.html#detail-TST017">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST017"><p>Retention 仕様のテスト。文字列フォーマット ("7d", "12h", "30m", "10s")、 timedelta、秒数のパース、Retention.FOREVER シングルトン、 負値・ゼロの ValidationError を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST017">
+        <textarea class="edit-textarea" data-uid="TST017">Retention 仕様のテスト。文字列フォーマット (&quot;7d&quot;, &quot;12h&quot;, &quot;30m&quot;, &quot;10s&quot;)、 timedelta、秒数のパース、Retention.FOREVER シングルトン、 負値・ゼロの ValidationError を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST017')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST017')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC017">SPEC017</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST017">
+        <button class="action-btn edit-btn" onclick="startEdit('TST017')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST017')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST017')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST018" data-group="LIMIT">
+      <h3>TST018 <span class="group-tag">LIMIT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_LIMIT.html#detail-TST018">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST018"><p>TokenBucket のテスト。初期化バリデーション、max_cost 超過拒否、 GCRA アルゴリズムの実際の待機動作を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST018">
+        <textarea class="edit-textarea" data-uid="TST018">TokenBucket のテスト。初期化バリデーション、max_cost 超過拒否、 GCRA アルゴリズムの実際の待機動作を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST018')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST018')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC018">SPEC018</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST018">
+        <button class="action-btn edit-btn" onclick="startEdit('TST018')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST018')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST018')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST019" data-group="HOOK">
+      <h3>TST019 <span class="group-tag">HOOK</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HOOK.html#detail-TST019">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST019"><p>HookBase / ThreadSafeHookBase のテスト。フックライフサイクル （pre_execute/on_cache_hit/on_cache_miss）、状態保持、 ThreadSafeHookBase の並行呼び出し時のスレッドセーフ性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST019">
+        <textarea class="edit-textarea" data-uid="TST019">HookBase / ThreadSafeHookBase のテスト。フックライフサイクル （pre_execute/on_cache_hit/on_cache_miss）、状態保持、 ThreadSafeHookBase の並行呼び出し時のスレッドセーフ性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST019')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST019')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC019">SPEC019</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST019">
+        <button class="action-btn edit-btn" onclick="startEdit('TST019')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST019')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST019')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST020" data-group="MAINT">
+      <h3>TST020 <span class="group-tag">MAINT</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_MAINT.html#detail-TST020">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST020"><p>MaintenanceService のテスト。タスク詳細取得、 not found 時の None 返却、メンテナンス操作を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST020">
+        <textarea class="edit-textarea" data-uid="TST020">MaintenanceService のテスト。タスク詳細取得、 not found 時の None 返却、メンテナンス操作を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST020')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST020')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC020">SPEC020</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST020">
+        <button class="action-btn edit-btn" onclick="startEdit('TST020')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST020')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST020')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST021" data-group="CLI">
+      <h3>TST021 <span class="group-tag">CLI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_CLI.html#detail-TST021">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST021"><p>CLI コマンドのテスト。 <code>CliRunner</code> による list/show/stats/clear 等の コマンド実行、E2E パイプラインとの統合を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST021">
+        <textarea class="edit-textarea" data-uid="TST021">CLI コマンドのテスト。 `CliRunner` による list/show/stats/clear 等の コマンド実行、E2E パイプラインとの統合を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST021')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST021')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC021">SPEC021</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST021">
+        <button class="action-btn edit-btn" onclick="startEdit('TST021')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST021')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST021')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST022" data-group="DI">
+      <h3>TST022 <span class="group-tag">DI</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_DI.html#detail-TST022">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST022"><p>ファクトリ関数と DI のテスト。<code>Protocol</code> ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）、 型推論、デフォルトワークスペース作成を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST022">
+        <textarea class="edit-textarea" data-uid="TST022">ファクトリ関数と DI のテスト。`Protocol` ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）、 型推論、デフォルトワークスペース作成を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST022')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST022')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC022">SPEC022</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST022">
+        <button class="action-btn edit-btn" onclick="startEdit('TST022')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST022')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST022')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST023" data-group="HERD">
+      <h3>TST023 <span class="group-tag">HERD</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        <a class="local-view-link" href="local/trace_HERD.html#detail-TST023">局所ビュー →</a>
+      </h3>
+      <div class="item-text" data-uid="TST023"><p>Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheManager のモックテストを検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST023">
+        <textarea class="edit-textarea" data-uid="TST023">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheManager のモックテストを検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST023')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST023')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC023">SPEC023</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST023">
+        <button class="action-btn edit-btn" onclick="startEdit('TST023')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST023')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST023')">Clear</button>
+      </div>
+    </div>
+
+<script>
+let activeGroups = new Set();
+let activeStatuses = new Set();
+
+function toggleGroup(btn) {
+  const group = btn.dataset.group;
+  const allBtn = document.querySelector('[data-group="__all__"]');
+  if (activeGroups.has(group)) { activeGroups.delete(group); btn.classList.remove('active'); }
+  else { activeGroups.add(group); btn.classList.add('active'); allBtn.classList.remove('active'); }
+  if (activeGroups.size === 0) { showAllGroups(); return; }
+  applyFilters();
+}
+
+function showAllGroups() {
+  activeGroups.clear();
+  document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-group="__all__"]').classList.add('active');
+  applyFilters();
+}
+
+function toggleStatus(btn) {
+  const status = btn.dataset.status;
+  if (activeStatuses.has(status)) { activeStatuses.delete(status); btn.classList.remove('active'); }
+  else { activeStatuses.add(status); btn.classList.add('active'); }
+  applyFilters();
+}
+
+function applyFilters() {
+  const idQuery = document.getElementById('id-search').value.trim().toUpperCase();
+
+  // Matrix rows
+  document.querySelectorAll('#matrix-table tr[data-group]').forEach(row => {
+    let show = true;
+
+    // Group filter
+    if (activeGroups.size > 0 && !activeGroups.has(row.dataset.group)) {
+      show = false;
+    }
+
+    // Status filter
+    if (show && activeStatuses.size > 0) {
+      const rowStatuses = (row.dataset.statuses || '').split(' ');
+      const match = rowStatuses.some(s => activeStatuses.has(s));
+      if (!match) show = false;
+    }
+
+    // ID filter
+    if (show && idQuery) {
+      const rowUids = (row.dataset.uids || '').toUpperCase();
+      const match = idQuery.split(',').some(q => rowUids.includes(q.trim()));
+      if (!match) show = false;
+    }
+
+    row.classList.toggle('hidden', !show);
+  });
+
+  // Coverage rows (group filter only)
+  document.querySelectorAll('#coverage-table .coverage-group').forEach(row => {
+    if (activeGroups.size === 0) { row.classList.remove('hidden'); }
+    else { row.classList.toggle('hidden', !activeGroups.has(row.dataset.group)); }
+  });
+  document.querySelectorAll('#coverage-table .coverage-total').forEach(row => {
+    row.classList.remove('hidden');
+  });
+}
+
+// --- Highlight on navigation ---
+function highlightItem(id) {
+  document.querySelectorAll('.item-detail.highlighted').forEach(
+    el => el.classList.remove('highlighted')
+  );
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('highlighted');
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+document.addEventListener('click', function(e) {
+  const link = e.target.closest('a[href^="#detail-"]');
+  if (link) {
+    e.preventDefault();
+    const id = link.getAttribute('href').substring(1);
+    history.replaceState(null, '', '#' + id);
+    highlightItem(id);
+  }
+});
+
+window.addEventListener('hashchange', function() {
+  const id = window.location.hash.substring(1);
+  if (id.startsWith('detail-')) highlightItem(id);
+});
+
+if (window.location.hash && window.location.hash.startsWith('#detail-')) {
+  setTimeout(function() { highlightItem(window.location.hash.substring(1)); }, 100);
+}
+
+// --- Serve mode: action buttons ---
+if (window.location.protocol !== 'file:') {
+  document.querySelectorAll('.item-actions').forEach(el => el.style.display = 'block');
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'success');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+async function doReview(uid) {
+  const btn = document.querySelector('[data-uid="'+uid+'"] .review-btn');
+  btn.disabled = true; btn.textContent = '処理中...';
+  try {
+    const res = await fetch('/api/review/' + uid, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const detail = document.getElementById('detail-' + uid);
+      const badges = detail.querySelectorAll('.suspect, .unreviewed, .reviewed');
+      // suspect + unreviewed/reviewed を全て消してレビュー済に置換
+      const parent = badges.length > 0 ? badges[0].parentNode : null;
+      badges.forEach(b => b.remove());
+      if (parent) {
+        const newBadge = document.createElement('span');
+        newBadge.className = 'reviewed';
+        newBadge.textContent = '✓ レビュー済';
+        parent.insertBefore(newBadge, parent.firstChild);
+      }
+      btn.textContent = '✓ Review済';
+      showToast(uid + ' をレビュー済にしました');
+    } else {
+      btn.textContent = 'Review'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = 'Review'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+
+async function doClear(uid) {
+  const btn = document.querySelector('[data-uid="'+uid+'"] .clear-btn');
+  btn.disabled = true; btn.textContent = '処理中...';
+  try {
+    const res = await fetch('/api/clear/' + uid, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const detail = document.getElementById('detail-' + uid);
+      // suspectバッジだけを除去（reviewed/unreviewedはそのまま残す）
+      const suspectBadge = detail.querySelector('.suspect');
+      if (suspectBadge) suspectBadge.remove();
+      btn.textContent = '✓ Clear済';
+      showToast(uid + ' のsuspectリンクを解消しました');
+    } else {
+      btn.textContent = 'Clear'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = 'Clear'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+
+function startEdit(uid) {
+  document.querySelector('.item-text[data-uid="'+uid+'"]').classList.add('hidden');
+  document.querySelector('.item-editor[data-uid="'+uid+'"]').classList.remove('hidden');
+  const ta = document.querySelector('.edit-textarea[data-uid="'+uid+'"]');
+  ta.focus();
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(120, ta.scrollHeight + 4) + 'px';
+}
+
+function cancelEdit(uid) {
+  document.querySelector('.item-editor[data-uid="'+uid+'"]').classList.add('hidden');
+  document.querySelector('.item-text[data-uid="'+uid+'"]').classList.remove('hidden');
+}
+
+async function doSave(uid) {
+  const ta = document.querySelector('.edit-textarea[data-uid="'+uid+'"]');
+  const btn = document.querySelector('.item-editor[data-uid="'+uid+'"] .save-btn');
+  btn.disabled = true; btn.textContent = '保存中...';
+  try {
+    const res = await fetch('/api/edit/' + uid, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: ta.value })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const textDiv = document.querySelector('.item-text[data-uid="'+uid+'"]');
+      textDiv.innerHTML = data.html || ('<p>' + ta.value.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '</p>');
+      // ステータスを未レビュー+suspectに更新（suspectがあれば残す）
+      const detail = document.getElementById('detail-' + uid);
+      const oldBadges = detail.querySelectorAll('.reviewed, .unreviewed');
+      oldBadges.forEach(b => b.remove());
+      // suspect の後ろ（または先頭）に未レビューバッジを追加
+      const statusContainer = detail.querySelector('.status-badge');
+      if (statusContainer) {
+        const newBadge = document.createElement('span');
+        newBadge.className = 'unreviewed';
+        newBadge.textContent = '○ 未レビュー';
+        statusContainer.appendChild(newBadge);
+      }
+      cancelEdit(uid);
+      btn.textContent = '保存'; btn.disabled = false;
+      showToast(uid + ' のテキストを更新しました');
+    } else {
+      btn.textContent = '保存'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = '保存'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

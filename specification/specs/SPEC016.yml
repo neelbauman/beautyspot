@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  LifecyclePolicy
+level: 1.15
+links:
+- REQ007: FAk1im9qkBhtzNEPuqhcaOz9Xmme-nmrkiZc7bGQDNk=
+normative: true
+ref: ''
+reviewed: 9ELcBwoIK_DIQGEseTYmuluDlYdovazv0pTzBIzUC-U=
+text: |
+  `LifecyclePolicy` は `Rule` のリストに基づき、関数名パターン（fnmatch）で キャッシュの保持期間を決定する。`resolve_with_fallback()` は完全修飾名 → 短縮名の順でマッチングする。マッチしなければ無期限保持（None）を返す。

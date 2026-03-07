@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: DB
+header: |
+  メタデータDB
+level: 1.2
+links: []
+normative: true
+ref: ''
+reviewed: 7jpw6tf6ceE_hsCQzYMIYvz6qJuVSTbAim29GhUGeJE=
+text: |
+  キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。

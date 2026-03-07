@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  BackgroundLoop テスト
+level: 1.13
+links:
+- SPEC014: hWfsKwdn8ZTtko-Ls35b2EbRD5ck9M1OWCBXYVpUSzw=
+normative: true
+ref: ''
+reviewed: 3p_T7etVwTt5DtEok8ODZtxXvGz-JKCINF6bKIMO6rQ=
+text: |
+  BackgroundLoop のテスト。バックグラウンド保存の正確性、 保存の直列化、ゾンビスレッドのタスク完了を検証する。

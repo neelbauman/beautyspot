@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  mark デコレータ
+level: 1.0
+links:
+- REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
+normative: true
+ref: ''
+reviewed: X4ZWAN66bKhHrnIoR8pfJDkfyG6ja9UuWG0sctYewMc=
+text: |
+  同期・非同期の両方の関数に対して `@spot.mark()` デコレータで透過キャッシュを提供する。キャッシュヒット時は元の関数を実行せず、保存済みの結果を返す。

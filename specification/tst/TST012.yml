@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  MsgpackSerializer テスト
+level: 1.11
+links:
+- SPEC012: gJdAPnioKY0pdOMlTWHhoKZ7nsoRUwL_q0VzP7uwgjE=
+normative: true
+ref: ''
+reviewed: glJNLhxSDxgxao9ykNr8IzKLXZkhi3jxWNHdb6DKJzk=
+text: |
+  MsgpackSerializer のテスト。基本的なシリアライズ/デシリアライズ、 Pydantic モデルの dict フロー、スレッドセーフ LRU キャッシュ、 numpy シリアライズの一貫性を検証する。

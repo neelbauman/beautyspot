@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: KEY
+header: |
+  再帰的正規化テスト
+level: 1.4
+links:
+- SPEC005: EhCEQ5wDwWSVnNmbmjc-PgVSBv9a12JwuH5GSuEJIjw=
+normative: true
+ref: ''
+reviewed: JQm1UIjGeuBZlfoHNnyL_Ej8ufuwPtG_SYsPXBR5ek4=
+text: |
+  canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。

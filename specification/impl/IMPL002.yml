@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  cached_run 実装
+level: 1.1
+links:
+- SPEC002: Z-LZR2R2K-JQt47DybEoNa7yroEdNqRn3IrqMlvcS9A=
+normative: true
+ref: ''
+reviewed: 4fSVl8k3TDqYS6vsyYVG9s8eYqKCq5Q3iRHLHX-OnbA=
+text: |
+  `Spot.cached_run()` コンテキストマネージャの実装。 複数関数のラップ、単一関数時のスマートリターン、 0関数時の `ValidationError` を含む。

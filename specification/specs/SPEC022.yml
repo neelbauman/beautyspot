@@ -1,0 +1,24 @@
+active: true
+derived: false
+group: DI
+header: |
+  ファクトリ関数と Protocol
+level: 1.21
+links:
+- REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
+normative: true
+ref: ''
+reviewed: NZYcb6EGe1rbXhgyhFfvV7ylk1yr48zfQtkySdwhgaY=
+text: |
+  `bs.Spot(name, ...)` ファクトリ関数が唯一のパブリックエントリポイント。
+  引数未指定時のデフォルト:
+  - `SQLiteTaskDB (.beautyspot/{name}.db)`
+  - `LocalStorage (.beautyspot/blobs/{name})`
+  - `MsgpackSerializer`
+  - `TokenBucket (10000 TPM)`
+  - `WarningOnlyPolicy`
+
+  全コンポーネントは `Protocol/ABC` で定義:
+  `TaskDBCore`, `BlobStorageCore`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`。
+
+  `core.Spot` は `CacheManager` と `LimiterProtocol` を直接受け取り、 ファクトリ外での直接インスタンス化は非推奨。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: DI
+header: |
+  ファクトリ関数・DI テスト
+level: 1.21
+links:
+- SPEC022: Ro6EdCtdpXqIOMyxhJ-Sew9mM05m5Qt07JdpkUa0mmg=
+normative: true
+ref: ''
+reviewed: RkeJMQ7xxCBgGa2jWwk2RFt8vsvvMW1EMycjFtn2HnQ=
+text: |
+  ファクトリ関数と DI のテスト。`Protocol` ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）、 型推論、デフォルトワークスペース作成を検証する。

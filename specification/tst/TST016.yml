@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  LifecyclePolicy テスト
+level: 1.15
+links:
+- SPEC016: SVvySN0rXF-2Q4CJi-bFrwfHzMKigeaEwd9bdoFZ6pY=
+normative: true
+ref: ''
+reviewed: GTI--IrG1xZemLxeuXa8Ke5rNpGaz2lCt7hAz21SgIA=
+text: |
+  LifecyclePolicy のテスト。ルールベースのパターンマッチング、 resolve_with_fallback の完全修飾名→短縮名フォールバックを検証する。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: HERD
+header: |
+  Thundering Herd テスト
+level: 1.22
+links:
+- SPEC023: LaCIFEOqvQMVaK8Pc7Kuv3-b8o0AyevTMb1CpqUcngE=
+normative: true
+ref: ''
+reviewed: QTnliDQXDWd0kOyc8jEiYfpYcVUuJ-6xB76eR9z8E78=
+text: |
+  Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 `CacheManager` のモックテストを検証する。

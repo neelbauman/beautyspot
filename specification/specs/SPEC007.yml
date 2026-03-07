@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: DB
+header: |
+  SQLiteTaskDB
+level: 1.6
+links:
+- REQ003: 7jpw6tf6ceE_hsCQzYMIYvz6qJuVSTbAim29GhUGeJE=
+normative: true
+ref: ''
+reviewed: VXqLYkBH8pNTCNqltkyyXFwrYmpZWCPf1MLDYxc2FYg=
+text: |
+  `SQLiteTaskDB` はSQLiteをバックエンドとし、WALモード・専用ライタースレッドで動作する。 読み取りはスレッドローカルな読み取り専用接続（PRAGMA query_only=ON）で並行実行可能。 書き込みは `_WriteTask` キューを通じてライタースレッドが直列処理する。 自動マイグレーション（content_type, version, result_data, func_identifier, expires_at）を実行する。 `Flushable`/`Shutdownable` プロトコルに準拠し、flush/shutdownメソッドを提供する。

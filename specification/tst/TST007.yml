@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: DB
+header: |
+  SQLiteTaskDB テスト
+level: 1.6
+links:
+- SPEC007: G2KMw8zrCxayQlq1HHsa3ld2t_lchbQ85c7jUY9aU3k=
+normative: true
+ref: ''
+reviewed: 9_ANm7cnAylqtrdYO5A4kMlm_hPCfpoCPTAr_RuzktE=
+text: |
+  SQLiteTaskDB のテスト。スキーマ初期化、CRUD操作、 読み取り接続のリカバリとリーク防止、ライタースレッドの タイムアウト処理、GC 時のDB 存続性を検証する。

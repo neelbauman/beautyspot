@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  同期・非同期関数サポート
+level: 1.2
+links:
+- REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
+normative: true
+ref: ''
+reviewed: C8ttTHdDs39zXrZAkUpGVIr12NN2xsaUSWqoKrJvynM=
+text: |
+  `inspect.iscoroutinefunction()` による自動判定で、同期関数には同期ラッパー (`_execute_sync`)、非同期関数には非同期ラッパー (`_execute_async`) を適用する。 非同期関数のキャッシュ保存は `_BackgroundLoop` 経由の asyncio イベントループで処理する。

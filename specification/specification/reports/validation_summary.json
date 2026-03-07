@@ -1,0 +1,335 @@
+{
+  "timestamp": "2026-03-07T14:41:19.421310",
+  "documents": {
+    "REQ": 13,
+    "SPEC": 23,
+    "IMPL": 23,
+    "TST": 23
+  },
+  "groups": [
+    "BGIO",
+    "CACHE",
+    "CLI",
+    "DB",
+    "DI",
+    "HERD",
+    "HOOK",
+    "KEY",
+    "LIFE",
+    "LIMIT",
+    "MAINT",
+    "SERIAL",
+    "STORE"
+  ],
+  "review_status": {
+    "total": 82,
+    "reviewed": 82
+  },
+  "issues": {
+    "errors": [],
+    "warnings": [],
+    "info": []
+  },
+  "coverage": {
+    "SPEC → REQ": {
+      "total": 13,
+      "covered": 13,
+      "uncovered": 0,
+      "percentage": 100.0,
+      "uncovered_items": [],
+      "by_group": {
+        "BGIO": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CACHE": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CLI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DB": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HERD": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HOOK": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "KEY": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIFE": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIMIT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "MAINT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "SERIAL": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "STORE": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        }
+      }
+    },
+    "IMPL → SPEC": {
+      "total": 23,
+      "covered": 23,
+      "uncovered": 0,
+      "percentage": 100.0,
+      "uncovered_items": [],
+      "by_group": {
+        "BGIO": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CACHE": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CLI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DB": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HERD": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HOOK": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "KEY": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIFE": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIMIT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "MAINT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "SERIAL": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "STORE": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        }
+      }
+    },
+    "TST → SPEC": {
+      "total": 23,
+      "covered": 23,
+      "uncovered": 0,
+      "percentage": 100.0,
+      "uncovered_items": [],
+      "by_group": {
+        "BGIO": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CACHE": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "CLI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DB": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "DI": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HERD": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "HOOK": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "KEY": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIFE": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "LIMIT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "MAINT": {
+          "total": 1,
+          "covered": 1,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "SERIAL": {
+          "total": 2,
+          "covered": 2,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        },
+        "STORE": {
+          "total": 3,
+          "covered": 3,
+          "uncovered": 0,
+          "percentage": 100.0,
+          "uncovered_items": []
+        }
+      }
+    }
+  }
+}

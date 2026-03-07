@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  BackgroundLoop 実装
+level: 1.13
+links:
+- SPEC014: hWfsKwdn8ZTtko-Ls35b2EbRD5ck9M1OWCBXYVpUSzw=
+normative: true
+ref: ''
+reviewed: 6-YNK--7qLr4mSyhtrI7d-D2zlsSsv2l7YmjqNhW7Z0=
+text: |
+  _BackgroundLoop の実装。デーモンスレッドでの asyncio イベントループ、 submit(coro) によるスレッドセーフなコルーチン投入、 シャットダウン時の drain_timeout 待機、atexit ハンドラを含む。

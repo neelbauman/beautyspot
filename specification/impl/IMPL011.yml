@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  ストレージポリシー実装
+level: '1.10'
+links:
+- SPEC011: qeKd1wc5TSwlxBzJ42n-PeRYYFRL_rVaJ1b_dbfV9m8=
+normative: true
+ref: ''
+reviewed: CQvA7RTOa1edGYcf31jbYv_j1BxhJo7Adz9YCkHVirw=
+text: |
+  StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告のみ）、 AlwaysBlobPolicy（常にBlob）を含む。

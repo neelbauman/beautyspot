@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  mark デコレータテスト
+level: 1.0
+links:
+- SPEC001: VfQBYPsFZq-DXL4HZTKnV19i2K4KduLyZ4XcG1i5tkg=
+normative: true
+ref: ''
+reviewed: H5qqpyZfBh2QiC4p3UQ5dhwhqWWHQttVamqbc98NxXQ=
+text: |
+  `mark` デコレータのテスト。基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: KEY
+header: |
+  KeyGenPolicy 戦略
+level: 1.5
+links:
+- REQ002: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
+normative: true
+ref: ''
+reviewed: -aSbUHpiPaN62CzqRWX4_FOKr1bA7rKY68yZ6JLbxkE=
+text: |
+  `KeyGen.ignore(*arg_names)`, `KeyGen.map(**strategies)`, `KeyGen.file_content(*args)`, `KeyGen.path_stat(*args)` のファクトリメソッドにより、引数ごとのキー生成戦略を指定する `KeyGenPolicy` を生成できる。Strategy は DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種。 `KeyGenPolicy.bind(func)` で関数シグネチャにバインドされたキー生成関数を返す。

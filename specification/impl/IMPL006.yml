@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: KEY
+header: |
+  KeyGenPolicy 実装
+level: 1.5
+links:
+- SPEC006: g8tRTaQaFr-uwAmN4mlisB3i800uqqU7y2waN0Nxxug=
+normative: true
+ref: ''
+reviewed: yQh-xvnmgWDv3Sfm1VVthduPdw5btleAGy80xPok-9g=
+text: |
+  KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。

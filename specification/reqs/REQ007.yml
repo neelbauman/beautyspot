@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  ライフサイクル管理
+level: 1.6
+links: []
+normative: true
+ref: ''
+reviewed: FAk1im9qkBhtzNEPuqhcaOz9Xmme-nmrkiZc7bGQDNk=
+text: |
+  キャッシュの有効期限を関数名パターンに基づくルールで設定できること。個別の関数に対して保持期間を指定でき、期限切れのキャッシュを自動的に無効化できること。

@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  同期・非同期サポートテスト
+level: 1.2
+links:
+- SPEC003: melgubGhLg2ZUsF0RDjsRKLPGxNceWKVBp5yJdZHyWg=
+normative: true
+ref: ''
+reviewed: eiRxHFzaMfclcklJ3oXgeyW5Wx-0PTJTfTOAW2dHOAY=
+text: |
+  同期・非同期関数サポートのテスト。非同期例外伝播、 `async thundering herd` 、`async save_sync` 動作を検証する。

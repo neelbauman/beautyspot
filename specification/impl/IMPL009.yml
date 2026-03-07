@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: STORE
+header: |
+  LocalStorage 実装
+level: 1.8
+links:
+- SPEC009: LSgFkvwAFG6heFSqgxj5-f3RjzmSqq4k2rFv1WmEdFs=
+normative: true
+ref: ''
+reviewed: m_ypUl8V4SUmmb5BRm1Hf4QyDXBiDD6FpVkw8gp71fU=
+text: |
+  LocalStorage の実装。tempfile.mkstemp + os.replace によるアトミック書き込み、 is_relative_to によるパストラバーサル防止、.bin 再帰列挙、 clean_temp_files/prune_empty_dirs を含む。

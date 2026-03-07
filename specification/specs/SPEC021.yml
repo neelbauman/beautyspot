@@ -1,0 +1,13 @@
+active: true
+derived: false
+group: CLI
+header: |
+  CLIコマンド
+level: '1.20'
+links:
+- REQ011: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
+normative: true
+ref: ''
+reviewed: 1t6kMYjfu_JdHr-e_HpWR2iqZlASGDR2ende-Vp_srY=
+text: |
+  `beautyspot` CLIコマンド群を提供する（Typer ベース）。 `list`: キャッシュ済みタスクまたは利用可能なDBの一覧表示。 `show`: 特定キャッシュキーの詳細表示。 `stats`: キャッシュ統計の表示。 `clear`: キャッシュの削除。 `clean`: 孤立Blobファイルのガベージコレクション。 `gc`: 期限切れタスクと孤立ストレージの一括クリーンアップ。 `prune`: 時間ベースの一括削除。 `ui`: インタラクティブダッシュボードの起動。 `version`: バージョン情報の表示。 出力は rich (Console, Table, Panel) でフォーマットする。
