@@ -7,6 +7,8 @@ level: 1.2
 links: []
 normative: true
 ref: ''
-reviewed: 7jpw6tf6ceE_hsCQzYMIYvz6qJuVSTbAim29GhUGeJE=
+reviewed: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 text: |
-  キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。抽象インターフェースにより実装を差し替え可能であること。
+  キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。
+
+  抽象インターフェースにより、DBやストレージなどのバックエンド実装を差し替え可能であること。

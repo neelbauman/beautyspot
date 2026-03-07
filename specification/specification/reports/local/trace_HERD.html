@@ -110,7 +110,7 @@
 <body>
 <div class="back-nav"><a href="../traceability_report.html">← 全体レポートに戻る</a></div>
 <h1>局所トレーサビリティビュー <span class="scope-label">グループ: HERD</span></h1>
-<p class="timestamp">生成日時: 2026-03-07 15:11:02</p>
+<p class="timestamp">生成日時: 2026-03-07 15:52:25</p>
 
 <div class="summary">
   <div class="card">
@@ -157,7 +157,7 @@
 <p style="font-size:0.85em; color:#888">✓=レビュー済 ○=未レビュー ⚠=Suspect（複数同時表示あり。IDクリックで詳細へ）</p>
 <table id="matrix-table">
 <tr><th>グループ</th><th>REQ</th><th>SPEC</th><th>IMPL</th><th>TST</th></tr>
-<tr data-group="HERD"><td><span class="group-tag">HERD</span></td><td><a href="#detail-REQ013" style="text-decoration:none; color:inherit"><strong>REQ013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。</span></td><td><a href="#detail-SPEC023" style="text-decoration:none; color:inherit"><strong>SPEC023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）と...</span></td><td><a href="#detail-IMPL023" style="text-decoration:none; color:inherit"><strong>IMPL023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asy...</span></td><td><a href="#detail-TST023" style="text-decoration:none; color:inherit"><strong>TST023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheM...</span></td></tr>
+<tr data-group="HERD"><td><span class="group-tag">HERD</span></td><td><a href="#detail-REQ013" style="text-decoration:none; color:inherit"><strong>REQ013</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">同一キャッシュキーに対する並行リクエストを直列化し、1つのリクエストのみが関数を実行し、他のリクエストはその結果を共有することで重複実行を防止できること。</span></td><td><a href="#detail-SPEC023" style="text-decoration:none; color:inherit"><strong>SPEC023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）と...</span></td><td><a href="#detail-IMPL023" style="text-decoration:none; color:inherit"><strong>IMPL023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`CacheManager` の `Thundering Herd Protection` 実装。 `_inflight` 辞書、`threading.Even...</span></td><td><a href="#detail-TST023" style="text-decoration:none; color:inherit"><strong>TST023</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 `Cache...</span></td></tr>
 </table>
 
 <h2>カバレッジ（局所）</h2>
@@ -215,9 +215,9 @@
         <span class="group-tag">HERD</span>
         <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
       </h3>
-      <div class="item-text" data-uid="SPEC023"><p><code>CacheManager</code> 内の <code>_inflight</code> 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは threading.Event (同期) または asyncio.Future (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</p></div>
+      <div class="item-text" data-uid="SPEC023"><p><code>CacheManager</code> 内の <code>_inflight</code> 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは <code>threading.Event</code> (同期) または <code>asyncio.Future</code> (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</p></div>
       <div class="item-editor hidden" data-uid="SPEC023">
-        <textarea class="edit-textarea" data-uid="SPEC023">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは threading.Event (同期) または asyncio.Future (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</textarea>
+        <textarea class="edit-textarea" data-uid="SPEC023">`CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは `threading.Event` (同期) または `asyncio.Future` (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。</textarea>
         <div class="edit-actions">
           <button class="action-btn save-btn" onclick="doSave('SPEC023')">保存</button>
           <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC023')">キャンセル</button>
@@ -238,9 +238,9 @@
         <span class="group-tag">HERD</span>
         <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
       </h3>
-      <div class="item-text" data-uid="IMPL023"><p>CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asyncio.Future による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</p></div>
+      <div class="item-text" data-uid="IMPL023"><p><code>CacheManager</code> の <code>Thundering Herd Protection</code> 実装。 <code>_inflight</code> 辞書、<code>threading.Event</code> / <code>asyncio.Future</code> による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</p></div>
       <div class="item-editor hidden" data-uid="IMPL023">
-        <textarea class="edit-textarea" data-uid="IMPL023">CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asyncio.Future による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</textarea>
+        <textarea class="edit-textarea" data-uid="IMPL023">`CacheManager` の `Thundering Herd Protection` 実装。 `_inflight` 辞書、`threading.Event` / `asyncio.Future` による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。</textarea>
         <div class="edit-actions">
           <button class="action-btn save-btn" onclick="doSave('IMPL023')">保存</button>
           <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL023')">キャンセル</button>
@@ -261,9 +261,9 @@
         <span class="group-tag">HERD</span>
         <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
       </h3>
-      <div class="item-text" data-uid="TST023"><p>Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheManager のモックテストを検証する。</p></div>
+      <div class="item-text" data-uid="TST023"><p>Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 <code>CacheManager</code> のモックテストを検証する。</p></div>
       <div class="item-editor hidden" data-uid="TST023">
-        <textarea class="edit-textarea" data-uid="TST023">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 CacheManager のモックテストを検証する。</textarea>
+        <textarea class="edit-textarea" data-uid="TST023">Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 `CacheManager` のモックテストを検証する。</textarea>
         <div class="edit-actions">
           <button class="action-btn save-btn" onclick="doSave('TST023')">保存</button>
           <button class="action-btn cancel-btn" onclick="cancelEdit('TST023')">キャンセル</button>

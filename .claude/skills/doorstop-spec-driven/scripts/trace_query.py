@@ -1,0 +1,542 @@
+#!/usr/bin/env python3
+"""AIコーディングエージェント向けトレーサビリティ照会CLI。
+
+doorstop_ops.py がCRUD操作を担当するのに対し、本スクリプトは
+トレーサビリティの「分析・照会」に特化する。
+すべてのコマンドはJSON形式でstdoutに出力し、エージェントがパースしやすい。
+
+Usage:
+    python trace_query.py <project-dir> <command> [options]
+
+Commands:
+    status              プロジェクト全体のサマリ（件数・カバレッジ・suspect数）
+    chain <UID>         指定UIDの上流→下流チェーン全体を表示
+    coverage            カバレッジ詳細（どのSPECがIMPL/TST未カバーか）
+    suspects            全suspect一覧と要対応アクション
+    gaps                リンク漏れ・ref未設定のアイテム一覧
+
+Examples:
+    python trace_query.py . status
+    python trace_query.py . chain SPEC003
+    python trace_query.py . coverage --group CACHE
+    python trace_query.py . suspects
+    python trace_query.py . gaps --document IMPL
+"""
+
+import argparse
+import json
+import os
+import sys
+from collections import defaultdict
+
+try:
+    import doorstop
+except ImportError:
+    print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
+    sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Utility
+# ---------------------------------------------------------------------------
+
+def out(data):
+    """JSON出力して終了。"""
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+    sys.exit(0 if data.get("ok", True) else 1)
+
+
+def get_group(item):
+    try:
+        g = item.get("group")
+        return g if g else None
+    except (AttributeError, KeyError):
+        return None
+
+
+def get_ref(item):
+    try:
+        return item.ref or ""
+    except (AttributeError, KeyError):
+        return ""
+
+
+def find_item(tree, uid_str):
+    for doc in tree:
+        try:
+            return doc.find_item(uid_str)
+        except Exception:
+            continue
+    return None
+
+
+def find_doc_prefix(tree, item):
+    for doc in tree:
+        try:
+            doc.find_item(str(item.uid))
+            return doc.prefix
+        except Exception:
+            continue
+    return "?"
+
+
+def is_suspect(item, tree):
+    """アイテムがsuspect状態かどうかを判定する。"""
+    for link in item.links:
+        parent = find_item(tree, str(link))
+        if parent is None:
+            continue
+        if (
+            link.stamp is not None
+            and link.stamp != ""
+            and link.stamp != parent.stamp()
+        ):
+            return True
+    return False
+
+
+def item_summary(item, prefix=None, tree=None):
+    """アイテムのコンパクトなdict表現。"""
+    d = {
+        "uid": str(item.uid),
+        "prefix": prefix or find_doc_prefix(tree, item) if tree else "?",
+        "group": get_group(item),
+        "header": item.header.strip() if item.header else "",
+        "text": item.text.strip()[:200],
+        "ref": get_ref(item),
+        "links": [str(link) for link in item.links],
+        "reviewed": bool(item.reviewed),
+    }
+    if tree is not None:
+        d["suspect"] = is_suspect(item, tree)
+    return d
+
+
+# ---------------------------------------------------------------------------
+# Link index
+# ---------------------------------------------------------------------------
+
+def build_link_index(tree):
+    """children[parent_uid] = [(child_item, prefix), ...]
+       parents[child_uid]   = [(parent_item, prefix), ...]
+    """
+    children = defaultdict(list)
+    parents = defaultdict(list)
+    for doc in tree:
+        for item in doc:
+            for link in item.links:
+                uid_str = str(link)
+                parent_item = find_item(tree, uid_str)
+                if parent_item:
+                    children[uid_str].append((item, doc.prefix))
+                    parents[str(item.uid)].append(
+                        (parent_item, find_doc_prefix(tree, parent_item))
+                    )
+    return children, parents
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def cmd_status(tree, args):
+    """プロジェクト全体のサマリ。"""
+    children_idx, _ = build_link_index(tree)
+
+    # ドキュメントごとの統計
+    doc_stats = {}
+    all_items = []
+    suspect_count = 0
+    unreviewed_count = 0
+
+    for doc in tree:
+        items = list(doc)
+        reviewed = sum(1 for i in items if i.reviewed)
+        suspects = sum(1 for i in items if is_suspect(i, tree))
+        suspect_count += suspects
+        unreviewed_count += len(items) - reviewed
+        doc_stats[doc.prefix] = {
+            "count": len(items),
+            "reviewed": reviewed,
+            "unreviewed": len(items) - reviewed,
+            "suspects": suspects,
+        }
+        all_items.extend((i, doc.prefix) for i in items)
+
+    # カバレッジ
+    docs = {doc.prefix: doc for doc in tree}
+    coverage = {}
+    for doc in tree:
+        if not doc.parent or doc.parent not in docs:
+            continue
+        parent_doc = docs[doc.parent]
+        parent_uids = {str(i.uid) for i in parent_doc}
+        covered = set()
+        for item in doc:
+            for link in item.links:
+                if str(link) in parent_uids:
+                    covered.add(str(link))
+        total = len(parent_uids)
+        pct = round(len(covered) / total * 100, 1) if total > 0 else 100.0
+        uncovered = sorted(parent_uids - covered)
+        coverage[f"{doc.prefix} -> {doc.parent}"] = {
+            "total": total,
+            "covered": len(covered),
+            "percentage": pct,
+            "uncovered_uids": uncovered,
+        }
+
+    # グループ
+    groups = sorted({get_group(i) for i, _ in all_items if get_group(i)})
+
+    out({
+        "ok": True,
+        "action": "status",
+        "documents": doc_stats,
+        "total_items": sum(d["count"] for d in doc_stats.values()),
+        "total_suspects": suspect_count,
+        "total_unreviewed": unreviewed_count,
+        "coverage": coverage,
+        "groups": groups,
+    })
+
+
+def cmd_chain(tree, args):
+    """指定UIDの上流→下流チェーン全体を表示する。"""
+    root_item = find_item(tree, args.uid)
+    if root_item is None:
+        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+
+    children_idx, parents_idx = build_link_index(tree)
+
+    # 上流追跡
+    upstream = []
+    _trace_up(str(root_item.uid), parents_idx, upstream, visited=set())
+
+    # 下流追跡
+    downstream = []
+    _trace_down(str(root_item.uid), children_idx, downstream, visited=set())
+
+    # 完全なチェーン内のUID集合を収集
+    chain_uids = {str(root_item.uid)}
+    for entry in upstream:
+        chain_uids.add(entry["uid"])
+    for entry in downstream:
+        chain_uids.add(entry["uid"])
+
+    # チェーンをREQ→SPEC→IMPL/TSTの階層に整理
+    layers = defaultdict(list)
+    for doc in tree:
+        for item in doc:
+            uid_str = str(item.uid)
+            if uid_str in chain_uids:
+                layers[doc.prefix].append(item_summary(item, doc.prefix, tree))
+
+    out({
+        "ok": True,
+        "action": "chain",
+        "root": item_summary(root_item, find_doc_prefix(tree, root_item), tree),
+        "upstream": upstream,
+        "downstream": downstream,
+        "by_layer": dict(layers),
+        "chain_size": len(chain_uids),
+    })
+
+
+def _trace_up(uid, parents_idx, result, visited, depth=0):
+    if uid in visited or depth > 10:
+        return
+    visited.add(uid)
+    for parent_item, parent_prefix in parents_idx.get(uid, []):
+        parent_uid = str(parent_item.uid)
+        result.append({
+            "uid": parent_uid,
+            "prefix": parent_prefix,
+            "group": get_group(parent_item),
+            "text": parent_item.text.strip()[:120],
+            "depth": depth,
+        })
+        _trace_up(parent_uid, parents_idx, result, visited, depth + 1)
+
+
+def _trace_down(uid, children_idx, result, visited, depth=0):
+    if uid in visited or depth > 10:
+        return
+    visited.add(uid)
+    for child_item, child_prefix in children_idx.get(uid, []):
+        child_uid = str(child_item.uid)
+        result.append({
+            "uid": child_uid,
+            "prefix": child_prefix,
+            "group": get_group(child_item),
+            "text": child_item.text.strip()[:120],
+            "ref": get_ref(child_item),
+            "depth": depth,
+        })
+        _trace_down(child_uid, children_idx, result, visited, depth + 1)
+
+
+def cmd_coverage(tree, args):
+    """カバレッジ詳細。"""
+    docs = {doc.prefix: doc for doc in tree}
+    result = {}
+
+    for doc in tree:
+        if not doc.parent or doc.parent not in docs:
+            continue
+        parent_doc = docs[doc.parent]
+
+        # グループフィルタ
+        if args.group:
+            parent_items = [i for i in parent_doc if get_group(i) == args.group]
+        else:
+            parent_items = list(parent_doc)
+
+        parent_uids = {str(i.uid) for i in parent_items}
+        if not parent_uids:
+            continue
+
+        # カバー判定
+        covered_map = defaultdict(list)  # parent_uid -> [child_uid, ...]
+        uncovered = set(parent_uids)
+
+        child_items = list(doc) if not args.group else [
+            i for i in doc if get_group(i) == args.group
+        ]
+        for item in child_items:
+            for link in item.links:
+                link_str = str(link)
+                if link_str in parent_uids:
+                    covered_map[link_str].append(str(item.uid))
+                    uncovered.discard(link_str)
+
+        total = len(parent_uids)
+        covered = total - len(uncovered)
+        pct = round(covered / total * 100, 1) if total > 0 else 100.0
+
+        # 未カバーアイテムの詳細
+        uncovered_details = []
+        for uid in sorted(uncovered):
+            item = find_item(tree, uid)
+            if item:
+                uncovered_details.append({
+                    "uid": uid,
+                    "group": get_group(item),
+                    "text": item.text.strip()[:120],
+                })
+
+        key = f"{doc.prefix} -> {doc.parent}"
+        result[key] = {
+            "total": total,
+            "covered": covered,
+            "percentage": pct,
+            "uncovered_items": uncovered_details,
+            "covered_map": dict(covered_map) if args.detail else None,
+        }
+
+    out({
+        "ok": True,
+        "action": "coverage",
+        "group_filter": args.group,
+        "relations": result,
+    })
+
+
+def cmd_suspects(tree, args):
+    """全suspect一覧と要対応アクション。"""
+    children_idx, _ = build_link_index(tree)
+    suspects = []
+
+    for doc in tree:
+        for item in doc:
+            if args.group and get_group(item) != args.group:
+                continue
+            if not is_suspect(item, tree):
+                continue
+
+            # どのリンクがsuspectか特定
+            suspect_links = []
+            for link in item.links:
+                parent = find_item(tree, str(link))
+                if parent is None:
+                    continue
+                if (
+                    link.stamp is not None
+                    and link.stamp != ""
+                    and link.stamp != parent.stamp()
+                ):
+                    suspect_links.append({
+                        "parent_uid": str(link),
+                        "parent_prefix": find_doc_prefix(tree, parent),
+                        "parent_text": parent.text.strip()[:100],
+                    })
+
+            action = _suggest_action(item, doc.prefix)
+
+            suspects.append({
+                "uid": str(item.uid),
+                "prefix": doc.prefix,
+                "group": get_group(item),
+                "text": item.text.strip()[:120],
+                "ref": get_ref(item),
+                "suspect_links": suspect_links,
+                "action": action,
+            })
+
+    out({
+        "ok": True,
+        "action": "suspects",
+        "group_filter": args.group,
+        "count": len(suspects),
+        "items": suspects,
+    })
+
+
+def _suggest_action(item, prefix):
+    """suspectアイテムに対する推奨アクションを生成する。"""
+    uid = str(item.uid)
+    ref = get_ref(item)
+    if prefix == "IMPL":
+        base = f"{uid} の実装を確認・修正"
+        if ref:
+            base += f"（{ref}）"
+        return base + f" → doorstop clear {uid}"
+    elif prefix == "TST":
+        base = f"{uid} のテストを確認・修正"
+        if ref:
+            base += f"（{ref}）"
+        return base + f" → doorstop clear {uid}"
+    elif prefix == "SPEC":
+        return f"{uid} の仕様が親REQの変更と整合するか確認 → doorstop clear {uid}"
+    else:
+        return f"{uid} を確認 → doorstop clear {uid}"
+
+
+def cmd_gaps(tree, args):
+    """リンク漏れ・ref未設定のアイテムを検出する。"""
+    children_idx, _ = build_link_index(tree)
+
+    missing_links = []   # 親リンクがあるべきなのに無いアイテム
+    missing_refs = []    # ref必須(IMPL/TST)なのに未設定
+    orphan_children = [] # 子から参照されていないアイテム
+
+    for doc in tree:
+        if args.document and doc.prefix != args.document:
+            continue
+        for item in doc:
+            if args.group and get_group(item) != args.group:
+                continue
+
+            uid_str = str(item.uid)
+
+            # 親リンクチェック（REQ以外は親リンク必須）
+            if doc.parent and not item.links:
+                missing_links.append({
+                    "uid": uid_str,
+                    "prefix": doc.prefix,
+                    "group": get_group(item),
+                    "text": item.text.strip()[:120],
+                    "expected_parent_doc": doc.parent,
+                    "issue": f"{doc.parent} へのリンクがありません",
+                })
+
+            # refチェック（IMPL/TSTはref必須）
+            if doc.prefix in ("IMPL", "TST") and not get_ref(item):
+                missing_refs.append({
+                    "uid": uid_str,
+                    "prefix": doc.prefix,
+                    "group": get_group(item),
+                    "text": item.text.strip()[:120],
+                    "issue": "ref（ソース/テストファイルパス）が未設定",
+                })
+
+    # 子から参照されていないアイテム（SPEC で IMPL/TST が紐付いていない等）
+    for doc in tree:
+        if args.document and args.document not in (doc.prefix, None):
+            continue
+        # このドキュメントを親に持つ子ドキュメントがあるか
+        child_docs = [d for d in tree if d.parent == doc.prefix]
+        if not child_docs:
+            continue
+        for item in doc:
+            if args.group and get_group(item) != args.group:
+                continue
+            uid_str = str(item.uid)
+            if not children_idx.get(uid_str):
+                orphan_children.append({
+                    "uid": uid_str,
+                    "prefix": doc.prefix,
+                    "group": get_group(item),
+                    "text": item.text.strip()[:120],
+                    "issue": f"子ドキュメント（{', '.join(d.prefix for d in child_docs)}）"
+                             f"からの参照がありません",
+                })
+
+    out({
+        "ok": True,
+        "action": "gaps",
+        "document_filter": args.document,
+        "group_filter": args.group,
+        "missing_links": missing_links,
+        "missing_refs": missing_refs,
+        "orphan_items": orphan_children,
+        "total_issues": len(missing_links) + len(missing_refs) + len(orphan_children),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="AIエージェント向けトレーサビリティ照会CLI（JSON出力）"
+    )
+    parser.add_argument("project_dir", help="プロジェクトルート")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # status
+    sub.add_parser("status", help="プロジェクト全体のサマリ")
+
+    # chain
+    p_chain = sub.add_parser("chain", help="UIDの上流→下流チェーン")
+    p_chain.add_argument("uid", help="起点となるUID")
+
+    # coverage
+    p_cov = sub.add_parser("coverage", help="カバレッジ詳細")
+    p_cov.add_argument("-g", "--group", help="グループで絞り込み")
+    p_cov.add_argument("--detail", action="store_true",
+                       help="カバー元のマッピングも出力")
+
+    # suspects
+    p_sus = sub.add_parser("suspects", help="全suspect一覧")
+    p_sus.add_argument("-g", "--group", help="グループで絞り込み")
+
+    # gaps
+    p_gap = sub.add_parser("gaps", help="リンク漏れ・ref未設定")
+    p_gap.add_argument("-d", "--document", help="ドキュメントで絞り込み")
+    p_gap.add_argument("-g", "--group", help="グループで絞り込み")
+
+    args = parser.parse_args()
+
+    project_dir = os.path.abspath(args.project_dir)
+    os.chdir(project_dir)
+
+    try:
+        tree = doorstop.build()
+    except Exception as e:
+        out({"ok": False, "error": f"ツリー構築失敗: {e}"})
+
+    cmd_map = {
+        "status": cmd_status,
+        "chain": cmd_chain,
+        "coverage": cmd_coverage,
+        "suspects": cmd_suspects,
+        "gaps": cmd_gaps,
+    }
+
+    cmd_map[args.command](tree, args)
+
+
+if __name__ == "__main__":
+    main()

@@ -5,9 +5,9 @@ header: |
   Thundering Herd 実装
 level: 1.22
 links:
-- SPEC023: LaCIFEOqvQMVaK8Pc7Kuv3-b8o0AyevTMb1CpqUcngE=
+- SPEC023: cNqfZstyDYp-k2D9ACa--GhtPki2UrUUjvDsVLcu7PY=
 normative: true
 ref: ''
-reviewed: WzF4Xxuurzy19hcmfS5JSurxt6mh_dXs0qIWgJlSoA8=
+reviewed: pMrVvI-GIdDQFDEb-cBoKkI_3LbPF2nwJaHhsCvVRd8=
 text: |
-  CacheManager の Thundering Herd Protection 実装。 _inflight 辞書、threading.Event / asyncio.Future による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。
+  `CacheManager` の `Thundering Herd Protection` 実装。 `_inflight` 辞書、`threading.Event` / `asyncio.Future` による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。

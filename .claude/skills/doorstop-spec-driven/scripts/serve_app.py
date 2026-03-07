@@ -477,7 +477,32 @@ class DoorstopDataStore:
         item = self._find_item(uid)
         if item is None:
             return None
-        return self._item_to_dict(item)
+        data = self._item_to_dict(item)
+        # Find prev/next and siblings in the same document
+        for doc in self.tree:
+            items = list(doc)
+            for i, it in enumerate(items):
+                if str(it.uid) == uid:
+                    data["prev_uid"] = str(items[i - 1].uid) if i > 0 else None
+                    data["next_uid"] = str(items[i + 1].uid) if i < len(items) - 1 else None
+                    # Siblings = items sharing at least one parent
+                    parent_uids = {str(p.uid) for p in self._parents_idx.get(uid, [])}
+                    sibling_set = set()
+                    for puid in parent_uids:
+                        for child in self._children_idx.get(puid, []):
+                            cuid = str(child.uid)
+                            if cuid != uid:
+                                sibling_set.add(cuid)
+                    data["siblings"] = [
+                        {
+                            "uid": s_uid,
+                            "reviewed": bool(self._find_item(s_uid).reviewed),
+                            "suspect": s_uid in self._suspect_uids,
+                        }
+                        for s_uid in sorted(sibling_set)
+                    ]
+                    return data
+        return data
 
     def get_all_items(self, group=None, prefix=None):
         items = []
@@ -780,7 +805,10 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
   background: var(--surface); border-left: 1px solid var(--border);
   box-shadow: -4px 0 12px rgba(0,0,0,0.08); z-index: 200;
   transform: translateX(100%); transition: transform 0.3s ease;
-  overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column;
+}
+#item-panel-content {
+  flex: 1; overflow-y: auto; padding: 20px;
 }
 #item-panel.open { transform: translateX(0); }
 #item-panel .panel-header {
@@ -792,6 +820,18 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
   color: var(--text-secondary); line-height: 1;
 }
 #item-panel .panel-close:hover { color: var(--text); }
+#item-panel .panel-nav {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 10px 20px; border-top: 1px solid var(--border); background: var(--surface);
+  flex-shrink: 0;
+}
+#item-panel .panel-nav button {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; color: var(--text-secondary); font-size: 0.85em;
+  padding: 6px 12px; line-height: 1.3; transition: background .15s, color .15s;
+}
+#item-panel .panel-nav button:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+#item-panel .panel-nav button:disabled { opacity: .35; cursor: default; }
 
 /* Cards */
 .cards { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
@@ -822,6 +862,11 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
 table { border-collapse: collapse; width: 100%; background: var(--surface); margin: 12px 0; }
 th { background: var(--primary); color: #fff; padding: 10px 12px; text-align: left;
      font-size: 0.85em; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+th.sortable { cursor: pointer; user-select: none; padding-right: 22px; position: relative; }
+th.sortable:hover { background: var(--primary-dark); }
+th .sort-arrow { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+                 font-size: 0.7em; opacity: 0.5; }
+th.sort-active .sort-arrow { opacity: 1; }
 td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; font-size: 0.88em; }
 tr:nth-child(even) { background: #f8f9fa; }
 tr:hover { background: #eef3fc; }
@@ -906,7 +951,7 @@ td.empty { color: #ccc; text-align: center; }
   display: inline-block; width: 60px; height: 8px; background: #e0e0e0;
   border-radius: 4px; overflow: hidden; vertical-align: middle; margin-right: 6px;
 }
-.coverage-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.coverage-fill { display: block; height: 100%; border-radius: 4px; transition: width 0.3s; }
 
 /* Toast */
 .toast {
@@ -973,6 +1018,7 @@ td.empty { color: #ccc; text-align: center; }
 
 <div id="item-panel">
   <div id="item-panel-content"></div>
+  <div class="panel-nav" id="item-panel-nav"></div>
 </div>
 
 <script>
@@ -1165,17 +1211,24 @@ async function renderDashboard() {
 
 // --- Matrix ---
 let matrixData = null;
-let matrixFilters = { groups: new Set(), statuses: new Set(), query: '' };
+let matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+
+function naturalCompare(a, b) {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
 
 async function renderMatrix() {
   $main().innerHTML = '<div class="loading">Loading...</div>';
   matrixData = await API.get('/api/matrix');
-  matrixFilters = { groups: new Set(), statuses: new Set(), query: '' };
+  matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
   renderMatrixView();
 }
 
 function renderMatrixView() {
   if (!matrixData) return;
+  const prev = document.activeElement;
+  const hadSearchFocus = prev && prev.classList.contains('search-input');
+  const cursorPos = hadSearchFocus ? prev.selectionStart : 0;
   const { prefixes, rows } = matrixData;
 
   const allGroups = [...new Set(rows.map(r => r.group))].sort();
@@ -1187,18 +1240,50 @@ function renderMatrixView() {
     `<span class="pill ${matrixFilters.statuses.has(s)?'active':''}" onclick="toggleMatrixStatus('${s}')">${s==='reviewed'?'&#x2713; Reviewed':s==='unreviewed'?'&#x25CB; Unreviewed':'&#x26A0; Suspect'}</span>`
   ).join('');
 
-  let headerCells = '<th>Group</th>' + prefixes.map(p => `<th>${h(p)}</th>`).join('');
-  let bodyRows = '';
+  const sortArrowHtml = (colIdx) => {
+    const active = matrixFilters.sortCol === colIdx;
+    const arrow = active ? (matrixFilters.sortDir === 'asc' ? '&#x25B2;' : '&#x25BC;') : '&#x25B2;&#x25BC;';
+    return `<th class="sortable ${active?'sort-active':''}" onclick="toggleMatrixSort(${colIdx})">`;
+  };
+  let headerCells = `${sortArrowHtml(0)}Group<span class="sort-arrow">${matrixFilters.sortCol===0?(matrixFilters.sortDir==='asc'?'&#x25B2;':'&#x25BC;'):'&#x25B2;&#x25BC;'}</span></th>`;
+  prefixes.forEach((p, i) => {
+    const ci = i + 1;
+    const active = matrixFilters.sortCol === ci;
+    const arrowText = active ? (matrixFilters.sortDir==='asc'?'&#x25B2;':'&#x25BC;') : '&#x25B2;&#x25BC;';
+    headerCells += `${sortArrowHtml(ci)}${h(p)}<span class="sort-arrow">${arrowText}</span></th>`;
+  });
 
-  for (const row of rows) {
-    // Apply filters
-    if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) continue;
-    if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) continue;
+  // Filter rows
+  let filtered = rows.filter(row => {
+    if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) return false;
+    if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) return false;
     if (matrixFilters.query) {
       const q = matrixFilters.query.toUpperCase();
-      if (!row.uids.some(u => u.toUpperCase().includes(q))) continue;
+      if (!row.uids.some(u => u.toUpperCase().includes(q))) return false;
     }
+    return true;
+  });
 
+  // Sort rows
+  if (matrixFilters.sortCol >= 0) {
+    const col = matrixFilters.sortCol;
+    filtered.sort((a, b) => {
+      let aKey, bKey;
+      if (col === 0) {
+        aKey = a.group || '';
+        bKey = b.group || '';
+      } else {
+        const prefix = prefixes[col - 1];
+        aKey = a.cells[prefix]?.uid || '';
+        bKey = b.cells[prefix]?.uid || '';
+      }
+      const cmp = naturalCompare(aKey, bKey);
+      return matrixFilters.sortDir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  let bodyRows = '';
+  for (const row of filtered) {
     let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
     for (const prefix of prefixes) {
       const cell = row.cells[prefix];
@@ -1238,6 +1323,10 @@ function renderMatrixView() {
       ${bodyRows || '<tr><td colspan="'+(prefixes.length+1)+'" class="empty">No matching items</td></tr>'}
     </table>
   `;
+  if (hadSearchFocus) {
+    const inp = $main().querySelector('.search-input');
+    if (inp) { inp.focus(); inp.setSelectionRange(cursorPos, cursorPos); }
+  }
 }
 
 function toggleMatrixGroup(g) {
@@ -1252,6 +1341,15 @@ function clearMatrixGroups() {
 function toggleMatrixStatus(s) {
   if (matrixFilters.statuses.has(s)) matrixFilters.statuses.delete(s);
   else matrixFilters.statuses.add(s);
+  renderMatrixView();
+}
+function toggleMatrixSort(colIdx) {
+  if (matrixFilters.sortCol === colIdx) {
+    matrixFilters.sortDir = matrixFilters.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    matrixFilters.sortCol = colIdx;
+    matrixFilters.sortDir = 'asc';
+  }
   renderMatrixView();
 }
 
@@ -1416,6 +1514,13 @@ function renderItemPanel(data) {
       ).join('')
     : '<span style="color:var(--text-secondary)">&#8212;</span>';
 
+  const siblings = data.siblings || [];
+  const siblingsHtml = siblings.length
+    ? siblings.map(s =>
+        `<a class="link-chip ${s.suspect?'suspect':''} ${!s.reviewed?'unreviewed':''}" onclick="openItemPanel('${s.uid}')">${h(s.uid)}${s.suspect?' &#x26A0;':''}${!s.reviewed?' &#x25CB;':''}</a>`
+      ).join('')
+    : '<span style="color:var(--text-secondary)">&#8212;</span>';
+
   content.innerHTML = `
     <div class="panel-header">
       <div>
@@ -1441,12 +1546,18 @@ function renderItemPanel(data) {
 
     <div class="meta-row"><span class="meta-label">Parents:</span> <div class="link-list">${parentsHtml}</div></div>
     <div class="meta-row"><span class="meta-label">Children:</span> <div class="link-list">${childrenHtml}</div></div>
+    <div class="meta-row"><span class="meta-label">Siblings:</span> <div class="link-list">${siblingsHtml}</div></div>
 
     <div class="actions" id="panel-actions">
       <button class="btn btn-edit" onclick="panelStartEdit()">Edit</button>
-      <button class="btn btn-success" id="panel-review-btn" onclick="panelReview()">Review</button>
-      <button class="btn btn-warning" id="panel-clear-btn" onclick="panelClear()">Clear Suspect</button>
+      <button class="btn btn-success" id="panel-review-btn" onclick="panelReview()" ${data.reviewed ? 'disabled' : ''}>Review</button>
+      <button class="btn btn-warning" id="panel-clear-btn" onclick="panelClear()" ${data.suspect ? '' : 'disabled'}>Clear Suspect</button>
     </div>
+  `;
+
+  document.getElementById('item-panel-nav').innerHTML = `
+    <button ${data.prev_uid ? `onclick="openItemPanel('${data.prev_uid}')"` : 'disabled'}>&larr; Prev${data.prev_uid ? ' (' + h(data.prev_uid) + ')' : ''}</button>
+    <button ${data.next_uid ? `onclick="openItemPanel('${data.next_uid}')"` : 'disabled'}>Next${data.next_uid ? ' (' + h(data.next_uid) + ')' : ''} &rarr;</button>
   `;
 }
 

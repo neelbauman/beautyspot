@@ -319,6 +319,43 @@ suspect 0件を確認してから報告する。
 
 ## [D] レポートフロー
 
+### エージェント向けトレーサビリティ照会（trace_query.py）
+
+AIコーディングエージェントがトレーサビリティ情報を素早く把握するための専用CLI。
+すべてJSON形式でstdoutに出力され、ファイル書き出し不要。
+**エージェントが状況把握する際はまずこれを使う。**
+
+```bash
+# プロジェクト全体のサマリ（件数・カバレッジ・suspect数）
+uv run python <skill-path>/scripts/trace_query.py <project-dir> status
+
+# 特定UIDの上流→下流チェーン（REQ→SPEC→IMPL/TST）
+uv run python <skill-path>/scripts/trace_query.py <project-dir> chain SPEC003
+
+# カバレッジ詳細（未カバーのSPEC一覧付き）
+uv run python <skill-path>/scripts/trace_query.py <project-dir> coverage
+uv run python <skill-path>/scripts/trace_query.py <project-dir> coverage --group CACHE
+
+# 全suspect一覧と推奨アクション
+uv run python <skill-path>/scripts/trace_query.py <project-dir> suspects
+
+# リンク漏れ・ref未設定のギャップ検出
+uv run python <skill-path>/scripts/trace_query.py <project-dir> gaps
+uv run python <skill-path>/scripts/trace_query.py <project-dir> gaps --document IMPL
+```
+
+### ツール使い分けガイド
+
+| やりたいこと | ツール |
+|---|---|
+| 状況把握・トレーサビリティ照会 | `trace_query.py`（JSON→stdout） |
+| アイテムのCRUD操作 | `doorstop_ops.py`（JSON→stdout） |
+| 変更影響分析 | `impact_analysis.py` |
+| バリデーション＋HTMLレポート | `validate_and_report.py` |
+| 人間向けレビューUI | `serve_app.py`（SPA） |
+
+### 人間向けレポート・ダッシュボード
+
 ```bash
 # トレーサビリティレポート（全体）— 静的HTML+JSON生成
 uv run python <skill-path>/scripts/validate_and_report.py <project-dir> \

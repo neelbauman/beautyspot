@@ -351,13 +351,15 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
             issue_section += f"<h3>情報</h3><ul>{info_items}</ul>"
 
     # トレーサビリティマトリクス
-    header_cells = "<th>グループ</th>" + "".join(f"<th>{h(p)}</th>" for p in prefixes)
+    header_cells = '<th class="sortable" onclick="sortMatrix(0)" data-col="0">グループ<span class="sort-arrow">▲▼</span></th>'
+    for i, p in enumerate(prefixes, 1):
+        header_cells += f'<th class="sortable" onclick="sortMatrix({i})" data-col="{i}">{h(p)}<span class="sort-arrow">▲▼</span></th>'
     matrix_rows = ""
     for row in matrix:
         group = h(row.get("_group", "(未分類)"))
         row_uids = []
         row_statuses = set()
-        cells = f'<td><span class="group-tag">{group}</span></td>'
+        cells = f'<td data-sort-key="{group}"><span class="group-tag">{group}</span></td>'
         for prefix in prefixes:
             item = row.get(prefix)
             if item:
@@ -380,14 +382,15 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
                     status_icons += '<span class="unreviewed">○</span>'
                     row_statuses.add("unreviewed")
                 cells += (
-                    f'<td><a href="#detail-{h(uid_str)}" style="text-decoration:none; color:inherit">'
+                    f'<td data-sort-key="{h(uid_str)}">'
+                    f'<a href="#detail-{h(uid_str)}" style="text-decoration:none; color:inherit">'
                     f'<strong>{h(uid_str)}</strong></a> '
                     f'{status_icons}'
                     f'<br><span class="text-preview">{h(text_preview)}</span>'
                     f'{ref_html}</td>'
                 )
             else:
-                cells += '<td class="empty">—</td>'
+                cells += '<td data-sort-key="" class="empty">—</td>'
         uids_attr = h(" ".join(row_uids))
         statuses_attr = h(" ".join(sorted(row_statuses)))
         matrix_rows += (
@@ -450,8 +453,16 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
             raw_text = item.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
             safe_group = group.replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
             local_view_href = f"local/trace_{safe_group}.html#detail-{uid_str}"
+            detail_statuses = []
+            if is_suspect:
+                detail_statuses.append("suspect")
+            if is_reviewed:
+                detail_statuses.append("reviewed")
+            else:
+                detail_statuses.append("unreviewed")
+            detail_statuses_str = " ".join(detail_statuses)
             item_detail_section += f"""
-    <div class="item-detail" id="detail-{h(uid_str)}" data-group="{h(group)}">
+    <div class="item-detail" id="detail-{h(uid_str)}" data-group="{h(group)}" data-uid="{h(uid_str)}" data-statuses="{h(detail_statuses_str)}">
       <h3>{h(uid_str)} <span class="group-tag">{h(group)}</span> <span class="status-badge">{status_badge}</span>
         <a class="local-view-link" href="{h(local_view_href)}">局所ビュー →</a>
       </h3>
@@ -531,6 +542,17 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
   .id-search:focus {{ border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }}
   .coverage-group {{ font-size: 0.9em; }}
   tr.hidden {{ display: none; }}
+  .item-detail.hidden {{ display: none; }}
+  #matrix-table th.sortable {{ cursor: pointer; user-select: none; position: relative; padding-right: 20px; }}
+  #matrix-table th.sortable:hover {{ background: #1565c0; }}
+  #matrix-table th .sort-arrow {{ position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+                                   font-size: 0.7em; opacity: 0.5; }}
+  #matrix-table th.sort-active .sort-arrow {{ opacity: 1; }}
+  .detail-sort {{ margin: 10px 0; display: flex; align-items: center; gap: 10px; }}
+  .detail-sort label {{ font-weight: bold; color: #555; font-size: 0.9em; }}
+  .detail-sort select {{ padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
+                          font-size: 0.85em; outline: none; }}
+  .detail-sort select:focus {{ border-color: #1a73e8; }}
   #matrix-table a:hover strong {{ text-decoration: underline; }}
   .item-detail {{ background: #fff; border: 1px solid #ddd; border-radius: 8px;
                   padding: 15px 20px; margin: 10px 0; transition: border-color 0.3s, box-shadow 0.3s; }}
@@ -666,6 +688,15 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
 </table>
 
 <h2 id="item-details">アイテム詳細</h2>
+<div class="detail-sort">
+  <label>ソート:</label>
+  <select id="detail-sort-select" onchange="sortDetails()">
+    <option value="uid-asc">アイテムID (昇順)</option>
+    <option value="uid-desc">アイテムID (降順)</option>
+    <option value="group-asc">グループ (昇順)</option>
+    <option value="group-desc">グループ (降順)</option>
+  </select>
+</div>
 {item_detail_section}
 
 <script>
@@ -695,6 +726,73 @@ function toggleStatus(btn) {{
   applyFilters();
 }}
 
+function naturalCompare(a, b) {{
+  return a.localeCompare(b, undefined, {{ numeric: true, sensitivity: 'base' }});
+}}
+
+let currentSortCol = -1;
+let currentSortDir = 'asc';
+
+function sortMatrix(colIndex) {{
+  if (currentSortCol === colIndex) {{
+    currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+  }} else {{
+    currentSortCol = colIndex;
+    currentSortDir = 'asc';
+  }}
+  const table = document.getElementById('matrix-table');
+  const rows = Array.from(table.querySelectorAll('tr[data-group]'));
+  rows.sort((a, b) => {{
+    const aKey = a.cells[colIndex]?.dataset.sortKey || '';
+    const bKey = b.cells[colIndex]?.dataset.sortKey || '';
+    const cmp = naturalCompare(aKey, bKey);
+    return currentSortDir === 'asc' ? cmp : -cmp;
+  }});
+  const tbody = rows[0]?.parentNode;
+  if (tbody) rows.forEach(r => tbody.appendChild(r));
+
+  // Update header indicators
+  table.querySelectorAll('th.sortable').forEach(th => {{
+    th.classList.remove('sort-active');
+    th.querySelector('.sort-arrow').textContent = '▲▼';
+  }});
+  const activeHeader = table.querySelector(`th[data-col="${{colIndex}}"]`);
+  if (activeHeader) {{
+    activeHeader.classList.add('sort-active');
+    activeHeader.querySelector('.sort-arrow').textContent = currentSortDir === 'asc' ? '▲' : '▼';
+  }}
+}}
+
+function sortDetails() {{
+  const sel = document.getElementById('detail-sort-select').value;
+  const [field, dir] = sel.split('-');
+  const container = document.getElementById('item-details');
+  const details = Array.from(document.querySelectorAll('.item-detail'));
+  details.sort((a, b) => {{
+    let aKey, bKey;
+    if (field === 'uid') {{
+      aKey = a.dataset.uid || '';
+      bKey = b.dataset.uid || '';
+    }} else {{
+      aKey = a.dataset.group || '';
+      bKey = b.dataset.group || '';
+      if (aKey === bKey) {{
+        aKey = a.dataset.uid || '';
+        bKey = b.dataset.uid || '';
+      }}
+    }}
+    const cmp = naturalCompare(aKey, bKey);
+    return dir === 'asc' ? cmp : -cmp;
+  }});
+  // Re-insert after the sort select's parent div
+  const sortDiv = document.querySelector('.detail-sort');
+  let insertPoint = sortDiv;
+  details.forEach(d => {{
+    insertPoint.after(d);
+    insertPoint = d;
+  }});
+}}
+
 function applyFilters() {{
   const idQuery = document.getElementById('id-search').value.trim().toUpperCase();
 
@@ -722,6 +820,32 @@ function applyFilters() {{
     }}
 
     row.classList.toggle('hidden', !show);
+  }});
+
+  // Item detail sections
+  document.querySelectorAll('.item-detail').forEach(detail => {{
+    let show = true;
+
+    // Group filter
+    if (activeGroups.size > 0 && !activeGroups.has(detail.dataset.group)) {{
+      show = false;
+    }}
+
+    // Status filter
+    if (show && activeStatuses.size > 0) {{
+      const detailStatuses = (detail.dataset.statuses || '').split(' ');
+      const match = detailStatuses.some(s => activeStatuses.has(s));
+      if (!match) show = false;
+    }}
+
+    // ID filter
+    if (show && idQuery) {{
+      const uid = (detail.dataset.uid || '').toUpperCase();
+      const match = idQuery.split(',').some(q => uid.includes(q.trim()));
+      if (!match) show = false;
+    }}
+
+    detail.classList.toggle('hidden', !show);
   }});
 
   // Coverage rows (group filter only)
