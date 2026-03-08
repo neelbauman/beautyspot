@@ -8,6 +8,8 @@ links:
 - SPEC001: VfQBYPsFZq-DXL4HZTKnV19i2K4KduLyZ4XcG1i5tkg=
 normative: true
 ref: ''
-reviewed: 3P2ikZYOEEqtqQHkflVgA7JWWwHOsTHD9htobYVm_vw=
+reviewed: 88NCmopxM9vRnJPM7HxIvZHiM8gXbJcsFuFbOFfHbQM=
 text: |
-  `mark` デコレータのテスト。基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。
+  ## `mark` デコレータのテスト。
+
+  基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。

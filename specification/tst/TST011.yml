@@ -5,9 +5,11 @@ header: |
   ストレージポリシーテスト
 level: '1.10'
 links:
-- SPEC011: qeKd1wc5TSwlxBzJ42n-PeRYYFRL_rVaJ1b_dbfV9m8=
+- SPEC011: nEMcsRs98U4nVQJTaVHI304xkz6MZMp7cNM6RckSn2Y=
 normative: true
 ref: ''
-reviewed: 9H5ZY-E4KWVqCtbbW8HmyohWoX9cdHTZjAkAK8nYUeg=
+reviewed: 51sbc9HgbQ0svrB0GwfgCLOeV8p6bbXA8X5UsO_q_Nk=
 text: |
-  ストレージポリシーのテスト。ThresholdStoragePolicy の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPolicy の常時Blob保存、 大サイズデータの警告統合を検証する。
+  ## ストレージポリシーのテスト。
+
+  `ThresholdStoragePolicy` の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPolicy の常時Blob保存、 大サイズデータの警告統合を検証する。

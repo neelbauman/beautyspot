@@ -21,6 +21,7 @@ API Endpoints:
     POST /api/items/<uid>/review    レビュー済みにする
     POST /api/items/<uid>/clear     suspect解消
     POST /api/items/<uid>/edit      テキスト編集
+    POST /api/reload                YMLファイルを再読み込み
 """
 
 import html as html_module
@@ -58,12 +59,68 @@ class DoorstopDataStore:
     全ての読み取りと変更がこのクラスを経由する。
     変更操作後は自動でインデックスを再構築するため、
     次回の読み取りでは常に最新のデータが返される。
+
+    外部でYMLファイルが編集された場合も、次回のAPIリクエスト時に
+    mtimeの変化を検知してツリーを自動再ビルドする。
     """
 
     def __init__(self, tree, project_dir, strict=False):
         self.tree = tree
         self.project_dir = project_dir
         self.strict = strict
+        self._yml_mtime_snapshot = self._scan_yml_mtimes()
+        self._rebuild_indexes()
+
+    # ---------------------------------------------------------------
+    # YML file change detection
+    # ---------------------------------------------------------------
+
+    def _scan_yml_mtimes(self):
+        """全ドキュメントディレクトリ内のYMLファイルのmtimeを収集する。"""
+        snapshot = {}
+        for doc in self.tree:
+            doc_dir = doc.path
+            if not os.path.isdir(doc_dir):
+                continue
+            for fname in os.listdir(doc_dir):
+                if fname.endswith(".yml"):
+                    fpath = os.path.join(doc_dir, fname)
+                    try:
+                        snapshot[fpath] = os.path.getmtime(fpath)
+                    except OSError:
+                        pass
+        return snapshot
+
+    def _has_yml_changes(self):
+        """前回スナップショットからYMLファイルに変更があるか判定する。"""
+        current = {}
+        dirs = set()
+        for doc in self.tree:
+            if os.path.isdir(doc.path):
+                dirs.add(doc.path)
+        for doc_dir in dirs:
+            for fname in os.listdir(doc_dir):
+                if fname.endswith(".yml"):
+                    fpath = os.path.join(doc_dir, fname)
+                    try:
+                        current[fpath] = os.path.getmtime(fpath)
+                    except OSError:
+                        pass
+        return current != self._yml_mtime_snapshot
+
+    def reload_if_changed(self):
+        """YMLファイルに変更があればツリーを再ビルドする。変更有無を返す。"""
+        if not self._has_yml_changes():
+            return False
+        self.tree = doorstop.build()
+        self._yml_mtime_snapshot = self._scan_yml_mtimes()
+        self._rebuild_indexes()
+        return True
+
+    def force_reload(self):
+        """強制的にツリーを再ビルドする。"""
+        self.tree = doorstop.build()
+        self._yml_mtime_snapshot = self._scan_yml_mtimes()
         self._rebuild_indexes()
 
     # ---------------------------------------------------------------
@@ -584,7 +641,7 @@ class DoorstopDataStore:
             return None, f"Item {uid} not found"
         item.review()
         self._rebuild_indexes()
-        return self._item_to_dict(item), None
+        return self.get_item(uid), None
 
     def clear_item(self, uid):
         item = self._find_item(uid)
@@ -603,7 +660,7 @@ class DoorstopDataStore:
             )
         item.clear()
         self._rebuild_indexes()
-        return self._item_to_dict(item), None
+        return self.get_item(uid), None
 
     def edit_item(self, uid, text):
         item = self._find_item(uid)
@@ -612,7 +669,7 @@ class DoorstopDataStore:
         item.text = text
         item.save()
         self._rebuild_indexes()
-        return self._item_to_dict(item), None
+        return self.get_item(uid), None
 
 
 # ===================================================================
@@ -623,6 +680,8 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
     store: DoorstopDataStore
 
     def do_GET(self):
+        self.store.reload_if_changed()
+
         url = urlparse(self.path)
         path = url.path.rstrip("/")
         params = parse_qs(url.query)
@@ -662,6 +721,11 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self):
+        if self.path.rstrip("/") == "/api/reload":
+            self.store.force_reload()
+            self._json_ok({"ok": True, "message": "Tree reloaded"})
+            return
+
         m = re.match(r"^/api/items/([\w]+)/(review|clear|edit)$", self.path)
         if not m:
             self._json_err(404, "Not found")
@@ -758,6 +822,7 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
 /* Layout */
 #sidebar {
   position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+  display: flex; flex-direction: column;
   background: var(--surface); border-right: 1px solid var(--border);
   overflow-y: auto; z-index: 100; padding: 16px 0;
 }
@@ -797,41 +862,45 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
   margin-left: var(--sidebar-w); padding: 24px 32px; min-height: 100vh;
   transition: margin-right 0.3s;
 }
-#main.panel-open { margin-right: var(--panel-w); }
-
-/* Item Panel (slide-out) */
-#item-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; width: var(--panel-w);
-  background: var(--surface); border-left: 1px solid var(--border);
-  box-shadow: -4px 0 12px rgba(0,0,0,0.08); z-index: 200;
-  transform: translateX(100%); transition: transform 0.3s ease;
-  display: flex; flex-direction: column;
+/* Item Panels Container (multi-panel comparison support) */
+#item-panels-container {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  display: flex; z-index: 200; pointer-events: none;
 }
-#item-panel-content {
+#item-panels-container.open { pointer-events: auto; }
+.item-panel {
+  width: var(--panel-w); min-width: var(--panel-w);
+  background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: -4px 0 12px rgba(0,0,0,0.08);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform 0.3s ease, outline-color 0.3s;
+  outline: 2px solid transparent;
+}
+.item-panel.open { transform: translateX(0); }
+.item-panel-content {
   flex: 1; overflow-y: auto; padding: 20px;
 }
-#item-panel.open { transform: translateX(0); }
-#item-panel .panel-header {
+.item-panel .panel-header {
   display: flex; align-items: center; justify-content: space-between;
   padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
 }
-#item-panel .panel-close {
+.item-panel .panel-close {
   background: none; border: none; font-size: 1.5em; cursor: pointer;
   color: var(--text-secondary); line-height: 1;
 }
-#item-panel .panel-close:hover { color: var(--text); }
-#item-panel .panel-nav {
+.item-panel .panel-close:hover { color: var(--text); }
+.item-panel .panel-nav {
   display: flex; justify-content: space-between; gap: 8px;
   padding: 10px 20px; border-top: 1px solid var(--border); background: var(--surface);
   flex-shrink: 0;
 }
-#item-panel .panel-nav button {
+.item-panel .panel-nav button {
   background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
   cursor: pointer; color: var(--text-secondary); font-size: 0.85em;
   padding: 6px 12px; line-height: 1.3; transition: background .15s, color .15s;
 }
-#item-panel .panel-nav button:hover:not(:disabled) { background: var(--bg); color: var(--text); }
-#item-panel .panel-nav button:disabled { opacity: .35; cursor: default; }
+.item-panel .panel-nav button:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+.item-panel .panel-nav button:disabled { opacity: .35; cursor: default; }
 
 /* Cards */
 .cards { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
@@ -940,7 +1009,7 @@ td.empty { color: #ccc; text-align: center; }
   display: inline-block; padding: 3px 10px; border-radius: 12px;
   font-size: 0.82em; cursor: pointer; text-decoration: none; font-weight: 500;
   background: var(--bg); color: var(--text); border: 1px solid var(--border);
-  transition: all 0.15s;
+  transition: all 0.15s; user-select: none;
 }
 .link-chip:hover { background: var(--primary-bg); color: var(--primary); border-color: var(--primary); }
 .link-chip.suspect { background: var(--suspect-bg); color: var(--suspect); border-color: var(--suspect); }
@@ -993,7 +1062,8 @@ td.empty { color: #ccc; text-align: center; }
   #sidebar { width: 56px; }
   #sidebar h2, #sidebar a span, #sidebar .nav-section-title, #group-nav-list { display: none; }
   #main { margin-left: 56px; padding: 16px; }
-  #item-panel { width: 100%; }
+  .item-panel { width: 100% !important; min-width: 100% !important; }
+  .item-panel:not(:last-child) { display: none; }
 }
 </style>
 </head>
@@ -1010,16 +1080,18 @@ td.empty { color: #ccc; text-align: center; }
   <ul>
     <li><a href="#/validation" data-nav="validation">Validation</a></li>
   </ul>
+  <div style="padding:12px 16px; border-top:1px solid var(--border); margin-top:auto;">
+    <button id="reload-btn" onclick="forceReload()" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;" title="Reload from disk">
+      <span style="font-size:16px;">&#x21bb;</span> <span>Reload</span>
+    </button>
+  </div>
 </nav>
 
 <main id="main">
   <div class="loading">Loading...</div>
 </main>
 
-<div id="item-panel">
-  <div id="item-panel-content"></div>
-  <div class="panel-nav" id="item-panel-nav"></div>
-</div>
+<div id="item-panels-container"></div>
 
 <script>
 // ===================================================================
@@ -1056,6 +1128,23 @@ function toast(msg, type) {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 3200);
+}
+
+async function forceReload() {
+  const btn = document.getElementById('reload-btn');
+  btn.disabled = true;
+  btn.querySelector('span:last-child').textContent = 'Reloading...';
+  try {
+    await API.post('/api/reload');
+    toast('Reloaded from disk');
+    refreshCurrentView();
+    refreshOtherPanels(null);
+  } catch (e) {
+    toast('Reload failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span:last-child').textContent = 'Reload';
+  }
 }
 
 function coverageColor(pct) {
@@ -1290,7 +1379,7 @@ function renderMatrixView() {
       if (cell) {
         const refHtml = cell.ref ? `<br><span class="tag tag-ref">${h(cell.ref)}</span>` : '';
         cells += `<td>
-          <span class="cell-uid" onclick="location.hash='#/item/${cell.uid}'">${h(cell.uid)}</span>
+          <span class="cell-uid" onclick="handleCellClick(event,'${cell.uid}')">${h(cell.uid)}</span>
           ${statusIcons(cell.reviewed, cell.suspect)}
           <span class="text-preview">${h(cell.text_preview)}</span>
           ${refHtml}
@@ -1390,7 +1479,7 @@ async function renderGroup(name) {
       const cell = row.cells[prefix];
       if (cell) {
         cells += `<td>
-          <span class="cell-uid" onclick="location.hash='#/item/${cell.uid}'">${h(cell.uid)}</span>
+          <span class="cell-uid" onclick="handleCellClick(event,'${cell.uid}')">${h(cell.uid)}</span>
           ${statusIcons(cell.reviewed, cell.suspect)}
           <span class="text-preview">${h(cell.text_preview)}</span>
         </td>`;
@@ -1411,7 +1500,7 @@ async function renderGroup(name) {
     itemsHtml += `<div class="section-title"><span class="tag tag-prefix">${h(prefix)}</span> (${pitems.length})</div>`;
     for (const item of pitems) {
       itemsHtml += `<div style="padding:8px 0;border-bottom:1px solid #f1f3f4;display:flex;align-items:center;gap:8px">
-        <span class="cell-uid" onclick="location.hash='#/item/${item.uid}'" style="min-width:70px">${h(item.uid)}</span>
+        <span class="cell-uid" onclick="handleCellClick(event,'${item.uid}')" style="min-width:70px">${h(item.uid)}</span>
         ${statusTags(item.reviewed, item.suspect)}
         <span class="text-preview" style="flex:1">${h(item.text_preview)}</span>
         ${item.ref ? '<span class="tag tag-ref">'+h(item.ref)+'</span>' : ''}
@@ -1472,73 +1561,197 @@ async function renderValidation() {
 }
 
 // ===================================================================
-// Item Panel
+// Item Panels — Multi-panel comparison support
 // ===================================================================
-let panelUid = null;
-let panelEditMode = false;
+// Ctrl+click or Shift+click on Parents/Children/Siblings link-chips
+// opens a new panel side-by-side for comparison. Normal click navigates
+// within the current panel.
+// ===================================================================
+let panelIdCounter = 0;
+let activePanels = []; // { id, uid, editMode, el }
+
+function handleCellClick(event, uid) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) {
+    event.preventDefault();
+    addItemPanel(uid);
+  } else {
+    location.hash = '#/item/' + uid;
+  }
+}
+
+function handlePanelItemClick(event, panelId, uid) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    addItemPanel(uid);
+  } else {
+    navigateInPanel(panelId, uid);
+  }
+}
+
+function handlePanelNav(event, panelId, targetUid) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    addItemPanel(targetUid);
+  } else {
+    navigateInPanel(panelId, targetUid);
+  }
+}
+
+function createPanelElement(panelId) {
+  const el = document.createElement('div');
+  el.className = 'item-panel';
+  el.dataset.panelId = panelId;
+  el.innerHTML = `
+    <div class="item-panel-content" id="pc-${panelId}"><div class="loading">Loading...</div></div>
+    <div class="panel-nav" id="pn-${panelId}"></div>
+  `;
+  return el;
+}
+
+function updateMainMargin() {
+  const main = document.getElementById('main');
+  const count = activePanels.length;
+  if (count > 0) {
+    main.style.marginRight = (count * 520) + 'px';
+  } else {
+    main.style.marginRight = '';
+  }
+}
 
 async function openItemPanel(uid) {
   if (!uid) return;
-  panelUid = uid;
-  panelEditMode = false;
+  // Single panel already showing this uid — nothing to do
+  if (activePanels.length === 1 && activePanels[0].uid === uid) return;
+  // Single panel open — navigate within it
+  if (activePanels.length === 1) {
+    await navigateInPanel(activePanels[0].id, uid);
+    return;
+  }
+  // Otherwise close all and open single
+  closeAllPanels();
+  await addItemPanel(uid);
+}
 
-  const panel = document.getElementById('item-panel');
-  const content = document.getElementById('item-panel-content');
-  content.innerHTML = '<div class="loading">Loading...</div>';
-  panel.classList.add('open');
-  document.getElementById('main').classList.add('panel-open');
-
-  let data;
-  try {
-    data = await API.get('/api/items/' + uid);
-  } catch {
-    content.innerHTML = `<div class="empty-state">Item "${h(uid)}" not found.</div>`;
+async function addItemPanel(uid) {
+  if (!uid) return;
+  // Don't add duplicate — flash existing instead
+  const existing = activePanels.find(p => p.uid === uid);
+  if (existing) {
+    existing.el.style.outlineColor = 'var(--primary)';
+    setTimeout(() => { existing.el.style.outlineColor = 'transparent'; }, 800);
     return;
   }
 
-  renderItemPanel(data);
+  const id = panelIdCounter++;
+  const container = document.getElementById('item-panels-container');
+  const panelEl = createPanelElement(id);
+  container.appendChild(panelEl);
+
+  const ps = { id, uid, editMode: false, el: panelEl };
+  activePanels.push(ps);
+
+  container.classList.add('open');
+  updateMainMargin();
+  requestAnimationFrame(() => panelEl.classList.add('open'));
+
+  try {
+    const data = await API.get('/api/items/' + uid);
+    renderPanelContent(ps, data);
+  } catch {
+    panelEl.querySelector('.item-panel-content').innerHTML =
+      `<div class="empty-state">Item "${h(uid)}" not found.</div>`;
+  }
 }
 
-function renderItemPanel(data) {
-  const content = document.getElementById('item-panel-content');
+async function navigateInPanel(panelId, targetUid) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (!ps) { openItemPanel(targetUid); return; }
+  // Check if another panel already shows this uid
+  const dup = activePanels.find(p => p.uid === targetUid && p.id !== panelId);
+  if (dup) {
+    dup.el.style.outlineColor = 'var(--primary)';
+    setTimeout(() => { dup.el.style.outlineColor = 'transparent'; }, 800);
+    return;
+  }
+  ps.uid = targetUid;
+  ps.editMode = false;
+  const contentEl = document.getElementById('pc-' + panelId);
+  contentEl.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    const data = await API.get('/api/items/' + targetUid);
+    renderPanelContent(ps, data);
+  } catch {
+    contentEl.innerHTML = `<div class="empty-state">Item "${h(targetUid)}" not found.</div>`;
+  }
+}
 
-  const parentsHtml = data.parents.length
-    ? data.parents.map(p =>
-        `<a class="link-chip ${p.suspect?'suspect':''} ${!p.reviewed?'unreviewed':''}" onclick="openItemPanel('${p.uid}')">${h(p.uid)}${p.suspect?' &#x26A0;':''}${!p.reviewed?' &#x25CB;':''}</a>`
+function closePanel(panelId) {
+  const idx = activePanels.findIndex(p => p.id === panelId);
+  if (idx === -1) return;
+  const ps = activePanels[idx];
+  ps.el.classList.remove('open');
+  setTimeout(() => {
+    ps.el.remove();
+    activePanels.splice(activePanels.findIndex(p => p.id === panelId), 1);
+    updateMainMargin();
+    if (activePanels.length === 0) {
+      document.getElementById('item-panels-container').classList.remove('open');
+      if (location.hash.startsWith('#/item/')) {
+        const prev = '#/' + currentView + (currentParam ? '/' + currentParam : '');
+        history.replaceState(null, '', prev);
+      }
+    }
+  }, 300);
+}
+
+function closeAllPanels() {
+  const container = document.getElementById('item-panels-container');
+  container.innerHTML = '';
+  container.classList.remove('open');
+  activePanels = [];
+  updateMainMargin();
+  if (location.hash.startsWith('#/item/')) {
+    const prev = '#/' + currentView + (currentParam ? '/' + currentParam : '');
+    history.replaceState(null, '', prev);
+  }
+}
+
+function closeItemPanel() { closeAllPanels(); }
+
+function renderPanelContent(ps, data) {
+  const pid = ps.id;
+  const contentEl = document.getElementById('pc-' + pid);
+
+  const chipHtml = (items) => items.length
+    ? items.map(it =>
+        `<a class="link-chip ${it.suspect?'suspect':''} ${!it.reviewed?'unreviewed':''}" onclick="handlePanelItemClick(event,${pid},'${it.uid}')">${h(it.uid)}${it.suspect?' &#x26A0;':''}${!it.reviewed?' &#x25CB;':''}</a>`
       ).join('')
     : '<span style="color:var(--text-secondary)">&#8212;</span>';
 
-  const childrenHtml = data.children.length
-    ? data.children.map(c =>
-        `<a class="link-chip ${c.suspect?'suspect':''} ${!c.reviewed?'unreviewed':''}" onclick="openItemPanel('${c.uid}')">${h(c.uid)}${c.suspect?' &#x26A0;':''}${!c.reviewed?' &#x25CB;':''}</a>`
-      ).join('')
-    : '<span style="color:var(--text-secondary)">&#8212;</span>';
+  const parentsHtml = chipHtml(data.parents);
+  const childrenHtml = chipHtml(data.children);
+  const siblingsHtml = chipHtml(data.siblings || []);
 
-  const siblings = data.siblings || [];
-  const siblingsHtml = siblings.length
-    ? siblings.map(s =>
-        `<a class="link-chip ${s.suspect?'suspect':''} ${!s.reviewed?'unreviewed':''}" onclick="openItemPanel('${s.uid}')">${h(s.uid)}${s.suspect?' &#x26A0;':''}${!s.reviewed?' &#x25CB;':''}</a>`
-      ).join('')
-    : '<span style="color:var(--text-secondary)">&#8212;</span>';
-
-  content.innerHTML = `
+  contentEl.innerHTML = `
     <div class="panel-header">
       <div>
         <strong style="font-size:1.15em">${h(data.uid)}</strong>
         <span class="tag tag-prefix">${h(data.prefix)}</span>
         <span class="tag tag-group">${h(data.group)}</span>
       </div>
-      <button class="panel-close" onclick="closeItemPanel()">&times;</button>
+      <button class="panel-close" onclick="closePanel(${pid})">&times;</button>
     </div>
 
     <div style="margin-bottom:12px">${statusTags(data.reviewed, data.suspect)}</div>
 
-    <div id="panel-text-view" class="item-text">${data.text_html}</div>
-    <div id="panel-text-edit" class="hidden">
-      <textarea id="panel-textarea" class="editor-area">${h(data.text)}</textarea>
+    <div id="ptv-${pid}" class="item-text">${data.text_html}</div>
+    <div id="pte-${pid}" class="hidden">
+      <textarea id="pta-${pid}" class="editor-area">${h(data.text)}</textarea>
       <div class="actions" style="margin-top:8px">
-        <button class="btn btn-primary" id="panel-save-btn" onclick="panelSave()">Save</button>
-        <button class="btn" onclick="panelCancelEdit()">Cancel</button>
+        <button class="btn btn-primary" id="psb-${pid}" onclick="panelSave(${pid})">Save</button>
+        <button class="btn" onclick="panelCancelEdit(${pid})">Cancel</button>
       </div>
     </div>
 
@@ -1548,58 +1761,52 @@ function renderItemPanel(data) {
     <div class="meta-row"><span class="meta-label">Children:</span> <div class="link-list">${childrenHtml}</div></div>
     <div class="meta-row"><span class="meta-label">Siblings:</span> <div class="link-list">${siblingsHtml}</div></div>
 
-    <div class="actions" id="panel-actions">
-      <button class="btn btn-edit" onclick="panelStartEdit()">Edit</button>
-      <button class="btn btn-success" id="panel-review-btn" onclick="panelReview()" ${data.reviewed ? 'disabled' : ''}>Review</button>
-      <button class="btn btn-warning" id="panel-clear-btn" onclick="panelClear()" ${data.suspect ? '' : 'disabled'}>Clear Suspect</button>
+    <div class="actions" id="pa-${pid}">
+      <button class="btn btn-edit" onclick="panelStartEdit(${pid})">Edit</button>
+      <button class="btn btn-success" id="prb-${pid}" onclick="panelReview(${pid})" ${data.reviewed ? 'disabled' : ''}>Review</button>
+      <button class="btn btn-warning" id="pcb-${pid}" onclick="panelClear(${pid})" ${data.suspect ? '' : 'disabled'}>Clear Suspect</button>
     </div>
   `;
 
-  document.getElementById('item-panel-nav').innerHTML = `
-    <button ${data.prev_uid ? `onclick="openItemPanel('${data.prev_uid}')"` : 'disabled'}>&larr; Prev${data.prev_uid ? ' (' + h(data.prev_uid) + ')' : ''}</button>
-    <button ${data.next_uid ? `onclick="openItemPanel('${data.next_uid}')"` : 'disabled'}>Next${data.next_uid ? ' (' + h(data.next_uid) + ')' : ''} &rarr;</button>
+  document.getElementById('pn-' + pid).innerHTML = `
+    <button ${data.prev_uid ? `onclick="handlePanelNav(event,${pid},'${data.prev_uid}')"` : 'disabled'}>&larr; Prev${data.prev_uid ? ' (' + h(data.prev_uid) + ')' : ''}</button>
+    <button ${data.next_uid ? `onclick="handlePanelNav(event,${pid},'${data.next_uid}')"` : 'disabled'}>Next${data.next_uid ? ' (' + h(data.next_uid) + ')' : ''} &rarr;</button>
   `;
 }
 
-function closeItemPanel() {
-  document.getElementById('item-panel').classList.remove('open');
-  document.getElementById('main').classList.remove('panel-open');
-  // Remove #/item/... from hash without triggering re-route to item
-  if (location.hash.startsWith('#/item/')) {
-    const prev = '#/' + currentView + (currentParam ? '/' + currentParam : '');
-    history.replaceState(null, '', prev);
-  }
-  panelUid = null;
-}
-
-function panelStartEdit() {
-  panelEditMode = true;
-  document.getElementById('panel-text-view').classList.add('hidden');
-  document.getElementById('panel-text-edit').classList.remove('hidden');
-  document.getElementById('panel-actions').classList.add('hidden');
-  const ta = document.getElementById('panel-textarea');
+function panelStartEdit(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (ps) ps.editMode = true;
+  document.getElementById('ptv-' + panelId).classList.add('hidden');
+  document.getElementById('pte-' + panelId).classList.remove('hidden');
+  document.getElementById('pa-' + panelId).classList.add('hidden');
+  const ta = document.getElementById('pta-' + panelId);
   ta.focus();
   ta.style.height = 'auto';
   ta.style.height = Math.max(150, ta.scrollHeight + 4) + 'px';
 }
 
-function panelCancelEdit() {
-  panelEditMode = false;
-  document.getElementById('panel-text-view').classList.remove('hidden');
-  document.getElementById('panel-text-edit').classList.add('hidden');
-  document.getElementById('panel-actions').classList.remove('hidden');
+function panelCancelEdit(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (ps) ps.editMode = false;
+  document.getElementById('ptv-' + panelId).classList.remove('hidden');
+  document.getElementById('pte-' + panelId).classList.add('hidden');
+  document.getElementById('pa-' + panelId).classList.remove('hidden');
 }
 
-async function panelSave() {
-  const text = document.getElementById('panel-textarea').value;
-  const btn = document.getElementById('panel-save-btn');
+async function panelSave(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (!ps) return;
+  const text = document.getElementById('pta-' + panelId).value;
+  const btn = document.getElementById('psb-' + panelId);
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    const res = await API.post('/api/items/' + panelUid + '/edit', { text });
+    const res = await API.post('/api/items/' + ps.uid + '/edit', { text });
     if (res.ok) {
-      toast(panelUid + ' updated');
+      toast(ps.uid + ' updated');
       refreshCurrentView();
-      renderItemPanel(res.item);
+      renderPanelContent(ps, res.item);
+      refreshOtherPanels(panelId);
     } else {
       toast('Error: ' + res.error, 'error');
       btn.disabled = false; btn.textContent = 'Save';
@@ -1610,15 +1817,18 @@ async function panelSave() {
   }
 }
 
-async function panelReview() {
-  const btn = document.getElementById('panel-review-btn');
+async function panelReview(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (!ps) return;
+  const btn = document.getElementById('prb-' + panelId);
   btn.disabled = true; btn.textContent = 'Processing...';
   try {
-    const res = await API.post('/api/items/' + panelUid + '/review');
+    const res = await API.post('/api/items/' + ps.uid + '/review');
     if (res.ok) {
-      toast(panelUid + ' reviewed');
+      toast(ps.uid + ' reviewed');
       refreshCurrentView();
-      renderItemPanel(res.item);
+      renderPanelContent(ps, res.item);
+      refreshOtherPanels(panelId);
     } else {
       toast('Error: ' + res.error, 'error');
       btn.disabled = false; btn.textContent = 'Review';
@@ -1629,15 +1839,18 @@ async function panelReview() {
   }
 }
 
-async function panelClear() {
-  const btn = document.getElementById('panel-clear-btn');
+async function panelClear(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (!ps) return;
+  const btn = document.getElementById('pcb-' + panelId);
   btn.disabled = true; btn.textContent = 'Processing...';
   try {
-    const res = await API.post('/api/items/' + panelUid + '/clear');
+    const res = await API.post('/api/items/' + ps.uid + '/clear');
     if (res.ok) {
-      toast(panelUid + ' suspect cleared');
+      toast(ps.uid + ' suspect cleared');
       refreshCurrentView();
-      renderItemPanel(res.item);
+      renderPanelContent(ps, res.item);
+      refreshOtherPanels(panelId);
     } else {
       toast('Error: ' + res.error, 'error');
       btn.disabled = false; btn.textContent = 'Clear Suspect';
@@ -1645,6 +1858,16 @@ async function panelClear() {
   } catch (e) {
     toast('Error: ' + e.message, 'error');
     btn.disabled = false; btn.textContent = 'Clear Suspect';
+  }
+}
+
+async function refreshOtherPanels(excludeId) {
+  for (const ps of activePanels) {
+    if (ps.id === excludeId) continue;
+    try {
+      const data = await API.get('/api/items/' + ps.uid);
+      renderPanelContent(ps, data);
+    } catch { /* panel data may have been deleted */ }
   }
 }
 
@@ -1693,6 +1916,7 @@ def serve(tree, project_dir, port=8080, strict=False):
     print("  REST API + SPA mode")
     print("  All data is managed centrally in the backend.")
     print("  Edit/Review/Clear changes are reflected across all views.")
+    print("  External YML edits are auto-detected on page reload.")
     print("  Press Ctrl+C to stop.\n")
     try:
         server.serve_forever()

@@ -10,4 +10,17 @@ normative: true
 ref: ''
 reviewed: HEh5V_O4ARYqKza4CQXBkZ1NF3gFgsi7GDKAAoxbffw=
 text: |
-  Spot.mark() デコレータの実装。sync/async の自動判定、 save_blob/keygen/version/content_type/serializer/save_sync/retention/hooks オプションの処理、 ジェネレータ関数の拒否（ConfigurationError）を含む。
+  ## `Spot.mark()` デコレータの実装
+  - sync/async の自動判定
+  - オプション処理
+      - save_blob
+      - keygen
+      - version
+      - content_type
+      - serializer
+      - save_sync
+      - retention
+      - hooks
+  - ジェネレータ関数の拒否（ConfigurationError）
+
+  を含む。
