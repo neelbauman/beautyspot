@@ -8,6 +8,36 @@ links:
 - SPEC014: g20TA7YqdQzl4x1kHeA9uKAViLsWOj55KazOGH9CaO4=
 normative: true
 ref: ''
-reviewed: qcgmkWqZsrWe1stRrOvpDyFuyilLTzv8DsxB7lz9HG4=
+references:
+- path: src/beautyspot/core.py
+  type: file
+reviewed: null
 text: |
-  _BackgroundLoop の実装。デーモンスレッドでの asyncio イベントループ、 submit(coro) によるスレッドセーフなコルーチン投入、 シャットダウン時の drain_timeout 待機、atexit ハンドラを含む。
+  ## 実装概要
+
+  `_BackgroundLoop` クラスが非同期タスクのバックグラウンド実行を管理する。
+  初期化時に `asyncio.new_event_loop()` で新しいイベントループを作成し、
+  `_thread`（デーモンスレッド）上で `loop.run_forever()` を実行する。
+  外部からは `submit()` を通じてコルーチンを投入でき、`run_coroutine_threadsafe` で
+  スレッドセーフにループへ渡される。
+
+  ## 設計判断
+
+  ### デーモンスレッドと明示的なシャットダウン
+
+  スレッドは `daemon=True` とし、メインスレッド終了時にプロセスがブロックされないようにしている。
+  しかし、安全なリソース解放のために `drain()` メソッドを提供し、
+  投入された全タスクの完了を `drain_timeout` の範囲で待機する。
+
+  ### 独立したイベントループ
+
+  メインスレッドのイベントループと競合しないよう、専用のイベントループを
+  作成してバックグラウンドスレッドで駆動する。これにより `save_sync=False` 時の
+  保存処理などが、呼び出し元の asyncio 環境から完全に隔離される。
+
+  ## 実装メモ
+
+  - `submit()` は投入されたタスクを `_tasks` 集合に登録し、`add_done_callback` で
+    完了時に自身を削除することで、未完了タスクの追跡を可能にしている
+  - シャットダウン時の競合を防ぐため、`_lock` による排他制御を行っている
+  - `atexit` ハンドラとしてもシャットダウンが登録される

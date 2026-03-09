@@ -8,6 +8,35 @@ links:
 - SPEC016: aNGhXSdKb1txC4NQDsQgT7Hc_sr4rbfZnqSfQdcHSAQ=
 normative: true
 ref: ''
-reviewed: OUwD9jYBHAg2w6xCNVjaTSKSyzyXeZ7Kk7zhlBQe6CU=
+references:
+- path: src/beautyspot/lifecycle.py
+  type: file
+reviewed: null
 text: |
-  LifecyclePolicy の実装。Rule リスト、fnmatch パターンマッチング、 resolve() と resolve_with_fallback() メソッドを含む。
+  ## 実装概要
+
+  `LifecyclePolicy` クラスは `Rule` オブジェクトのリストを保持し、
+  関数名に基づいてキャッシュの保持期間を決定する。
+  `resolve()` メソッドが `fnmatch.fnmatch()` を使って関数名をパターンと照合し、
+  最初にマッチしたルールの保持期間を返す。
+
+  ## 設計判断
+
+  ### First-Match セマンティクス
+
+  ルールのリストは順序が意味を持ち、最初にマッチしたものが採用される。
+  これにより、特定プレフィックスの関数には短い保持期間を設定し、
+  最後に `*`（ワイルドカード）でデフォルトポリシーを設定するような
+  フォールバック構造が簡単に記述できる。
+
+  ### resolve_with_fallback の導入
+
+  後方互換性と柔軟性のため、まず `func_identifier` (モジュール名付きの完全修飾名) で
+  マッチングを試み、マッチしなかった場合は `func_name` (短い関数名) で再度マッチングを
+  試みる `resolve_with_fallback()` を提供している。
+
+  ## 実装メモ
+
+  - `LifecyclePolicy.default()` は空のルールリストを持ち、常に無期限保持を返す
+  - ポリシーが未設定（`None`）のデフォルト挙動を表現するため、
+    内部では `Retention.INDEFINITE` を返す

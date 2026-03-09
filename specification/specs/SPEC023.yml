@@ -3,11 +3,42 @@ derived: false
 group: HERD
 header: |
   Thundering Herd Protection
-level: 1.22
+level: 1.12
 links:
 - ARCH013: cN80_Jh_nSWmGGZqDbQPxWlqhINEgWvKmexMWJ__6EY=
 normative: true
 ref: ''
 reviewed: dAe0OY5JietwMfZmSYGpjK2gi9OIWszrxzrxItybQc0=
 text: |
-  `CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは `threading.Event` (同期) または `asyncio.Future` (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。
+  ## インターフェース
+
+  ```python
+  class CacheManager:
+      def get_or_create_inflight(
+          self, key: str, is_async: bool
+      ) -> ExecutionState: ...
+  ```
+
+  ## 振る舞い
+
+  ### 同時実行制御
+  1. キャッシュキーをキーとした `_inflight` 辞書をチェックする
+  2. **存在しない場合**: `ExecutionState` を新規作成し、自分が「実行者 (Executor)」となる
+  3. **存在する場合**: 既存の `ExecutionState` を返し、自分は「待機者 (Waiter)」となる
+  4. **完了通知**: 実行者が処理を終えたら、`ExecutionState` の Event (または Future) をセットし、結果を共有する
+
+  ## パラメータ詳細
+
+  | 内部定数 | 値 | 説明 |
+  |---|---|---|
+  | `HERD_TIMEOUT` | `300.0` | 待機者が実行者の完了を待つ最大秒数 |
+  | `HERD_MAX_RETRIES` | `3` | 実行者が失敗またはタイムアウトした際のリトライ回数 |
+
+  ## エラーハンドリング
+
+  - **実行者失敗**: 実行者が例外を投げた場合、待機者全員にも同じ例外が伝播される。
+  - **タイムアウト**: タイムアウト時は待機を解除し、自らが実行者となって再試行（またはエラー）を試みる。
+
+  ## エッジケース
+
+  - **非同期混在**: 同一キーに対して同期実行と非同期実行が混在する場合も、スレッドセーフなロックにより一つの実行に絞り込まれる。

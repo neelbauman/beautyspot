@@ -2,12 +2,41 @@ active: true
 derived: false
 group: HOOK
 header: |
-  HookBase / ThreadSafeHookBase 実装
+  HookBase 実装
 level: 1.18
 links:
 - SPEC019: gupudOCO_dHvrr53swzIPSWA-31aZwbaNvo8giAapM4=
 normative: true
 ref: ''
-reviewed: 1Ce2pPMrdBFX7s0HjYsYGYxaKOvcecYKm6RAAxI7MTM=
+references:
+- path: src/beautyspot/hooks.py
+  type: file
+reviewed: null
 text: |
-  HookBase（3メソッドのデフォルト実装）と ThreadSafeHookBase （__init_subclass__ による自動 RLock ラッピング）の実装。 _wrap_with_lock ヘルパーを含む。
+  ## 実装概要
+
+  タスク実行ライフサイクルに介入するインターフェース `HookBase` と、
+  そのスレッドセーフ版 `ThreadSafeHookBase` の実装。
+  `pre_execute`, `on_cache_hit`, `on_cache_miss` の各コールバックが提供される。
+  `ThreadSafeHookBase` は `__init_subclass__` を利用し、サブクラスで定義された
+  フックメソッドを自動的にロックでラップする。
+
+  ## 設計判断
+
+  ### __init_subclass__ による透過的ロッキング
+
+  ユーザーが手動でロックを書く手間を省くため、メタクラス的なアプローチを採用。
+  クラス定義時にフックメソッドを抽出し、`_wrap_with_lock` デコレータで包むことで、
+  ユーザーコードを汚さずに完全な排他制御を実現している。
+
+  ### RLock（再入可能ロック）の使用
+
+  当初の `Lock` から `RLock` に変更された。
+  サブクラスが `super().pre_execute(...)` のように親のメソッドを呼び出した際、
+  同一スレッドが再度ロックを取得しようとしてデッドロックする問題を防ぐため。
+
+  ## 実装メモ
+
+  - `_wrap_with_lock` は `functools.wraps` を使い、元のメタデータを保持する
+  - `ThreadSafeHookBase` は `__getattr__` をオーバーライドし、
+    `super().__init__()` の呼び出し忘れに対して親切なエラーメッセージを返す

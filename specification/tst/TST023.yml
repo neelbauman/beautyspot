@@ -8,6 +8,17 @@ links:
 - SPEC023: oAX3bz9hcpK_t4Sw8mwhMW5vJgDTVvzLdFFiuNC-rSw=
 normative: true
 ref: ''
-reviewed: 6tCnTRF0VXHAFEHppadr8GkcAkEk-ZO9Je_dQi4-H0o=
+reviewed: oKgM0kBUInrTEWSSw9m2_VJooWgir25yLdpq00iNXiw=
 text: |
-  Thundering Herd Protection のテスト。同期/非同期の並行アクセス時に 1 回のみ関数実行、例外の全待機スレッドへの伝播、 `CacheManager` のモックテストを検証する。
+  ## 目的
+
+  Thundering Herd Protection は、同一キーへの並行リクエストが一斉に関数を実行する「Thundering Herd」問題を防ぐ。この保護が不完全だと、重い計算やAPI呼び出しが不要に多重実行され、リソース浪費やレートリミット超過を招く。並行性バグはテスト困難であるため、複数の観点から網羅的に検証する。
+
+  ## 検証観点
+
+  - **同期並行**: 複数スレッドが同一キーで同時にキャッシュミスした場合、関数が1回のみ実行され、全スレッドが同じ結果を受け取ること
+  - **非同期並行**: 複数の `asyncio.Task` が同一キーで同時にキャッシュミスした場合も、関数が1回のみ実行されること
+  - **例外伝播**: 実行者（executor）の関数が例外を送出した場合、全待機スレッド/タスクに同じ例外が伝播すること。例外後に `_inflight` エントリがクリーンアップされること
+  - **タイムアウト**: 待機が `HERD_TIMEOUT`（300秒）を超過した場合にタイムアウト処理が発動し、無限待機にならないこと
+  - **リトライ**: `HERD_MAX_RETRIES`（3回）の範囲でリトライが行われ、上限超過で最終エラーが返ること
+  - **CacheManager モック**: `_inflight` 辞書の状態遷移（エントリ追加→結果セット→エントリ削除）が正しい順序で行われること

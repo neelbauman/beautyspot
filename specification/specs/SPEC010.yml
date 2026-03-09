@@ -10,12 +10,37 @@ normative: true
 ref: ''
 reviewed: yXUE61yiP-BqmCpHjO8O-csRo5BCki8yfCqpvjBbdPE=
 text: |
-  `S3Storage` はAWS S3互換オブジェクトストレージにBlobを保存する `BlobStorageMaintenable` 実装である。
+  ## インターフェース
 
-  - `save(key, data)`: `boto3.upload_fileobj` によるストリームアップロードを行い、5GB超のマルチパートアップロードに自動対応する。保存先を `s3://bucket/prefix/key.bin` 形式のURIとして返す。
-  - `load(location)`: `s3://` URIをパースし `get_object` でデータを取得する。オブジェクト不在時は `CacheCorruptedError` を送出する。
-  - `delete(location)`: `delete_object` で削除する。権限エラー等の深刻な障害はログに記録し、後続のGCに委譲する。
-  - `list_keys()`: `list_objects_v2` をページネーション付きで列挙し、`s3://` URIを返す。
-  - `get_mtime(location)`: `head_object` の `LastModified` をPOSIXタイムスタンプとして返す。
-  - コンストラクタは `s3://bucket/prefix` 形式のURIからバケット名・プレフィックスを分離する。プレフィックス省略時は `blobs` をデフォルトとする。
-  - `boto3` がインストールされていない場合はインスタンス生成時に `ImportError` を送出する。
+  ```python
+  class S3Storage(BlobStorageMaintenable):
+      def __init__(self, s3_uri: str, s3_opts: dict | None = None): ...
+  ```
+
+  ## 振る舞い
+
+  ### URIベースの管理
+  - `s3://bucket/prefix/key.bin` 形式のURIをロケーション識別子として使用する。
+
+  ### 大容量対応 (`save`)
+  - `boto3.upload_fileobj` を使用。5GBを超えるデータに対しては、自動的にマルチパートアップロードに切り替えられ、PutObjectの制限を回避する。
+
+  ### 高速なメタデータ取得 (`get_mtime`)
+  - `head_object` を使用し、データ本体をダウンロードせずに最終更新時刻（LastModified）を取得する。
+
+  ## パラメータ詳細
+
+  | 設定 | 内容 |
+  |---|---|
+  | `s3_uri` | `s3://my-bucket/my-prefix` 形式 |
+  | `s3_opts` | `boto3.client('s3', **s3_opts)` に渡される設定 |
+
+  ## エラーハンドリング
+
+  - **ライブラリ不在**: `boto3` がインポートできない環境でインスタンス化を試みると `ImportError` を送出
+  - **ネットワークエラー**: `botocore.exceptions.ClientError` をキャッチし、状況に応じて `CacheCorruptedError` に変換
+
+  ## エッジケース
+
+  - **リージョン不一致**: S3クライアントの設定とバケットのリージョンが異なる場合の動作は Boto3 のデフォルト設定に依存
+  - **削除の冪等性**: S3 は存在しないオブジェクトの削除要求に対してエラーを返さないため、常に成功として扱う

@@ -8,6 +8,37 @@ links:
 - SPEC022: XOJTfMNTIEK2-rW5dFRrvQRrie_FpVewIA5bO8RLKro=
 normative: true
 ref: ''
-reviewed: iCnvw2gQGG8Wep7Y-AzgDeRxVX3K6w4N-Xv5-10K3I4=
+references:
+- path: src/beautyspot/__init__.py
+  type: file
+reviewed: null
 text: |
-  `bs.Spot()` ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 `CacheManager` の構築、`Protocol/ABC` の定義と `__all__` エクスポートを含む。
+  ## 実装概要
+
+  `beautyspot` パッケージのメインエントリポイントとなる `Spot` ファクトリ関数の実装。
+  引数として渡された各コンポーネント（DB、Serializer、Storage等）を依存性注入（DI）で
+  解決し、デフォルトのコンポーネント（`SQLiteTaskDB`, `MsgpackSerializer`, `LocalStorage`等）を
+  インスタンス化して `CacheManager` と `_Spot` コアエンジンを組み立てる。
+
+  ## 設計判断
+
+  ### Factory 関数による Composition
+
+  `_Spot` クラス自体のコンストラクタは複雑な依存関係を要求するが、
+  ユーザー向けに `Spot()` 関数を提供することで、通常は `name` を渡すだけで
+  「ゼロ設定」で動作するようにカプセル化している。
+  同時に、高度なユーザーは各コンポーネントを自由に差し替え可能な DI アーキテクチャを維持している。
+
+  ### DB ライフサイクルの委譲
+
+  `Spot()` 関数内でデフォルトのDB（`SQLiteTaskDB`）を自動生成した場合、
+  `spot._owns_db = True` フラグを立て、Spotエンジンのシャットダウン時に
+  DBも自動でクローズされるようにする。一方、ユーザーが明示的に `db=` を
+  渡した場合は、DBのライフサイクル管理は呼び出し元に委ねる（勝手に閉じない）。
+
+  ## 実装メモ
+
+  - Storage Policy は `save_blob` フラグや引数によって `WarningOnlyPolicy`,
+    `AlwaysBlobPolicy` 等に解決される
+  - `__all__` に各種プロトコルやデフォルト実装、例外クラスをエクスポートし、
+    ライブラリとしての公開API境界を明確に定義している

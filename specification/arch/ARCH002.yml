@@ -10,6 +10,69 @@ normative: true
 ref: ''
 reviewed: FCVJFIjOXzivj4OWHoPa1qecQ0cRjtGaeFA8h-Ir72M=
 text: |
-  SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと合わせてハッシュ化する。
+  ## コンポーネント構成
 
-  特定の引数をキーから除外する `KeyGenPolicy` パターンを採用し、ユーザーが引数ごとの戦略（無視、カスタム変換等）を宣言的に指定できるようにする。
+  ```mermaid
+  graph TD
+    A[core.Spot] -->|キャッシュキー生成要求| B[KeyGenPolicy]
+    B -->|バインド| C[bound_keygen]
+    C -->|引数別戦略| D[Strategy]
+    C -->|正規化| E[canonicalize]
+    C -->|ハッシュ計算| F[KeyGen.hash_items]
+    E --> F
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | `KeyGenPolicy` | 関数の引数に対するハッシュ化戦略（無視、ファイル内容等）の宣言的定義と保持。 | `bind(func)` |
+  | `Strategy` | 引数ごとの処理方法（DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT）の定義。 | - |
+  | `canonicalize` | Pythonオブジェクトを再帰的に正規化し、Msgpackで安定してシリアライズ可能な状態に変換。 | `@singledispatch canonicalize(obj)` |
+  | `KeyGen` | 正規化されたリストからSHA-256ハッシュを生成。レガシーデフォルトのハッシュ生成も担う。 | `hash_items(items)`, `from_file_content(path)` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant Spot as core.Spot
+    participant KP as KeyGenPolicy
+    participant Sig as inspect.signature
+    participant Can as canonicalize
+    participant KG as KeyGen
+
+    Spot->>KP: bind(func)
+    KP->>Sig: signature(func)
+    Sig-->>KP: bound_keygen 生成
+    KP-->>Spot: bound_keygen
+    Spot->>Spot: bound_keygen(*args, **kwargs)
+    loop 各引数
+      alt Strategy.IGNORE
+        Spot->>Spot: スキップ
+      else Strategy.FILE_CONTENT
+        Spot->>KG: from_file_content(path)
+      else Strategy.PATH_STAT
+        Spot->>KG: from_path_stat(path)
+      else Strategy.DEFAULT
+        Spot->>Can: canonicalize(val)
+        Can-->>Spot: 正規化済みデータ
+      end
+    end
+    Spot->>KG: hash_items(items_to_hash)
+    KG-->>Spot: SHA-256 ハッシュ文字列 (キャッシュキー)
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | 引数のバインド | `inspect.signature` | argsとkwargsを定義順に正確にマッピングし、デフォルト値も適用するため |
+  | 正規化 | `functools.singledispatch` | 型ごとの正規化ロジックを拡張可能かつクリーンに実装するため |
+  | シリアライズ | `msgpack` | 高速でバイナリセーフであり、一貫したバイト列表現を得るため |
+  | ハッシュ関数 | SHA-256 | 衝突確率が極めて低く、暗号学的に安全かつ広くサポートされているため |
+
+  ## 非機能要件方針
+
+  - **安定性**: プロセスの再起動やPythonのバージョン（辞書の順序等）に依存せず、同一入力に対して常に同一のハッシュを生成すること。
+  - **性能**: 複雑なオブジェクト構造でも高速に正規化とハッシュ計算を行えること。ファイル内容のハッシュ化はチャンク読み込みでメモリ効率を確保する。
+  - **拡張性**: ユーザーが独自の `KeyGenPolicy` を定義可能にし、柔軟なキャッシュ戦略をサポートする。

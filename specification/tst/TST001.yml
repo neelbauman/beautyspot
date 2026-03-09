@@ -8,8 +8,16 @@ links:
 - SPEC001: wiOG403oECQMvXPICNVUXTbzlsabT7tZP7gcXL6l5jE=
 normative: true
 ref: ''
-reviewed: vDq9EuAR8paemKxrhMvI4cbQnR_9olusGk1v8hH_OWc=
+reviewed: 1qzx3iE9CtIVNMuj2tEt0xys0m7zsjqRHyLyR_LttsA=
 text: |
-  ## `mark` デコレータのテスト。
+  ## 目的
 
-  基本キャッシュ動作、Blobモード、シグネチャ保持 (__name__, __doc__, inspect.signature)、serializer オーバーライド、 version パラメータを検証する。
+  `@spot.mark()` はユーザーが最も頻繁に使う公開APIであり、キャッシュの正確性・透過性・拡張性の基盤となる。デコレーションによって元の関数の挙動やメタデータが損なわれると、ユーザーコードのデバッグや型チェックに支障をきたすため、ラッパーの透過性を厳密に検証する。
+
+  ## 検証観点
+
+  - **正常系**: 同一引数での2回目呼び出しでキャッシュヒットし、元の関数が再実行されないこと
+  - **Blobモード**: `save_blob=True` 指定時にDB直接保存ではなくBlobストレージ経由で保存されること
+  - **ラッパー透過性**: デコレーション後も `__name__`, `__doc__`, `inspect.signature` が元の関数と一致すること
+  - **シリアライザ差し替え**: `serializer=` パラメータでデフォルトの `MsgpackSerializer` をカスタム実装に置換できること
+  - **キャッシュ無効化**: `version=` パラメータを変更するとキャッシュキーが変わり、既存キャッシュがヒットしなくなること

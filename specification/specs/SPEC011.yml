@@ -10,12 +10,32 @@ normative: true
 ref: ''
 reviewed: rnohcAlXzE1oQZ2JwkySxVlVbcCsxLjof648HWnILKc=
 text: |
-  `StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -> bool` を定義し、このメソッドを用いて、シリアライズ済みデータのサイズに基づいてBlob保存の要否を判定する。
+  ## インターフェース
 
-  実装3種:
+  ```python
+  class StoragePolicyProtocol(Protocol):
+      def should_save_as_blob(self, data: bytes) -> bool: ...
+  ```
 
-  -   `ThresholdStoragePolicy(threshold)`: データサイズが閾値を超過した場合に `True` を返す。自動最適化の推奨ポリシー
+  ## 振る舞い
 
-  -   `WarningOnlyPolicy(warning_threshold)`: 常に `False` を返す（DB直接保存）が、閾値超過時に警告をログ出力する。v2.0互換のデフォルトポリシー
+  ### 判定ロジック
+  - **ThresholdStoragePolicy**: `len(data)` が `threshold` を超えた場合に `True` を返す。
+  - **WarningOnlyPolicy**: 常に `False` を返すが、閾値を超えた場合にログ出力のみ行う（互換モード）。
+  - **AlwaysBlobPolicy**: 常に `True` を返す。
 
-  -   `AlwaysBlobPolicy()`: 常に `True` を返す。全データをBlobストレージに保存する。
+  ## パラメータ詳細
+
+  | ポリシー型 | パラメータ | デフォルト | 説明 |
+  |---|---|---|---|
+  | `Threshold` | `threshold` | なし | バイト単位の閾値。10MB等を推奨 |
+  | `Warning` | `warning_threshold` | なし | 警告を出すサイズ閾値 |
+
+  ## エラーハンドリング
+
+  - ポリシー内の判定で例外が発生した場合は、安全のため `False` (DB保存) とみなし、エラーをログに記録する。
+
+  ## エッジケース
+
+  - **ゼロバイト**: 空のデータに対する挙動は各ポリシーの閾値設定に依存する（通常はDB保存）。
+  - **閾値ちょうどのサイズ**: `len(data) > threshold` のため、閾値と等しい場合はDB保存となる。

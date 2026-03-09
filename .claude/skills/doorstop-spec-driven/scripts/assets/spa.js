@@ -26,6 +26,13 @@ const h = s => {
   return d.innerHTML;
 };
 
+function highlightMatch(text, query) {
+  if (!query || !text) return h(text || '');
+  const escaped = h(text);
+  const escapedQ = h(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp('(' + escapedQ + ')', 'gi'), '<mark class="search-hit">$1</mark>');
+}
+
 function toast(msg, type) {
   const t = document.createElement('div');
   t.className = 'toast toast-' + (type || 'success');
@@ -33,6 +40,64 @@ function toast(msg, type) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 3200);
 }
+
+// ===================================================================
+// Mermaid — CDN loader with offline fallback
+// ===================================================================
+let mermaidReady = false;
+let mermaidAPI = null;
+
+function renderMermaidInPanel(pid) {
+  if (!mermaidReady || !mermaidAPI) return;
+  const ptv = document.getElementById('ptv-' + pid);
+  if (!ptv) return;
+  
+  // Match standard markdown code blocks as well as explicit div/pre classes
+  const blocks = ptv.querySelectorAll('code.language-mermaid, code.mermaid, pre.mermaid, div.mermaid');
+  blocks.forEach((block, idx) => {
+    if (block.dataset.mermaidProcessed) return;
+    block.dataset.mermaidProcessed = 'true';
+    
+    const id = 'mermaid-' + pid + '-' + idx + '-' + Date.now();
+    const graphDef = block.textContent.trim();
+    const target = (block.tagName === 'CODE' && block.parentElement && block.parentElement.tagName === 'PRE') ? block.parentElement : block;
+    
+    mermaidAPI.render(id, graphDef).then(({ svg }) => {
+      const div = document.createElement('div');
+      div.className = 'mermaid-diagram';
+      div.style.textAlign = 'center';
+      div.style.margin = '16px 0';
+      div.innerHTML = svg;
+      target.replaceWith(div);
+    }).catch(err => {
+      console.error('Mermaid render error:', err);
+    });
+  });
+}
+
+function renderAllMermaid() {
+  if (typeof activePanels !== 'undefined') {
+    activePanels.forEach(ps => renderMermaidInPanel(ps.id));
+  }
+}
+
+(async () => {
+  const timeout = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+  try {
+    const mod = await Promise.race([
+      import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'),
+      timeout(5000),
+    ]);
+    mermaidAPI = mod.default;
+    mermaidAPI.initialize({ startOnLoad: false, theme: 'default' });
+    mermaidReady = true;
+    console.log('Mermaid loaded (online mode)');
+    // Render any panels that might have been opened before loading finished
+    setTimeout(renderAllMermaid, 50);
+  } catch (e) {
+    console.warn('Mermaid unavailable (offline mode):', e.message);
+  }
+})();
 
 // ===================================================================
 // Rich Editor (TipTap) — CDN loader with offline fallback
@@ -246,12 +311,10 @@ async function renderMatrix() {
   renderMatrixView();
 }
 
+// Full render: filter bar + table container + event listeners
 function renderMatrixView() {
   if (!matrixData) return;
-  const prev = document.activeElement;
-  const hadSearchFocus = prev && prev.classList.contains('search-input');
-  const cursorPos = hadSearchFocus ? prev.selectionStart : 0;
-  const { prefixes, rows } = matrixData;
+  const { rows } = matrixData;
 
   const allGroups = [...new Set(rows.map(r => r.group))].sort();
   const groupPills = allGroups.map(g =>
@@ -262,9 +325,50 @@ function renderMatrixView() {
     `<span class="pill ${matrixFilters.statuses.has(s)?'active':''}" onclick="toggleMatrixStatus('${s}')">${s==='reviewed'?'&#x2713; Reviewed':s==='unreviewed'?'&#x25CB; Unreviewed':'&#x26A0; Suspect'}</span>`
   ).join('');
 
+  $main().innerHTML = `
+    <div class="page-title">Traceability Matrix</div>
+    <div class="page-subtitle">&#x2713;=Reviewed  &#x25CB;=Unreviewed  &#x26A0;=Suspect &mdash; Click UID for detail</div>
+
+    <div class="filter-bar" id="matrix-group-bar">
+      <label>Group:</label>
+      <span class="pill ${matrixFilters.groups.size===0?'active':''}" onclick="clearMatrixGroups()">All</span>
+      ${groupPills}
+    </div>
+    <div class="filter-bar" id="matrix-status-bar">
+      <label>Status:</label>
+      ${statusPills}
+      <label style="margin-left:12px">Search:</label>
+      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref" value="${h(matrixFilters.query)}">
+    </div>
+
+    <div id="matrix-table-wrap"></div>
+  `;
+
+  // IME-safe event listeners — input element is never destroyed during typing
+  const searchInput = document.getElementById('matrix-search');
+  searchInput.addEventListener('input', (e) => {
+    if (!e.isComposing) {
+      matrixFilters.query = searchInput.value;
+      renderMatrixTable();
+    }
+  });
+  searchInput.addEventListener('compositionend', () => {
+    matrixFilters.query = searchInput.value;
+    renderMatrixTable();
+  });
+
+  renderMatrixTable();
+}
+
+// Partial render: only the table inside #matrix-table-wrap
+function renderMatrixTable() {
+  if (!matrixData) return;
+  const { prefixes, rows } = matrixData;
+  const wrap = document.getElementById('matrix-table-wrap');
+  if (!wrap) return;
+
   const sortArrowHtml = (colIdx) => {
     const active = matrixFilters.sortCol === colIdx;
-    const arrow = active ? (matrixFilters.sortDir === 'asc' ? '&#x25B2;' : '&#x25BC;') : '&#x25B2;&#x25BC;';
     return `<th class="sortable ${active?'sort-active':''}" onclick="toggleMatrixSort(${colIdx})">`;
   };
   let headerCells = `${sortArrowHtml(0)}Group<span class="sort-arrow">${matrixFilters.sortCol===0?(matrixFilters.sortDir==='asc'?'&#x25B2;':'&#x25BC;'):'&#x25B2;&#x25BC;'}</span></th>`;
@@ -280,8 +384,17 @@ function renderMatrixView() {
     if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) return false;
     if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) return false;
     if (matrixFilters.query) {
-      const q = matrixFilters.query.toUpperCase();
-      if (!row.uids.some(u => u.toUpperCase().includes(q))) return false;
+      const q = matrixFilters.query.toLowerCase();
+      const matchesAnyCell = Object.values(row.cells).some(cell => {
+        if (!cell) return false;
+        if (cell.uid.toLowerCase().includes(q)) return true;
+        if (cell.header && cell.header.toLowerCase().includes(q)) return true;
+        if (cell.text_preview && cell.text_preview.toLowerCase().includes(q)) return true;
+        if (cell.ref && cell.ref.toLowerCase().includes(q)) return true;
+        if (cell.references && cell.references.some(r => r.path && r.path.toLowerCase().includes(q))) return true;
+        return false;
+      });
+      if (!matchesAnyCell) return false;
     }
     return true;
   });
@@ -304,6 +417,9 @@ function renderMatrixView() {
     });
   }
 
+  const q = matrixFilters.query;
+  const hl = q ? ((text) => highlightMatch(text, q)) : h;
+
   let bodyRows = '';
   for (const row of filtered) {
     let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
@@ -311,11 +427,14 @@ function renderMatrixView() {
       const cell = row.cells[prefix];
       if (cell) {
         const cellCls = cell.suspect ? 'cell-suspect' : (!cell.reviewed ? 'cell-unreviewed' : '');
-        const refHtml = cell.ref ? `<br><span class="tag tag-ref">${h(cell.ref)}</span>` : '';
+        const refHtml = cell.ref ? `<br><span class="tag tag-ref">${hl(cell.ref)}</span>` : '';
+        const headerHtml = cell.header ? `<span class="cell-header">${hl(cell.header)}</span>` : '';
+        const textHtml = cell.text_preview ? `<span class="text-preview">${hl(cell.text_preview)}</span>` : '';
         cells += `<td class="${cellCls}" data-uid="${cell.uid}">
-          <span class="cell-uid" onclick="handleCellClick(event,'${cell.uid}')">${h(cell.uid)}</span>
+          <span class="cell-uid" onclick="handleCellClick(event,'${cell.uid}')">${hl(cell.uid)}</span>
           ${statusIcons(cell.reviewed, cell.suspect)}
-          <span class="text-preview">${h(cell.text_preview)}</span>
+          ${headerHtml}
+          ${textHtml}
           ${refHtml}
         </td>`;
       } else {
@@ -325,46 +444,81 @@ function renderMatrixView() {
     bodyRows += `<tr>${cells}</tr>`;
   }
 
-  $main().innerHTML = `
-    <div class="page-title">Traceability Matrix</div>
-    <div class="page-subtitle">&#x2713;=Reviewed  &#x25CB;=Unreviewed  &#x26A0;=Suspect &mdash; Click UID for detail</div>
-
-    <div class="filter-bar">
-      <label>Group:</label>
-      <span class="pill ${matrixFilters.groups.size===0?'active':''}" onclick="clearMatrixGroups()">All</span>
-      ${groupPills}
-    </div>
-    <div class="filter-bar">
-      <label>Status:</label>
-      ${statusPills}
-      <label style="margin-left:12px">ID:</label>
-      <input class="search-input" type="text" placeholder="e.g. SPEC001" value="${h(matrixFilters.query)}" oninput="matrixFilters.query=this.value;renderMatrixView()">
-    </div>
-
+  wrap.innerHTML = `
     <table>
       <tr>${headerCells}</tr>
       ${bodyRows || '<tr><td colspan="'+(prefixes.length+1)+'" class="empty">No matching items</td></tr>'}
     </table>
   `;
-  if (hadSearchFocus) {
-    const inp = $main().querySelector('.search-input');
-    if (inp) { inp.focus(); inp.setSelectionRange(cursorPos, cursorPos); }
+}
+
+// Update only the pill active states without touching the search input
+function updateMatrixPills() {
+  if (!matrixData) return;
+  const { rows } = matrixData;
+  const allGroups = [...new Set(rows.map(r => r.group))].sort();
+
+  const groupBar = document.getElementById('matrix-group-bar');
+  if (groupBar) {
+    groupBar.innerHTML = `
+      <label>Group:</label>
+      <span class="pill ${matrixFilters.groups.size===0?'active':''}" onclick="clearMatrixGroups()">All</span>
+      ${allGroups.map(g =>
+        `<span class="pill ${matrixFilters.groups.has(g)?'active':''}" onclick="toggleMatrixGroup('${h(g)}')">${h(g)}</span>`
+      ).join('')}
+    `;
+  }
+
+  const statusBar = document.getElementById('matrix-status-bar');
+  if (statusBar) {
+    const searchInput = document.getElementById('matrix-search');
+    const hadFocus = document.activeElement === searchInput;
+    const cursorPos = hadFocus && searchInput ? searchInput.selectionStart : 0;
+
+    statusBar.innerHTML = `
+      <label>Status:</label>
+      ${ ['reviewed','unreviewed','suspect'].map(s =>
+        `<span class="pill ${matrixFilters.statuses.has(s)?'active':''}" onclick="toggleMatrixStatus('${s}')">${s==='reviewed'?'&#x2713; Reviewed':s==='unreviewed'?'&#x25CB; Unreviewed':'&#x26A0; Suspect'}</span>`
+      ).join('')}
+      <label style="margin-left:12px">Search:</label>
+      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref" value="${h(matrixFilters.query)}">
+    `;
+
+    // Re-attach search listeners
+    const newInput = document.getElementById('matrix-search');
+    newInput.addEventListener('input', (e) => {
+      if (!e.isComposing) {
+        matrixFilters.query = newInput.value;
+        renderMatrixTable();
+      }
+    });
+    newInput.addEventListener('compositionend', () => {
+      matrixFilters.query = newInput.value;
+      renderMatrixTable();
+    });
+    if (hadFocus) {
+      newInput.focus();
+      newInput.setSelectionRange(cursorPos, cursorPos);
+    }
   }
 }
 
 function toggleMatrixGroup(g) {
   if (matrixFilters.groups.has(g)) matrixFilters.groups.delete(g);
   else matrixFilters.groups.add(g);
-  renderMatrixView();
+  updateMatrixPills();
+  renderMatrixTable();
 }
 function clearMatrixGroups() {
   matrixFilters.groups.clear();
-  renderMatrixView();
+  updateMatrixPills();
+  renderMatrixTable();
 }
 function toggleMatrixStatus(s) {
   if (matrixFilters.statuses.has(s)) matrixFilters.statuses.delete(s);
   else matrixFilters.statuses.add(s);
-  renderMatrixView();
+  updateMatrixPills();
+  renderMatrixTable();
 }
 function toggleMatrixSort(colIdx) {
   if (matrixFilters.sortCol === colIdx) {
@@ -373,7 +527,7 @@ function toggleMatrixSort(colIdx) {
     matrixFilters.sortCol = colIdx;
     matrixFilters.sortDir = 'asc';
   }
-  renderMatrixView();
+  renderMatrixTable();
 }
 
 // --- Group Detail ---
@@ -671,6 +825,7 @@ function closeItemPanel() { closeAllPanels(); clearCellSelection(); }
 function renderPanelContent(ps, data) {
   if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
   ps.editMode = false;
+  ps.originalHtml = data.text_html; // Store for editor initialization
   const pid = ps.id;
   const contentEl = document.getElementById('pc-' + pid);
 
@@ -688,6 +843,7 @@ function renderPanelContent(ps, data) {
     <div class="panel-header">
       <div>
         <strong style="font-size:1.15em">${h(data.uid)}</strong>
+        ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
         <span class="tag tag-prefix">${h(data.prefix)}</span>
         <span class="tag tag-group">${h(data.group)}</span>
       </div>
@@ -725,6 +881,9 @@ function renderPanelContent(ps, data) {
     <button ${data.prev_uid ? `onclick="handlePanelNav(event,${pid},'${data.prev_uid}')"` : 'disabled'}>&larr; Prev${data.prev_uid ? ' (' + h(data.prev_uid) + ')' : ''}</button>
     <button ${data.next_uid ? `onclick="handlePanelNav(event,${pid},'${data.next_uid}')"` : 'disabled'}>Next${data.next_uid ? ' (' + h(data.next_uid) + ')' : ''} &rarr;</button>
   `;
+
+  // Render Mermaid diagrams if available
+  setTimeout(() => renderMermaidInPanel(pid), 0);
 }
 
 // ===================================================================
@@ -765,7 +924,17 @@ function createTiptapEditor(panelId, htmlContent) {
   const TabHandler = RichEditor.Extension.create({
     name: 'tabHandler',
     addKeyboardShortcuts() {
-      return { 'Tab': () => true, 'Shift-Tab': () => true };
+      return {
+        'Tab': () => {
+          if (this.editor.isActive('listItem')) return this.editor.commands.sinkListItem('listItem');
+          if (this.editor.isActive('codeBlock')) return this.editor.commands.insertContent('  ');
+          return false;
+        },
+        'Shift-Tab': () => {
+          if (this.editor.isActive('listItem')) return this.editor.commands.liftListItem('listItem');
+          return false;
+        },
+      };
     },
   });
   const editor = new RichEditor.Editor({
@@ -854,7 +1023,7 @@ function panelStartEdit(panelId) {
     const richWrap = document.getElementById('prich-' + panelId);
     richWrap.classList.remove('hidden');
     richWrap.innerHTML = '<div class="tiptap-toolbar" id="ptbar-' + panelId + '"></div><div id="ptip-' + panelId + '"></div>';
-    const htmlContent = document.getElementById('ptv-' + panelId).innerHTML;
+    const htmlContent = ps.originalHtml || document.getElementById('ptv-' + panelId).innerHTML;
     ps.editor = createTiptapEditor(panelId, htmlContent);
     ps.useRich = true;
     ps.editor.commands.focus('end');

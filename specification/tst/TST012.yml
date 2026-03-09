@@ -10,4 +10,14 @@ normative: true
 ref: ''
 reviewed: 4zPg5FDjKHsejX-MVKFoHmYkXtR-YAzFNG3Pqgiixyw=
 text: |
-  MsgpackSerializer のテスト。基本的なシリアライズ/デシリアライズ、 Pydantic モデルの dict フロー、スレッドセーフ LRU キャッシュ、 numpy シリアライズの一貫性を検証する。
+  ## 目的
+
+  `MsgpackSerializer` はキャッシュデータの永続化形式を決定する。シリアライズの不具合はデータ消失（デシリアライズ不能）やサイレントなデータ劣化（精度低下等）に直結する。スレッドセーフ性の欠如はマルチスレッド環境での競合状態を引き起こす。
+
+  ## 検証観点
+
+  - **ラウンドトリップ**: プリミティブ型（int, float, str, bytes, None, bool）と基本コレクション（list, dict）が `dumps` → `loads` で元の値と一致すること
+  - **Pydantic モデル**: Pydantic モデルが dict に変換されてシリアライズされ、デシリアライズ後に元のモデルが復元されること
+  - **numpy 配列**: ndarray の shape, dtype, 値が保持されること。float64 等の精度が劣化しないこと
+  - **スレッドセーフ LRU キャッシュ**: サブクラス解決のキャッシュがスレッドローカルであり、複数スレッドからの同時アクセスで競合しないこと
+  - **ExtType 拡張**: カスタム型が ExtType (code 0-127) で正しく登録・解決されること

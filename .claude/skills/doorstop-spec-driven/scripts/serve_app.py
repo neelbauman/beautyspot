@@ -174,6 +174,13 @@ class DoorstopDataStore:
         except (AttributeError, KeyError):
             return ""
 
+    def _get_header(self, item):
+        try:
+            h = item.get("header")
+            return h.strip() if h else ""
+        except (AttributeError, KeyError):
+            return ""
+
     def _find_prefix(self, item):
         uid_str = str(item.uid)
         for doc in self.tree:
@@ -205,6 +212,7 @@ class DoorstopDataStore:
         return {
             "uid": uid_str,
             "prefix": prefix,
+            "header": self._get_header(item),
             "group": self._get_group(item),
             "text": item.text,
             "text_html": render_markdown(item.text),
@@ -240,6 +248,7 @@ class DoorstopDataStore:
         return {
             "uid": uid_str,
             "prefix": prefix,
+            "header": self._get_header(item),
             "group": self._get_group(item),
             "text_preview": item.text[:80] + ("..." if len(item.text) > 80 else ""),
             "ref": self._get_ref(item),
@@ -485,10 +494,19 @@ class DoorstopDataStore:
                         statuses.add("reviewed")
                     else:
                         statuses.add("unreviewed")
+                    references = []
+                    try:
+                        refs = item.get("references")
+                        if refs and isinstance(refs, list):
+                            references = refs
+                    except (AttributeError, KeyError):
+                        pass
                     cells[prefix] = {
                         "uid": uid_str,
+                        "header": self._get_header(item),
                         "text_preview": item.text[:80] + ("..." if len(item.text) > 80 else ""),
                         "ref": self._get_ref(item),
+                        "references": references,
                         "reviewed": is_reviewed,
                         "suspect": is_suspect,
                     }

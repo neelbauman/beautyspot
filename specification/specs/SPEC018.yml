@@ -10,4 +10,36 @@ normative: true
 ref: ''
 reviewed: NIwkhvj20ckUA1BdqjmCaVGjLNQtKGUsD2OG_kIeQo8=
 text: |
-  `TokenBucket` は GCRA (Generic Cell Rate Algorithm) ベースのスムースレートリミッター。 tokens_per_minute で分あたりのトークン数を指定する。 アイドル後のバースト防止（Strict Pacing）、初回リクエストの遅延なし、 TPM 超過コストの即時拒否 (ValueError) を実装する。 モノトニッククロック使用。スレッドセーフ (threading.Lock)。 `consume(cost)` で同期ブロック、`consume_async(cost)` で非同期待機。 `@spot.consume(cost)` デコレータで関数に適用する。cost は整数またはコスト計算関数。
+  ## インターフェース
+
+  ```python
+  class TokenBucket(LimiterProtocol):
+      def consume(self, cost: float = 1.0) -> None: ...
+      async def consume_async(self, cost: float = 1.0) -> None: ...
+  ```
+
+  ## 振る舞い
+
+  ### GCRAアルゴリズム
+  - 各リクエストに対して「次回実行可能な理論時刻 (TAT: Theoretical Arrival Time)」を計算・更新する。
+  - 現在時刻が `TAT - 許容バースト` 以前の場合、リクエストを拒否または待機させる。
+
+  ### 同期 vs 非同期
+  - `consume`: 待機が必要な場合は `time.sleep()` でブロック。
+  - `consume_async`: 待機が必要な場合は `asyncio.sleep()` で非占有待機。
+
+  ## パラメータ詳細
+
+  | 設定 | デフォルト | 説明 |
+  |---|---|---|
+  | `tokens_per_minute` | 必須 | 1分間に許可する平均リクエスト数（コスト合計） |
+  | `max_burst` | `1.0` | 許容されるバースト数（トークン単位） |
+
+  ## エラーハンドリング
+
+  - **即時拒否モード**: 待機を許容しない設定でレート超過した場合、`RateLimitError` (ValueErrorのサブクラス) を送出する。
+
+  ## エッジケース
+
+  - **高コストリクエスト**: `max_burst` を超えるコストを持つ単一リクエストは、常に拒否される。
+  - **アイドル時間**: 長時間リクエストがない場合も、`TAT` は現在時刻より過去に一定以上離れないよう補正される（過度なバーストの防止）。

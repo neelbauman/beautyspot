@@ -10,4 +10,33 @@ normative: true
 ref: ''
 reviewed: 48ZCyl7BjKzPxPtu3dvbWS8bKvmzUqhGkAPZyC9NoTM=
 text: |
-  `_BackgroundLoop` はデーモンスレッドで asyncio イベントループを実行する。 `submit(coro)` でコルーチンをスレッドセーフに投入する。 シャットダウン時は新規タスクの受付を停止し、アクティブタスクの完了を `drain_timeout` 秒まで待機する。atexit ハンドラで安全網を提供する。
+  ## インターフェース
+
+  ```python
+  class _BackgroundLoop:
+      def submit(self, coro: Coroutine) -> None: ...
+      def stop(self) -> None: ...
+      def is_running(self) -> bool: ...
+  ```
+
+  ## 振る舞い
+
+  1. **起動**: 初回の `submit` 時にデーモンスレッドを作成し、`asyncio.run()` を開始する
+  2. **投入**: `run_coroutine_threadsafe` を使用して、メインスレッドからコルーチンをイベントループへ投入
+  3. **待機**: 投入されたタスクの完了は待たず、制御を即座に呼び出し元へ返す
+
+  ## パラメータ詳細
+
+  | 内部属性 | 型 | 説明 |
+  |---|---|---|
+  | `_loop` | `AbstractEventLoop` | スレッド内で稼働するループ本体 |
+  | `_thread` | `Thread` | `daemon=True` 設定のスレッド |
+
+  ## エラーハンドリング
+
+  - **投入失敗**: ループ停止中にタスクが投入された場合、エラーをログ出力し無視する
+  - **タスク内エラー**: コルーチン内で発生した例外は、`on_background_error` コールバックで処理される
+
+  ## エッジケース
+
+  - **多重起動**: すでにスレッドが実行中の場合は、既存のスレッドを再利用する

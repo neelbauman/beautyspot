@@ -8,6 +8,35 @@ links:
 - SPEC015: zPIauq46zVtD9Sz7xnmq5QJP_BU96SNCWk2b6j-6If4=
 normative: true
 ref: ''
-reviewed: W3skfVjJFhaax2rJwOn28h0GmadtW_HxQr-0J1AeEqQ=
+references:
+- path: src/beautyspot/core.py
+  type: file
+reviewed: null
 text: |
-  save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ __exit__ での自動 drain、 on_background_error コールバック呼び出しの実装を含む。
+  ## 実装概要
+
+  `Spot` クラスにおいて、バックグラウンド書き込みの同期と完了待機を制御する。
+  `save_sync=False` の場合、キャッシュへの保存処理は `_bg_loop.submit()` で
+  バックグラウンドに投入される。これら未完了のタスクやDBキューを同期するため、
+  `flush()` およびコンテキストマネージャによる `drain` が実装されている。
+
+  ## 設計判断
+
+  ### flush と drain の使い分け
+
+  - `flush()`: DBライタースレッドのキュー (`self.db.flush()`) を空になるまで待機する
+  - `__exit__`: コンテキストマネージャ終了時に `flush()` を呼び出した上で、
+    さらに `_bg_loop.drain()` を呼び出し、非同期タスクの完了も待つ
+  これにより、スクリプト終了時やバッチ処理の区切りで、データの完全な永続化を保証する。
+
+  ### バックグラウンドエラーの隔離
+
+  バックグラウンド保存時のエラーは呼び出し元のメインフローを妨げないよう、
+  `on_background_error` コールバックに通知され、ログ出力のみ行う。
+  例外の再送出は行わない。
+
+  ## 実装メモ
+
+  - `flush()` にはタイムアウトを設定でき、ハングアップを防止している
+  - `on_background_error` は `SaveErrorContext` を引数に取り、失敗時の
+    キーや関数の詳細情報を提供する

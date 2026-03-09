@@ -8,6 +8,39 @@ links:
 - SPEC013: CMLKwUVCD668AePQPuFe8VLpY82-4z2XrTCYELqqUF8=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/serializer.py
+  type: file
+- path: src/beautyspot/core.py
+  type: file
 reviewed: vjjlYzPehFJQggc_-Ffx7IeGTxKuk2V2qfZy9ZV448o=
 text: |
-  MsgpackSerializer.register() メソッドの実装。 code 0-127 バリデーション、重複チェック、 Copy-on-Write による安全な登録を含む。 Spot.register()/register_type() によるユーザー向けインターフェースも含む。
+  ## 実装概要
+
+  2つのレイヤーで構成:
+  - `MsgpackSerializer.register(type, code, encoder, decoder)`: 低レベルの型登録 API
+  - `Spot.register()` / `Spot.register_type()`: ユーザー向けの高レベル API
+
+  `Spot.register()` はデコレータ形式、`Spot.register_type()` は命令形式で、
+  いずれも内部で `serializer.register()` に委譲する（`TypeRegistryProtocol` 準拠時のみ）。
+
+  ## 設計判断
+
+  ### 二層 API の提供
+
+  デコレータ形式 `@spot.register(code=1, ...)` はクラス定義と同時に登録でき、
+  宣言的で読みやすい。命令形式 `spot.register_type(MyClass, code=1, ...)` は
+  外部ライブラリのクラスなどデコレートできない場合に使用する。
+
+  ### TypeRegistryProtocol による条件分岐
+
+  シリアライザが `TypeRegistryProtocol` を実装していない場合（カスタムシリアライザ）、
+  `register()` / `register_type()` は `ConfigurationError` を送出する。
+  これにより、型登録非対応のシリアライザを使用する場合のエラーメッセージが明確になる。
+
+  ## 実装メモ
+
+  - `register()` の内部で `_write_lock` を取得してから CoW で辞書を差し替える
+  - Pydantic モデルの factory デコーダは `model_validate(data)` を使用し、
+    バリデーション付きの復元が可能
+  - code の重複登録はエラーとなるが、同一型の再登録（code 変更）もエラーとなる

@@ -2,7 +2,7 @@ active: true
 derived: false
 group: BGIO
 header: |
-  バックグラウンドIOアーキテクチャ
+  バックグラウンドIO構成
 level: 1.5
 links:
 - REQ006: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
@@ -10,10 +10,52 @@ normative: true
 ref: ''
 reviewed: x6SGLP0jwb53mpzsOuT5ArXtPrvPClwxL7DLYWBr2ng=
 text: |
-  キャッシュの保存I/Oをバックグラウンドスレッドに委譲し、関数の応答レイテンシへの影響をゼロにするアーキテクチャを採用する。
+  ## コンポーネント構成
 
-  -   `ThreadPoolExecutor` と非同期イベントループ (`_BackgroundLoop`) を組み合わせる。
+  ```mermaid
+  graph TD
+    A[core.Spot] -->|非同期タスク投入| B[_BackgroundLoop]
+    B -->|Daemon Thread| C[asyncio.AbstractEventLoop]
+    C -->|I/O| D[TaskDB / BlobStorage]
+    A -->|ライフサイクル制御| E[atexit / ContextManager]
+  ```
 
-  -   コンテキストマネージャ (`with spot:`) の終了時に保留中の保存を完了するフラッシュ機構を提供し、データ喪失を防止する。
+  ## コンポーネント責務
 
-  -   バックグラウンド保存の失敗はログに記録し、関数の実行結果には影響を与えない。
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | _BackgroundLoop | デーモンスレッドでのイベントループ管理とタスク投入 | `submit()`, `run_forever()` |
+  | core.Spot | 非同期保存のトリガーとエラーハンドリング | `_save_metadata_async()` |
+  | ContextManager | 処理終了時のタスク完了待機（Flush） | `__exit__`, `flush()` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant Main as メインスレッド
+    participant Loop as _BackgroundLoop
+    participant Store as ストレージ
+
+    Main->>Loop: submit(save_coro)
+    Note over Main: 関数は即座に結果を返す (save_sync=False)
+    Loop->>Store: 書き込み実行 (I/O)
+    alt 成功
+        Store-->>Loop: OK
+    else 失敗
+        Loop->>Main: on_background_error(error)
+    end
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | 並行処理 | asyncio in Thread | GILを解放しつつ、多数のI/Oタスクを効率的に多重化 |
+  | スレッド種類 | Daemon Thread | アプリケーション終了時にプロセスをブロックしない |
+  | 終了制御 | atexit / drain | 強制終了時も、可能な限り保留中の書き込みを完了させる |
+
+  ## 非機能要件方針
+
+  - **透過性**: 保存失敗時もユーザーコードの例外にはせず、コールバック経由で通知
+  - **一貫性**: `flush()` により、クリティカルな処理の直後での保存完了を保証
+  - **安全性**: シャットダウンシーケンス中に新規タスクを受け付けない排他制御を導入

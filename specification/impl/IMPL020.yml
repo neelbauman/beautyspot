@@ -8,6 +8,39 @@ links:
 - SPEC020: 4inhRA31nDgyLTnTy4X2JCpXwt_QQViTCSIRjG2mfeU=
 normative: true
 ref: ''
-reviewed: j9S8CMk18pxxzaCflrW3NJUiPldufL_XPLqD1G1S1Aw=
+references:
+- path: src/beautyspot/maintenance.py
+  type: file
+reviewed: null
 text: |
-  MaintenanceService の実装。clean_garbage() の5フェーズ処理、 scan_garbage() の grace_period 付き孤立検出、 from_path() ファクトリ、scan_orphan_projects()、 resolve_key_prefix() を含む。
+  ## 実装概要
+
+  `MaintenanceService` クラスがDBとBlobストレージ間の整合性チェック、
+  期限切れキャッシュの削除、孤立ファイルの検出といったガベージコレクション（GC）を担当。
+  主にCLIの `beautyspot gc` コマンドから呼び出される。
+  対象となる DB (`TaskDBMaintenable`) とストレージ (`BlobStorageMaintenable`) を受け取り、
+  複数のフェーズに分けてクリーンアップを実行する。
+
+  ## 設計判断
+
+  ### 5フェーズのクリーンアッププロセス
+
+  `clean_garbage()` は以下の順序で安全にGCを実行する：
+  1. 期限切れDBレコードの削除
+  2. Blobストレージの一時ファイル（`.spot_tmp`）のクリーンアップ
+  3. 孤立したBlobファイル（DBに存在しないファイル）の特定
+  4. 孤立ファイルの削除
+  5. 空ディレクトリの剪定
+
+  ### Grace Period (猶予期間) の導入
+
+  実行中のタスクがBlobを書き込んだ直後で、まだDBにメタデータが保存されていない
+  タイミングでGCが走ると、必要なファイルが孤立と誤認されるリスクがある。
+  これを防ぐため、`orphan_grace_seconds`（デフォルト60秒）より新しいファイルは
+  孤立判定から除外する設計とした。
+
+  ## 実装メモ
+
+  - 孤立ファイルの検出 `scan_garbage()` は、ストレージの全キーを列挙し、
+    DBの `get_blob_keys()` との差分を取ることで行う
+  - 複数プロジェクトを一括でGCするためのヘルパー `scan_orphan_projects()` も提供される

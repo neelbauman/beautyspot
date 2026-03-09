@@ -8,6 +8,34 @@ links:
 - SPEC017: MUNFlfM4TR49bOe-T7MYPI9w8qdjUD9-zodjWW-iFQI=
 normative: true
 ref: ''
-reviewed: CteocC7BRsyDovP1w1uW5LobgeSsEMgKtXFvfT64OFc=
+references:
+- path: src/beautyspot/lifecycle.py
+  type: file
+reviewed: null
 text: |
-  Retention 定数、_ForeverSentinel シングルトン、 parse_retention() による文字列/timedelta/int/float の正規化、 SQLiteTaskDB.get() での Lazy Expiration チェックの実装を含む。
+  ## 実装概要
+
+  `Retention` クラスを名前空間として使用し、保持期間のパースや
+  特殊な定数（`INDEFINITE`, `FOREVER`）を管理する。
+  `parse_retention()` 関数は文字列（"7d", "12h"等）、`timedelta`、
+  または秒数（`int`/`float`）を受け取り、標準化された `timedelta` オブジェクトに変換する。
+
+  ## 設計判断
+
+  ### _ForeverSentinel シングルトン
+
+  `Retention.FOREVER` はポリシーを強制的にバイパスするための特殊値。
+  PEP 703 (free-threading) 環境での安全性を考慮し、
+  `_ForeverSentinel` は `threading.Lock` を用いたダブルチェックロッキングで
+  厳密なシングルトンとして実装されている。
+
+  ### 直感的な文字列表現のサポート
+
+  `"7d"`, `"12h"`, `"30m"`, `"10s"` のような文字列フォーマットを
+  正規表現 `_TIME_PATTERN` でパースすることで、設定ファイルや
+  ハードコード時の可読性を高めている。
+
+  ## 実装メモ
+
+  - `parse_retention()` は無効なフォーマットや負の値に対して `ValidationError` を送出する
+  - `_ForeverSentinel` は `__bool__()` で `True` を返すようオーバーライドされている

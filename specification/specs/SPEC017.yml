@@ -10,4 +10,36 @@ normative: true
 ref: ''
 reviewed: JYMwEYYnRqlQMom9f0J_w_lVYbPsC3Z3XYDUVP7XDuQ=
 text: |
-  保持期間は文字列（"7d", "12h", "30m", "10s"）、timedelta、秒数（int/float）で指定する。 `Retention.FOREVER` はグローバルポリシーを明示的にバイパスし無期限保持を宣言する。 `Retention.INDEFINITE` (None) はポリシーに委ねるデフォルト値。 `parse_retention()` で正規化する。負値・ゼロは `ValidationError`。 期限切れ判定は DB の `get()` 時に遅延チェック（Lazy Expiration）で行う。
+  ## インターフェース
+
+  ```python
+  def parse_retention(val: Any) -> float | None: ...
+  ```
+
+  ## 振る舞い
+
+  ### 文字列パース
+  - `"7d"` (7日), `"12h"` (12時間), `"30m"` (30分), `"10s"` (10秒) 形式を秒数に変換する。大文字小文字は区別しない。
+
+  ### 数値・オブジェクト
+  - `int`, `float`: 秒数としてそのまま扱う。
+  - `timedelta`: `total_seconds()` を取得。
+  - `None`: ポリシーに従う（または無期限）を意味する。
+
+  ## パラメータ詳細 (単位)
+
+  | 単位 | 倍率 (秒) | 備考 |
+  |---|---|---|
+  | `d` | 86400 | 日数 |
+  | `h` | 3600 | 時間 |
+  | `m` | 60 | 分 |
+  | `s` | 1 | 秒 |
+
+  ## エラーハンドリング
+
+  - **不正な形式**: パーサが理解できない形式の場合は `ValidationError` を送出する。
+  - **負の値**: 過去の時間は指定できず、`ValidationError` となる。
+
+  ## エッジケース
+
+  - **FOREVER**: 特別な定数 `Retention.FOREVER` (無限大の秒数) を提供し、ポリシーに関わらず永続化を指示できる。

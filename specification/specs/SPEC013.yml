@@ -10,4 +10,42 @@ normative: true
 ref: ''
 reviewed: IBjAQkVQhqnqPqwd3xyJQV1FcK3kVqgdY1p8QjYBhZ0=
 text: |
-  `spot.register(code, encoder, decoder)` デコレータまたは `spot.register_type(cls, code, encoder, decoder)` メソッドにより、 カスタム型をシリアライザに登録する。code は 0-127 の一意な整数。 同一コードまたは同一型の重複登録は ValueError で拒否する。 `decoder_factory` オプションで型に基づくデコーダ自動生成もサポートする。
+  ## インターフェース
+
+  ```python
+  def register(
+      code: int,
+      encoder: Callable[[Any], Any],
+      decoder: Callable[[Any], Any],
+  ) -> Callable: ... # デコレータ形式
+
+  def register_type(
+      type_class: Type,
+      code: int,
+      encoder: Callable[[Any], Any],
+      decoder: Callable[[Any], Any],
+  ) -> None: ...
+  ```
+
+  ## 振る舞い
+
+  1. **重複チェック**: 同一コードまたは同一クラスが既に登録されていないか確認
+  2. **CoW更新**: 現在のレジストリ辞書をコピーし、新しいエントリを追加した後に参照を差し替える
+  3. **世代更新**: `_registry_generation` をインクリメントし、全スレッドのLRUキャッシュを無効化対象とする
+
+  ## パラメータ詳細
+
+  | パラメータ | 制限 | 説明 |
+  |---|---|---|
+  | `code` | `0` 〜 `127` | MessagePack ExtType のユーザー定義領域コード |
+  | `encoder` | 引数1、戻り値シリアライズ可能 | オブジェクトをプリミティブ構造へ変換する関数 |
+  | `decoder` | 引数1、戻り値オブジェクト | プリミティブ構造からオブジェクトを復元する関数 |
+
+  ## エラーハンドリング
+
+  - **コード重複**: `ValueError` を送出し、レジストリの破損を防ぐ
+  - **範囲外コード**: 128以上のコードを指定した場合は `ValueError`
+
+  ## エッジケース
+
+  - **継承**: 基底クラスを登録すると、サブクラスも自動的にそのエンコーダを使用する（オーバーライド可能）

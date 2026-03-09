@@ -10,13 +10,38 @@ normative: true
 ref: ''
 reviewed: -8CtMI_n5Gfa0zbfjBGUiRDPAL_oHtd4gWQeQVRzpgg=
 text: |
-  `LocalStorage` はローカルファイルシステムにBlobを保存する `BlobStorageMaintenable` 実装である。
+  ## インターフェース
 
-  - `save(key, data)`: `tempfile.mkstemp` で一時ファイルを作成し、`flush` + `fsync` の後 `os.replace` でアトミックにリネームする。並行書き込みやクラッシュ時のファイル破損を防止する。キーにパス区切り文字 (`..`, `/`, `\\`) を含む場合は `ValidationError` を送出する。
-  - `load(location)`: 解決パスが `base_dir` 配下であることを `is_relative_to` で検証し、パストラバーサルを防止する。ファイル不在時は `CacheCorruptedError` を送出する。
-  - `delete(location)`: 冪等に動作する。空ディレクトリの削除はメンテナンスタスクに委譲する。
-  - `list_keys()`: `.bin` ファイルを `rglob` で再帰的に列挙し、`base_dir` からの相対パスを返す。
-  - `get_mtime(location)`: パストラバーサル検証後にファイルの最終更新時刻を返す。
-  - `clean_temp_files(max_age_seconds)`: 猶予期間（デフォルト24時間）を超えた `.spot_tmp` ファイルを清掃する。
-  - `prune_empty_dirs()`: 空ディレクトリ（`.DS_Store` 等のみ含むものを含む）を再帰的に削除する。`base_dir` 自体は保持する。
-  - 初期化時に `base_dir` を絶対パスに正規化し、ディレクトリと `.gitignore` を自動作成する。
+  ```python
+  class LocalStorage(BlobStorageMaintenable):
+      def __init__(self, base_dir: str | Path): ...
+      def save(self, key: str, data: bytes) -> str: ...
+      def load(self, location: str) -> bytes: ...
+  ```
+
+  ## 振る舞い
+
+  ### アトミック書き込み (`save`)
+  1. 指定ディレクトリ内に `tempfile.mkstemp` で一時ファイルを作成
+  2. データを書き込み、`flush()` および `os.fsync()` でディスク到達を保証
+  3. `os.replace` で最終的なパスへリネーム（アトミックな置換）
+
+  ### パストラバーサル対策 (`load` / `delete`)
+  - 解決後の絶対パスが `base_dir` の配下にあることを `is_relative_to` で厳密にチェックし、範囲外へのアクセスを遮断する。
+
+  ## パラメータ詳細
+
+  | パラメータ | 説明 | 制限 |
+  |---|---|---|
+  | `key` | 保存ファイル名のベース | `..` や `/` を含む場合は `ValidationError` |
+  | `location` | `save` が返した識別子 | 相対パス形式を推奨 |
+
+  ## エラーハンドリング
+
+  - **ファイル不在**: `load` 時にファイルがない場合 `CacheCorruptedError` を送出
+  - **権限エラー**: `PermissionError` 発生時は、GCでの回収に委ねるため警告ログのみ出力
+
+  ## エッジケース
+
+  - **ディスクフル**: 書き込み中に容量不足になった場合、一時ファイルを削除して `OSError` を送出
+  - **Windowsパス**: パス区切り文字として `/` と `\` の両方を検証対象とする

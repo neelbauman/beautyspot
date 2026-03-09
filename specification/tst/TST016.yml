@@ -10,4 +10,13 @@ normative: true
 ref: ''
 reviewed: bi_cG1DWenwJ0gmHgCud1yhF433NIWd8KmzE9NWuuuw=
 text: |
-  LifecyclePolicy のテスト。ルールベースのパターンマッチング、 resolve_with_fallback の完全修飾名→短縮名フォールバックを検証する。
+  ## 目的
+
+  `LifecyclePolicy` はキャッシュデータの保持期間を関数名パターンで制御する。パターンマッチングの不備は、重要なキャッシュの意図しない削除（データロス）や不要なキャッシュの蓄積（ディスク圧迫）を引き起こす。
+
+  ## 検証観点
+
+  - **パターンマッチング**: glob パターン（`"train_*"`, `"*.preprocess"` 等）がルールの `func_pattern` として正しく機能し、マッチした関数に対して指定の `Retention` が適用されること
+  - **ルール優先順位**: 複数ルールがマッチした場合に、リスト順（先勝ち or 後勝ち）でルールが決定されること
+  - **resolve_with_fallback**: 完全修飾名（`module.qualname`）でルールが見つからない場合に、短縮名（`qualname` のみ）でフォールバック検索が行われること
+  - **マッチなし**: どのルールにもマッチしない関数に対してデフォルトの保持ポリシーが適用されること

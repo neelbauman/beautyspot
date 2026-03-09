@@ -8,6 +8,36 @@ links:
 - SPEC006: RMTxfnsnPFluWYinCimxMmi0VHzXitwMuW9sZkXrxAE=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/cachekey.py
+  type: file
 reviewed: 662Z22kfo8u7kEQx1zJdrsjsmEFPzAPudtVRyjkj61c=
 text: |
-  KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。
+  ## 実装概要
+
+  `Strategy` enum（DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種）と
+  `KeyGenPolicy` クラスで構成。`KeyGenPolicy` は引数名→戦略のマッピングを保持し、
+  `bind(func)` で `inspect.signature()` を使って関数シグネチャにバインドされた
+  キー生成関数を返す。ファクトリメソッド `KeyGen.ignore()`, `KeyGen.map()`,
+  `KeyGen.file_content()`, `KeyGen.path_stat()` で宣言的にポリシーを構築できる。
+
+  ## 設計判断
+
+  ### bind() によるシグネチャバインディング
+
+  デコレーション時に `inspect.signature(func)` を呼び、
+  位置引数・キーワード引数・デフォルト値を解決する。
+  これにより、呼び出し時にはシグネチャ解析のオーバーヘッドがなくなる。
+
+  ### Strategy enum による宣言的指定
+
+  引数ごとの戦略を enum で宣言する方式を採用。
+  関数を渡す方式（`keygen=lambda ...`）と比較して、
+  シリアライズ可能で、デバッグ時の可読性が高い。
+
+  ## 実装メモ
+
+  - `bind()` 内で `RecursionError` を catch し、警告を出力してフォールバックする
+  - `FILE_CONTENT` 戦略は `KeyGen.from_file_content()` に委譲し、65KB チャンク読み取りを行う
+  - `PATH_STAT` 戦略は `KeyGen.from_path_stat()` に委譲し、mtime + size でハッシュする
+  - `IGNORE` 戦略の引数はキー計算から完全に除外される（値に関係なくキャッシュヒット）

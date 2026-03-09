@@ -10,4 +10,37 @@ normative: true
 ref: ''
 reviewed: zEzd9blrTBwOXROybSQGvKrRTDNIwr49zls0HZ-pBaA=
 text: |
-  `TaskDBCore` プロトコルは init_schema/get/save/delete の4メソッドを定義する。 `TaskDBBase` 抽象基底クラスはメンテナンス系メソッドのデフォルト実装を提供する。 `Maintenable` プロトコルは delete_expired/prune/get_outdated_tasks/get_blob_refs/ delete_all/get_keys_start_with/get_history を定義する。 `TaskDBMaintenable = TaskDBCore + Maintenable`。
+  ## インターフェース
+
+  ```python
+  @runtime_checkable
+  class TaskDBCore(Protocol):
+      def get(self, input_key: str) -> TaskRecord | None: ...
+      def save(self, record: TaskRecord) -> None: ...
+
+  class TaskDBBase(ABC):
+      # TaskDBCore を満たしつつ、メンテナンスのデフォルト実装を提供
+  ```
+
+  ## 振る舞い
+
+  ### 階層構造
+  1. **TaskDBCore**: キャッシュの実行に必要な最小限のメソッド定義
+  2. **Maintenable**: GCや統計取得に必要な管理用メソッドの定義
+  3. **TaskDBBase**: 共通のバリデーションや例外処理を実装する基底クラス
+
+  ## パラメータ詳細 (主要メソッド)
+
+  | メソッド | 役割 |
+  |---|---|
+  | `get_blob_refs()` | 全レコードの `blob_key` を列挙する（GC用） |
+  | `delete_expired()` | `expires_at` を経過したレコードを一括削除する |
+  | `get_history()` | 実行履歴（統計）を取得する |
+
+  ## エラーハンドリング
+
+  - プロトコルに未実装のメソッドを呼び出した場合、実行時に `NotImplementedError` を送出する代わりに、`runtime_checkable` による事前チェックを推奨する。
+
+  ## エッジケース
+
+  - **複合実装**: 複数のプロトコルを一つのクラスで実装する場合、`TaskDBMaintenable` 構成プロトコルとして扱う。

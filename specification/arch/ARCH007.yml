@@ -2,7 +2,7 @@ active: true
 derived: false
 group: LIFE
 header: |
-  ライフサイクル管理アーキテクチャ
+  ライフサイクル管理構成
 level: 1.6
 links:
 - REQ007: 5yGdzM-hrahCqGxuusF5AajSMS7cGKe-yzlxOglVHzg=
@@ -10,6 +10,49 @@ normative: true
 ref: ''
 reviewed: kzQn4fkHo7BEoG4UGpGeBwBcgWhR3xyq1UoQ8wmt1eg=
 text: |
-  関数名のパターンマッチング（glob形式）に基づくルールベースの有効期限ポリシーを採用する。
+  ## コンポーネント構成
 
-  `LifecyclePolicy` がルール群 (`Rule`) を保持し、キャッシュ保存時に関数名に最初にマッチするルールから有効期限 (`expires_at`) を計算する。期限切れのキャッシュはメンテナンス操作で一括削除される。
+  ```mermaid
+  graph TD
+    A[core.Spot] -->|マッチング要求| B[LifecyclePolicy]
+    B -->|ルールリスト| C[Rule]
+    C -->|パターン照合| D[fnmatch]
+    B -->|パース| E[Retention]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | LifecyclePolicy | 複数のルールを管理し、関数名に最適な有効期限を決定する | `resolve_with_fallback()` |
+  | Rule | 1つのパターンとそれに対応する保持期間のペア | `match(func_name)` |
+  | Retention | 多様な時間表現（文字列/数値）を秒数に正規化する | `parse_retention()` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant Spot as core.Spot
+    participant Policy as LifecyclePolicy
+    participant DB as TaskDB
+
+    Spot->>Policy: resolve_with_fallback("module.func")
+    Policy->>Policy: ルール順次照合 (fnmatch)
+    Policy-->>Spot: expires_at (timestamp)
+    Spot->>DB: save(..., expires_at)
+    Note over DB: get() 時に現在時刻と比較判定
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | パターンマッチ | fnmatch (Glob) | 正規表現よりも直感的で、開発者にとって馴染みのある指定方法 |
+  | 保持期間指定 | 文字列パーサー ("30d"等) | 設定ファイルやデコレータでの可読性を向上 |
+  | 判定タイミング | 遅延判定 (Lazy) | 書き込み・読み込み時のオーバーヘッドを最小化 |
+
+  ## 非機能要件方針
+
+  - **優先順位**: 完全修飾名（モジュール名込み）が短縮名より優先される二段構えのマッチング
+  - **堅牢性**: ポリシーにマッチしない場合は「無期限」とするフェイルセーフな設計
+  - **拡張性**: `Retention.FOREVER` 等の定数により、グローバルポリシーの個別上書きに対応

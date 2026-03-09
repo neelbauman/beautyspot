@@ -8,8 +8,83 @@ links:
 - REQ003: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
 normative: true
 ref: ''
-reviewed: RhT9hbtEpPVB_nqZ6-qjwLudt9xqtjnqXz3OVleawG0=
+reviewed: null
 text: |
-  キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）を永続化する抽象データベースインターフェース (`TaskDBBase`) を定義する。
+  ## コンポーネント構成
 
-  抽象化により、デフォルトのSQLite実装から他のDB（PostgreSQL等）への差し替えを可能にする。メタデータDBはキャッシュの検索・管理のインデックスとして機能し、大きなデータ本体の保存はBlobストレージ層に委譲する。
+  ```mermaid
+  classDiagram
+    class TaskDBCore {
+      <<Protocol>>
+      +init_schema() void
+      +get(cache_key) TaskRecord
+      +save(cache_key, ...) void
+      +delete(cache_key) bool
+    }
+    class Maintenable {
+      <<Protocol>>
+      +delete_expired() int
+      +prune(older_than) int
+      +delete_all() int
+    }
+    class TaskDBMaintenable {
+      <<Protocol>>
+    }
+    TaskDBCore <|-- TaskDBMaintenable
+    Maintenable <|-- TaskDBMaintenable
+    
+    class SQLiteTaskDB {
+      -db_path: Path
+      -_write_queue: Queue
+      +init_schema() void
+      +get(cache_key) TaskRecord
+      +save(cache_key, ...) void
+    }
+    TaskDBMaintenable <|-- SQLiteTaskDB
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | `TaskDBCore` | キャッシュ実行時に必要な最小限のメタデータDBアクセス | `init_schema()`, `get()`, `save()`, `delete()` |
+  | `Maintenable` | GCやCLI等、運用・保守に必要な拡張操作 | `delete_expired()`, `prune()`, `delete_all()` |
+  | `TaskDBMaintenable` | 実行用と保守用の両方を備えた上位Protocol | `TaskDBCore` + `Maintenable` |
+  | `SQLiteTaskDB` | SQLiteを用いたデフォルト実装。非同期書き込みキューを内包 | `TaskDBMaintenable` 実装 |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant Spot as core.Spot
+    participant DB as SQLiteTaskDB
+    participant Q as WriteQueue
+    participant Thread as WriterThread
+    participant SQLite as SQLiteDB
+
+    Spot->>DB: get(cache_key)
+    DB->>SQLite: SELECT
+    SQLite-->>DB: TaskRecord
+    DB-->>Spot: TaskRecord
+    
+    Spot->>DB: save(metadata)
+    DB->>Q: put(WriteTask)
+    DB-->>Spot: void (Non-blocking)
+    
+    Thread->>Q: get()
+    Thread->>SQLite: INSERT / UPDATE
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | デフォルトメタデータDB | SQLite | ゼロ設定、組み込み可能、ローカルキャッシュとして十分な性能 |
+  | バックグラウンド書き込み | キュー + 専用スレッド | SQLiteの排他制御によるメインスレッドのブロックを防ぐため |
+  | 抽象化 | `Protocol`ベースのDI | `TaskDBCore`を満たせばPostgreSQL等に容易に差し替え可能 |
+
+  ## 非機能要件方針
+
+  - **性能**: 読み込みはメインスレッドで高速に処理（WALモード）、書き込みは専用スレッドによる非同期化。
+  - **スレッド安全性**: SQLiteへの書き込みは1つのスレッドに直列化し、データベースロックを回避する。
+  - **拡張性**: すべての操作はProtocol (`TaskDBCore`, `Maintenable`) で定義され、利用側（`core.Spot`や`_CacheManager`）は実装に依存しない。

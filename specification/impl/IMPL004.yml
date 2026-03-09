@@ -8,6 +8,41 @@ links:
 - SPEC004: OPn4L9SU4zQjf3i3ZpsD1DGKHCtSQmfhzwiwqcVWheg=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/cachekey.py
+  type: file
 reviewed: sRwwqfZExgM2w2ShIQu2-YsSmtRpwot0iWKt6N_V3Q8=
 text: |
-  KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。
+  ## 実装概要
+
+  `KeyGen` クラスの静的メソッド群がキャッシュキー生成を担う。
+  `_default(args, kwargs)` が主要なエントリポイントで、引数を
+  `canonicalize()` で正規化 → msgpack でシリアライズ → SHA-256 でハッシュする。
+  最終キーは `func_identifier:input_id[:version]` 形式の文字列を SHA-256 した値。
+
+  ## 設計判断
+
+  ### SHA-256 の採用
+
+  MD5 より衝突耐性が高く、Python 標準ライブラリの `hashlib` で利用可能。
+  キャッシュキーとして64文字の hex 文字列は十分にコンパクトで、
+  DB のインデックスとしても効率的。
+
+  ### msgpack 経由のシリアライズ
+
+  正規化結果を直接 `str()` でハッシュする方式と比較し、
+  msgpack はバイナリ表現が安定しており、Python バージョン間での
+  `repr()` の差異に影響されない。
+
+  ### ファイルベースの戦略
+
+  `from_file_content()` はファイルを 65KB チャンクで読み取り、
+  拡張子をハッシュに含める。大きなファイルでもメモリ効率が良い。
+  `from_path_stat()` は mtime + size のみでハッシュし、
+  ファイル内容の読み取りを避ける高速版。ファイル不在時は
+  `"MISSING_{filepath}"` を返し、不在自体をキーに反映する。
+
+  ## 実装メモ
+
+  - `hash_items()` は汎用リストハッシュ。内部でも `_default` でも使われる
+  - kwargs は dict をソートしてからハッシュするため、引数の順序に非依存

@@ -8,6 +8,31 @@ links:
 - SPEC002: CXrgt780qXgbXvvPXpnQ3kmCqMdcSDCb4w0rXHFJj_g=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/core.py
+  type: file
 reviewed: mgEVHWLonMJ83nqHNAa32z4x57VPEjFhadsdGroLTjw=
 text: |
-  `Spot.cached_run()` コンテキストマネージャの実装。 複数関数のラップ、単一関数時のスマートリターン、 0関数時の `ValidationError` を含む。
+  ## 実装概要
+
+  `Spot.cached_run()` はコンテキストマネージャとして実装。
+  渡された関数群を内部で `mark()` と同等のラッピングを行い、
+  コンテキスト内で呼び出すとキャッシュが効く一時的なラッパーを返す。
+
+  ## 設計判断
+
+  ### スマートリターンの型分岐
+
+  単一関数の場合は結果を直接返し、複数関数の場合はタプルで返す。
+  これにより `wrapped_fn = spot.cached_run(fn)` のように自然に書ける。
+  0個の場合は `ValidationError` で早期失敗させる。
+
+  ### コンテキストマネージャパターン
+
+  `@contextmanager` デコレータを使用。`__enter__` でラップ済み関数を返し、
+  `__exit__` で後処理（drain 等）は `with spot:` に委譲する設計。
+
+  ## 実装メモ
+
+  - 型推論（pyright/mypy）で戻り値型が正しく推論されるよう、`@overload` を使用している
+  - 外部ライブラリ関数のラッピングでは `functools.wraps` が元関数に適用される

@@ -8,6 +8,15 @@ links:
 - SPEC004: OPn4L9SU4zQjf3i3ZpsD1DGKHCtSQmfhzwiwqcVWheg=
 normative: true
 ref: ''
-reviewed: 10fHRHP3L_sBiyQ-fdR_VTxI21c-ax-iJnLrQUY_fyk=
+reviewed: ZE3GEIJGCRrK_AW_Zpx5QarlGofebIphgXFwxPEBDCA=
 text: |
-  SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。
+  ## 目的
+
+  キャッシュキーはキャッシュの同一性判定の基盤であり、ハッシュが不安定だとキャッシュミスの頻発（性能劣化）や誤ヒット（データ不整合）を引き起こす。Python バージョンやプラットフォームに依存しないキー生成の安定性を保証する。
+
+  ## 検証観点
+
+  - **決定性**: 同一の `func_identifier:input_id[:version]` 入力に対して、複数回の呼び出しで常に同じ SHA-256 ハッシュが生成されること
+  - **一意性**: 異なる引数から異なるキーが生成されること（衝突しないこと）
+  - **構造**: キーが `module.qualname` 形式の func_identifier を含む正しい構造であること
+  - **version 反映**: version 文字列がキーに含まれ、version 変更でキーが変わること

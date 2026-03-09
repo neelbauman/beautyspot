@@ -10,12 +10,37 @@ normative: true
 ref: ''
 reviewed: _R8xE5tKSUc2DKyMKPA7xhk-OEA2_HjsCFimmLElH2k=
 text: |
-  -   `save_sync` パラメータにより同期/非同期保存を制御する。
+  ## インターフェース
 
-  -   `Spot` レベルのデフォルト (`save_sync=True`) と `@mark(save_sync=False)` による 関数レベルのオーバーライドをサポ`トする。`
+  ```python
+  def flush(timeout: float | None = None) -> bool: ...
 
-  -   `spot.flush(timeout)` で全バックグラウンド保存の完了を待機する。
+  @spot.mark(save_sync=False)
+  def my_func(): ...
+  ```
 
-  -   `with spot:` コンテキストマネージャの `__exit__` で自動的に drain を実行する。
+  ## 振る舞い
 
-  -   バックグラウンド保存失敗時は `on_background_error` コールバックで通知する。
+  ### 同期保存 (`save_sync=True`)
+  - 関数終了後、DBおよびBlobへの保存が完了するまで呼び出し元をブロックする。
+
+  ### 非同期保存 (`save_sync=False`)
+  - 保存処理を `BackgroundLoop` に委譲し、即座に関数の戻り値を返す。
+
+  ### フラッシュ (`flush`)
+  - `_inflight` タスク（保存中）のリストを確認し、それら全てが完了するまで、またはタイムアウトまで待機する。
+
+  ## パラメータ詳細
+
+  | パラメータ | デフォルト | 説明 |
+  |---|---|---|
+  | `timeout` | `None` | `flush` の最大待機時間（秒）。`None` は無限待機 |
+  | `on_background_error` | `logger.error` | 非同期保存失敗時のエラーハンドラ |
+
+  ## エラーハンドリング
+
+  - **タイムアウト**: `flush` がタイムアウトした場合、`False` を返し、一部のデータが未保存である可能性を通知する。
+
+  ## エッジケース
+
+  - **コンテキスト終了**: `with spot:` 終了時に自動的に `flush` が呼ばれ、プロセス終了前のデータ保存を確実にする。

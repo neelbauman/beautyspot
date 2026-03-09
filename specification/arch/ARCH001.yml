@@ -8,9 +8,66 @@ links:
 - REQ001: CfrxtvKuv6dsKGQQZkob55R98VKFzaGfgDcrFVstROc=
 normative: true
 ref: ''
-reviewed: OWAe2PyBNeb6pijIVRzI0117lFCw-cS7liph5Ab5AUY=
+reviewed: null
 text: |
-  デコレータパターンを用いて、既存の関数コードを変更せずにキャッシュ機能を透過的に追加する。
-  `@spot.mark()` デコレータが関数の入力をキャッシュキーに変換し、キャッシュヒット時は関数を実行せずに保存済みの結果を返す。
+  ## コンポーネント構成
 
-  同期関数 (`def`) と非同期関数 (`async def`) を `inspect.iscoroutinefunction` で判別し、それぞれに適した実行パスに分岐する。
+  ```mermaid
+  graph TD
+    A[bs.Spot Factory] -->|DI/Composition| B[core.Spot]
+    B --> C[TaskDBBase]
+    B --> D[SerializerProtocol]
+    B --> E[BlobStorageBase]
+    B --> F[StoragePolicyProtocol]
+    B --> G[LimiterProtocol]
+    B --> H[LifecyclePolicy]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | core.Spot | キャッシュエンジン。キー生成→検索→実行→保存の制御 | `mark()`, `cached_run()` |
+  | TaskDBBase | メタデータ永続化。キャッシュキーによる検索と保存 | `find_by_key()`, `insert()` |
+  | SerializerProtocol | データのシリアライズ/デシリアライズ | `pack()`, `unpack()` |
+  | BlobStorageBase | 大規模データの外部ストレージ保存 | `save()`, `load()`, `delete()` |
+  | StoragePolicyProtocol | Blob保存の判定ポリシー | `should_save_as_blob()` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant User as ユーザーコード
+    participant Spot as core.Spot
+    participant DB as TaskDB
+    participant Ser as Serializer
+    participant Blob as BlobStorage
+
+    User->>Spot: fn(args)
+    Spot->>DB: find_by_key(cache_key)
+    alt キャッシュヒット
+      DB-->>Spot: cached_data
+      Spot->>Ser: unpack(data)
+    else キャッシュミス
+      Spot->>Spot: fn(args) 実行
+      Spot->>Ser: pack(result)
+      Spot->>DB: insert(metadata)
+      opt Blob保存
+        Spot->>Blob: save(key, data)
+      end
+    end
+    Spot-->>User: result
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | メタデータDB | SQLite | ゼロ設定、組み込み可能、十分な性能 |
+  | シリアライズ | MessagePack | JSONより高速・コンパクト、バイナリ対応 |
+  | ストレージ | ローカルファイル / クラウド | 小規模はローカル、大規模は外部ストレージ等で拡張可能 |
+
+  ## 非機能要件方針
+
+  - **透過性**: ユーザー関数の入出力に影響を与えないこと。
+  - **拡張性**: 全コンポーネントはProtocol/ABCで抽象化し、DIで差し替え可能とすること。

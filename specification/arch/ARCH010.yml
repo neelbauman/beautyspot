@@ -2,7 +2,7 @@ active: true
 derived: false
 group: MAINT
 header: |
-  メンテナンスアーキテクチャ
+  メンテナンス構成
 level: 1.9
 links:
 - REQ010: 0xDnfgjsHplchyYDlATXR8BTSnA66KQZOCBnGq94JrY=
@@ -10,6 +10,50 @@ normative: true
 ref: ''
 reviewed: ziZednrJ49dLQdg4IKsuENWl7I1W3MtE8_Bn6xH27kE=
 text: |
-  `MaintenanceService` をファサードとして、期限切れキャッシュの削除・孤立Blobの回収（GC）・統計取得等のメンテナンス操作を集約する。
+  ## コンポーネント構成
 
-  DBとストレージの両方を横断的に操作し、GC時はDBに参照されていないBlobファイルを安全に削除する。レースコンディション防止のため、Blobの最終更新時刻を確認してから削除する。
+  ```mermaid
+  graph TD
+    A[MaintenanceService] -->|操作集約| B[TaskDBBase]
+    A -->|操作集約| C[BlobStorageBase]
+    A -->|自動実行| D[Probabilistic Eviction]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | MaintenanceService | DBとストレージを跨ぐクリーンアップ操作のファサード | `clean_garbage()`, `prune()` |
+  | TaskDBBase | 参照カウントや期限切れレコードの提供 | `get_blob_refs()`, `delete_expired()` |
+  | BlobStorageBase | 物理ファイルの列挙と削除 | `list_keys()`, `delete()` |
+
+  ## データフロー (GCプロセス)
+
+  ```mermaid
+  sequenceDiagram
+    participant Service as MaintenanceService
+    participant DB as TaskDB
+    participant Storage as BlobStorage
+
+    Service->>DB: get_blob_refs()
+    DB-->>Service: 有効な参照リスト (Whitelist)
+    Service->>Storage: list_keys()
+    Storage-->>Service: 全ファイルリスト
+    Service->>Service: 差分抽出 (孤立ファイルの特定)
+    Service->>Storage: delete(orphan_keys)
+    Note over Service: 猶予期間 (grace_period) を考慮して削除
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | 削除ポリシー | ホワイトリスト方式 | DBに記録がないBlobを削除対象とすることで、データの整合性を担保 |
+  | 競合防止 | 更新時刻確認 (mtime) | 保存中のファイルを誤って消さないよう、一定時間経過した孤立のみ削除 |
+  | 実行頻度 | 確率的オートエビクション | 書き込み時に低確率でGCをキックし、手動メンテなしでの健康度を維持 |
+
+  ## 非機能要件方針
+
+  - **安全性**: DBレコードの削除 → Blobの削除の順序を徹底し、参照エラーを防止
+  - **可用性**: メンテナンス中も通常のキャッシュ読み取りを妨げないロック粒度
+  - **観測性**: 削除されたタスク数や解放された容量を統計として返却

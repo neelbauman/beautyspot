@@ -2,7 +2,7 @@ active: true
 derived: false
 group: SERIAL
 header: |
-  シリアライゼーションアーキテクチャ
+  シリアライゼーション構成
 level: 1.4
 links:
 - REQ005: BkvEd9KuNGG34UsYTIEw8eyy5pO6ecDeaQKULGsfZWQ=
@@ -10,6 +10,53 @@ normative: true
 ref: ''
 reviewed: V3Hgw7lKHfzx4SrjM3sUSszixe1P94MSzK-R2Kcn9ik=
 text: |
-  MessagePackベースのシリアライザをデフォルト採用する。JSONより高速・コンパクトで、バイナリデータを直接扱える。
+  ## コンポーネント構成
 
-  `SerializerProtocol` による差し替え可能な設計とし、`TypeRegistryProtocol` でユーザー定義型のカスタムエンコーダ・デコーダ登録を可能にする。シリアライザはキャッシュの保存・復元の両方で使用される。
+  ```mermaid
+  graph TD
+    A[MsgpackSerializer] -->|Registry| B[TypeRegistryProtocol]
+    A -->|LRU Cache| C[Thread-Local Storage]
+    A -->|Core| D[msgpack-python]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | MsgpackSerializer | MessagePackベースの高速・コンパクトなバイナリ変換 | `dumps()`, `loads()` |
+  | TypeRegistryProtocol | ユーザー定義型（ExtType）のエンコーダ・デコーダ登録 | `register()` |
+  | Thread-Local Cache | free-threading環境でのロック競合を回避するMRO解決キャッシュ | `OrderedDict` (LRU) |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant User as ユーザーコード
+    participant Ser as MsgpackSerializer
+    participant Reg as TypeRegistry
+    participant MP as msgpack
+
+    User->>Ser: dumps(obj)
+    Ser->>Ser: 型チェック & MRO解決
+    opt カスタム型
+      Ser->>Reg: エンコーダ取得
+      Reg-->>Ser: encoder_fn
+      Ser->>MP: ExtType(code, encoder_fn(obj))
+    end
+    MP-->>Ser: binary
+    Ser-->>User: bytes
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | フォーマット | MessagePack | JSONより高速・コンパクト。バイナリをネイティブにサポート |
+  | スレッド安全 | Copy-on-Write (CoW) | 読み取りパスからロックを排除し、マルチスレッド性能を最大化 |
+  | 型拡張 | ExtType (0-127) | カスタム型を1バイトのオーバーヘッドで表現可能 |
+
+  ## 非機能要件方針
+
+  - **性能**: MRO（継承関係）解決結果をLRUキャッシュし、深層木探索のコストを最小化
+  - **柔軟性**: ユーザー定義のエンコーダがプリミティブを返せば、再帰的にシリアライズ可能
+  - **堅牢性**: デコード時の `ExtCode` 未登録エラーを検知し、互換性問題を明示的に報告

@@ -8,31 +8,45 @@ links:
 - SPEC001: wiOG403oECQMvXPICNVUXTbzlsabT7tZP7gcXL6l5jE=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/core.py
+  type: file
 reviewed: MpxE71cJil5wpGHZ4vYPSYBBAicIC7kzgOrsZqHL1vY=
 text: |
-  ## `Spot.mark()` デコレータの実装
+  ## 実装概要
 
-  -   sync/async の自動判定
+  `Spot.mark()` メソッドが本仕様の中核。二段階デコレータファクトリとして、
+  オプションを受け取る外側の `mark()` と、関数をラップする内側の `decorator()` で構成される。
+  sync/async の判定は `inspect.iscoroutinefunction()` で**デコレーション時**に行い、
+  同期関数は `_execute_sync()`、非同期関数は `_execute_async()` に委譲する。
+  `functools.wraps(fn)` により元関数のメタデータ（`__name__`, `__doc__`, `__module__`, `__qualname__`）を保持する。
 
-  -   オプション処理
+  ## 設計判断
 
-      -   `save_blob`
+  ### 二段階デコレータファクトリの採用
 
-      -   `keygen`
+  `@mark()` （括弧あり）と `@mark`（括弧なし）の両方をサポートするため、
+  引数の型で分岐するパターンを採用した。第一引数が callable なら括弧なし、
+  そうでなければ括弧ありと判定する。
 
-      -   `version`
+  ### sync/async 分岐のタイミング
 
-      -   `content_type`
+  デコレーション時に判定する方式を採用。呼び出し時に毎回 `inspect` する方式と比較し、
+  ランタイムオーバーヘッドがゼロになる利点がある。ただしデコレーション後に
+  関数の性質が動的に変わるケースには対応できない（実用上問題なし）。
 
-      -   `serializer`
+  ### ジェネレータ関数の拒否
 
-      -   `save_sync`
+  `inspect.isgeneratorfunction()` と `inspect.isasyncgenfunction()` の
+  両方をチェックし、`ConfigurationError` を送出する。
+  ジェネレータの戻り値はイテレータであり、キャッシュの意味論と矛盾するため。
 
-      -   `retention`
+  ## 実装メモ
 
-      -   `hooks`
+  - `inspect.signature` の保持は `functools.wraps` が設定する `__wrapped__` 属性に依存する
+  - オプションの解決は `_resolve_settings()` で Spot レベルのデフォルト → 関数レベルのオーバーライドの順で行われる
+  - `keygen` パラメータが指定された場合、`KeyGenPolicy.bind(fn)` でシグネチャにバインドされたキー生成関数に変換される
 
-  -   ジェネレータ関数の拒否（`ConfigurationError`）
+  ## TODO / 技術的負債
 
-
-  を含む。
+  - デコレータの多重適用（`@mark` を2回付ける）時の検出・警告が未実装

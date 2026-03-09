@@ -10,4 +10,41 @@ normative: true
 ref: ''
 reviewed: UsZSjTVBVeJizXby9dkiuaIj2e5APuZOfdVGx7TLeCk=
 text: |
-  キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は `module.qualname` 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。
+  ## インターフェース
+
+  ```python
+  class KeyGen:
+      @staticmethod
+      def _default(args: tuple, kwargs: dict) -> str: ...
+
+      @staticmethod
+      def hash_items(items: list) -> str: ...
+  ```
+
+  ## 振る舞い
+
+  ### 基本フロー (`_default`)
+  1. **正規化**: `args` と `kwargs` を `canonicalize()` により再帰的に正規化する
+  2. **パック**: 正規化された構造 `[args, kwargs]` を MessagePack でバイナリにシリアライズする
+  3. **ハッシュ**: バイナリデータに対して SHA-256 ハッシュを計算し、16進数文字列を返す
+
+  ### リストハッシュ (`hash_items`)
+  - 任意個の正規化済みアイテムを含むリストを受け取り、一括でパックしてハッシュ化する。`KeyGenPolicy` で使用される。
+
+  ## パラメータ詳細
+
+  | パラメータ | 型 | 説明 |
+  |---|---|---|
+  | `args` | `tuple` | 関数の位置引数 |
+  | `kwargs` | `dict` | 関数のキーワード引数 |
+  | `items` | `list` | バインド済み引数の正規化値リスト |
+
+  ## エラーハンドリング
+
+  - **再帰制限超過**: `RecursionError` 発生時は、安全のため `str((args, kwargs))` のハッシュをフォールバックとして使用する
+  - **パック失敗**: MessagePack シリアライズに失敗した場合は、警告をログ出力した上で `str()` ベースのハッシュを返す
+
+  ## エッジケース
+
+  - **空の引数**: 引数なしの場合も `[(), {}]` の構造として一定のハッシュ値を生成する
+  - **非決定的な repr**: フォールバック時の `str()` はオブジェクトによっては実行ごとに変わる可能性があるため、明示的な正規化が推奨される

@@ -10,4 +10,18 @@ normative: true
 ref: ''
 reviewed: ahRc70kwAdR5bvD6hH7wfCaHo9MUBmS5lNO0UtntZK8=
 text: |
-  canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。
+  ## 目的
+
+  `canonicalize()` は引数の型ごとに正規化ルールを適用し、論理的に同値な入力が同じキャッシュキーを生成することを保証する。正規化の不備は「同じ入力なのにキャッシュミス」または「異なる入力なのに誤ヒット」という致命的なバグに直結する。
+
+  ## 検証観点
+
+  - **dict の順序非依存**: `{"a": 1, "b": 2}` と `{"b": 2, "a": 1}` が同一キーを生成すること
+  - **型タグによる区別**: `[1, 2]` (list) と `(1, 2)` (tuple) が異なるキーを生成すること（型タグ付き正規化）
+  - **set/frozenset**: 要素の挿入順序に依存しないこと
+  - **deque/defaultdict/OrderedDict**: コレクション型ごとに正しく正規化されること
+  - **Enum**: 値ではなく `型名.メンバー名` で正規化されること
+  - **numpy 配列**: `shape + dtype + tobytes` による正規化で、同値配列が同一キーを生成すること
+  - **Pydantic モデル**: モデルの dict 表現で正規化されること
+  - **bool vs int の区別**: `True` と `1` が異なるキーを生成すること（Python では `True == 1` だが区別が必要）
+  - **再帰的処理**: ネストされたデータ構造（dict の中の list の中の set 等）が正しく正規化されること

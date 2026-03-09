@@ -2,7 +2,7 @@ active: true
 derived: false
 group: STORE
 header: |
-  Blobストレージアーキテクチャ
+  Blobストレージ構成
 level: 1.3
 links:
 - REQ004: 6pZDknPXhV8oNkQq71xWqrgxomA9i5t9yG829j-Qmeg=
@@ -10,23 +10,57 @@ normative: true
 ref: ''
 reviewed: PBxYtdvo80VsxAc4LBuIlbpT6dKWwbluEWJ97VOi7Og=
 text: |
-  REQ004「大きなキャッシュデータを外部ストレージに保存できること、DB直接保存とBlob保存を自動判定できること」を実現するためのアーキテクチャを定義する。
+  ## コンポーネント構成
 
-  **二層保存モデル**
+  ```mermaid
+  graph TD
+    A[core.Spot] -->|判定| B[StoragePolicyProtocol];
+    A -->|保存/読込| C[BlobStorageBase];
+    D[LocalStorage] --> C;
+    E[S3Storage] --> C;
+    A -->|メタデータ| F[TaskDBBase];
+  ```
 
-  キャッシュデータの保存先を「DB直接（インライン）」と「外部Blobストレージ」の2層に分離する。小さなデータはDBに直接保存してI/Oオーバーヘッドを回避し、大きなデータは外部ストレージに保存してDBの肥大化を防止する。
+  ## コンポーネント責務
 
-  - `DIRECT_BLOB`: シリアライズ済みデータをDBの `result_data` カラムにインライン保存する。
-  - `FILE`: シリアライズ済みデータを外部Blobストレージに保存し、DBにはロケーション（ファイルパスやS3 URI）を記録する。
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | StoragePolicyProtocol | データのサイズ等に基づき、DB保存かBlob保存かを判定する | `should_save_as_blob()` |
+  | BlobStorageBase | 大規模データの外部ストレージ保存を抽象化する | `save()`, `load()`, `delete()` |
+  | LocalStorage | ローカルファイルシステムへのアトミックな保存と検証 | `base_dir`, `os.replace` |
+  | S3Storage | AWS S3互換オブジェクトストレージへの保存 | `s3://` URI, `boto3` |
 
-  **ストレージバックエンドの抽象化**
+  ## データフロー
 
-  外部ストレージのバックエンドを抽象インターフェース (`BlobStorageBase`) で定義し、ローカルファイルシステムやクラウドオブジェクトストレージ（S3等）を差し替え可能にする。ファクトリ関数がURIスキームに基づいて適切な実装を自動選択する。
+  ```mermaid
+  sequenceDiagram
+    participant Spot as core.Spot
+    participant Policy as StoragePolicy
+    participant DB as TaskDB
+    participant Blob as BlobStorage
 
-  **ポリシーベースの保存先判定**
+    Spot->>Policy: should_save_as_blob(data)
+    alt Policy: True (Blob保存)
+      Spot->>Blob: save(key, data)
+      Blob-->>Spot: location (path/URI)
+      Spot->>DB: insert(metadata, storage_type=FILE, blob_key=location)
+    else Policy: False (Inline保存)
+      Spot->>DB: insert(metadata, storage_type=DIRECT_BLOB, result_data=data)
+    end
+  ```
 
-  DB直接保存とBlob保存の切り替えを、差し替え可能なポリシーオブジェクト (`StoragePolicyProtocol`) に委譲する。ユーザーは関数単位で明示的に保存先を指定することもでき、以下の優先順位で判定する:
+  ## 技術選定
 
-  1. `@mark(save_blob=True/False)` による明示指定（最優先）
-  2. `StoragePolicyProtocol.should_save_as_blob(data)` によるポリシー判定
-  3. デフォルトポリシー (`WarningOnlyPolicy`: 常にDB直接保存、閾値超過時に警告のみ)
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | 保存判定 | 閾値ベース (Threshold) | DBの肥大化を防ぎつつ、小容量データのI/Oを最適化
+  | アトミック性 | 一時ファイル + Rename | 保存中のクラッシュや並行書き込みによる破損を完全に防止 |
+  | クラウド対応 | Boto3 (S3) | 業界標準のプロトコルによる高い互換性とスケーラビリティ |
+
+  ## 非機能要件方針
+
+  -   **安全性**: LocalStorage では `is_relative_to` によるパストラバーサル防止を徹底
+
+  -   **信頼性**: 保存時は `fsync` を実行し、OSレベルでのデータ到達を確認
+
+  -   **効率性**: S3 保存時は `upload_fileobj` を使用し、5GB超のマルチパートアップロードに自動対応

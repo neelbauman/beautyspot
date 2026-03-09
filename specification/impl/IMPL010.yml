@@ -8,6 +8,35 @@ links:
 - SPEC010: J5Y-qJWjdum341AWafwdt3WxStDJt2MGSazN2GJRt_E=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/storage.py
+  type: file
 reviewed: F97b-Peo538_LSTaVNSe4YMVSyYkak3TzvgJ5Lc4bEc=
 text: |
-  S3Storage の実装。boto3 upload_fileobj によるマルチパートアップロード、 s3:// URI パース、boto3 未インストール時の ImportError を含む。
+  ## 実装概要
+
+  `S3Storage` クラスが `BlobStorageBase` を実装。
+  `s3://bucket/prefix/` 形式の URI を解析し、boto3 の S3 クライアントを使用。
+  ファイルは `{prefix}/{key}.bin` のキーで S3 に保存される。
+
+  ## 設計判断
+
+  ### オプショナル依存のガード
+
+  boto3 は `import` 時にガードし、未インストール時は
+  クラス定義は成功するがインスタンス化で明確なエラーメッセージを表示する。
+  beautyspot 全体が boto3 に依存しないよう、遅延インポートパターンを採用。
+
+  ### URI ベースのバックエンド選択
+
+  `s3://bucket/prefix` 形式の URI から bucket と prefix を自動解析する
+  `_parse_s3_uri()` ヘルパーにより、ファクトリ関数がスキームに基づいて
+  LocalStorage と S3Storage を透過的に切り替えられる。
+
+  ## 実装メモ
+
+  - `save()` は `upload_fileobj()` を使用し、5GB 超のデータにも
+    マルチパートアップロードで対応する
+  - ロケーションは完全な S3 URI（`s3://bucket/prefix/key.bin`）を返す
+  - `list_keys()` は paginator で全キーを列挙し、prefix を除いた相対キーを返す
+  - `get_mtime()` は `head_object` で `LastModified` を取得（GC の grace period 判定用）

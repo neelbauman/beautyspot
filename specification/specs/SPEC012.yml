@@ -10,4 +10,38 @@ normative: true
 ref: ''
 reviewed: ptTovnduALOME6nUJz7RAuxifOyx8Drd2kBvRkSrRnk=
 text: |
-  `MsgpackSerializer` は MessagePack ベースのシリアライザ。 `dumps(obj) -> bytes` と `loads(data) -> Any` を提供する。 カスタム型は ExtType (code 0-127) で拡張する。 スレッドセーフ: レジストリは Copy-on-Write、サブクラスキャッシュはスレッドローカル LRU。 MRO スキャンによりサブクラスの自動解決を行う。
+  ## インターフェース
+
+  ```python
+  class MsgpackSerializer(SerializerProtocol, TypeRegistryProtocol):
+      def dumps(self, obj: Any) -> bytes: ...
+      def loads(self, data: bytes) -> Any: ...
+  ```
+
+  ## 振る舞い
+
+  ### シリアライズ (`dumps`)
+  1. オブジェクトの型を `type(obj)` で取得
+  2. 登録済み型またはそのサブクラス（MRO順）を探索
+  3. ヒットした場合、カスタムエンコーダを実行し `ExtType` としてパック
+  4. ヒットしない場合、MessagePack のデフォルト処理（または `SerializationError`）
+
+  ### デシリアライズ (`loads`)
+  1. MessagePack ストリームをパース
+  2. `ExtType` を発見した場合、コードに対応するカスタムデコーダを呼び出す
+
+  ## パラメータ詳細
+
+  | 設定 | デフォルト | 説明 |
+  |---|---|---|
+  | `max_cache_size` | `1024` | スレッドごとの型解決LRUキャッシュの最大サイズ |
+
+  ## エラーハンドリング
+
+  - **未登録型**: シリアライズ時に対応するエンコーダが見つからない場合、`SerializationError` を送出
+  - **デコード失敗**: データ破損やコード不一致時は `SerializationError` を送出
+
+  ## エッジケース
+
+  - **動的型**: 名前が同じでも ID が異なる動的生成型は、LRUキャッシュによりメモリリークを防ぎつつ効率的に処理される
+  - **スレッド安全性**: `registry_generation` カウンタを使用して、スレッドローカルキャッシュの整合性を維持

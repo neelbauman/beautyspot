@@ -2,7 +2,7 @@ active: true
 derived: false
 group: CLI
 header: |
-  CLIアーキテクチャ
+  CLI構成
 level: '1.10'
 links:
 - REQ011: f4SKYgu3ykwtA7XfsZTa4XY_rzOQiYl76ebgAGTK94Q=
@@ -10,6 +10,51 @@ normative: true
 ref: ''
 reviewed: iK6tRh8UqxQTX2NmdwTFiiw-hwaf-ntVLBwh554vhz4=
 text: |
-  Typerフレームワーク上に構築し、`MaintenanceService` のファサードとして各管理操作をサブコマンドとして公開する。
+  ## コンポーネント構成
 
-  richライブラリでテーブル・パネル等のターミナル出力をフォーマットし、DBパスの自動検出 (`get_service`) でユーザーの操作負荷を軽減する。
+  ```mermaid
+  graph TD
+    A[beautyspot CLI] -->|Command| B[Typer App]
+    B -->|Business Logic| C[MaintenanceService]
+    B -->|Output| D[Rich Console]
+    B -->|Dashboard| E[Dashboard App]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | Typer App | コマンドライン引数のパースとサブコマンドのディスパッチ | `main()`, `gc()`, `list()` |
+  | MaintenanceService | 実際のキャッシュ管理ロジックの実行 | `clean_garbage()`, `clear()` |
+  | Rich Console | ターミナルでの視覚的に分かりやすいテーブルやパネルの描画 | `Console`, `Table` |
+  | Dashboard App | キャッシュ状態をインタラクティブに閲覧するためのTUI | `dashboard.py` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant User as ユーザー
+    participant CLI as CLI App
+    participant Service as MaintenanceService
+    participant Output as Rich Console
+
+    User->>CLI: beautyspot gc --name my-project
+    CLI->>Service: clean_garbage()
+    Service-->>CLI: result (removed count, etc.)
+    CLI->>Output: print summary table
+    Output-->>User: formatted output
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | フレームワーク | Typer | 型ヒントに基づいた堅牢なコマンドラインインターフェースを迅速に構築 |
+  | 出力装飾 | Rich | プログレスバーやステータス表示により、長時間処理の進捗を可視化 |
+  | 連携 | Factory DI | カレントディレクトリや設定から自動的に `Spot` インスタンスを組み立て |
+
+  ## 非機能要件方針
+
+  - **UX**: 破壊的な操作（`clear`等）には対話的な確認プロンプトを表示
+  - **互換性**: 標準出力のパイプ連携を妨げないよう、色の自動無効化に対応
+  - **利便性**: 特定のプロジェクトだけでなく、全DBを横断的にスキャンする機能を提供

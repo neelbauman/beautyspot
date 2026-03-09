@@ -8,6 +8,35 @@ links:
 - SPEC011: 8QYQykTHxMvbonz5PkaBYeS79F7GpIuW7Jsk5BqD5Sg=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/storage.py
+  type: file
 reviewed: aRinvss1YzDNr45F7KYmAtspEpznQlXshcH-fLhXlhM=
 text: |
-  StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告のみ）、 AlwaysBlobPolicy（常にBlob）を含む。
+  ## 実装概要
+
+  `StoragePolicyProtocol` が `should_save_as_blob(data: bytes) -> bool` を定義。
+  3つの実装を提供:
+  - `ThresholdStoragePolicy`: `len(data) > threshold` で判定
+  - `WarningOnlyPolicy`: 常に `False` を返し、閾値超過時に WARNING ログを出力
+  - `AlwaysBlobPolicy`: 常に `True` を返す
+
+  ## 設計判断
+
+  ### Strategy パターンによるポリシー分離
+
+  保存先判定ロジックを `core.Spot` から分離し、差し替え可能なポリシーオブジェクトに
+  委譲する。`@mark(save_blob=True/False)` の明示指定はポリシーより優先されるが、
+  `save_blob=None`（デフォルト）時にポリシーが判定を行う。
+
+  ### WarningOnlyPolicy をデフォルトにした理由
+
+  v2.0 との後方互換性を維持するため。v2.0 では全データが DB 直接保存だったため、
+  デフォルトを `ThresholdStoragePolicy` にすると既存ユーザーの挙動が変わる。
+  WARNING ログにより、ユーザーに Blob 分離の恩恵を段階的に周知する。
+
+  ## 実装メモ
+
+  - 各ポリシーは dataclass で実装し、`threshold` パラメータを属性として保持
+  - `WarningOnlyPolicy` のログは `warnings.warn` ではなく `logging.warning` を使用。
+    ユーザーコードの警告フィルタに影響されないため

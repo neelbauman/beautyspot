@@ -8,6 +8,38 @@ links:
 - SPEC023: oAX3bz9hcpK_t4Sw8mwhMW5vJgDTVvzLdFFiuNC-rSw=
 normative: true
 ref: ''
-reviewed: mcpoxyxZdvGihvCDfGmtUfuWA-Nw6saRjntkgpzxorU=
+references:
+- path: src/beautyspot/cache.py
+  type: file
+reviewed: null
 text: |
-  `CacheManager` の `Thundering Herd Protection` 実装。 `_inflight` 辞書、`threading.Event` / `asyncio.Future` による待機、 HERD_TIMEOUT (300s) / HERD_MAX_RETRIES (3) による保護、 例外伝播を含む。
+  ## 実装概要
+
+  `CacheManager` クラス内で、Thundering Herd（キャッシュミス時に同一キーへの
+  大量アクセスが同時に発生する問題）を防止する直列化機構を実装。
+  `_inflight` 辞書で実行中のキーを管理し、最初の1スレッド/タスクだけが関数を実行し、
+  後続の呼び出しは `wait_herd_sync` / `wait_herd_async` でその完了を待機する。
+
+  ## 設計判断
+
+  ### 同期・非同期の統合的保護
+
+  `_inflight` 辞書の値として `(threading.Event, list[asyncio.Future], list[result])` の
+  タプルを保持し、スレッドベースの待機 (`Event.wait`) と asyncio ベースの待機 (`Future`) の
+  両方を単一の管理下で混在できるようにしている。
+
+  ### タイムアウトと再試行（自己回復）
+
+  関数の実行がハングアップした場合に待機側が永遠にブロックされるのを防ぐため、
+  `HERD_TIMEOUT`（300秒）と `HERD_MAX_RETRIES`（3回）を設定。
+  タイムアウト時には警告ログを出しつつ再試行し、上限を超えれば `TimeoutError` で
+  フェイルファストする堅牢な設計とした。
+
+  ## 実装メモ
+
+  - `notify_and_cleanup_inflight()` で待機タスクへの結果伝播と `_inflight` からの削除を
+    `_inflight_lock` によりアトミックに行う
+  - `result_box`（要素数1のリスト）をリファレンス渡しで共有することで、
+    `Event` が set された際に安全に結果を取得できるようにしている
+  - `_notify_future()` は `call_soon_threadsafe` を使い、非同期Futureに対して
+    別スレッドから安全に結果（または例外）をセットする

@@ -8,6 +8,43 @@ links:
 - SPEC003: CVb-B19ollkUexnco2Cn1TfB6jiZ9TEOkURqVv3UJ7o=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/core.py
+  type: file
 reviewed: AxS0nGeMFat7RFZMMVYVQl3crO2CDd34DovhNXzkbys=
 text: |
-  _execute_sync と _execute_async の実装。 inspect.iscoroutinefunction() による自動判定、 _BackgroundLoop 経由の非同期保存処理を含む。
+  ## 実装概要
+
+  `Spot._execute_sync()` と `Spot._execute_async()` が実行エンジンの中核。
+  両メソッドは同一のフロー（キー生成→キャッシュ検索→Herd待機→関数実行→保存）を
+  それぞれ同期/非同期のセマンティクスで実装する。
+  `mark()` がデコレーション時に `inspect.iscoroutinefunction()` で判定し、
+  適切な方を選択する。
+
+  ## 設計判断
+
+  ### 同期・非同期の並行実装
+
+  `_execute_sync` と `_execute_async` は処理フローが同一だが、
+  `await` の有無やロック機構（`threading.Event` vs `asyncio.Future`）が異なるため、
+  共通化せず並行して実装している。DRY 原則よりも明瞭性・デバッグ容易性を優先した。
+
+  ### Herd 結果の保存前共有
+
+  Herd protection の結果ボックスへの結果格納は、DB/Blob 保存の**前**に行う。
+  これにより、保存が失敗しても待機中のスレッド/タスクは結果を受け取れる。
+  「保存の失敗で実行結果が失われる」ことを防ぐ意図的な設計。
+
+  ### バックグラウンド保存のエラー隔離
+
+  `save_sync=False` 時の保存エラーは `on_background_error` コールバックに
+  通知し、ERROR ログを出力するが、例外を再送出しない。
+  関数の実行自体は成功しているため、ユーザーに例外を見せるのは不適切と判断した。
+
+  ## 実装メモ
+
+  - フック呼び出し（`pre_execute`, `on_cache_hit`, `on_cache_miss`）は
+    try/except で囲み、フック内の例外が実行結果に影響しないようにしている
+  - 自動エビクションは `_eviction_guard_lock` で非ブロッキングにガードし、
+    並行エビクションの重複実行を防止している
+  - `_execute_async` 内の保存処理は `_BackgroundLoop.submit()` でコルーチンとして投入される

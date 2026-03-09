@@ -10,4 +10,38 @@ normative: true
 ref: ''
 reviewed: -xwGvxnM-dXExDZyZDn73GVntLB9t7qUgu8TPQ6nGHU=
 text: |
-  `canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは __dict__/__slots__ を使用。 bool と int の区別（True vs 1）を保証する。
+  ## インターフェース
+
+  ```python
+  @singledispatch
+  def canonicalize(obj: Any) -> Any: ...
+  ```
+
+  ## 振る舞い
+
+  `singledispatch` を使用し、型に応じた最適な正規化形式へ再帰的に変換する。
+
+  ### 主要な型別の処理
+  - **基本型 (int, float, str, bytes)**: そのまま返す
+  - **bool**: `("__bool__", value)` のタプルに変換（`1` と `True` の衝突を防止）
+  - **dict**: キーでソートし、`[[k1, v1], [k2, v2], ...]` のリストに変換
+  - **list / tuple / set / frozenset / deque**: それぞれ専用の型タグ（例: `"__list__"`) を付与し、要素を再帰的に正規化。集合型はソートを行う
+  - **Enum**: `("__enum__", module, qualname, value)` に変換
+  - **カスタムオブジェクト**: `__dict__` または `__slots__` から属性を取得し、型名と共に正規化
+
+  ## パラメータ詳細
+
+  | オブジェクト型 | 正規化後の形式 | 備考 |
+  |---|---|---|
+  | `numpy.ndarray` | `("__numpy__", shape, dtype, bytes)` | 高速かつ正確なハッシュを保証 |
+  | `OrderedDict` | `("__ordered_dict__", items)` | 挿入順序を保持したまま正規化 |
+  | `Pydantic Model` | `("__pydantic_v2__", schema)` | スキーマ情報をベースに判定 |
+
+  ## エラーハンドリング
+
+  - **未対応型**: 警告をログ出力し、`str(obj)` にフォールバックする
+  - **循環参照**: `RecursionError` をキャッチし、その階層で `str()` による正規化に切り替える
+
+  ## エッジケース
+
+  - **異なる型の比較**: `_safe_sort_key` により、Python 3 で比較不可能な型同士（例: `int` と `str`）が辞書のキーに含まれていても安定したソート順を保証する

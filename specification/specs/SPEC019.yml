@@ -10,4 +10,32 @@ normative: true
 ref: ''
 reviewed: cWi6NmDwzRcocBRxJQ_6RRUN6DKe65aFu-_v5CHwkZU=
 text: |
-  `HookBase` は `pre_execute(ctx)`, `on_cache_hit(ctx)`, `on_cache_miss(ctx)` の 3メソッドを提供するベースクラス。デフォルト実装は何もしない。 `ThreadSafeHookBase` は `__init_subclass__` でユーザー定義メソッドを RLock でラップし、スレッドセーフ性を自動適用する。 フック内の例外は ERROR ログに記録されるが、関数の実行結果には影響しない。 コンテキストオブジェクト: `PreExecuteContext`, `CacheHitContext`, `CacheMissContext`。
+  ## インターフェース
+
+  ```python
+  class HookBase:
+      def pre_execute(self, ctx: PreExecuteContext) -> None: ...
+      def on_cache_hit(self, ctx: CacheHitContext) -> None: ...
+      def on_cache_miss(self, ctx: CacheMissContext) -> None: ...
+  ```
+
+  ## 振る舞い
+
+  1. **フック呼出**: キャッシュエンジンの各ステート（実行前、ヒット、ミス）で登録されたフックを順番に実行する
+  2. **スレッド安全化**: `ThreadSafeHookBase` を継承した場合、メタクラスが自動的に各メソッドを `with self._lock:` で包む
+
+  ## パラメータ詳細 (Context)
+
+  | コンテキスト | 保持データ |
+  |---|---|
+  | `PreExecuteContext` | `func`, `args`, `kwargs`, `cache_key` |
+  | `CacheHitContext` | `cache_key`, `result`, `metadata` |
+  | `CacheMissContext` | `cache_key`, `result`, `execution_time` |
+
+  ## エラーハンドリング
+
+  - **フック内例外**: フックの実行中に発生した例外はキャッチされ、エラーログとして出力されるが、主処理（関数の実行結果）は中断されない。
+
+  ## エッジケース
+
+  - **フックの順序**: `hooks=[h1, h2]` と指定した場合、`h1` -> `h2` の順で実行される。

@@ -8,6 +8,33 @@ links:
 - ARCH001: 8wnI9UzJmc41cCq1TcChrj0mjlYGN1yIeaEB2gc1odo=
 normative: true
 ref: ''
-reviewed: hF8oEBrpLHMgHAgfJ46S1CGhM57grnrJgG0XUIZRTF8=
+reviewed: null
 text: |
-  `inspect.iscoroutinefunction()` による自動判定で、同期関数には同期ラッパー (`_execute_sync`)、非同期関数には非同期ラッパー (`_execute_async`) を適用する。 非同期関数のキャッシュ保存は `_BackgroundLoop` 経由の asyncio イベントループで処理する。
+  ## 概要
+
+  `@spot.mark()` デコレータは同期関数と非同期（`async def`）関数の両方をサポートし、関数定義に応じて適切な実行・保存・キャッシュ検索フローを透過的に切り替える。
+
+  ## 振る舞い
+
+  ### sync/async の自動判定
+
+  - デコレーション時に `inspect.iscoroutinefunction(func)` を用いて判定する。
+  - ランタイム時の判定オーバーヘッドを削減するため、ラッパー構築時に分岐を行う。
+
+  ### 実行フロー
+
+  - **同期関数の場合**:
+    - `_execute_sync()` に委譲する。
+    - キャッシュ保存（DBやBlobへのI/O）は、デフォルトでバックグラウンドのスレッドプール (`ThreadPoolExecutor`) にタスクを投げて非同期化される（`save_sync=False` の場合）。
+  - **非同期関数の場合**:
+    - `_execute_async()` に委譲する。
+    - キャッシュ検索や保存処理などのI/Oバウンドな操作は、asyncio イベントループ経由でノンブロッキングに処理され、保存自体も非同期でキューに投入される。
+
+  ## エラーハンドリング
+
+  - **ジェネレータ関数の拒否**: `inspect.isgeneratorfunction` または `inspect.isasyncgenfunction` で真となるジェネレータ・非同期ジェネレータが渡された場合、サポート対象外として即座に `ConfigurationError` を送出する。
+  - 保存タスク中のバックグラウンドエラーは、同期・非同期ともに `on_background_error` コールバックが設定されていればそこに処理が委譲される。
+
+  ## エッジケース
+
+  - デコレーション後に手動で関数の性質（コルーチンかどうか）を変更するような動的な書き換えには対応しない（デコレーション時の静的な判定結果に依存する）。

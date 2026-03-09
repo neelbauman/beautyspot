@@ -8,6 +8,45 @@ links:
 - SPEC012: Im-o-GZ5ItLezcAABFJGrXjgWZGnKPtXxZSHpfEexkg=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/serializer.py
+  type: file
 reviewed: NnCgCwJa1X3hPhWDde8vwl4gO9Qh3CYmFIzR-KTT_ec=
 text: |
-  MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ラッピング、レジストリ世代管理を含む。
+  ## 実装概要
+
+  `MsgpackSerializer` クラスが `SerializerProtocol` と `TypeRegistryProtocol` を実装。
+  `dumps(obj) -> bytes` / `loads(data) -> Any` が主要 API。
+  カスタム型は msgpack の `ExtType(code, payload)` で拡張する。
+  `_default_packer()` がエンコード時のカスタム型ディスパッチ、
+  `_ext_hook()` がデコード時の型復元を行う。
+
+  ## 設計判断
+
+  ### Copy-on-Write レジストリ
+
+  `_encoders` / `_decoders` 辞書は `register()` 時に新しい辞書を作成して
+  アトミックに差し替える（CoW）。読み取り側はスナップショットを参照するため、
+  ロックなしで安全に読める。GIL に依存せず、PEP 703（free-threading）にも
+  対応できる設計。世代カウンタ `_registry_generation` を**レジストリ差し替えの前に**
+  インクリメントすることで、読み取り側が古いキャッシュを使い続けることを防ぐ。
+
+  ### スレッドローカル LRU キャッシュ
+
+  MRO スキャンの結果（サブクラス→登録済み親クラスの解決）を `threading.local()` の
+  `OrderedDict` にキャッシュする。`_cache_generation` と `_registry_generation` を比較し、
+  世代が変わったらキャッシュを破棄する。LRU のサイズ上限は `max_cache_size` で制御。
+
+  ### MRO スキャンによるサブクラス自動解決
+
+  Pydantic モデルのサブクラスのように、親クラスが登録済みなら
+  サブクラスも自動的に同じエンコーダで処理できる。`type(obj).__mro__` を走査し、
+  最初にマッチした登録型のエンコーダを使用する。
+
+  ## 実装メモ
+
+  - `register()` の code は 0-127（msgpack ExtType の制約）
+  - 同一型や同一 code の重複登録は `ConfigurationError` で拒否
+  - `_ext_hook` 内のデシリアライズは再帰的に `msgpack.unpackb(ext_hook=self._ext_hook)` を
+    呼ぶことで、ネストされたカスタム型も復元できる
+  - `SerializationError` のメッセージには未登録型のヒント（`spot.register()` の使い方）を含める

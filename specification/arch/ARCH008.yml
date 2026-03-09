@@ -2,7 +2,7 @@ active: true
 derived: false
 group: LIMIT
 header: |
-  レート制限アーキテクチャ
+  レート制限構成
 level: 1.7
 links:
 - REQ008: LpSLzngQTtYFyX5Y_Ke5jjSinbHq2U34SszCwfnZCa8=
@@ -10,6 +10,56 @@ normative: true
 ref: ''
 reviewed: scAC4zGgJ75ucC_osr8w_LFyymL5vJqRdFSQVSjvGHc=
 text: |
-  GCRA（Generic Cell Rate Algorithm）に基づくトークンバケット方式を採用する。固定ウィンドウ方式と異なり、スムースなレート制限を実現する。
+  ## コンポーネント構成
 
-  同期 (`consume`) と非同期 (`consume_async`) の両方の消費APIを提供し、`@spot.consume()` デコレータで関数実行前のトークン消費を宣言的に指定できるようにする。
+  ```mermaid
+  graph TD
+    A["@spot.consume"] -->|宣言的適用| B[LimiterProtocol]
+    C[core.Spot] -->|DI| B
+    D[TokenBucket] --> B
+    D -->|アルゴリズム| E[GCRA]
+    D -->|時刻同期| F[monotonic clock]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | TokenBucket | GCRAアルゴリズムによるスムースなトラフィック制御 | `consume()`, `consume_async()` |
+  | @spot.consume | 関数実行前のトークン消費を透過的に行うデコレータ | `cost` (int or callable) |
+  | LimiterProtocol | レートリミッターの差し替えを可能にするインターフェース | `LimiterProtocol` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant User as ユーザーコード
+    participant Dec as @spot.consume
+    participant Bucket as TokenBucket
+
+    User->>Dec: call func()
+    Dec->>Bucket: consume(cost)
+    Bucket->>Bucket: 次回実行許可時刻の計算 (GCRA)
+    alt 許可
+        Bucket-->>Dec: OK
+        Dec->>User: execute func()
+    else 拒否 (Over rate)
+        Bucket-->>Dec: raise ValueError/RateLimitError
+    end
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | アルゴリズム | GCRA (Generic Cell Rate Algorithm) | 固定ウィンドウと違い「スムースな」流量制御が可能 |
+  | 待機制御 | asyncio.sleep / time.sleep | 同期・非同期の両方のコンテキストで正確なスロットリングを実現 |
+  | コスト計算 | ダイナミックコスト | 引数に応じて消費トークン数を動的に変更可能 |
+
+  ## 非機能要件方針
+
+  -   **正確性**: `time.monotonic()` を使用し、システム時刻の変更（NTP同期等）の影響を受けない
+
+  -   **バースト制御**: `max_burst` 設定により、アイドル後の過度なバーストを防止
+
+  -   **スレッド安全**: `threading.Lock` により、マルチスレッド環境での二重消費を防止

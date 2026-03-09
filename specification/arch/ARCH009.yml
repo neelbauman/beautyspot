@@ -2,7 +2,7 @@ active: true
 derived: false
 group: HOOK
 header: |
-  フック機能アーキテクチャ
+  フック機能構成
 level: 1.8
 links:
 - REQ009: Zi57s_V_uBJ55ZQaCuAwQuJQbnm_KFxPW-yDANS2AO0=
@@ -10,6 +10,56 @@ normative: true
 ref: ''
 reviewed: rAnvELMZ92kfxuDhqtjBUuv3dU8vW1q5TxE0jSFX3gI=
 text: |
-  関数の実行ライフサイクル（実行前・キャッシュヒット・キャッシュミス）にカスタム処理を挿入するオブザーバーパターンを採用する。
+  ## コンポーネント構成
 
-  `HookBase` 基底クラスを継承してフックを実装し、`@spot.mark(hooks=[...])` で関数ごとに登録する。マルチスレッド環境向けにスレッドセーフな基底クラス (`ThreadSafeHookBase`) も提供する。
+  ```mermaid
+  graph TD
+    A[core.Spot] -->|イベント通知| B[HookBase]
+    C[ThreadSafeHookBase]　--> B
+    B -->|コンテキスト| D[Context Objects]
+    E[PreExecuteContext] --> D
+    F[CacheHitContext] --> D
+    G[CacheMissContext] --> D
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | HookBase | 実行ライフサイクルの各段階で呼び出される抽象基底クラス | `pre_execute`, `on_cache_hit`, `on_cache_miss` |
+  | ThreadSafeHookBase | RLockを用いて各フックメソッドの実行を直列化する | `__init_subclass__` による自動ラップ |
+  | Context Objects | フックに渡される実行時の引数、結果、例外、メタデータのコンテナ | `ctx.args`, `ctx.result` 等 |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant Spot as core.Spot
+    participant Hook as HookBase
+    participant Fn as Target Function
+
+    Spot->>Hook: pre_execute(ctx)
+    alt キャッシュヒット
+        Spot->>Hook: on_cache_hit(ctx)
+    else キャッシュミス
+        Spot->>Fn: execute()
+        Fn-->>Spot: result
+        Spot->>Hook: on_cache_miss(ctx)
+    end
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | パターン | オブザーバー | コアロジックを汚さずに、ログ出力や統計取得等の横断的関心を分離 |
+  | スレッド安全 | 自動装飾 (Decorator) | ユーザーが意識せずに、サブクラス化するだけで安全なフックを実装可能 |
+  | 実行制御 | 準同期実行 | フック内の例外をキャッチしログ出力に留めることで、主処理を保護 |
+
+  ## 非機能要件方針
+
+  -   **透過性**: フックの実行失敗（例外）は主処理の結果に影響を与えない
+
+  -   **柔軟性**: 関数ごとに異なるフックリストを `hooks=[...]` で指定可能
+
+  -   **パフォーマンス**: フック未登録時のオーバーヘッドを最小化するガード条件を実装

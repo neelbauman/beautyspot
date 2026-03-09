@@ -8,6 +8,16 @@ links:
 - SPEC002: CXrgt780qXgbXvvPXpnQ3kmCqMdcSDCb4w0rXHFJj_g=
 normative: true
 ref: ''
-reviewed: NT10zlW4ERGivDcwXPotEuhnyc0PlFOjy1UKNfqzS28=
+reviewed: 8iz9ZiVcPcQx41KksMYLUIQjXAot5In6DVfwFTLOQzk=
 text: |
-  `cached_run` コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。
+  ## 目的
+
+  `cached_run` はデコレータを直接付与できない外部ライブラリ関数にキャッシュを適用する唯一の手段であり、このAPIの不具合はサードパーティ統合シナリオ全体に影響する。戻り値の型が関数の数で変わるスマートリターン仕様は、誤実装すると型安全性を損なうため重点的に検証する。
+
+  ## 検証観点
+
+  - **単一関数**: 1つの関数を渡した場合、結果がそのまま（タプルでなく）返ること
+  - **複数関数**: 2つ以上の関数を渡した場合、結果がタプルで返ること
+  - **バリデーション**: 関数を0個渡した場合に `ValidationError` が送出されること
+  - **型推論**: mypy / pyright で戻り値の型が正しく推論されること
+  - **キャッシュ動作**: コンテキスト内で同一引数の再呼び出しがキャッシュヒットすること

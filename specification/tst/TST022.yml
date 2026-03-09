@@ -10,4 +10,15 @@ normative: true
 ref: ''
 reviewed: 0s8P2OVvH6c4j-wKNZGA3Anwe53jL2DQmkW4A1S17BM=
 text: |
-  ファクトリ関数と DI のテスト。`Protocol` ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）、 型推論、デフォルトワークスペース作成を検証する。
+  ## 目的
+
+  `bs.Spot()` ファクトリ関数は全コンポーネントの DI 配線を担う唯一のパブリックエントリポイントであり、デフォルト構成の正確性とカスタム実装の差し替え可能性がシステム全体の柔軟性と正確性を決定する。
+
+  ## 検証観点
+
+  - **デフォルト構成**: 引数未指定時に `SQLiteTaskDB`, `LocalStorage`, `MsgpackSerializer`, `TokenBucket`, `WarningOnlyPolicy` が自動注入されること。ワークスペースディレクトリ（`.beautyspot/`）が自動作成されること
+  - **カスタム DB 注入**: `TaskDBBase` / `TaskDBCore` プロトコル準拠のカスタムDBを `db=` で注入し、正常にキャッシュ操作が行えること
+  - **カスタム Storage 注入**: `BlobStorageBase` 準拠のモック Storage を `storage_backend=` で注入し、Blob保存が委譲されること
+  - **カスタム Serializer 注入**: `SerializerProtocol` 準拠のカスタム Serializer を注入し、シリアライズ処理が差し替わること
+  - **型推論**: `bs.Spot()` の戻り値型が pyright / mypy で正しく推論されること
+  - **Protocol 不準拠の拒否**: 必須メソッドを欠くオブジェクトを注入した場合に型チェックエラーまたは実行時エラーが発生すること

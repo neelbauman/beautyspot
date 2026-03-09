@@ -10,4 +10,14 @@ normative: true
 ref: ''
 reviewed: _IajLdQJwzUFeuaELEZPSwLNWVXjIuFaCm_-zpLSTg0=
 text: |
-  HookBase / ThreadSafeHookBase のテスト。フックライフサイクル （pre_execute/on_cache_hit/on_cache_miss）、状態保持、 ThreadSafeHookBase の並行呼び出し時のスレッドセーフ性を検証する。
+  ## 目的
+
+  Hook システムはキャッシュライフサイクルへのユーザー拡張ポイント（ロギング、メトリクス収集、監査等）であり、フック内の不具合がメインの関数実行に影響を与えないことが最重要の契約である。また `ThreadSafeHookBase` の自動ロック機構の正確性を保証する。
+
+  ## 検証観点
+
+  - **ライフサイクル呼び出し順**: キャッシュミス時に `pre_execute` → 関数実行 → `on_cache_miss` の順でフックが呼ばれること。キャッシュヒット時に `pre_execute` → `on_cache_hit` の順で呼ばれること
+  - **コンテキスト情報**: 各フックに渡されるコンテキスト（`PreExecuteContext`, `CacheHitContext`, `CacheMissContext`）が正しい情報（func_name, args, result 等）を含むこと
+  - **例外隔離**: フック内で例外が発生しても、関数の実行結果には影響せず、ERROR ログにのみ記録されること
+  - **状態保持**: フックインスタンスが呼び出し間で状態（カウンタ等）を保持できること
+  - **ThreadSafeHookBase**: `__init_subclass__` によりユーザー定義メソッドが自動的に RLock でラップされ、複数スレッドからの同時呼び出しで競合状態が発生しないこと

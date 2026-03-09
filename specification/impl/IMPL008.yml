@@ -8,6 +8,35 @@ links:
 - SPEC008: xgTQqVbBvQndnPKGjHGQK9GDHWmL2OU49VNn_z7QkIw=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/db.py
+  type: file
 reviewed: xOZtalFMq0sLWeSc8Sg1KZzorsjuNNPOHuf88Y4H2Co=
 text: |
-  TaskDBCore/TaskDBBase/Maintenable/Flushable/Shutdownable プロトコル・抽象基底クラスの定義。 TaskDBBase のメンテナンスメソッドのデフォルト実装を含む。
+  ## 実装概要
+
+  DB 層のプロトコル階層を定義。`TaskDBCore`（ランタイム必須の CRUD）、
+  `Flushable`（書き込み同期）、`Shutdownable`（安全な停止）、
+  `Maintenable`（GC・統計等の管理操作）の4つのプロトコルと、
+  それらを統合した `TaskDBMaintenable` を提供する。
+  `TaskDBBase` は ABC として `Maintenable` のデフォルト実装（安全な no-op）を提供する。
+
+  ## 設計判断
+
+  ### プロトコルの細分化
+
+  単一の巨大インターフェースではなく、責務ごとにプロトコルを分割した。
+  これにより、カスタム DB 実装は `TaskDBCore` のみ実装すればランタイムで動作し、
+  メンテナンス機能は段階的にオプトインできる。
+
+  ### デフォルト実装の安全性
+
+  `TaskDBBase` のメンテナンスメソッド（`delete_expired()`, `prune()` 等）は
+  デフォルトで空リスト返却や no-op を行い、サブクラスが未実装でも安全に動作する。
+  CLI の `gc` コマンドが未対応の DB バックエンドでもエラーにならない設計。
+
+  ## 実装メモ
+
+  - `Flushable.flush(timeout)` のデフォルトは no-op。SQLiteTaskDB のみがキュー同期を実装
+  - `Shutdownable.shutdown(wait)` のデフォルトは no-op。リソースを持たない軽量実装に配慮
+  - カスタム DB 実装は `isinstance(db, Maintenable)` で機能の有無を判定できる

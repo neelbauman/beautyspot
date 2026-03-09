@@ -8,6 +8,15 @@ links:
 - SPEC008: xgTQqVbBvQndnPKGjHGQK9GDHWmL2OU49VNn_z7QkIw=
 normative: true
 ref: ''
-reviewed: q_gm3ETlB5fQGb0t8IG-U0Cqwqr5x_XbySPKTNjHRgo=
+reviewed: JBbLcnJt3-cR2TxU42xjhxnyIa9RR32qxNWFlaMh1g8=
 text: |
-  DB プロトコル階層のテスト。TaskDBCore/TaskDBBase の インターフェース準拠、メンテナンスメソッドのデフォルト動作を検証する。
+  ## 目的
+
+  `TaskDBCore` / `TaskDBBase` のプロトコル階層は、サードパーティによるカスタムDB実装（Redis、PostgreSQL 等）の差し替えを可能にする拡張ポイントである。インターフェース契約が不明確だと、カスタム実装が実行時に予期しないエラーを起こす。
+
+  ## 検証観点
+
+  - **インターフェース準拠**: `TaskDBCore` の必須メソッド（save, load, delete 等）を実装したクラスが `isinstance` チェックをパスすること
+  - **TaskDBBase 拡張**: `TaskDBBase` がメンテナンス系メソッド（prune, stats 等）のデフォルト実装を提供し、サブクラスが必須メソッドのみの実装で動作すること
+  - **デフォルト動作**: メンテナンスメソッドのデフォルト実装が安全なno-op（空リスト返却等）であること
+  - **カスタム実装の注入**: `bs.Spot(db=CustomDB())` でプロトコル準拠のカスタムDBが正常に動作すること

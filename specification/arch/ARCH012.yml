@@ -2,7 +2,7 @@ active: true
 derived: false
 group: DI
 header: |
-  依存注入アーキテクチャ
+  依存注入構成
 level: 1.11
 links:
 - REQ012: 6W0MNBxJZPznZIzPP6XPUdKxQstg4FxSEJOguLc2kr0=
@@ -10,6 +10,36 @@ normative: true
 ref: ''
 reviewed: UttYPARvssV-kEyLNjZjC5XR-_xDvUkmSr2cCeaTs1s=
 text: |
-  ファクトリ関数 `bs.Spot()` を唯一の公開エントリーポイントとし、全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）のデフォルト組み立てを行う。
+  ## コンポーネント構成
 
-  `core.Spot.__init__` は全依存を明示的に要求し、暗黙のデフォルトを持たない。全コンポーネントは `Protocol` / `ABC` に基づくインターフェースで定義され、テストや拡張時の差し替えを容易にする。
+  ```mermaid
+  graph TD
+    A[bs.Spot Factory] -->|構築| B[core.Spot]
+    A -->|DI| C[TaskDBBase]
+    A -->|DI| D[BlobStorageBase]
+    A -->|DI| E[SerializerProtocol]
+    A -->|DI| F[StoragePolicyProtocol]
+    A -->|DI| G[LimiterProtocol]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | bs.Spot (Factory) | 環境（名前、パス等）に応じたデフォルトコンポーネントの選定と組み立て | `bs.Spot()` |
+  | core.Spot | 注入された依存関係を使用して、キャッシュロジックをオーケストレーションする | `mark()`, `cached_run()` |
+  | Protocols / ABCs | 各コンポーネントが満たすべき契約（インターフェース）の定義 | `SerializerProtocol` 等 |
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | パターン | Constructor Injection | 依存関係を明示的に渡し、テスト時のMock差し替えを容易にする |
+  | インターフェース | Protocol (Duck Typing) | 厳密な継承を強制せず、構造的部分型によりサードパーティ実装を受け入れ |
+  | デフォルト設定 | 規約より構成 (CoC) | `.beautyspot/` ディレクトリを基点とした標準パスを自動生成 |
+
+  ## 非機能要件方針
+
+  - **結合度**: `core.Spot` は具体的なクラス名（SQLite等）を知らず、Protocolのみに依存する
+  - **テスト容易性**: メモリ上のDBや仮装ストレージを注入することで、高速な単体テストが可能
+  - **拡張性**: ユーザーが独自のシリアライザやストレージを自作して注入可能

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<pre><code class="language-mermaid">graph TD;
+A-->B;
+</code></pre>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+const blocks = document.querySelectorAll('code.language-mermaid');
+blocks.forEach((block, idx) => {
+  const id = 'mermaid-' + idx;
+  const graphDef = block.textContent;
+  const target = block.parentElement;
+  mermaid.render(id, graphDef).then(({ svg }) => {
+    const div = document.createElement('div');
+    div.innerHTML = svg;
+    target.replaceWith(div);
+  }).catch(err => console.error(err));
+});
+</script>
+</body>
+</html>

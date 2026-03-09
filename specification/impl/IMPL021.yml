@@ -8,6 +8,34 @@ links:
 - SPEC021: tpts5YHUo0MklbBWNI42lObDQHBcmEVGHA3PxICOD_E=
 normative: true
 ref: ''
-reviewed: aW2S496lFIoxeecsi8JDYcUc_nEAGlrMS1IhAYWwTaI=
+references:
+- path: src/beautyspot/cli.py
+  type: file
+reviewed: null
 text: |
-  Typer ベースの CLI コマンド群の実装。 list/show/stats/clear/clean/gc/prune/ui/version の各コマンド、 rich による出力フォーマットを含む。
+  ## 実装概要
+
+  `Typer` を利用したコマンドラインインターフェースの実装。
+  `list`, `show`, `stats`, `clear`, `clean`, `gc`, `prune`, `version` 等の
+  コマンドを提供し、`rich` ライブラリを用いてコンソール出力（テーブル、パネル、
+  プログレスバー等）をリッチにフォーマットしている。
+
+  ## 設計判断
+
+  ### Typer と Rich の組み合わせ
+
+  Typer は型ヒントベースでコマンドやオプションを定義でき、コードの記述量と
+  メンテナンスコストを大幅に削減できる。Rich による出力は、単なるテキストではなく
+  構造化された情報（JSONやMarkdown）の視認性を劇的に向上させ、DXを高める。
+
+  ### 安全性を考慮した対話的プロンプト
+
+  `clear` や `clean` など、データを大規模に削除するコマンドについては、
+  `--force` オプションが指定されない限り、`rich.prompt.Confirm` を用いて
+  ユーザーに明示的な確認を求めることで、誤操作によるデータ喪失を防いでいる。
+
+  ## 実装メモ
+
+  - コマンドは `MaintenanceService` などの内部 API を利用して処理を行う
+  - 各コマンドは特定のプロジェクト (`--project` / `-p`) に対して操作を行うが、
+    一部のコマンド（`list` 等）はワークスペース全体の走査もサポートする

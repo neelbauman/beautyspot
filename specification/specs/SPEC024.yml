@@ -10,10 +10,42 @@ normative: true
 ref: ''
 reviewed: zb1lrfvCNr-0PSm8zbwvFuk-Ni-KiSXIwCr-LheXQVI=
 text: |
-  ARCH004で定義された「ストレージバックエンドの抽象化」を実現する具体的なインターフェース仕様。
+  ## インターフェース
 
-  - `BlobStorageBase` (ABC): `save`, `load`, `delete`, `list_keys`, `get_mtime` の5メソッドを定義する。新しいストレージバックエンドはこのクラスを継承して実装する。
-  - `BlobStorageCore` (Protocol): 実行時に必須の3メソッド (`save`, `load`, `delete`) を定義する最小インターフェース。
-  - `Maintenable` (Protocol): メンテナンス操作に必要な2メソッド (`list_keys`, `get_mtime`) を定義する拡張インターフェース。
-  - `BlobStorageMaintenable`: `BlobStorageCore` と `Maintenable` の合成プロトコル。
-  - `create_storage(path, options)`: URIスキーム (`s3://`) に基づいて適切な実装を自動選択するファクトリ関数。`s3://` で始まる場合は `S3Storage`、それ以外は `LocalStorage` を返す。
+  ```python
+  class BlobStorageBase(ABC):
+      @abstractmethod
+      def save(self, key: str, data: ReadableBuffer) -> str: ...
+      @abstractmethod
+      def load(self, location: str) -> bytes: ...
+      @abstractmethod
+      def delete(self, location: str) -> None: ...
+      @abstractmethod
+      def list_keys(self) -> Iterator[str]: ...
+      @abstractmethod
+      def get_mtime(self, location: str) -> float: ...
+  ```
+
+  ## 振る舞い
+
+  - **save**: データを永続化し、一意な識別子（パスやURI）を返す。
+  - **load**: 識別子を基にバイトデータを復元する。
+  - **delete**: 識別子を基にデータを削除する。存在しない場合は無視する（冪等）。
+  - **list_keys**: メンテナンス用に、保存されている全オブジェクトの識別子を列挙する。
+  - **get_mtime**: 最終更新時刻を POSIX タイムスタンプで返す。
+
+  ## パラメータ詳細
+
+  | パラメータ | 型 | 説明 |
+  |---|---|---|
+  | `key` | `str` | キャッシュキー（通常はハッシュ値） |
+  | `data` | `bytes` / `memoryview` | シリアライズ済みバイナリ |
+  | `location` | `str` | 実体へのポインタ（ファイルパス、S3 URI等） |
+
+  ## エラーハンドリング
+
+  - 実装クラスは、データの欠損やアクセス不可時に `CacheCorruptedError` を送出すべきである。
+
+  ## エッジケース
+
+  - **バイナリ互換**: `ReadableBuffer` を受け入れることで、`memoryview` 等を使用したゼロコピー書き込みを可能にする。

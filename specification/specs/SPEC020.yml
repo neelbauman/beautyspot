@@ -10,4 +10,37 @@ normative: true
 ref: ''
 reviewed: jUpICcNzmDQLe__KbkzthT-BLkNMHy6EgkMHfnPmJFQ=
 text: |
-  `MaintenanceService` は DB・ストレージ・シリアライザを統合したメンテナンスサービス。 `clean_garbage()`: DB flush → 期限切れ削除 → 孤立Blob スキャン → 削除 → 一時ファイル清掃 → 空ディレクトリ削除。 `scan_garbage(grace_period)`: DB に参照のないBlobファイルを列挙。grace_period でインフライト保存との競合を防止。 `prune(days, func_name)`: 指定日数以上古いキャッシュを削除。 `clear(func_name)`: 全キャッシュまたは指定関数のキャッシュを削除。 `delete_task(cache_key)`: DB レコードを先に削除し、次にBlobを削除（安全な削除順序）。 `from_path()` ファクトリでDBパスからサービスを組み立て可能。 `scan_orphan_projects()`: .beautyspot/blobs/ 内の孤立プロジェクトディレクトリを検出。 自動破棄 (`eviction_rate`): 確率的にGCをバックグラウンドで実行（最小間隔60秒）。
+  ## インターフェース
+
+  ```python
+  class MaintenanceService:
+      def clean_garbage(self, grace_period: int = 3600) -> GarbageStats: ...
+      def prune(self, days: int, func_name: str | None = None) -> int: ...
+      def clear(self, func_name: str | None = None) -> int: ...
+  ```
+
+  ## 振る舞い
+
+  ### ガベージコレクション (`clean_garbage`)
+  1. **DB Flush**: 保存中のタスクをDBへ反映させる
+  2. **期限切れ削除**: `delete_expired()` でDBから古いタスクを除去
+  3. **孤立Blobスキャン**: DB内の全 `blob_key` とストレージ内の全ファイルを比較
+  4. **物理削除**: 参照のないBlobのうち、作成から `grace_period` 以上経過したものを削除
+  5. **構造清掃**: ストレージ内の空ディレクトリを削除
+
+  ## パラメータ詳細
+
+  | パラメータ | デフォルト | 説明 |
+  |---|---|---|
+  | `grace_period` | `3600` | 孤立Blobを削除するまでの猶予期間（秒）。並行実行中の保存を保護する |
+  | `days` | なし | `prune` で削除対象とする経過日数 |
+
+  ## エラーハンドリング
+
+  - **削除失敗**: 個別のファイル削除失敗は警告ログに留め、全体の処理は継続する。
+  - **DBロック**: メンテナンス中にDBがロックされた場合は、タイムアウトまで待機し失敗させる。
+
+  ## エッジケース
+
+  - **大規模ストレージ**: Blobの列挙はジェネレータで行い、メモリ使用量を抑制する。
+  - **名前空間**: `clear(func_name)` は前方一致ではなく、完全一致（または glob）で判定する。

@@ -8,6 +8,16 @@ links:
 - SPEC006: RMTxfnsnPFluWYinCimxMmi0VHzXitwMuW9sZkXrxAE=
 normative: true
 ref: ''
-reviewed: eU9KlUMV7bRQ5-bxsE91s6pBH3UHmTAZxpKDrRysl2o=
+reviewed: Sy2b9injcV3QCVfd6DOmvTAQxRTWmOYyaIotmspuCjo=
 text: |
-  KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。
+  ## 目的
+
+  `KeyGenPolicy` は引数ごとのキー生成戦略をカスタマイズする機構であり、ログレベルやデバッグフラグのような非決定的引数をキーから除外したり、ファイルパスの代わりにファイル内容でキーを生成するユースケースを支える。戦略の誤適用はキャッシュの正確性を根本から損なう。
+
+  ## 検証観点
+
+  - **KeyGen.ignore()**: 指定された引数がキャッシュキーの計算から除外され、その引数の値を変えてもキャッシュヒットすること
+  - **KeyGen.map() + FILE_CONTENT**: ファイルパス引数に対し、パス文字列ではなくファイル内容のハッシュがキーに使われること。同一内容の別パスファイルが同一キーを生成すること
+  - **KeyGen.path_stat()**: ファイルの mtime/size に基づくキー生成が機能すること
+  - **bind() 連携**: `KeyGenPolicy.bind(func)` が関数シグネチャ（位置引数・キーワード引数・デフォルト値）を正しく解釈すること
+  - **@mark 統合**: `@spot.mark(keygen=KeyGen.ignore("verbose"))` のようにデコレータ経由で戦略が正しく適用されること

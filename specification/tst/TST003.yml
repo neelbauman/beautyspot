@@ -8,6 +8,15 @@ links:
 - SPEC003: CVb-B19ollkUexnco2Cn1TfB6jiZ9TEOkURqVv3UJ7o=
 normative: true
 ref: ''
-reviewed: 8SIpR84UNZ3s3KNCgQkU0tjH_ishfvdp_cm-VEoY0wg=
+reviewed: VzDCwqJYLk73Ph4vQ5fulq3kFT_s_phAR9aAUBg6GEA=
 text: |
-  同期・非同期関数サポートのテスト。非同期例外伝播、 `async thundering herd` 、`async save_sync` 動作を検証する。
+  ## 目的
+
+  beautyspot は同期・非同期の両方の関数を透過的にキャッシュするが、asyncio 固有のイベントループ制約（スレッドをまたぐコルーチン実行、例外伝播のタイミング差異）により、同期版とは異なる不具合が発生しやすい。非同期パスの堅牢性を独立して検証する。
+
+  ## 検証観点
+
+  - **自動判定**: `inspect.iscoroutinefunction()` により同期/非同期が正しく識別され、適切なラッパーが適用されること
+  - **例外伝播**: async 関数内で送出された例外が、await 側に正しく伝播し、キャッシュに保存されないこと
+  - **非同期 thundering herd**: 同一キーへの複数の concurrent な `await` が1回の実行結果を共有すること
+  - **非同期保存**: `save_sync=False` 時に `_BackgroundLoop` 経由でキャッシュ保存が非同期実行されること

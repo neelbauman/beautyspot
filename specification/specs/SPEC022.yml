@@ -10,15 +10,38 @@ normative: true
 ref: ''
 reviewed: XJYkOLJ_PWAk2Xab8_kehjQsmOFKo5-Og8BdZb-GMJA=
 text: |
-  `bs.Spot(name, ...)` ファクトリ関数が唯一のパブリックエントリポイント。
-  引数未指定時のデフォルト:
-  - `SQLiteTaskDB (.beautyspot/{name}.db)`
-  - `LocalStorage (.beautyspot/blobs/{name})`
-  - `MsgpackSerializer`
-  - `TokenBucket (10000 TPM)`
-  - `WarningOnlyPolicy`
+  ## インターフェース
 
-  全コンポーネントは `Protocol/ABC` で定義:
-  `TaskDBCore`, `BlobStorageCore`, `SerializerProtocol`, `StoragePolicyProtocol`, `LimiterProtocol`。
+  ```python
+  def Spot(
+      name: str = "default",
+      storage_path: str | Path | None = None,
+      serializer: SerializerProtocol | None = None,
+      limiter: LimiterProtocol | None = None,
+      # ...その他の依存
+  ) -> core.Spot: ...
+  ```
 
-  `core.Spot` は `CacheManager` と `LimiterProtocol` を直接受け取り、 ファクトリ外での直接インスタンス化は非推奨。
+  ## 振る舞い
+
+  1. **パス解決**: `storage_path` が未指定の場合、`.beautyspot/` 以下のプロジェクト名ディレクトリを使用する
+  2. **DB初期化**: `SQLiteTaskDB` を生成し、マイグレーションを実行
+  3. **ストレージ構成**: URI（`s3://`等）を判定し、適切な `BlobStorage` 実装を生成
+  4. **インスタンス化**: 全てのコンポーネントを `core.Spot` のコンストラクタに注入して返す
+
+  ## パラメータ詳細
+
+  | パラメータ | デフォルト値の導出 |
+  |---|---|
+  | `db` | `.beautyspot/{name}.db` |
+  | `blobs` | `.beautyspot/blobs/{name}/` |
+  | `serializer` | `MsgpackSerializer()` |
+  | `policy` | `WarningOnlyPolicy` (閾値10MB) |
+
+  ## エラーハンドリング
+
+  - **ディレクトリ作成失敗**: 権限等の理由でストレージディレクトリが作成できない場合は、早期に `OSError` を送出する。
+
+  ## エッジケース
+
+  - **グローバルシングルトン**: 同じ `name` で複数回呼び出した場合も、原則として新しいインスタンスを返すが、DBファイルへの接続は共有される（SQLiteのWALモードを活用）。

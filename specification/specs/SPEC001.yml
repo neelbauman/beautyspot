@@ -8,6 +8,61 @@ links:
 - ARCH001: 8wnI9UzJmc41cCq1TcChrj0mjlYGN1yIeaEB2gc1odo=
 normative: true
 ref: ''
-reviewed: v3yujQ5wCgH9mYOSKv2S2byOG0RkLBSFwZEzUwGxQcE=
+reviewed: null
 text: |
-  同期・非同期の両方の関数に対して `@spot.mark()` デコレータで透過キャッシュを提供する。キャッシュヒット時は元の関数を実行せず、保存済みの結果を返す。
+  ## インターフェース
+
+  ```python
+  @spot.mark(
+      save_blob: Optional[bool] = None,
+      keygen: Optional[Union[Callable, KeyGenPolicy]] = None,
+      input_key_fn: Optional[Union[Callable, KeyGenPolicy]] = None,
+      version: str | None = None,
+      content_type: Optional[str | ContentType] = None,
+      serializer: Optional[SerializerProtocol] = None,
+      save_sync: Optional[bool] = None,
+      retention: RetentionSpec = None,
+      hooks: Optional[Sequence[HookBase]] = None,
+  )
+  def my_func(x, y): ...
+  ```
+
+  ## 振る舞い
+
+  ### 基本フロー
+
+  1. デコレータが対象関数をラップする
+  2. 呼び出し時にキャッシュキーを生成する
+  3. DBからキャッシュを検索する
+  4. **ヒット時**: デシリアライズして結果を返す（関数は実行しない）
+  5. **ミス時**: 関数を実行し、結果をシリアライズしてDB/Blobに保存する
+
+  ### sync/async 自動判定
+
+  - デコレーション時に `inspect.iscoroutinefunction(fn)` で判定する
+  - sync関数 → `_execute_sync()` に委譲する同期ラッパーを返す
+  - async関数 → `_execute_async()` に委譲する非同期ラッパーを返す
+
+  ## パラメータ詳細
+
+  | パラメータ | デフォルト | 説明 |
+  |---|---|---|
+  | `save_blob` | `None` | `None`: StoragePolicy に委譲、`True`: 強制Blob保存、`False`: DB内保存 |
+  | `keygen` | `None` | キャッシュキー生成のカスタマイズ。引数やポリシーを指定可能 |
+  | `input_key_fn` | `None` | （非推奨）`keygen` を使用すること |
+  | `version` | `None` | バージョン文字列。変更するとキャッシュキーが変わり無効化される |
+  | `content_type` | `None` | 戻り値のMIMEタイプ |
+  | `serializer` | `None` | `None`: Spotのデフォルトを使用。関数単位でオーバーライド可能 |
+  | `save_sync` | `None` | 保存処理を同期的に行うかどうか（`None`の場合はデフォルトに従う） |
+  | `retention` | `None` | キャッシュの保持ポリシー（`"30d"` などの文字列や期間オブジェクト等） |
+  | `hooks` | `None` | 関数単位のフックリスト（実行前後やキャッシュヒット時に発火） |
+
+  ## エラーハンドリング
+
+  - ジェネレータ関数（`isgeneratorfunction` または `isasyncgenfunction`）を渡した場合 → デコレーション時に `ConfigurationError` を送出する
+  - `cached_run` 利用時に引数として関数が一つも指定されなかった場合 → `ValidationError` を送出する
+
+  ## エッジケース
+
+  - ラップされた関数の `__name__`, `__doc__` は `functools.wraps` によって保持される
+  - `@mark` (括弧なし) と `@mark()` (括弧あり) の両方の記法をサポートする

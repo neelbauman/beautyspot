@@ -10,6 +10,13 @@ normative: true
 ref: ''
 reviewed: djNpeQOF6m1nvdR-ZimajEq3Dy0XWRTGdrkVWTgeabE=
 text: |
-  ## ストレージポリシーのテスト。
+  ## 目的
 
-  `ThresholdStoragePolicy` の閾値判定、 WarningOnlyPolicy の警告動作、AlwaysBlobPolicy の常時Blob保存、 大サイズデータの警告統合を検証する。
+  ストレージポリシーは「データをDB直接保存するか、Blobストレージに分離するか」を決定する戦略レイヤーである。閾値判定の誤りはDBの肥大化（性能劣化）や不要なBlob分離（オーバーヘッド増加）を招く。3種のポリシー実装がそれぞれの契約を正しく満たすことを検証する。
+
+  ## 検証観点
+
+  - **ThresholdStoragePolicy**: 閾値未満のデータで `False`、閾値以上のデータで `True` を返すこと。境界値（ちょうど閾値サイズ）での挙動が明確であること
+  - **WarningOnlyPolicy**: 常に `False` を返しDB直接保存を選択すること。ただし閾値超過時に WARNING レベルのログが出力されること
+  - **AlwaysBlobPolicy**: データサイズに関係なく常に `True` を返すこと
+  - **Spot 統合**: `@spot.mark(save_blob=True/False)` の明示指定がポリシー判定より優先されること。`save_blob=None`（デフォルト）時にポリシーの `should_save_as_blob()` が呼ばれること

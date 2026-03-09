@@ -8,6 +8,45 @@ links:
 - SPEC005: ffgIJx_L46x7nk9fCA9AkaUzxaiuejr70pw_9c1-n6g=
 normative: true
 ref: ''
+references:
+- path: src/beautyspot/cachekey.py
+  type: file
 reviewed: MzgsjwR_qQH0FKGNHCnwxHG5n1730pIp9h4KW7C-Kpw=
 text: |
-  canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。
+  ## 実装概要
+
+  `canonicalize()` は `functools.singledispatch` で実装された再帰的正規化関数。
+  型ごとにディスパッチハンドラを登録し、ネストされたデータ構造を再帰的に正規化する。
+  各ハンドラは型タグ付きのタプルを返し、異なるコレクション型が同じ内容でも
+  区別されるようにする。
+
+  ## 設計判断
+
+  ### singledispatch の採用
+
+  if/elif チェーンと比較して、新しい型のサポート追加が局所的で、
+  既存コードへの影響がない。numpy や Pydantic のようなオプショナル依存の
+  型ハンドラも、条件付きで登録できる。
+
+  ### 型タグによるコレクション区別
+
+  `[1, 2]`（list）と `(1, 2)`（tuple）を区別するため、
+  正規化結果に `("__list__", ...)`, `("__tuple__", ...)` のように
+  型タグを含める。これにより、構造的に同一でも型が異なるデータが
+  異なるキャッシュキーを生成する。
+
+  ### bool vs int の区別
+
+  Python では `True == 1` かつ `isinstance(True, int)` だが、
+  キャッシュキーとしては区別が必要。singledispatch は MRO 順でマッチするため、
+  `bool` を `int` より先にチェックするインライン処理を base handler に配置した。
+
+  ## 実装メモ
+
+  - カスタムオブジェクトの正規化は `__dict__` と `__slots__` の両方を MRO 走査で収集する。
+    `__dict__` スロット自体はスキップする
+  - `OrderedDict` は順序が意味を持つため、キーのソートを**行わない**（dict とは異なる）
+  - `defaultdict` は `default_factory` を無視し、内容のみで正規化する
+  - `Enum` は `型名.メンバー名 + value` で正規化し、モジュール・qualname も含める
+  - 循環参照を検出した場合は `str()` にフォールバックし、警告を出力する（非決定的）
+  - 未知の型も `str()` にフォールバックするが、安定性は保証されない

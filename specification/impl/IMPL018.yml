@@ -8,6 +8,37 @@ links:
 - SPEC018: b1XyeBeZrn3HgzWNr_eBXq-Gx8K5IJOLOWl4bIII9Ig=
 normative: true
 ref: ''
-reviewed: MUl9PjRhOtN-8XMMsahQuG6Xuo77B-fjbEDaey3elQ4=
+references:
+- path: src/beautyspot/limiter.py
+  type: file
+reviewed: null
 text: |
-  TokenBucket の実装。GCRA アルゴリズム、TAT (Theoretical Arrival Time) 管理、 consume/consume_async メソッド、threading.Lock によるスレッドセーフ、 max_cost バリデーションを含む。
+  ## 実装概要
+
+  `LimiterProtocol` を実装する `TokenBucket` クラス。
+  GCRA (Generic Cell Rate Algorithm) に基づき、スレッドセーフおよび
+  非同期対応のスムーズなレートリミッタを提供する。
+  内部状態として Theoretical Arrival Time (TAT) を保持し、
+  `consume()` で同期的スリープ、`consume_async()` で非同期的スリープを行う。
+
+  ## 設計判断
+
+  ### GCRAアルゴリズムの採用
+
+  伝統的なトークンバケットとは異なり、長時間アイドル後に
+  一気にバーストを許容しない「Strict Pacing」を実現できる。
+  TATの更新と現在時刻の比較だけで待機時間を計算できるため、
+  メモリ効率と計算効率に優れる。
+
+  ### モノトニッククロックの利用
+
+  時刻の取得に `time.monotonic()` を使用し、システム時刻の変更（NTP同期など）の
+  影響を受けない堅牢な設計としている。
+
+  ## 実装メモ
+
+  - `_consume_reservation()` メソッドが待機時間の計算と TAT 更新を
+    `threading.Lock` でアトミックに行う
+  - `cost > max_cost`（バケット容量超過）の場合は、どれだけ待っても
+    処理できないため即座に `ValueError` を送出する
+  - 同期パスは `time.sleep()`、非同期パスは `asyncio.sleep()` で待機する
