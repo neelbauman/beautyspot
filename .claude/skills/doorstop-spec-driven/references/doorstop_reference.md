@@ -44,8 +44,8 @@ text: |               # 要件のテキスト本体
 
 ## ドキュメント設定（.doorstop.yml）
 
-各ドキュメントディレクトリ直下の `.doorstop.yml` は、`doorstop create` で自動生成される。
-`init_project.py` が `attributes` セクションを自動追加するが、手動でドキュメントを
+各ドキュメントディレクトリ直下の `.doorstop.yml` は、`init_project.py` で自動生成される。
+`init_project.py` が `attributes` セクションも自動追加するが、手動でドキュメントを
 追加する場合は自分で設定する必要がある。
 
 ### 構造
@@ -59,7 +59,7 @@ settings:
   parent: null          # ルート文書は null、子文書は親の prefix
 
 attributes:
-  defaults:             # doorstop add / doc.add_item() 時に自動付与される初期値
+  defaults:             # doorstop_ops.py add 時に自動付与される初期値
     group: ''
   reviewed:             # フィンガープリント計算に含めるカスタム属性
     - group             #   → group を変更すると「未レビュー」状態になる
@@ -71,9 +71,9 @@ attributes:
 
 | キー | 効果 |
 |---|---|
-| `defaults` | `doorstop add` や `doc.add_item()` で新規アイテム作成時に自動付与される |
+| `defaults` | `doorstop_ops.py add` で新規アイテム作成時に自動付与される |
 | `reviewed` | ここに列挙した属性の値が変更されると、アイテムが「未レビュー」状態に戻る |
-| `publish` | `doorstop publish` でドキュメント出力時に表示されるカスタム属性 |
+| `publish` | `validate_and_report.py` でドキュメント出力時に表示されるカスタム属性 |
 
 ### 運用原則
 
@@ -86,8 +86,8 @@ attributes:
 
 ### 注意事項
 
-- `attributes` セクションは `doorstop create` では生成されない。
-  `init_project.py` が自動追加するか、手動で追記する必要がある
+- `attributes` セクションは `init_project.py` が自動追加する。
+  手動でドキュメントを追加した場合は自分で追記する必要がある
 - `defaults` に定義した属性は、既存アイテムには遡及適用されない（新規アイテムのみ）
 - `reviewed` に追加した属性は、変更のたびに再レビューが必要になるため、
   頻繁に変わる属性を入れると「レビュー疲れ」を引き起こす
@@ -148,13 +148,13 @@ text: |
   ソフトウェアはJWT認証を実装すること。
 ```
 
-Python APIでの設定:
-```python
-item.set('group', 'AUTH')
-item.save()
+doorstop_ops.py での設定:
+```bash
+# 追加時に指定
+doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH
 
-# 取得
-group = item.get('group')
+# 既存アイテムのグループ変更
+doorstop_ops.py <dir> update SPEC001 -g AUTH
 ```
 
 推奨グループ名の例:
@@ -167,70 +167,153 @@ group = item.get('group')
 - `DAT` — データ管理
 - `SEC` — セキュリティ
 
-## CLI コマンドリファレンス
+## 操作スクリプトリファレンス
 
-### プロジェクト操作
+エージェントはDoorstopの生CLIやPython APIを直接使わず、専用スクリプトを使う。
+すべてのスクリプトは `<skill-path>/scripts/` にある。
+
+### doorstop_ops.py — CRUD操作
+
+アイテムの追加・更新・リンク・レビューなど、すべてのCRUD操作を1コマンドで実行する。
+結果はJSON形式で返される。
+
 ```bash
-doorstop                        # ツリー表示＋バリデーション
-doorstop create PREFIX PATH     # 新規ドキュメント作成
-doorstop delete PREFIX          # ドキュメント削除
+# 基本構文
+uv run python <skill-path>/scripts/doorstop_ops.py <project-dir> <command> [options]
 ```
 
-### アイテム操作
+#### アイテム追加（add）
 ```bash
-doorstop add PREFIX             # アイテム追加
-doorstop add PREFIX -l 1.2      # レベル指定で追加
-doorstop add PREFIX -c 5        # 5件一括追加
-doorstop remove UID             # アイテム削除
-doorstop edit UID               # エディタで編集
+# REQ追加（テキスト + グループ指定）
+doorstop_ops.py <dir> add -d REQ -t "システムはユーザー認証を提供すること" -g AUTH
+
+# SPEC追加（ヘッダー + 親リンク付き）
+doorstop_ops.py <dir> add -d SPEC -t "JWTベースの認証を実装する" --header "JWT認証" -g AUTH --links REQ001
+
+# IMPL追加（references付き）
+doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH \
+  --references '[{"path":"src/auth.py","type":"file"}]' --links SPEC001
+
+# TST追加（references付き）
+doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH \
+  --references '[{"path":"tests/test_auth.py","type":"file"}]' --links SPEC001
+
+# レベル指定で追加
+doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH -l 1.2
 ```
 
-### リンク操作
+#### アイテム更新（update）
 ```bash
-doorstop link CHILD PARENT      # リンク追加
-doorstop unlink CHILD PARENT    # リンク解除
-doorstop clear UID              # suspectステータス解消
-doorstop review UID             # レビュー済みに設定
+# テキスト更新
+doorstop_ops.py <dir> update REQ001 -t "新しい要件テキスト"
+
+# ヘッダーとグループを更新
+doorstop_ops.py <dir> update SPEC001 --header "新ヘッダー" -g PAY
+
+# references更新
+doorstop_ops.py <dir> update IMPL001 --references '[{"path":"src/new_mod.py","type":"file"}]'
 ```
 
-### 出力
+#### リンク追加（link）
 ```bash
-doorstop publish PREFIX         # テキスト出力（stdout）
-doorstop publish PREFIX -m      # Markdown出力
-doorstop publish PREFIX -H      # HTML出力
-doorstop publish all DIR --html # 全ドキュメントHTML出力
-doorstop export PREFIX          # YAML形式でエクスポート
+doorstop_ops.py <dir> link SPEC001 REQ001    # SPEC001 → REQ001 へリンク
 ```
 
-### バリデーションオプション
+#### suspect解消（clear）
 ```bash
-doorstop -Z    # --strict-child-check: 全親アイテムに子リンク必須
-doorstop -C    # --no-child-check: 子リンクチェック無効
-doorstop -S    # --no-suspect-check: suspect警告を無視
-doorstop -W    # --no-review-check: レビュー状態チェック無効
+doorstop_ops.py <dir> clear SPEC001 SPEC002  # 複数UID指定可
 ```
 
-## Python API 主要クラス
-
-```python
-import doorstop
-
-# ツリー構築
-tree = doorstop.build()           # カレントディレクトリから構築
-tree = doorstop.build(root='.')   # ルート指定
-
-# ドキュメント操作
-doc = tree.find_document('SYS')
-items = list(doc)                 # 全アイテム
-item = doc.find_item('SYS001')   # UID指定で取得
-
-# アイテム操作
-new_item = doc.add_item(level='1.0')
-new_item.text = '要件テキスト'
-new_item.header = 'タイトル'
-new_item.link('PARENT_UID')
-new_item.save()
-
-# バリデーション
-valid = tree.validate()           # True/False
+#### レビュー済み設定（review）
+```bash
+doorstop_ops.py <dir> review SPEC001 IMPL001 TST001  # 複数UID指定可
 ```
+
+#### 一覧・検索
+
+```bash
+# 全アイテム一覧
+doorstop_ops.py <dir> list
+
+# ドキュメント絞り込み
+doorstop_ops.py <dir> list -d SPEC
+
+# グループ絞り込み
+doorstop_ops.py <dir> list -g AUTH
+
+# ドキュメント + グループ絞り込み
+doorstop_ops.py <dir> list -d IMPL -g AUTH
+
+# グループ一覧
+doorstop_ops.py <dir> groups
+
+# ツリー構造
+doorstop_ops.py <dir> tree
+
+# テキスト検索
+doorstop_ops.py <dir> find "認証"
+```
+
+### trace_query.py — トレーサビリティ照会
+
+```bash
+# プロジェクト全体のステータスサマリ
+trace_query.py <dir> status
+
+# 特定UIDの上下リンクチェーンを表示
+trace_query.py <dir> chain REQ001
+
+# カバレッジ（全体 / グループ別）
+trace_query.py <dir> coverage
+trace_query.py <dir> coverage --group AUTH
+
+# suspect一覧
+trace_query.py <dir> suspects
+
+# リンク漏れ検出
+trace_query.py <dir> gaps
+trace_query.py <dir> gaps --document IMPL
+```
+
+### impact_analysis.py — 影響分析
+
+```bash
+# suspect自動検出
+impact_analysis.py <dir> --detect-suspects
+
+# 特定UIDの変更による影響範囲を分析
+impact_analysis.py <dir> --changed REQ001
+
+# JSON出力
+impact_analysis.py <dir> --detect-suspects --json report.json
+```
+
+### validate_and_report.py — バリデーション・レポート
+
+```bash
+# 厳密バリデーション（リリースゲート用）
+validate_and_report.py <dir> --strict
+
+# 静的HTMLレポート出力
+validate_and_report.py <dir> --output-dir ./reports --strict
+
+# ダッシュボード起動
+validate_and_report.py <dir> --serve --port 8080
+```
+
+### init_project.py — プロジェクト初期化
+
+```bash
+# 新規プロジェクト初期化
+init_project.py <project-dir> --profile lite
+
+# 既存gitリポジトリに導入（git init をスキップ）
+init_project.py <project-dir> --profile lite --no-git-init
+```
+
+### 注意事項
+
+- **生の `doorstop` CLI は使わない。** `doorstop_ops.py` がすべてのCRUD操作をカバーする
+- **Python API (`import doorstop`) の直接使用は避ける。** スクリプト経由で操作する
+- すべてのスクリプトは `uv run python <skill-path>/scripts/<script>.py` で実行する
+- 結果はJSON形式で返されるため、エージェントが容易にパースできる
