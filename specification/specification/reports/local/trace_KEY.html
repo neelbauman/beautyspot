@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>局所トレーサビリティ — グループ: KEY</title>
+<style>
+/* common.css — Shared styles for traceability report views */
+
+/* Base table */
+table { border-collapse: collapse; width: 100%; margin: 15px 0; background: #fff; }
+td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+tr:nth-child(even) { background: #f8f9fa; }
+.text-preview { color: #666; font-size: 0.85em; }
+.empty { color: #ccc; text-align: center; }
+
+/* Status icons */
+.reviewed { color: #4caf50; font-size: 0.8em; }
+.unreviewed { color: #bdbdbd; font-size: 0.8em; }
+.suspect { color: #e65100; font-size: 0.8em; font-weight: bold; }
+
+/* Matrix cell status (left border) */
+td.cell-suspect { border-left: 4px solid #e65100; }
+td.cell-unreviewed { border-left: 3px solid #bdbdbd; }
+
+/* Link status */
+.link-unreviewed { color: #9e9e9e; }
+.link-unreviewed-label { color: #9e9e9e; font-size: 0.8em; }
+.link-suspect { color: #e65100; }
+.link-suspect-label { color: #e65100; font-size: 0.8em; font-weight: bold; }
+
+/* Tags */
+.group-tag { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 2px 8px;
+             border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.timestamp { color: #999; font-size: 0.85em; }
+
+/* Summary cards */
+.summary { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+        padding: 15px 20px; flex: 1; min-width: 100px; text-align: center; }
+.card h3 { margin: 0 0 5px; font-size: 0.85em; color: #666; }
+
+/* Item detail cards */
+.item-detail { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+               padding: 15px 20px; margin: 10px 0; transition: border-color 0.3s, box-shadow 0.3s; }
+.item-detail h3 { margin: 0 0 8px; }
+.item-detail p { margin: 5px 0; color: #333; }
+
+/* Item text (rendered markdown) */
+.item-text { color: #333; line-height: 1.6; }
+.item-text p { margin: 6px 0; }
+.item-text code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px;
+                  font-size: 0.9em; font-family: monospace; }
+.item-text pre { background: #f5f5f5; padding: 12px; border-radius: 6px;
+                 overflow-x: auto; font-size: 0.85em; }
+.item-text pre code { background: none; padding: 0; }
+.item-text ul, .item-text ol { margin: 6px 0; padding-left: 24px; }
+.item-text table { border-collapse: collapse; margin: 8px 0; }
+.item-text table th, .item-text table td { border: 1px solid #ddd; padding: 6px 10px; }
+.item-text table th { background: #f0f0f0; }
+
+/* Action buttons */
+.item-actions { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+.action-btn { padding: 6px 16px; border: 1px solid #ccc; border-radius: 6px;
+              background: #fff; cursor: pointer; font-size: 0.85em; margin-right: 8px;
+              transition: background 0.15s; }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.review-btn { color: #4caf50; border-color: #4caf50; }
+.review-btn:hover:not(:disabled) { background: #e8f5e9; }
+.edit-btn { color: #1a73e8; border-color: #1a73e8; }
+.edit-btn:hover:not(:disabled) { background: #e3f2fd; }
+.clear-btn { color: #e65100; border-color: #e65100; }
+.clear-btn:hover:not(:disabled) { background: #fff3e0; }
+.cancel-btn { color: #666; border-color: #999; }
+.cancel-btn:hover { background: #f5f5f5; }
+
+/* Editor */
+.item-editor { margin: 8px 0; }
+.edit-textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #1a73e8;
+                 border-radius: 6px; font-family: monospace; font-size: 0.9em;
+                 line-height: 1.5; resize: vertical; box-sizing: border-box; }
+.edit-textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+.edit-actions { margin-top: 8px; }
+.hidden { display: none; }
+
+/* Toast notifications */
+.toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
+         border-radius: 8px; color: #fff; font-size: 0.9em; z-index: 1000;
+         animation: toastFade 3s ease forwards; pointer-events: none; }
+.toast.success { background: #4caf50; }
+.toast.error { background: #d32f2f; }
+@keyframes toastFade { 0% { opacity:0; transform:translateY(20px); }
+  10% { opacity:1; transform:translateY(0); } 80% { opacity:1; }
+  100% { opacity:0; } }
+
+/* local.css — Local traceability view theme (teal) */
+
+/* Theme */
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       max-width: 1200px; margin: 0 auto; padding: 20px; background: #fafafa; }
+h1 { border-bottom: 3px solid #00897b; padding-bottom: 10px; color: #00897b; }
+h2 { color: #00897b; margin-top: 30px; }
+th { background: #00897b; color: #fff; padding: 10px; text-align: left; }
+.card { padding: 12px 18px; min-width: 80px; }
+.card h3 { font-size: 0.8em; }
+.card .value { font-size: 1.4em; font-weight: bold; color: #00897b; }
+.summary { gap: 12px; }
+.ref-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 1px 6px;
+           border-radius: 3px; font-size: 0.75em; font-family: monospace; margin-top: 2px; }
+.item-detail h3 { font-size: 1.05em; }
+.item-detail a { color: #00897b; text-decoration: none; }
+.item-detail a:hover { text-decoration: underline; }
+td.cell-selected { background: #e0f2f1; box-shadow: inset 0 0 0 2px #00897b; }
+.item-detail:target, .item-detail.highlighted {
+  border-color: #00897b;
+  box-shadow: 0 0 0 3px rgba(0,137,123,0.2);
+  animation: highlightFade 2s ease forwards;
+}
+@keyframes highlightFade {
+  0% { background: #e0f2f1; }
+  100% { background: #fff; }
+}
+.save-btn { color: #fff; background: #00897b; border-color: #00897b; }
+.save-btn:hover:not(:disabled) { background: #00695c; }
+
+/* Local-specific elements */
+.prefix-tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 2px 6px;
+              border-radius: 3px; font-size: 0.75em; }
+.scope-label { display: inline-block; background: #e0f2f1; color: #00695c; padding: 4px 12px;
+               border-radius: 6px; font-size: 0.9em; font-weight: bold; margin-left: 10px; }
+.back-nav { margin: 0 0 15px; padding: 8px 15px; background: #f5f5f5; border-radius: 8px;
+            font-size: 0.85em; }
+.back-nav a { color: #1a73e8; text-decoration: none; }
+.back-nav a:hover { text-decoration: underline; }
+.chain-nav { margin: 15px 0; padding: 10px 15px; background: #e0f2f1; border-radius: 8px;
+             font-size: 0.9em; }
+.chain-nav a { color: #00695c; text-decoration: none; margin: 0 6px; }
+.chain-nav a:hover { text-decoration: underline; }
+#matrix-table a:hover strong { text-decoration: underline; }
+
+@media print {
+  body { max-width: 100%; padding: 10px; }
+  .chain-nav, .item-actions, .back-nav { display: none; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="back-nav"><a href="../traceability_report.html">← 全体レポートに戻る</a></div>
+<h1>局所トレーサビリティビュー <span class="scope-label">グループ: KEY</span></h1>
+<p class="timestamp">生成日時: 2026-03-09 14:44:53</p>
+
+<div class="summary">
+  <div class="card"><h3>対象アイテム</h3><div class="value">11</div></div>
+  
+      <div class="card"><h3>REQ</h3><div class="value">1</div></div>
+      <div class="card"><h3>ARCH</h3><div class="value">1</div></div>
+      <div class="card"><h3>SPEC</h3><div class="value">3</div></div>
+      <div class="card"><h3>IMPL</h3><div class="value">3</div></div>
+      <div class="card"><h3>TST</h3><div class="value">3</div></div>
+  <div class="card"><h3>レビュー済</h3><div class="value">11/11</div></div>
+  <div class="card"><h3>Suspect</h3><div class="value" style="color:#4caf50">0</div></div>
+  <div class="card"><h3>グループ</h3><div class="value">KEY</div></div>
+</div>
+
+<div class="chain-nav">
+  <strong>アイテム:</strong>
+  <a href="#detail-REQ002">REQ002</a> <a href="#detail-ARCH002">ARCH002</a> <a href="#detail-SPEC004">SPEC004</a> <a href="#detail-SPEC005">SPEC005</a> <a href="#detail-SPEC006">SPEC006</a> <a href="#detail-IMPL004">IMPL004</a> <a href="#detail-IMPL005">IMPL005</a> <a href="#detail-IMPL006">IMPL006</a> <a href="#detail-TST004">TST004</a> <a href="#detail-TST005">TST005</a> <a href="#detail-TST006">TST006</a>
+</div>
+
+<h2>トレーサビリティマトリクス</h2>
+<p style="font-size:0.85em; color:#888">✓=レビュー済 ○=未レビュー ⚠=Suspect（複数同時表示あり。IDクリックで詳細へ）</p>
+<table id="matrix-table">
+<tr><th>グループ</th><th>REQ</th><th>ARCH</th><th>SPEC</th><th>IMPL</th><th>TST</th></tr>
+<tr data-group="KEY"><td><span class="group-tag">KEY</span></td><td data-uid="REQ002" class=""><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td data-uid="ARCH002" class=""><a href="#detail-ARCH002" style="text-decoration:none; color:inherit"><strong>ARCH002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと...</span></td><td data-uid="SPEC004" class=""><a href="#detail-SPEC004" style="text-decoration:none; color:inherit"><strong>SPEC004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。fun...</span></td><td data-uid="IMPL004" class=""><a href="#detail-IMPL004" style="text-decoration:none; color:inherit"><strong>IMPL004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 m...</span></td><td data-uid="TST004" class=""><a href="#detail-TST004" style="text-decoration:none; color:inherit"><strong>TST004</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</span></td></tr><tr data-group="KEY"><td><span class="group-tag">KEY</span></td><td data-uid="REQ002" class=""><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td data-uid="ARCH002" class=""><a href="#detail-ARCH002" style="text-decoration:none; color:inherit"><strong>ARCH002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと...</span></td><td data-uid="SPEC005" class=""><a href="#detail-SPEC005" style="text-decoration:none; color:inherit"><strong>SPEC005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/...</span></td><td data-uid="IMPL005" class=""><a href="#detail-IMPL005" style="text-decoration:none; color:inherit"><strong>IMPL005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/default...</span></td><td data-uid="TST005" class=""><a href="#detail-TST005" style="text-decoration:none; color:inherit"><strong>TST005</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/E...</span></td></tr><tr data-group="KEY"><td><span class="group-tag">KEY</span></td><td data-uid="REQ002" class=""><a href="#detail-REQ002" style="text-decoration:none; color:inherit"><strong>REQ002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</span></td><td data-uid="ARCH002" class=""><a href="#detail-ARCH002" style="text-decoration:none; color:inherit"><strong>ARCH002</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと...</span></td><td data-uid="SPEC006" class=""><a href="#detail-SPEC006" style="text-decoration:none; color:inherit"><strong>SPEC006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">`KeyGen.ignore(*arg_names)`, `KeyGen.map(**strategies)`, `KeyGen.file_content(*a...</span></td><td data-uid="IMPL006" class=""><a href="#detail-IMPL006" style="text-decoration:none; color:inherit"><strong>IMPL006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド...</span></td><td data-uid="TST006" class=""><a href="#detail-TST006" style="text-decoration:none; color:inherit"><strong>TST006</strong></a> <span class="reviewed">✓</span><br><span class="text-preview">KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの...</span></td></tr>
+</table>
+
+<h2>カバレッジ（局所）</h2>
+<table>
+<tr><th>リンク方向</th><th>カバー数</th><th>カバー率</th><th>未カバー</th></tr>
+
+        <tr>
+          <td>ARCH → REQ</td>
+          <td>1 / 1</td>
+          <td style="color:#4caf50; font-weight:bold">100.0%</td>
+          <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr>
+          <td>SPEC → ARCH</td>
+          <td>1 / 1</td>
+          <td style="color:#4caf50; font-weight:bold">100.0%</td>
+          <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr>
+          <td>IMPL → SPEC</td>
+          <td>3 / 3</td>
+          <td style="color:#4caf50; font-weight:bold">100.0%</td>
+          <td style="font-size:0.85em">—</td>
+        </tr>
+        <tr>
+          <td>TST → SPEC</td>
+          <td>3 / 3</td>
+          <td style="color:#4caf50; font-weight:bold">100.0%</td>
+          <td style="font-size:0.85em">—</td>
+        </tr>
+</table>
+
+<h2>アイテム詳細</h2>
+
+    <div class="item-detail" id="detail-REQ002" data-group="KEY" data-uid="REQ002" data-statuses="reviewed">
+      <h3>REQ002 <span class="prefix-tag">REQ</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="REQ002"><p>関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</p></div>
+      <div class="item-editor hidden" data-uid="REQ002">
+        <textarea class="edit-textarea" data-uid="REQ002">関数の引数から安定かつ一意なキャッシュキーを生成できること。引数の型・構造に応じた正規化を行い、辞書のキー順序やコレクション型の違いを正しく区別できること。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('REQ002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('REQ002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> —</p>
+      <p><strong>子:</strong> <a href="#detail-ARCH002">ARCH002</a></p>
+      <div class="item-actions" data-uid="REQ002">
+        <button class="action-btn edit-btn" onclick="startEdit('REQ002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('REQ002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('REQ002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-ARCH002" data-group="KEY" data-uid="ARCH002" data-statuses="reviewed">
+      <h3>ARCH002 <span class="prefix-tag">ARCH</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="ARCH002"><p>SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと合わせてハッシュ化する。</p>
+<p>特定の引数をキーから除外する <code>KeyGenPolicy</code> パターンを採用し、ユーザーが引数ごとの戦略（無視、カスタム変換等）を宣言的に指定できるようにする。</p></div>
+      <div class="item-editor hidden" data-uid="ARCH002">
+        <textarea class="edit-textarea" data-uid="ARCH002">SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと合わせてハッシュ化する。
+
+特定の引数をキーから除外する `KeyGenPolicy` パターンを採用し、ユーザーが引数ごとの戦略（無視、カスタム変換等）を宣言的に指定できるようにする。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('ARCH002')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('ARCH002')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-REQ002">REQ002</a></p>
+      <p><strong>子:</strong> <a href="#detail-SPEC004">SPEC004</a>, <a href="#detail-SPEC005">SPEC005</a>, <a href="#detail-SPEC006">SPEC006</a></p>
+      <div class="item-actions" data-uid="ARCH002">
+        <button class="action-btn edit-btn" onclick="startEdit('ARCH002')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('ARCH002')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('ARCH002')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC004" data-group="KEY" data-uid="SPEC004" data-statuses="reviewed">
+      <h3>SPEC004 <span class="prefix-tag">SPEC</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="SPEC004"><p>キャッシュキーは <code>func_identifier:input_id[:version]</code> 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は <code>module.qualname</code> 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC004">
+        <textarea class="edit-textarea" data-uid="SPEC004">キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は `module.qualname` 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-ARCH002">ARCH002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL004">IMPL004</a>, <a href="#detail-TST004">TST004</a></p>
+      <div class="item-actions" data-uid="SPEC004">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC005" data-group="KEY" data-uid="SPEC005" data-statuses="reviewed">
+      <h3>SPEC005 <span class="prefix-tag">SPEC</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="SPEC005"><p><code>canonicalize()</code> 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは <strong>dict</strong>/<strong>slots</strong> を使用。 bool と int の区別（True vs 1）を保証する。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC005">
+        <textarea class="edit-textarea" data-uid="SPEC005">`canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは __dict__/__slots__ を使用。 bool と int の区別（True vs 1）を保証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-ARCH002">ARCH002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL005">IMPL005</a>, <a href="#detail-TST005">TST005</a></p>
+      <div class="item-actions" data-uid="SPEC005">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-SPEC006" data-group="KEY" data-uid="SPEC006" data-statuses="reviewed">
+      <h3>SPEC006 <span class="prefix-tag">SPEC</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="SPEC006"><p><code>KeyGen.ignore(*arg_names)</code>, <code>KeyGen.map(**strategies)</code>, <code>KeyGen.file_content(*args)</code>, <code>KeyGen.path_stat(*args)</code> のファクトリメソッドにより、引数ごとのキー生成戦略を指定する <code>KeyGenPolicy</code> を生成できる。Strategy は DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種。 <code>KeyGenPolicy.bind(func)</code> で関数シグネチャにバインドされたキー生成関数を返す。</p></div>
+      <div class="item-editor hidden" data-uid="SPEC006">
+        <textarea class="edit-textarea" data-uid="SPEC006">`KeyGen.ignore(*arg_names)`, `KeyGen.map(**strategies)`, `KeyGen.file_content(*args)`, `KeyGen.path_stat(*args)` のファクトリメソッドにより、引数ごとのキー生成戦略を指定する `KeyGenPolicy` を生成できる。Strategy は DEFAULT, IGNORE, FILE_CONTENT, PATH_STAT の4種。 `KeyGenPolicy.bind(func)` で関数シグネチャにバインドされたキー生成関数を返す。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('SPEC006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('SPEC006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-ARCH002">ARCH002</a></p>
+      <p><strong>子:</strong> <a href="#detail-IMPL006">IMPL006</a>, <a href="#detail-TST006">TST006</a></p>
+      <div class="item-actions" data-uid="SPEC006">
+        <button class="action-btn edit-btn" onclick="startEdit('SPEC006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('SPEC006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('SPEC006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL004" data-group="KEY" data-uid="IMPL004" data-statuses="reviewed">
+      <h3>IMPL004 <span class="prefix-tag">IMPL</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="IMPL004"><p>KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL004">
+        <textarea class="edit-textarea" data-uid="IMPL004">KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC004">SPEC004</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL004">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL005" data-group="KEY" data-uid="IMPL005" data-statuses="reviewed">
+      <h3>IMPL005 <span class="prefix-tag">IMPL</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="IMPL005"><p>canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL005">
+        <textarea class="edit-textarea" data-uid="IMPL005">canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC005">SPEC005</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL005">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-IMPL006" data-group="KEY" data-uid="IMPL006" data-statuses="reviewed">
+      <h3>IMPL006 <span class="prefix-tag">IMPL</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="IMPL006"><p>KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。</p></div>
+      <div class="item-editor hidden" data-uid="IMPL006">
+        <textarea class="edit-textarea" data-uid="IMPL006">KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('IMPL006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('IMPL006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC006">SPEC006</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="IMPL006">
+        <button class="action-btn edit-btn" onclick="startEdit('IMPL006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('IMPL006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('IMPL006')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST004" data-group="KEY" data-uid="TST004" data-statuses="reviewed">
+      <h3>TST004 <span class="prefix-tag">TST</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="TST004"><p>SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST004">
+        <textarea class="edit-textarea" data-uid="TST004">SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST004')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST004')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC004">SPEC004</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST004">
+        <button class="action-btn edit-btn" onclick="startEdit('TST004')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST004')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST004')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST005" data-group="KEY" data-uid="TST005" data-statuses="reviewed">
+      <h3>TST005 <span class="prefix-tag">TST</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="TST005"><p>canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST005">
+        <textarea class="edit-textarea" data-uid="TST005">canonicalize のテスト。dict/list/tuple/set/frozenset/ deque/defaultdict/OrderedDict/Enum/numpy/Pydantic/bool vs int 等の型別正規化の正確性を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST005')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST005')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC005">SPEC005</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST005">
+        <button class="action-btn edit-btn" onclick="startEdit('TST005')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST005')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST005')">Clear</button>
+      </div>
+    </div>
+    <div class="item-detail" id="detail-TST006" data-group="KEY" data-uid="TST006" data-statuses="reviewed">
+      <h3>TST006 <span class="prefix-tag">TST</span> <span class="group-tag">KEY</span> <span class="status-badge"><span class="reviewed">✓ レビュー済</span></span>
+        
+      </h3>
+      <div class="item-text" data-uid="TST006"><p>KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。</p></div>
+      <div class="item-editor hidden" data-uid="TST006">
+        <textarea class="edit-textarea" data-uid="TST006">KeyGenPolicy のテスト。KeyGen.ignore()、KeyGen.map() による FILE_CONTENT 戦略、keygen パラメータの mark デコレータ連携を検証する。</textarea>
+        <div class="edit-actions">
+          <button class="action-btn save-btn" onclick="doSave('TST006')">保存</button>
+          <button class="action-btn cancel-btn" onclick="cancelEdit('TST006')">キャンセル</button>
+        </div>
+      </div>
+      
+      <p><strong>親:</strong> <a href="#detail-SPEC006">SPEC006</a></p>
+      <p><strong>子:</strong> —</p>
+      <div class="item-actions" data-uid="TST006">
+        <button class="action-btn edit-btn" onclick="startEdit('TST006')">Edit</button>
+        <button class="action-btn review-btn" onclick="doReview('TST006')">Review</button>
+        <button class="action-btn clear-btn" onclick="doClear('TST006')">Clear</button>
+      </div>
+    </div>
+
+<script>
+// common.js — Shared: highlight, cell selection, toast, serve detection
+
+function highlightItem(id) {
+  document.querySelectorAll('.item-detail.highlighted').forEach(
+    el => el.classList.remove('highlighted')
+  );
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('highlighted');
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+document.addEventListener('click', function(e) {
+  const link = e.target.closest('a[href^="#detail-"]');
+  if (link) {
+    e.preventDefault();
+    const id = link.getAttribute('href').substring(1);
+    const uid = id.replace('detail-', '');
+    history.replaceState(null, '', '#' + id);
+    highlightItem(id);
+    // Highlight the clicked cell in the matrix
+    document.querySelectorAll('td.cell-selected').forEach(
+      el => el.classList.remove('cell-selected')
+    );
+    const cell = document.querySelector('td[data-uid="' + uid + '"]');
+    if (cell) cell.classList.add('cell-selected');
+  }
+});
+
+window.addEventListener('hashchange', function() {
+  const id = window.location.hash.substring(1);
+  if (id.startsWith('detail-')) highlightItem(id);
+});
+
+if (window.location.hash && window.location.hash.startsWith('#detail-')) {
+  setTimeout(function() { highlightItem(window.location.hash.substring(1)); }, 100);
+}
+
+// Serve mode: show action buttons if not file://
+if (window.location.protocol !== 'file:') {
+  document.querySelectorAll('.item-actions').forEach(el => el.style.display = 'block');
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'success');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// actions.js — Shared CRUD operations: review, clear, edit, save
+
+async function doReview(uid) {
+  const btn = document.querySelector('[data-uid="'+uid+'"] .review-btn');
+  btn.disabled = true; btn.textContent = '処理中...';
+  try {
+    const res = await fetch('/api/review/' + uid, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const detail = document.getElementById('detail-' + uid);
+      const badge = detail.querySelector('.status-badge');
+      if (badge) {
+        const old = badge.querySelectorAll('.suspect, .unreviewed, .reviewed');
+        old.forEach(b => b.remove());
+        const nb = document.createElement('span');
+        nb.className = 'reviewed'; nb.textContent = '✓ レビュー済';
+        badge.insertBefore(nb, badge.firstChild);
+      }
+      btn.textContent = '✓ Review済';
+      showToast(uid + ' をレビュー済にしました');
+    } else {
+      btn.textContent = 'Review'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = 'Review'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+
+async function doClear(uid) {
+  const btn = document.querySelector('[data-uid="'+uid+'"] .clear-btn');
+  btn.disabled = true; btn.textContent = '処理中...';
+  try {
+    const res = await fetch('/api/clear/' + uid, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const detail = document.getElementById('detail-' + uid);
+      const suspectBadge = detail.querySelector('.suspect');
+      if (suspectBadge) suspectBadge.remove();
+      btn.textContent = '✓ Clear済';
+      showToast(uid + ' のsuspectリンクを解消しました');
+    } else {
+      btn.textContent = 'Clear'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = 'Clear'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+
+function startEdit(uid) {
+  document.querySelector('.item-text[data-uid="'+uid+'"]').classList.add('hidden');
+  document.querySelector('.item-editor[data-uid="'+uid+'"]').classList.remove('hidden');
+  const ta = document.querySelector('.edit-textarea[data-uid="'+uid+'"]');
+  ta.focus();
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(120, ta.scrollHeight + 4) + 'px';
+}
+
+function cancelEdit(uid) {
+  document.querySelector('.item-editor[data-uid="'+uid+'"]').classList.add('hidden');
+  document.querySelector('.item-text[data-uid="'+uid+'"]').classList.remove('hidden');
+}
+
+async function doSave(uid) {
+  const ta = document.querySelector('.edit-textarea[data-uid="'+uid+'"]');
+  const btn = document.querySelector('.item-editor[data-uid="'+uid+'"] .save-btn');
+  btn.disabled = true; btn.textContent = '保存中...';
+  try {
+    const res = await fetch('/api/edit/' + uid, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: ta.value })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const textDiv = document.querySelector('.item-text[data-uid="'+uid+'"]');
+      textDiv.innerHTML = data.html || ('<p>' + ta.value.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '</p>');
+      const detail = document.getElementById('detail-' + uid);
+      const oldBadges = detail.querySelectorAll('.reviewed, .unreviewed');
+      oldBadges.forEach(b => b.remove());
+      const statusContainer = detail.querySelector('.status-badge');
+      if (statusContainer) {
+        const nb = document.createElement('span');
+        nb.className = 'unreviewed'; nb.textContent = '○ 未レビュー';
+        statusContainer.appendChild(nb);
+      }
+      cancelEdit(uid);
+      btn.textContent = '保存'; btn.disabled = false;
+      showToast(uid + ' のテキストを更新しました');
+    } else {
+      btn.textContent = '保存'; btn.disabled = false;
+      showToast('エラー: ' + data.error, 'error');
+    }
+  } catch(e) {
+    btn.textContent = '保存'; btn.disabled = false;
+    showToast('通信エラー: ' + e.message, 'error');
+  }
+}
+
+</script>
+</body>
+</html>

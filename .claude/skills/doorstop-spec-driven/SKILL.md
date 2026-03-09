@@ -42,7 +42,7 @@ description: >
 ## セットアップ
 
 ```bash
-uv add doorstop
+uv add doorstop --dev
 uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 ```
 

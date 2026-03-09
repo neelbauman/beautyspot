@@ -1,0 +1,49 @@
+/* local.css — Local traceability view theme (teal) */
+
+/* Theme */
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       max-width: 1200px; margin: 0 auto; padding: 20px; background: #fafafa; }
+h1 { border-bottom: 3px solid #00897b; padding-bottom: 10px; color: #00897b; }
+h2 { color: #00897b; margin-top: 30px; }
+th { background: #00897b; color: #fff; padding: 10px; text-align: left; }
+.card { padding: 12px 18px; min-width: 80px; }
+.card h3 { font-size: 0.8em; }
+.card .value { font-size: 1.4em; font-weight: bold; color: #00897b; }
+.summary { gap: 12px; }
+.ref-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 1px 6px;
+           border-radius: 3px; font-size: 0.75em; font-family: monospace; margin-top: 2px; }
+.item-detail h3 { font-size: 1.05em; }
+.item-detail a { color: #00897b; text-decoration: none; }
+.item-detail a:hover { text-decoration: underline; }
+td.cell-selected { background: #e0f2f1; box-shadow: inset 0 0 0 2px #00897b; }
+.item-detail:target, .item-detail.highlighted {
+  border-color: #00897b;
+  box-shadow: 0 0 0 3px rgba(0,137,123,0.2);
+  animation: highlightFade 2s ease forwards;
+}
+@keyframes highlightFade {
+  0% { background: #e0f2f1; }
+  100% { background: #fff; }
+}
+.save-btn { color: #fff; background: #00897b; border-color: #00897b; }
+.save-btn:hover:not(:disabled) { background: #00695c; }
+
+/* Local-specific elements */
+.prefix-tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 2px 6px;
+              border-radius: 3px; font-size: 0.75em; }
+.scope-label { display: inline-block; background: #e0f2f1; color: #00695c; padding: 4px 12px;
+               border-radius: 6px; font-size: 0.9em; font-weight: bold; margin-left: 10px; }
+.back-nav { margin: 0 0 15px; padding: 8px 15px; background: #f5f5f5; border-radius: 8px;
+            font-size: 0.85em; }
+.back-nav a { color: #1a73e8; text-decoration: none; }
+.back-nav a:hover { text-decoration: underline; }
+.chain-nav { margin: 15px 0; padding: 10px 15px; background: #e0f2f1; border-radius: 8px;
+             font-size: 0.9em; }
+.chain-nav a { color: #00695c; text-decoration: none; margin: 0 6px; }
+.chain-nav a:hover { text-decoration: underline; }
+#matrix-table a:hover strong { text-decoration: underline; }
+
+@media print {
+  body { max-width: 100%; padding: 10px; }
+  .chain-nav, .item-actions, .back-nav { display: none; }
+}

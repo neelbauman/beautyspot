@@ -1,0 +1,77 @@
+/* report.css — Main traceability report theme (blue) */
+
+/* Theme */
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       max-width: 1400px; margin: 0 auto; padding: 20px; background: #fafafa; }
+h1 { border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
+h2 { color: #1a73e8; margin-top: 30px; }
+th { background: #1a73e8; color: #fff; padding: 10px; text-align: left; }
+.card .value { font-size: 1.6em; font-weight: bold; color: #1a73e8; }
+.ref-tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 1px 6px;
+           border-radius: 3px; font-size: 0.75em; font-family: monospace; margin-top: 2px; }
+.item-detail h3 { font-size: 1.1em; }
+.item-detail a { color: #1a73e8; text-decoration: none; }
+.item-detail a:hover { text-decoration: underline; }
+td.cell-selected { background: #e3f2fd; box-shadow: inset 0 0 0 2px #1a73e8; }
+.item-detail:target, .item-detail.highlighted {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
+  animation: highlightFade 2s ease forwards;
+}
+@keyframes highlightFade {
+  0% { background: #e3f2fd; }
+  100% { background: #fff; }
+}
+.save-btn { color: #fff; background: #1a73e8; border-color: #1a73e8; }
+.save-btn:hover:not(:disabled) { background: #1565c0; }
+.local-view-link { float: right; font-size: 0.75em; font-weight: normal; padding: 3px 10px;
+                   background: #e0f2f1; color: #00695c; border-radius: 12px;
+                   text-decoration: none; transition: background 0.15s; }
+.local-view-link:hover { background: #b2dfdb; text-decoration: none; }
+
+/* Validation results */
+.error { color: #d32f2f; }
+.warning { color: #f57c00; }
+.info { color: #1976d2; }
+
+/* Filter controls */
+.filter-section { margin: 10px 0; }
+.filter-section label { font-weight: bold; color: #555; margin-right: 10px; font-size: 0.9em; }
+.group-filter { margin: 10px 0; }
+.group-btn { margin: 3px; padding: 6px 14px; border: 1px solid #1a73e8; border-radius: 16px;
+             background: #fff; color: #1a73e8; cursor: pointer; font-size: 0.85em; }
+.group-btn.active { background: #1a73e8; color: #fff; }
+.group-btn:hover { background: #e3f2fd; }
+.group-btn.active:hover { background: #1565c0; }
+.status-btn { margin: 3px; padding: 6px 14px; border: 1px solid #666; border-radius: 16px;
+              background: #fff; cursor: pointer; font-size: 0.85em; }
+.status-btn[data-status="reviewed"] { color: #4caf50; border-color: #4caf50; }
+.status-btn[data-status="reviewed"].active { background: #4caf50; color: #fff; }
+.status-btn[data-status="unreviewed"] { color: #9e9e9e; border-color: #9e9e9e; }
+.status-btn[data-status="unreviewed"].active { background: #9e9e9e; color: #fff; }
+.status-btn[data-status="suspect"] { color: #e65100; border-color: #e65100; }
+.status-btn[data-status="suspect"].active { background: #e65100; color: #fff; }
+.status-btn:hover { opacity: 0.8; }
+.id-search { padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px;
+             font-size: 0.85em; width: 220px; outline: none; }
+.id-search:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+
+/* Coverage & filtering */
+.coverage-group { font-size: 0.9em; }
+tr.hidden { display: none; }
+.item-detail.hidden { display: none; }
+
+/* Sortable headers */
+#matrix-table th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 20px; }
+#matrix-table th.sortable:hover { background: #1565c0; }
+#matrix-table th .sort-arrow { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+                                font-size: 0.7em; opacity: 0.5; }
+#matrix-table th.sort-active .sort-arrow { opacity: 1; }
+#matrix-table a:hover strong { text-decoration: underline; }
+
+/* Detail sort */
+.detail-sort { margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+.detail-sort label { font-weight: bold; color: #555; font-size: 0.9em; }
+.detail-sort select { padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
+                       font-size: 0.85em; outline: none; }
+.detail-sort select:focus { border-color: #1a73e8; }

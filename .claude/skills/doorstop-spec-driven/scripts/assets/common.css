@@ -1,0 +1,87 @@
+/* common.css — Shared styles for traceability report views */
+
+/* Base table */
+table { border-collapse: collapse; width: 100%; margin: 15px 0; background: #fff; }
+td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+tr:nth-child(even) { background: #f8f9fa; }
+.text-preview { color: #666; font-size: 0.85em; }
+.empty { color: #ccc; text-align: center; }
+
+/* Status icons */
+.reviewed { color: #4caf50; font-size: 0.8em; }
+.unreviewed { color: #bdbdbd; font-size: 0.8em; }
+.suspect { color: #e65100; font-size: 0.8em; font-weight: bold; }
+
+/* Matrix cell status (left border) */
+td.cell-suspect { background: #fff3e0; }
+td.cell-unreviewed { background: #f1f3f4; }
+
+/* Link status */
+.link-unreviewed { color: #9e9e9e; }
+.link-unreviewed-label { color: #9e9e9e; font-size: 0.8em; }
+.link-suspect { color: #e65100; }
+.link-suspect-label { color: #e65100; font-size: 0.8em; font-weight: bold; }
+
+/* Tags */
+.group-tag { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 2px 8px;
+             border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.timestamp { color: #999; font-size: 0.85em; }
+
+/* Summary cards */
+.summary { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+        padding: 15px 20px; flex: 1; min-width: 100px; text-align: center; }
+.card h3 { margin: 0 0 5px; font-size: 0.85em; color: #666; }
+
+/* Item detail cards */
+.item-detail { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+               padding: 15px 20px; margin: 10px 0; transition: border-color 0.3s, box-shadow 0.3s; }
+.item-detail h3 { margin: 0 0 8px; }
+.item-detail p { margin: 5px 0; color: #333; }
+
+/* Item text (rendered markdown) */
+.item-text { color: #333; line-height: 1.6; }
+.item-text p { margin: 6px 0; }
+.item-text code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px;
+                  font-size: 0.9em; font-family: monospace; }
+.item-text pre { background: #f5f5f5; padding: 12px; border-radius: 6px;
+                 overflow-x: auto; font-size: 0.85em; }
+.item-text pre code { background: none; padding: 0; }
+.item-text ul, .item-text ol { margin: 6px 0; padding-left: 24px; }
+.item-text table { border-collapse: collapse; margin: 8px 0; }
+.item-text table th, .item-text table td { border: 1px solid #ddd; padding: 6px 10px; }
+.item-text table th { background: #f0f0f0; }
+
+/* Action buttons */
+.item-actions { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+.action-btn { padding: 6px 16px; border: 1px solid #ccc; border-radius: 6px;
+              background: #fff; cursor: pointer; font-size: 0.85em; margin-right: 8px;
+              transition: background 0.15s; }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.review-btn { color: #4caf50; border-color: #4caf50; }
+.review-btn:hover:not(:disabled) { background: #e8f5e9; }
+.edit-btn { color: #1a73e8; border-color: #1a73e8; }
+.edit-btn:hover:not(:disabled) { background: #e3f2fd; }
+.clear-btn { color: #e65100; border-color: #e65100; }
+.clear-btn:hover:not(:disabled) { background: #fff3e0; }
+.cancel-btn { color: #666; border-color: #999; }
+.cancel-btn:hover { background: #f5f5f5; }
+
+/* Editor */
+.item-editor { margin: 8px 0; }
+.edit-textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #1a73e8;
+                 border-radius: 6px; font-family: monospace; font-size: 0.9em;
+                 line-height: 1.5; resize: vertical; box-sizing: border-box; }
+.edit-textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+.edit-actions { margin-top: 8px; }
+.hidden { display: none; }
+
+/* Toast notifications */
+.toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
+         border-radius: 8px; color: #fff; font-size: 0.9em; z-index: 1000;
+         animation: toastFade 3s ease forwards; pointer-events: none; }
+.toast.success { background: #4caf50; }
+.toast.error { background: #d32f2f; }
+@keyframes toastFade { 0% { opacity:0; transform:translateY(20px); }
+  10% { opacity:1; transform:translateY(0); } 80% { opacity:1; }
+  100% { opacity:0; } }

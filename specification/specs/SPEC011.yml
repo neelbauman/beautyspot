@@ -8,11 +8,14 @@ links:
 - ARCH004: GZ2cyHLo0XsZsxAL1leQkOdeo-9Qfqdhw0g8j0G_TKE=
 normative: true
 ref: ''
-reviewed: r-HaVEiIEIxYL4hfy1CXaLkiWWsHjf0scyMTHVY0aG8=
+reviewed: rnohcAlXzE1oQZ2JwkySxVlVbcCsxLjof648HWnILKc=
 text: |
-  `StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -> bool` を定義し、シリアライズ済みデータのサイズに基づいてBlob保存の要否を判定する。
+  `StoragePolicyProtocol` は `should_save_as_blob(data: bytes) -> bool` を定義し、このメソッドを用いて、シリアライズ済みデータのサイズに基づいてBlob保存の要否を判定する。
 
   実装3種:
-  - `ThresholdStoragePolicy(threshold)`: データサイズが閾値を超過した場合に `True` を返す。自動最適化の推奨ポリシー。
-  - `WarningOnlyPolicy(warning_threshold)`: 常に `False` を返す（DB直接保存）が、閾値超過時に警告をログ出力する。v2.0互換のデフォルトポリシー。
-  - `AlwaysBlobPolicy()`: 常に `True` を返す。全データをBlobストレージに保存する。
+
+  -   `ThresholdStoragePolicy(threshold)`: データサイズが閾値を超過した場合に `True` を返す。自動最適化の推奨ポリシー
+
+  -   `WarningOnlyPolicy(warning_threshold)`: 常に `False` を返す（DB直接保存）が、閾値超過時に警告をログ出力する。v2.0互換のデフォルトポリシー
+
+  -   `AlwaysBlobPolicy()`: 常に `True` を返す。全データをBlobストレージに保存する。

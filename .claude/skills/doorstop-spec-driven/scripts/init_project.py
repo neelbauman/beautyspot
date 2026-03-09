@@ -63,6 +63,27 @@ def load_profile(profile_name):
         return yaml.safe_load(f)
 
 
+def _configure_attributes(yml_path):
+    """doorstop create で生成された .doorstop.yml に attributes セクションを追加する。
+
+    doorstop add 時に defaults が自動付与されるよう、
+    defaults / reviewed / publish を設定する。
+    """
+    with open(yml_path) as f:
+        config = yaml.safe_load(f)
+
+    config["attributes"] = {
+        "defaults": {"group": ""},
+        "reviewed": ["group"],
+        "publish": ["group"],
+    }
+
+    with open(yml_path, "w") as f:
+        yaml.dump(
+            config, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Doorstop仕様駆動開発プロジェクトを初期化する"
@@ -129,6 +150,11 @@ def main():
 
         print(f"  ドキュメント作成: {prefix}（{doc['role']}）")
         run(cmd, cwd=project_dir)
+
+        # .doorstop.yml に attributes セクションを追加
+        yml_path = Path(project_dir) / docs_dir / doc["path"] / ".doorstop.yml"
+        _configure_attributes(yml_path)
+        print("    attributes 設定完了")
 
     # 検証
     print("\n--- ドキュメントツリー ---")

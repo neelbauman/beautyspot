@@ -42,6 +42,56 @@ text: |               # 要件のテキスト本体
 - 1アイテムあたり最大2–3ファイル
 - **`ref` は使わず `references` に統一する**
 
+## ドキュメント設定（.doorstop.yml）
+
+各ドキュメントディレクトリ直下の `.doorstop.yml` は、`doorstop create` で自動生成される。
+`init_project.py` が `attributes` セクションを自動追加するが、手動でドキュメントを
+追加する場合は自分で設定する必要がある。
+
+### 構造
+
+```yaml
+settings:
+  digits: '3'
+  itemformat: yaml
+  prefix: REQ
+  sep: ''
+  parent: null          # ルート文書は null、子文書は親の prefix
+
+attributes:
+  defaults:             # doorstop add / doc.add_item() 時に自動付与される初期値
+    group: ''
+  reviewed:             # フィンガープリント計算に含めるカスタム属性
+    - group             #   → group を変更すると「未レビュー」状態になる
+  publish:              # doorstop publish 時に出力に含めるカスタム属性
+    - group
+```
+
+### 各キーの効果
+
+| キー | 効果 |
+|---|---|
+| `defaults` | `doorstop add` や `doc.add_item()` で新規アイテム作成時に自動付与される |
+| `reviewed` | ここに列挙した属性の値が変更されると、アイテムが「未レビュー」状態に戻る |
+| `publish` | `doorstop publish` でドキュメント出力時に表示されるカスタム属性 |
+
+### 運用原則
+
+**設定すべき属性:**
+- `group` — 機能グループ。仕様の対象スコープを示すメタデータ
+
+**設定してはいけない属性:**
+- `author`, `creation_date`, `status` — Git（バージョン管理）やチケット管理の責務。
+  Doorstop に持たせると情報が乖離し、管理が破綻する
+
+### 注意事項
+
+- `attributes` セクションは `doorstop create` では生成されない。
+  `init_project.py` が自動追加するか、手動で追記する必要がある
+- `defaults` に定義した属性は、既存アイテムには遡及適用されない（新規アイテムのみ）
+- `reviewed` に追加した属性は、変更のたびに再レビューが必要になるため、
+  頻繁に変わる属性を入れると「レビュー疲れ」を引き起こす
+
 ## レベル（level）の使い方
 
 レベルはドキュメントのアウトライン構造を決定する:
