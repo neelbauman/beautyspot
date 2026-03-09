@@ -33,16 +33,16 @@ text: |
   ```mermaid
   sequenceDiagram
     participant Main as メインスレッド
-    participant Loop as _BackgroundLoop
+    participant BGLoop as _BackgroundLoop
     participant Store as ストレージ
 
-    Main->>Loop: submit(save_coro)
+    Main->>BGLoop: submit(save_coro)
     Note over Main: 関数は即座に結果を返す (save_sync=False)
-    Loop->>Store: 書き込み実行 (I/O)
+    BGLoop->>Store: 書き込み実行 (I/O)
     alt 成功
-        Store-->>Loop: OK
+        Store-->>BGLoop: OK
     else 失敗
-        Loop->>Main: on_background_error(error)
+        BGLoop->>Main: on_background_error(error)
     end
   ```
 
@@ -56,6 +56,8 @@ text: |
 
   ## 非機能要件方針
 
-  - **透過性**: 保存失敗時もユーザーコードの例外にはせず、コールバック経由で通知
-  - **一貫性**: `flush()` により、クリティカルな処理の直後での保存完了を保証
-  - **安全性**: シャットダウンシーケンス中に新規タスクを受け付けない排他制御を導入
+  -   **透過性**: 保存失敗時もユーザーコードの例外にはせず、コールバック経由で通知
+
+  -   **一貫性**: `flush()` により、クリティカルな処理の直後での保存完了を保証
+
+  -   **安全性**: シャットダウンシーケンス中に新規タスクを受け付けない排他制御を導入

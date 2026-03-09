@@ -5,18 +5,18 @@ header: |
   cached_run コンテキストマネージャ
 level: 1.1
 links:
-- ARCH001: 8wnI9UzJmc41cCq1TcChrj0mjlYGN1yIeaEB2gc1odo=
+- ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
 normative: true
 ref: ''
-reviewed: WiFayCoJ9pbBnxuTvj4ww4LnT8e5l-dVnbZrJRNq6lA=
+reviewed: 32gDL-Cd_agZGXqw_863mIsr-CLKkZhzaVfaBtSOhJo=
 text: |
   ## インターフェース
 
   ```python
   @contextmanager
   def cached_run(
-      self, 
-      *funcs: Any, 
+      self,
+      *funcs: Any,
       **kwargs: Any
   ) -> Iterator[Any]: ...
   ```
