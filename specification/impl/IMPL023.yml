@@ -5,13 +5,13 @@ header: |
   Thundering Herd 実装
 level: 1.22
 links:
-- SPEC023: oAX3bz9hcpK_t4Sw8mwhMW5vJgDTVvzLdFFiuNC-rSw=
+- SPEC023: F2Qery4xr687DbpEMWQ0vu23pOnidPy0aVzHAyiZi-8=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cache.py
   type: file
-reviewed: null
+reviewed: ldddLOa4Fm1SvjH23GexiIwUC9iMuc7-vxJTigpMudo=
 text: |
   ## 実装概要
 

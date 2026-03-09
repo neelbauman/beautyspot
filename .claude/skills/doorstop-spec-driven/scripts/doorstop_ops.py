@@ -67,9 +67,12 @@ def cmd_add(tree, args):
         refs = json.loads(args.references)
         item.set("references", refs)
 
-    # リンク
-    for link_uid in (args.links or []):
+    # リンク（追加後に clear でフィンガープリントを保存し、suspect を防ぐ）
+    link_uids = args.links or []
+    for link_uid in link_uids:
         item.link(link_uid)
+    if link_uids:
+        item.clear(link_uids)
 
     item.save()
 
@@ -110,6 +113,7 @@ def cmd_link(tree, args):
     """リンクを追加する。"""
     item = _find_item(tree, args.child)
     item.link(args.parent)
+    item.clear([args.parent])
     item.save()
     prefix = _find_prefix(tree, item)
 

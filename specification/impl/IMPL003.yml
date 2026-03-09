@@ -5,13 +5,13 @@ header: |
   同期・非同期実行エンジン
 level: 1.2
 links:
-- SPEC003: CVb-B19ollkUexnco2Cn1TfB6jiZ9TEOkURqVv3UJ7o=
+- SPEC003: 0rQ2AlNFbeZILNPLxOBIZVTED0ghWJ8vuNER6OUM_Jk=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: AxS0nGeMFat7RFZMMVYVQl3crO2CDd34DovhNXzkbys=
+reviewed: KB5ZEigKATxOxb3dt6vPwgv9F866hSNx4AckFm2iB58=
 text: |
   ## 実装概要
 

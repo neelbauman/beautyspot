@@ -5,13 +5,13 @@ header: |
   LifecyclePolicy 実装
 level: 1.15
 links:
-- SPEC016: aNGhXSdKb1txC4NQDsQgT7Hc_sr4rbfZnqSfQdcHSAQ=
+- SPEC016: iQGZXI93vzApRaKQgMF9ymDXpUzyrOmviVclRNAVX2s=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/lifecycle.py
   type: file
-reviewed: null
+reviewed: d9iY9R-VqejHrSWm9a91JFHKHuwG3halqH3aPTXAVAI=
 text: |
   ## 実装概要
 

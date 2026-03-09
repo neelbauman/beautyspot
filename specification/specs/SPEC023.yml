@@ -5,10 +5,10 @@ header: |
   Thundering Herd Protection
 level: 1.12
 links:
-- ARCH013: cN80_Jh_nSWmGGZqDbQPxWlqhINEgWvKmexMWJ__6EY=
+- ARCH013: I7iIHqMCncar9Hi2mQiR_5z-87xQhWp7Z2vX3GvyMTo=
 normative: true
 ref: ''
-reviewed: dAe0OY5JietwMfZmSYGpjK2gi9OIWszrxzrxItybQc0=
+reviewed: 0IZ1R-g4V5Uupu6r_8burN6arwTLe1wWOEXg6KXoMK8=
 text: |
   ## インターフェース
 
@@ -26,6 +26,51 @@ text: |
   2. **存在しない場合**: `ExecutionState` を新規作成し、自分が「実行者 (Executor)」となる
   3. **存在する場合**: 既存の `ExecutionState` を返し、自分は「待機者 (Waiter)」となる
   4. **完了通知**: 実行者が処理を終えたら、`ExecutionState` の Event (または Future) をセットし、結果を共有する
+
+  ### 強参照によるインフライト状態の保持
+
+  #### 目的
+  実行中のタスク状態（イベント・結果・Future）が GC によって消失しないよう、
+  `_inflight` 辞書を通じて強参照で保持する。WeakRef は使用しない。
+
+  #### データ構造
+  `_inflight` 辞書はキャッシュキーをキーとし、以下の3要素タプルを値として保持する:
+
+  ```python
+  _inflight: dict[str, tuple[threading.Event, list[asyncio.Future], list]]
+  ```
+
+  | 要素 | 型 | 役割 |
+  |---|---|---|
+  | `event` | `threading.Event` | 同期待機者への完了通知シグナル |
+  | `futures` | `list[asyncio.Future]` | 非同期待機者への結果配信チャネル |
+  | `result_box` | `list` | 結果の共有ボックス。`[(success: bool, value: Any)]` 形式 |
+
+  #### ライフサイクル
+
+  1. **作成**: `wait_herd_sync` / `wait_herd_async` で `_inflight` にキーが存在しない場合、
+     `_inflight_lock` を保持した状態で新規タプルを挿入する
+  2. **保持**: 実行者が処理を完了するまで、`_inflight` 辞書がタプルへの唯一の管理参照を保持する。
+     待機者はロック取得時にタプル要素への参照を取得するが、`_inflight` エントリが正規の所有者である
+  3. **解放**: `notify_and_cleanup_inflight` で以下の順序で解放する:
+     a. `_inflight_lock` を取得し、エントリの同一性を `event` の identity (`is`) で確認する
+     b. 辞書からエントリを削除する（`del _inflight[cache_key]`）
+     c. ロックを解放した後、`event.set()` で同期待機者に通知する
+     d. `futures` リスト内の各 `asyncio.Future` に結果またはエラーを伝播する
+
+  #### 不変条件
+
+  - `_inflight` 辞書への挿入・削除は常に `_inflight_lock` の保護下で行う
+  - 1つのキャッシュキーに対して `_inflight` 内には高々1つのエントリしか存在しない
+  - エントリの削除は、挿入時の `event` と同一オブジェクト（`is` 比較）を持つスレッドのみが行える
+  - `result_box` への書き込みは実行者スレッドのみが行い、待機者は読み取り専用とする
+  - `futures` リストへの追加は `_inflight_lock` の保護下でのみ行う
+
+  #### GC安全性
+  `_inflight` 辞書は `CacheManager` インスタンスの属性であり、`CacheManager` が
+  生存している限り、全てのインフライトエントリは GC の対象にならない。
+  `CacheManager` 自体は `Spot` インスタンスが所有するため、`with spot:` ブロック内での
+  安全性が保証される。
 
   ## パラメータ詳細
 

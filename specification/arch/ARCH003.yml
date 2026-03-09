@@ -8,7 +8,7 @@ links:
 - REQ003: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
 normative: true
 ref: ''
-reviewed: null
+reviewed: omY_U68tsPX8RhrA53wevYQeMIxc22i8y4q5tfcNzAk=
 text: |
   ## コンポーネント構成
 
@@ -32,7 +32,7 @@ text: |
     }
     TaskDBCore <|-- TaskDBMaintenable
     Maintenable <|-- TaskDBMaintenable
-    
+
     class SQLiteTaskDB {
       -db_path: Path
       -_write_queue: Queue
@@ -66,11 +66,11 @@ text: |
     DB->>SQLite: SELECT
     SQLite-->>DB: TaskRecord
     DB-->>Spot: TaskRecord
-    
+
     Spot->>DB: save(metadata)
     DB->>Q: put(WriteTask)
     DB-->>Spot: void (Non-blocking)
-    
+
     Thread->>Q: get()
     Thread->>SQLite: INSERT / UPDATE
   ```

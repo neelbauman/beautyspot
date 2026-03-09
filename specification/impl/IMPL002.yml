@@ -5,13 +5,13 @@ header: |
   cached_run 実装
 level: 1.1
 links:
-- SPEC002: CXrgt780qXgbXvvPXpnQ3kmCqMdcSDCb4w0rXHFJj_g=
+- SPEC002: 44DxKXdXE8b9TXRlVsB4uyI2SqrzZxHxhZFhQPQAyqY=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: mgEVHWLonMJ83nqHNAa32z4x57VPEjFhadsdGroLTjw=
+reviewed: tbxqGH_dn8CB0IIxSL7dEzd60K9Ar380BtecJpnMltE=
 text: |
   ## 実装概要
 

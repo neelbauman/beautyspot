@@ -5,13 +5,13 @@ header: |
   再帰的正規化 (canonicalize)
 level: 1.4
 links:
-- SPEC005: ffgIJx_L46x7nk9fCA9AkaUzxaiuejr70pw_9c1-n6g=
+- SPEC005: J_cMDfrfC3POqiiLfbZ_ysdYNODixGQoG7aB3MePYVw=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: MzgsjwR_qQH0FKGNHCnwxHG5n1730pIp9h4KW7C-Kpw=
+reviewed: g3st-elaqT8aDo8c5Ra1Mbw39vf70FrDXzSNgdq51uY=
 text: |
   ## 実装概要
 

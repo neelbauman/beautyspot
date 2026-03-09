@@ -1,0 +1,37 @@
+active: true
+derived: false
+group: STORE
+header: |
+  BlobStorageBase インターフェース契約テスト
+level: 1.23
+links:
+- SPEC024: EQkOktEyVNr6_5K93xGEbWwGbckgJcpB1IQaHGahApE=
+normative: true
+ref: ''
+references:
+- path: tests/integration/storage/test_blob_storage_base.py
+  type: file
+reviewed: kTUWT1nBbtyt8Fwvzs67tpQtlrPUdzNE89379b8NGdE=
+text: |
+  ## 目的
+
+  `BlobStorageBase` は全ストレージバックエンド（LocalStorage, S3Storage, サードパーティ）が
+  準拠すべき抽象契約を定義する。この契約が正しく機能しないと、キャッシュデータの
+  保存・復元・削除・メンテナンス（GC）の全てが破綻する。
+  `LocalStorage` を具象実装として使い、インターフェース契約を網羅的に検証する。
+
+  ## 検証観点
+
+  - **save 基本動作**: データを永続化し、一意な識別子（文字列）を返すこと
+  - **ReadableBuffer 互換**: `bytes`, `bytearray`, `memoryview` の全てを受け入れること（ゼロコピー書き込み）
+  - **save 上書き**: 同一キーに再保存するとデータが更新されること
+  - **空データ**: 空バイト (`b""`) を正常に保存・復元できること
+  - **load ラウンドトリップ**: save した内容を load で完全に復元できること
+  - **load 欠損時エラー**: 存在しないロケーションへの load は `CacheCorruptedError` を送出すること
+  - **delete 基本動作**: 保存済みデータを削除し、以後の load がエラーになること
+  - **delete 冪等性**: 存在しないロケーションや二重削除でエラーにならないこと（冪等）
+  - **list_keys 空**: データ未保存時は空イテレータを返すこと
+  - **list_keys 列挙**: save したアイテムが list_keys に含まれること
+  - **list_keys 削除後**: delete 後は list_keys に含まれないこと
+  - **get_mtime 正確性**: POSIX タイムスタンプ（float）を返し、保存直後は現在時刻に近いこと
+  - **get_mtime 欠損時エラー**: 存在しないロケーションでエラーを送出すること

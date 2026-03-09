@@ -5,13 +5,13 @@ header: |
   SHA-256 キャッシュキー実装
 level: 1.3
 links:
-- SPEC004: OPn4L9SU4zQjf3i3ZpsD1DGKHCtSQmfhzwiwqcVWheg=
+- SPEC004: oIrCcbiiQeaMVr3cg3RgDsBJnq3HUFxvUIh8OUH3kcI=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: sRwwqfZExgM2w2ShIQu2-YsSmtRpwot0iWKt6N_V3Q8=
+reviewed: f7_G6GCVIcU4pzrkIZKmLjz-SSBnZ-Kd-5W_0i8aXSU=
 text: |
   ## 実装概要
 

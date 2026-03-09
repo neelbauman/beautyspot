@@ -1,0 +1,54 @@
+active: true
+derived: false
+group: STORE
+header: |
+  BlobStorageBase 抽象インターフェース実装
+level: 1.23
+links:
+- SPEC024: EQkOktEyVNr6_5K93xGEbWwGbckgJcpB1IQaHGahApE=
+normative: true
+ref: ''
+references:
+- path: src/beautyspot/storage.py
+  type: file
+reviewed: ftK2MNiKfhDPx9npJYSMixMxTkjbH9VDXFby3efnIoQ=
+text: |
+  ## 実装概要
+
+  `storage.py` 内の `BlobStorageBase` ABC が SPEC024 の中核実装。
+  5つの抽象メソッド（`save`, `load`, `delete`, `list_keys`, `get_mtime`）を定義し、
+  `LocalStorage` と `S3Storage` が具象実装として継承する。
+
+  加えて、ランタイム型チェックのために `BlobStorageCore`・`Maintenable`・
+  `BlobStorageMaintenable` の3つの Protocol クラスを定義し、
+  `isinstance()` での型判定を可能にしている（`@runtime_checkable`）。
+
+  ## 設計判断
+
+  ### ABC と Protocol の併用
+
+  `BlobStorageBase` は ABC として抽象メソッドを強制する一方、
+  `BlobStorageCore` / `Maintenable` は Protocol として構造的部分型を提供する。
+  これにより、`BlobStorageBase` を継承しないサードパーティ実装でも
+  `isinstance(obj, BlobStorageCore)` で利用可能になる柔軟性を確保した。
+
+  ### 3層の Protocol 分割
+
+  - `BlobStorageCore`: 実行時に必要な最小限（save/load/delete）
+  - `Maintenable`: メンテナンス（GC）に必要な拡張（list_keys/get_mtime）
+  - `BlobStorageMaintenable`: 両方を兼備する完全版
+
+  これにより、save/load/delete のみを実装した軽量バックエンドも受け入れ可能。
+
+  ### ReadableBuffer 型エイリアス
+
+  `bytes | bytearray | memoryview` を `ReadableBuffer` として定義。
+  `memoryview` を受け入れることでゼロコピー書き込みが可能になり、
+  大きなデータを保存する際のメモリ効率を改善している。
+
+  ## 実装メモ
+
+  - `BlobStorageBase` 自体はロジックを持たず、インターフェース定義のみ
+  - 各 `@abstractmethod` にはdocstringで契約を明記（冪等性、エラー時の挙動など）
+  - `delete` は冪等であるべきことを docstring で規定
+  - `list_keys` は `delete` と同じフォーマットの識別子を yield すべきことを規定

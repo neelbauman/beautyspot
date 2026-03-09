@@ -5,13 +5,13 @@ header: |
   LocalStorage 実装
 level: 1.8
 links:
-- SPEC009: ayCuGtznzoOQ3au4fAsRG_FM_PmnMgWIggZC3ep9RNg=
+- SPEC009: YMAcjiSiG3ZMU5zF2_bu9oqIlxOIJT8V0KGRNrVfVXE=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: rzu7tM50cGklcTiReTsRyPPDT9vsSelN-Ebxo1-D2j8=
+reviewed: VgIhe00oKa2iB_PsXi-GWnjyD_Zfh1Kfzs-mjEYGWHs=
 text: |
   ## 実装概要
 

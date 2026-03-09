@@ -5,13 +5,13 @@ header: |
   Retention 実装
 level: 1.16
 links:
-- SPEC017: MUNFlfM4TR49bOe-T7MYPI9w8qdjUD9-zodjWW-iFQI=
+- SPEC017: s4fZIZPmZUtccclKL21T04JKuHrVxyVduUB5j9OVYfA=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/lifecycle.py
   type: file
-reviewed: null
+reviewed: bJOrNRCZjIoMYz-78zu6iZ3TwwnPF-FGRiUMv4YIolU=
 text: |
   ## 実装概要
 

@@ -5,13 +5,13 @@ header: |
   MsgpackSerializer 実装
 level: 1.11
 links:
-- SPEC012: Im-o-GZ5ItLezcAABFJGrXjgWZGnKPtXxZSHpfEexkg=
+- SPEC012: mCSC2RI8xMfvbedaWmhyd6de-sNxfFAECi0QmdK3-fE=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/serializer.py
   type: file
-reviewed: NnCgCwJa1X3hPhWDde8vwl4gO9Qh3CYmFIzR-KTT_ec=
+reviewed: TV8ABtGXhcJs7mvf8Dk4zLZJWjL7e15eui3lIYz6oQE=
 text: |
   ## 実装概要
 

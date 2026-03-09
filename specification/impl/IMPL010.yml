@@ -5,13 +5,13 @@ header: |
   S3Storage 実装
 level: 1.9
 links:
-- SPEC010: J5Y-qJWjdum341AWafwdt3WxStDJt2MGSazN2GJRt_E=
+- SPEC010: R79YFIXzAjNREaGJUO8qIeJnL7SbFX-z9pbs_TrFkxI=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: F97b-Peo538_LSTaVNSe4YMVSyYkak3TzvgJ5Lc4bEc=
+reviewed: KyM8YkE3V5X-oeKarepjU5skbJPdThjsrighWHOw_Kw=
 text: |
   ## 実装概要
 

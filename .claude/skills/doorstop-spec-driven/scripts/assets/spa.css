@@ -60,6 +60,37 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
   padding: 1px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600;
   margin-left: 4px;
 }
+.nav-badge-slash {
+  display: inline-block; color: #222;
+  border-radius: 10px; font-size: 0.7em; font-weight: 600;
+  margin-left: 2px;
+}
+.nav-badge-unreviewed {
+  display: inline-block; background: #CCC; color: #444;
+  padding: 1px 6px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+  margin-left: 2px;
+}
+.nav-badge-suspect {
+  display: inline-block; background: #fff3cd; color: #856404;
+  padding: 1px 6px; border-radius: 10px; font-size: 0.7em; font-weight: 600;
+  margin-left: 2px;
+}
+#nav-status-summary {
+  padding: 8px 16px; font-size: 0.8em; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+#nav-status-summary .nav-status-row {
+  display: flex; align-items: center; gap: 6px; padding: 3px 0;
+}
+#nav-status-summary .nav-status-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+}
+#nav-status-summary .nav-status-dot.unreviewed { background: #856404; }
+#nav-status-summary .nav-status-dot.suspect { background: #721c24; }
+#nav-status-summary .nav-status-dot.ok { background: var(--success); }
+#nav-status-summary .nav-status-count {
+  font-weight: 600; margin-left: auto;
+}
 
 #main {
   margin-left: var(--sidebar-w); padding: 24px 32px; min-height: 100vh;

@@ -5,13 +5,13 @@ header: |
   ファクトリ関数実装
 level: 1.21
 links:
-- SPEC022: XOJTfMNTIEK2-rW5dFRrvQRrie_FpVewIA5bO8RLKro=
+- SPEC022: QjXRUubB9V_x8GdTmSHirTg9zgFPwDEiQcpQQFZVicI=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/__init__.py
   type: file
-reviewed: null
+reviewed: mIrbpsOx2I6DcRh-fBHDsAJn5TlY6v9g7qeu6lUl8x0=
 text: |
   ## 実装概要
 

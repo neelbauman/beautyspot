@@ -5,13 +5,13 @@ header: |
   BackgroundLoop 実装
 level: 1.13
 links:
-- SPEC014: g20TA7YqdQzl4x1kHeA9uKAViLsWOj55KazOGH9CaO4=
+- SPEC014: 8GcZBoTv8aQ9r67acF8Ehq8rz9sMy7LlXp0EgvFByrA=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: null
+reviewed: rYWCh7XOqxhUHDZ58_1eAGwp0wMra_r851M7WCh8dos=
 text: |
   ## 実装概要
 

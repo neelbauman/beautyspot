@@ -5,7 +5,7 @@ header: |
   カスタム型登録実装
 level: 1.12
 links:
-- SPEC013: CMLKwUVCD668AePQPuFe8VLpY82-4z2XrTCYELqqUF8=
+- SPEC013: qawchycz4Lwi7pICc6OxP43WLUHhKWeTdmUa_v0j5vU=
 normative: true
 ref: ''
 references:
@@ -13,7 +13,7 @@ references:
   type: file
 - path: src/beautyspot/core.py
   type: file
-reviewed: vjjlYzPehFJQggc_-Ffx7IeGTxKuk2V2qfZy9ZV448o=
+reviewed: d4EYBK7LrTaWhrMpVG2tpl15j8jrwyu3KFTlsbXtwKQ=
 text: |
   ## 実装概要
 

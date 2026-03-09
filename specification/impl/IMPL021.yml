@@ -5,13 +5,13 @@ header: |
   CLI コマンド実装
 level: '1.20'
 links:
-- SPEC021: tpts5YHUo0MklbBWNI42lObDQHBcmEVGHA3PxICOD_E=
+- SPEC021: Kq5bqKv-Ni3s3xIA49ZWN9pWR7AjFG5gclfkh4_lP2Q=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cli.py
   type: file
-reviewed: null
+reviewed: _SnvMi7EZOJMNjtXmzGQ7Bz9XSrMZBTo6o4geTnO0F0=
 text: |
   ## 実装概要
 

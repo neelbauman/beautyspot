@@ -5,13 +5,13 @@ header: |
   TokenBucket 実装
 level: 1.17
 links:
-- SPEC018: b1XyeBeZrn3HgzWNr_eBXq-Gx8K5IJOLOWl4bIII9Ig=
+- SPEC018: 4rNeYQD9CegD5rCuwlufH87yvll1nCcnjqym1mH4414=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/limiter.py
   type: file
-reviewed: null
+reviewed: 1D-CrQkTO-Yrte-xjzNGyFDluF08Q04uJF07yVNG07k=
 text: |
   ## 実装概要
 

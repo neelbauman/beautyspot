@@ -5,13 +5,13 @@ header: |
   save_sync / flush / drain 実装
 level: 1.14
 links:
-- SPEC015: zPIauq46zVtD9Sz7xnmq5QJP_BU96SNCWk2b6j-6If4=
+- SPEC015: IVSIbwoT1vTzPFUom_ziz-bxKIHBeWyLvPd5Cxcd9Rk=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: null
+reviewed: 1QwNp4TBXy9wXCAAjl9nJCXU7zYwj5-tWKk-_aEnnTQ=
 text: |
   ## 実装概要
 

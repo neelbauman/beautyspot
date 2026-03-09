@@ -5,13 +5,13 @@ header: |
   SQLiteTaskDB 実装
 level: 1.6
 links:
-- SPEC007: WkFwgMYxDCB04PvRYjs4W17YPYyCF1r3u7DFSvQtx70=
+- SPEC007: ZwdMgNHObk7HXQ-Y-4P9Qu7HS3zOW7gQP7NkEZFxMDg=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: j0CFnIPZ9iuo2sWdJa0a0r5AKHz5gVEbc5YlM-F2fMk=
+reviewed: aJASRjYuTefGnJvn5jyrkwVFjtsXOsUN3sBSkaHtxQ8=
 text: |
   ## 実装概要
 

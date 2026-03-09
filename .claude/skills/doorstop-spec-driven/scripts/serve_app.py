@@ -850,6 +850,7 @@ _SPA_HTML_TEMPLATE = r"""<!DOCTYPE html>
 
 <nav id="sidebar">
   <h2>Doorstop Dashboard</h2>
+  <div id="nav-status-summary"></div>
   <ul>
     <li><a href="#/" data-nav="dashboard">Dashboard</a></li>
     <li><a href="#/matrix" data-nav="matrix">Matrix</a></li>

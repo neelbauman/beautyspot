@@ -5,13 +5,13 @@ header: |
   DB プロトコル階層実装
 level: 1.7
 links:
-- SPEC008: xgTQqVbBvQndnPKGjHGQK9GDHWmL2OU49VNn_z7QkIw=
+- SPEC008: _DJWcnn0I_H3AGBk3ZBnC1izPe7QJlPBcJRWhxmg0WQ=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: xOZtalFMq0sLWeSc8Sg1KZzorsjuNNPOHuf88Y4H2Co=
+reviewed: CGuftkKPHhO6Z0Zb02t5Vdj66e1QOS-tmX8AVMyBeAs=
 text: |
   ## 実装概要
 

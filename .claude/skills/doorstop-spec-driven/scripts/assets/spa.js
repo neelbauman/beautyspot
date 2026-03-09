@@ -218,11 +218,40 @@ window.addEventListener('hashchange', route);
 // Sidebar group list
 // ===================================================================
 async function loadGroupNav() {
-  const groups = await API.get('/api/groups');
+  const [groups, overview] = await Promise.all([
+    API.get('/api/groups'),
+    API.get('/api/overview'),
+  ]);
+
+  // Status summary at top of sidebar
+  const totalUnreviewed = overview.review.total - overview.review.reviewed;
+  const totalSuspects = overview.suspects;
+  const statusEl = document.getElementById('nav-status-summary');
+  if (totalUnreviewed > 0 || totalSuspects > 0) {
+    let rows = '';
+    if (totalUnreviewed > 0)
+      rows += `<div class="nav-status-row"><span class="nav-status-dot unreviewed"></span> Unreviewed <span class="nav-status-count">${totalUnreviewed}</span></div>`;
+    if (totalSuspects > 0)
+      rows += `<div class="nav-status-row"><span class="nav-status-dot suspect"></span> Suspect <span class="nav-status-count">${totalSuspects}</span></div>`;
+    statusEl.innerHTML = rows;
+    statusEl.style.display = '';
+  } else {
+    statusEl.innerHTML = '<div class="nav-status-row"><span class="nav-status-dot ok"></span> All clear</div>';
+    statusEl.style.display = '';
+  }
+
+  // Group nav with unreviewed/suspect badges
   const list = document.getElementById('group-nav-list');
-  list.innerHTML = Object.entries(groups).map(([name, info]) =>
-    `<li><a href="#/group/${encodeURIComponent(name)}" data-group="${h(name)}">${h(name)} <span class="group-badge">${info.items}</span></a></li>`
-  ).join('');
+  list.innerHTML = Object.entries(groups).map(([name, info]) => {
+    const unreviewed = info.items - info.reviewed;
+    let badges = ``;
+    if (unreviewed > 0)
+      badges += `<span class="nav-badge-unreviewed" title="Unreviewed">${unreviewed}</span>`;
+    if (info.suspect > 0)
+      badges += `<span class="nav-badge-suspect" title="Suspect">${info.suspect}</span><span class="nav-badge-slash">/</span>`;
+    badges += `<span class="group-badge">${info.items}</span>`;
+    return `<li><a href="#/group/${encodeURIComponent(name)}" data-group="${h(name)}">${h(name)} ${badges}</a></li>`;
+  }).join('');
 }
 
 // ===================================================================

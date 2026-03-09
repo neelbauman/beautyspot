@@ -5,13 +5,13 @@ header: |
   HookBase 実装
 level: 1.18
 links:
-- SPEC019: gupudOCO_dHvrr53swzIPSWA-31aZwbaNvo8giAapM4=
+- SPEC019: JP3vnsNVnXn5tWC6IKdsSN5yAsMKdG4f48Rlt8L3Bhc=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/hooks.py
   type: file
-reviewed: null
+reviewed: AtDzal5b8WZVXEr_0q7FG5aGn0KuOq3uAJ2z5VO0pQ8=
 text: |
   ## 実装概要
 

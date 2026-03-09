@@ -5,13 +5,13 @@ header: |
   mark デコレータ実装
 level: 1.0
 links:
-- SPEC001: wiOG403oECQMvXPICNVUXTbzlsabT7tZP7gcXL6l5jE=
+- SPEC001: zR8aZ9kKykfTG1A3ZPR3IUXRMr4X68ffffaOXtu5rao=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: MpxE71cJil5wpGHZ4vYPSYBBAicIC7kzgOrsZqHL1vY=
+reviewed: KPvfIa2fS75X_-P8ifrDeMx-gPuxiOyGdLDl3Lopsyk=
 text: |
   ## 実装概要
 

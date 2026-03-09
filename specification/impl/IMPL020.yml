@@ -5,13 +5,13 @@ header: |
   MaintenanceService 実装
 level: 1.19
 links:
-- SPEC020: 4inhRA31nDgyLTnTy4X2JCpXwt_QQViTCSIRjG2mfeU=
+- SPEC020: CDOBSBsS_kAriXTDKUM2LGeIn5tF_XNALSfkc_y4XPk=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/maintenance.py
   type: file
-reviewed: null
+reviewed: mrEnvkYJCT1CwmVaFoA-U83B4n40kZUd2C1oJHQKQXw=
 text: |
   ## 実装概要
 

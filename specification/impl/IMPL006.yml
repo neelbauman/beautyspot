@@ -5,13 +5,13 @@ header: |
   KeyGenPolicy 実装
 level: 1.5
 links:
-- SPEC006: RMTxfnsnPFluWYinCimxMmi0VHzXitwMuW9sZkXrxAE=
+- SPEC006: y-D3NAZNBRKUNvjLjOC52CE4L4pRT7ymvX2IZLfgjyM=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: 662Z22kfo8u7kEQx1zJdrsjsmEFPzAPudtVRyjkj61c=
+reviewed: IFZ9yhzuhLm209IlVuIUrHaIFU3XdyGHVjZGFEEWlws=
 text: |
   ## 実装概要
 
