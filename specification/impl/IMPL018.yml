@@ -5,9 +5,9 @@ header: |
   TokenBucket 実装
 level: 1.17
 links:
-- SPEC018: HumtHzAdxKAckcie7tkoLztQbmfp-ExR63YY4j2Ih5c=
+- SPEC018: b1XyeBeZrn3HgzWNr_eBXq-Gx8K5IJOLOWl4bIII9Ig=
 normative: true
 ref: ''
-reviewed: UhgbDbqUsT6WuMS2a4SUr3n4clIYuVi3KpWRxNY69wY=
+reviewed: MUl9PjRhOtN-8XMMsahQuG6Xuo77B-fjbEDaey3elQ4=
 text: |
   TokenBucket の実装。GCRA アルゴリズム、TAT (Theoretical Arrival Time) 管理、 consume/consume_async メソッド、threading.Lock によるスレッドセーフ、 max_cost バリデーションを含む。

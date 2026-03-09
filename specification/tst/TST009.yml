@@ -5,9 +5,9 @@ header: |
   LocalStorage テスト
 level: 1.8
 links:
-- SPEC009: LSgFkvwAFG6heFSqgxj5-f3RjzmSqq4k2rFv1WmEdFs=
+- SPEC009: ayCuGtznzoOQ3au4fAsRG_FM_PmnMgWIggZC3ep9RNg=
 normative: true
 ref: ''
-reviewed: LXYIKP56gQ3HueQo4bmjuC_PrUPsKwg1P8rxAp8aAhs=
+reviewed: KQI87oeYWj4CKPr_LLAj9qwYgREpbpySLfLBpJxiS9Q=
 text: |
   LocalStorage のテスト。ワークスペース作成、並行書き込みの一貫性、 一時ファイルクリーンアップ、パストラバーサル防止を検証する。

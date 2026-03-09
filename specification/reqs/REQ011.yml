@@ -7,6 +7,6 @@ level: '1.10'
 links: []
 normative: true
 ref: ''
-reviewed: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
+reviewed: f4SKYgu3ykwtA7XfsZTa4XY_rzOQiYl76ebgAGTK94Q=
 text: |
   コマンドラインインターフェースからキャッシュの一覧表示、詳細確認、統計表示、削除、GC等の管理操作ができること。

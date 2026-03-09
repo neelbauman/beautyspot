@@ -48,6 +48,34 @@ def get_ref(item):
         return ""
 
 
+def get_references(item):
+    """references 属性（辞書型リスト）を取得する。なければ ref からフォールバック。"""
+    try:
+        refs = item.get("references")
+        if refs and isinstance(refs, list):
+            return refs
+    except (AttributeError, KeyError):
+        pass
+    ref = get_ref(item)
+    if ref:
+        return [{"path": ref, "type": "file"}]
+    return []
+
+
+def get_references_display(item):
+    """references を表示用文字列にする。"""
+    refs = get_references(item)
+    return ", ".join(r.get("path", "") for r in refs if r.get("path"))
+
+
+def is_derived(item):
+    """アイテムが派生要求（derived: true）かどうかを判定する。"""
+    try:
+        return bool(item.get("derived"))
+    except (AttributeError, KeyError):
+        return False
+
+
 def _find_item(tree, uid_str):
     for doc in tree:
         try:
@@ -149,22 +177,50 @@ def validate_tree(tree, strict=False, project_dir="."):
                         f"子ドキュメント {document.prefix} からのリンクがありません"
                     )
 
-    # ref存在チェック（IMPL, TST）
+    # references存在チェック（IMPL, TST）
     ref_docs = {"IMPL", "TST"}
     for document in tree:
         if document.prefix not in ref_docs:
             continue
         for item in document:
-            ref = get_ref(item)
-            if not ref:
+            refs = get_references(item)
+            for ref_entry in refs:
+                filepath = ref_entry.get("path", "")
+                if not filepath:
+                    continue
+                # ファイルパス部分を抽出（:: 以降はクラス/関数名）
+                filepath_clean = filepath.split("::")[0]
+                full_path = os.path.join(project_dir, filepath_clean)
+                if not os.path.exists(full_path):
+                    issues["warnings"].append(
+                        f"{item.uid}: references '{filepath}' のファイルが存在しません"
+                    )
+
+    # derived チェック
+    design_prefixes = {"ARCH", "SPEC", "HLD", "LLD"}
+    for document in tree:
+        for item in document:
+            if not is_derived(item):
                 continue
-            # ファイルパス部分を抽出（:: 以降はクラス/関数名）
-            filepath = ref.split("::")[0]
-            full_path = os.path.join(project_dir, filepath)
-            if not os.path.exists(full_path):
-                issues["warnings"].append(
-                    f"{item.uid}: ref '{ref}' のファイルが存在しません"
+            # IMPL/TST での derived 使用は禁止
+            if document.prefix in ("IMPL", "TST"):
+                issues["errors"].append(
+                    f"{item.uid}: IMPL/TST で derived: true は使用できません"
                 )
+            # REQ での derived 使用は警告
+            elif document.prefix == "REQ":
+                issues["warnings"].append(
+                    f"{item.uid}: REQ で derived: true が設定されています。"
+                    f"REQは通常 derived にしません"
+                )
+            # 設計層での derived: 根拠記載チェック
+            elif document.prefix in design_prefixes:
+                text = item.text.strip().lower()
+                if "派生要求の根拠" not in text and "派生" not in text and "derived" not in text:
+                    issues["warnings"].append(
+                        f"{item.uid}: derived: true ですが、text に派生要求の根拠が"
+                        f"記載されていません"
+                    )
 
     # レビュー状態チェック
     unreviewed = []
@@ -366,7 +422,7 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
                 uid_str = str(item.uid)
                 row_uids.append(uid_str)
                 text_preview = item.text[:80] + ("..." if len(item.text) > 80 else "")
-                ref = get_ref(item)
+                ref = get_references_display(item)
                 ref_html = f'<br><span class="ref-tag">{h(ref)}</span>' if ref else ""
                 # レビュー状態（suspect と reviewed/unreviewed は独立）
                 is_reviewed = bool(item.reviewed)
@@ -419,8 +475,8 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
                 status_badge += '<span class="reviewed">✓ レビュー済</span>'
             else:
                 status_badge += '<span class="unreviewed">○ 未レビュー</span>'
-            ref = get_ref(item)
-            ref_line = f'<p><strong>ref:</strong> <span class="ref-tag">{h(ref)}</span></p>' if ref else ""
+            ref = get_references_display(item)
+            ref_line = f'<p><strong>references:</strong> <span class="ref-tag">{h(ref)}</span></p>' if ref else ""
             group = get_group(item)
             parent_links = []
             for link in item.links:

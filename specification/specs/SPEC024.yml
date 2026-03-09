@@ -1,0 +1,19 @@
+active: true
+derived: false
+group: STORE
+header: |
+  Blobストレージ抽象インターフェース
+level: 1.23
+links:
+- ARCH004: GZ2cyHLo0XsZsxAL1leQkOdeo-9Qfqdhw0g8j0G_TKE=
+normative: true
+ref: ''
+reviewed: zb1lrfvCNr-0PSm8zbwvFuk-Ni-KiSXIwCr-LheXQVI=
+text: |
+  ARCH004で定義された「ストレージバックエンドの抽象化」を実現する具体的なインターフェース仕様。
+
+  - `BlobStorageBase` (ABC): `save`, `load`, `delete`, `list_keys`, `get_mtime` の5メソッドを定義する。新しいストレージバックエンドはこのクラスを継承して実装する。
+  - `BlobStorageCore` (Protocol): 実行時に必須の3メソッド (`save`, `load`, `delete`) を定義する最小インターフェース。
+  - `Maintenable` (Protocol): メンテナンス操作に必要な2メソッド (`list_keys`, `get_mtime`) を定義する拡張インターフェース。
+  - `BlobStorageMaintenable`: `BlobStorageCore` と `Maintenable` の合成プロトコル。
+  - `create_storage(path, options)`: URIスキーム (`s3://`) に基づいて適切な実装を自動選択するファクトリ関数。`s3://` で始まる場合は `S3Storage`、それ以外は `LocalStorage` を返す。

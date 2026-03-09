@@ -5,9 +5,9 @@ header: |
   S3Storage 実装
 level: 1.9
 links:
-- SPEC010: WGNze3U5VPr8AofH7iUCh3r3WcrcYeNgbYhI99KqjiI=
+- SPEC010: J5Y-qJWjdum341AWafwdt3WxStDJt2MGSazN2GJRt_E=
 normative: true
 ref: ''
-reviewed: j8Rxk5agK9DQ-zBX2SJis9g7L6O50GYaQOm4QPrXECY=
+reviewed: F97b-Peo538_LSTaVNSe4YMVSyYkak3TzvgJ5Lc4bEc=
 text: |
   S3Storage の実装。boto3 upload_fileobj によるマルチパートアップロード、 s3:// URI パース、boto3 未インストール時の ImportError を含む。

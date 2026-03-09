@@ -5,9 +5,9 @@ header: |
   S3Storage テスト
 level: 1.9
 links:
-- SPEC010: WGNze3U5VPr8AofH7iUCh3r3WcrcYeNgbYhI99KqjiI=
+- SPEC010: J5Y-qJWjdum341AWafwdt3WxStDJt2MGSazN2GJRt_E=
 normative: true
 ref: ''
-reviewed: BCGNLyMWz6QWCOoDOhcAGbNaJqvCJ_sV5b4CFE8W594=
+reviewed: 7PyPWm_bW6RGdZpIrQN9Sk8ighWxkWFNZ6VgyM65J7Y=
 text: |
   S3Storage のテスト。S3 互換ストレージへの保存・取得・削除を検証する。 （注: boto3 オプショナル依存のため、現時点で専用テストファイルは未作成）

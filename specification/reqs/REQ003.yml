@@ -7,7 +7,7 @@ level: 1.2
 links: []
 normative: true
 ref: ''
-reviewed: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
+reviewed: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
 text: |
   キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。
 

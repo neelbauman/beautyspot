@@ -5,9 +5,9 @@ header: |
   cached_run テスト
 level: 1.1
 links:
-- SPEC002: Z-LZR2R2K-JQt47DybEoNa7yroEdNqRn3IrqMlvcS9A=
+- SPEC002: CXrgt780qXgbXvvPXpnQ3kmCqMdcSDCb4w0rXHFJj_g=
 normative: true
 ref: ''
-reviewed: ZXdmKcoULIgKHDVUbjL9czGtyu1oLZMsBAD4sGX8bwY=
+reviewed: NT10zlW4ERGivDcwXPotEuhnyc0PlFOjy1UKNfqzS28=
 text: |
   `cached_run` コンテキストマネージャのテスト。 単一関数/複数関数のスマートリターン、型推論を検証する。

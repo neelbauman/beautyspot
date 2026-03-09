@@ -5,10 +5,10 @@ header: |
   ストレージポリシーテスト
 level: '1.10'
 links:
-- SPEC011: nEMcsRs98U4nVQJTaVHI304xkz6MZMp7cNM6RckSn2Y=
+- SPEC011: JfpIIwRbnC-KgxzgbK_Nl-KAJroRZCWAiyPhkYxw0L0=
 normative: true
 ref: ''
-reviewed: 51sbc9HgbQ0svrB0GwfgCLOeV8p6bbXA8X5UsO_q_Nk=
+reviewed: djNpeQOF6m1nvdR-ZimajEq3Dy0XWRTGdrkVWTgeabE=
 text: |
   ## ストレージポリシーのテスト。
 

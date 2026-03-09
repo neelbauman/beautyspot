@@ -7,6 +7,6 @@ level: 1.5
 links: []
 normative: true
 ref: ''
-reviewed: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
+reviewed: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
 text: |
   キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。

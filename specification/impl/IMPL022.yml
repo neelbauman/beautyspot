@@ -5,9 +5,9 @@ header: |
   ファクトリ関数実装
 level: 1.21
 links:
-- SPEC022: Ro6EdCtdpXqIOMyxhJ-Sew9mM05m5Qt07JdpkUa0mmg=
+- SPEC022: XOJTfMNTIEK2-rW5dFRrvQRrie_FpVewIA5bO8RLKro=
 normative: true
 ref: ''
-reviewed: FjhcgWgBJVBGNjZVVFxUEPeMyTsOlfJbTzlPujpwIrU=
+reviewed: iCnvw2gQGG8Wep7Y-AzgDeRxVX3K6w4N-Xv5-10K3I4=
 text: |
   `bs.Spot()` ファクトリ関数の実装。デフォルトコンポーネントの組み立て、 `CacheManager` の構築、`Protocol/ABC` の定義と `__all__` エクスポートを含む。

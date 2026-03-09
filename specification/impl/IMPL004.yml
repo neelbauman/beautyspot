@@ -5,9 +5,9 @@ header: |
   SHA-256 キャッシュキー実装
 level: 1.3
 links:
-- SPEC004: tkXUuLLiIDe8ZCqlne_6s-zoOCcGcuwyzaRXp16bDKI=
+- SPEC004: OPn4L9SU4zQjf3i3ZpsD1DGKHCtSQmfhzwiwqcVWheg=
 normative: true
 ref: ''
-reviewed: vI1qNalYsOZrZTvoSDq7HO0QigsM3WNMec_56kfjc_o=
+reviewed: sRwwqfZExgM2w2ShIQu2-YsSmtRpwot0iWKt6N_V3Q8=
 text: |
   KeyGen クラスの実装。SHA-256 ハッシュ生成、 func_identifier:input_id[:version] 形式のキャッシュキー構築、 msgpack シリアライズ + SHA-256 ハッシュを含む。

@@ -4,3 +4,10 @@ settings:
   parent: SPEC
   prefix: TST
   sep: ''
+attributes:
+  defaults:
+    group: ''
+  reviewed:
+    - group
+  publish:
+    - group

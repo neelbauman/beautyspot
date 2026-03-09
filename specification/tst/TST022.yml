@@ -5,9 +5,9 @@ header: |
   ファクトリ関数・DI テスト
 level: 1.21
 links:
-- SPEC022: Ro6EdCtdpXqIOMyxhJ-Sew9mM05m5Qt07JdpkUa0mmg=
+- SPEC022: XOJTfMNTIEK2-rW5dFRrvQRrie_FpVewIA5bO8RLKro=
 normative: true
 ref: ''
-reviewed: RkeJMQ7xxCBgGa2jWwk2RFt8vsvvMW1EMycjFtn2HnQ=
+reviewed: 0s8P2OVvH6c4j-wKNZGA3Anwe53jL2DQmkW4A1S17BM=
 text: |
   ファクトリ関数と DI のテスト。`Protocol` ベースのカスタム実装注入 （MockStorage, カスタム DB, カスタム serializer）、 型推論、デフォルトワークスペース作成を検証する。

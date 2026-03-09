@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: DB
+header: |
+  メタデータDBアーキテクチャ
+level: 1.2
+links:
+- REQ003: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
+normative: true
+ref: ''
+reviewed: RhT9hbtEpPVB_nqZ6-qjwLudt9xqtjnqXz3OVleawG0=
+text: |
+  キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）を永続化する抽象データベースインターフェース (`TaskDBBase`) を定義する。
+
+  抽象化により、デフォルトのSQLite実装から他のDB（PostgreSQL等）への差し替えを可能にする。メタデータDBはキャッシュの検索・管理のインデックスとして機能し、大きなデータ本体の保存はBlobストレージ層に委譲する。

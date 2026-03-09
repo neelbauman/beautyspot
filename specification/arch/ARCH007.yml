@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: LIFE
+header: |
+  ライフサイクル管理アーキテクチャ
+level: 1.6
+links:
+- REQ007: 5yGdzM-hrahCqGxuusF5AajSMS7cGKe-yzlxOglVHzg=
+normative: true
+ref: ''
+reviewed: kzQn4fkHo7BEoG4UGpGeBwBcgWhR3xyq1UoQ8wmt1eg=
+text: |
+  関数名のパターンマッチング（glob形式）に基づくルールベースの有効期限ポリシーを採用する。
+
+  `LifecyclePolicy` がルール群 (`Rule`) を保持し、キャッシュ保存時に関数名に最初にマッチするルールから有効期限 (`expires_at`) を計算する。期限切れのキャッシュはメンテナンス操作で一括削除される。

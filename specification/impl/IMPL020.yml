@@ -5,9 +5,9 @@ header: |
   MaintenanceService 実装
 level: 1.19
 links:
-- SPEC020: vdH3A4HR2EdSECRqcAziGdJN3E89nNcZVgIZII1q6qU=
+- SPEC020: 4inhRA31nDgyLTnTy4X2JCpXwt_QQViTCSIRjG2mfeU=
 normative: true
 ref: ''
-reviewed: 03sMJ_GDgDbhv6pMlln6yngxIO5xAB6i2SXBHQ-Yk0g=
+reviewed: j9S8CMk18pxxzaCflrW3NJUiPldufL_XPLqD1G1S1Aw=
 text: |
   MaintenanceService の実装。clean_garbage() の5フェーズ処理、 scan_garbage() の grace_period 付き孤立検出、 from_path() ファクトリ、scan_orphan_projects()、 resolve_key_prefix() を含む。

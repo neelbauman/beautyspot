@@ -5,9 +5,9 @@ header: |
   LocalStorage 実装
 level: 1.8
 links:
-- SPEC009: LSgFkvwAFG6heFSqgxj5-f3RjzmSqq4k2rFv1WmEdFs=
+- SPEC009: ayCuGtznzoOQ3au4fAsRG_FM_PmnMgWIggZC3ep9RNg=
 normative: true
 ref: ''
-reviewed: m_ypUl8V4SUmmb5BRm1Hf4QyDXBiDD6FpVkw8gp71fU=
+reviewed: rzu7tM50cGklcTiReTsRyPPDT9vsSelN-Ebxo1-D2j8=
 text: |
   LocalStorage の実装。tempfile.mkstemp + os.replace によるアトミック書き込み、 is_relative_to によるパストラバーサル防止、.bin 再帰列挙、 clean_temp_files/prune_empty_dirs を含む。

@@ -5,9 +5,9 @@ header: |
   引数の再帰的正規化
 level: 1.4
 links:
-- REQ002: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
+- ARCH002: VQHRaJry-D0H-Se3lVkMp_GJ7mDlSO2o-V0gqY3PEpc=
 normative: true
 ref: ''
-reviewed: dk96C4WcRf0bFmZvY_h44z5PiHdtLUGN2nGNSIirB4Q=
+reviewed: -xwGvxnM-dXExDZyZDn73GVntLB9t7qUgu8TPQ6nGHU=
 text: |
   `canonicalize()` 関数（singledispatch）により、引数を再帰的に正規化する。 dict はキーでソート、set/frozenset/list/tuple/deque/defaultdict/OrderedDict/Enum は 型タグ付きで正規化し、型の違いによるキャッシュキー衝突を防ぐ。 numpy 配列は shape+dtype+tobytes で正規化。カスタムオブジェクトは __dict__/__slots__ を使用。 bool と int の区別（True vs 1）を保証する。

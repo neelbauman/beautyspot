@@ -5,22 +5,34 @@ header: |
   mark デコレータ実装
 level: 1.0
 links:
-- SPEC001: VfQBYPsFZq-DXL4HZTKnV19i2K4KduLyZ4XcG1i5tkg=
+- SPEC001: wiOG403oECQMvXPICNVUXTbzlsabT7tZP7gcXL6l5jE=
 normative: true
 ref: ''
-reviewed: HEh5V_O4ARYqKza4CQXBkZ1NF3gFgsi7GDKAAoxbffw=
+reviewed: MpxE71cJil5wpGHZ4vYPSYBBAicIC7kzgOrsZqHL1vY=
 text: |
   ## `Spot.mark()` デコレータの実装
-  - sync/async の自動判定
-  - オプション処理
-      - save_blob
-      - keygen
-      - version
-      - content_type
-      - serializer
-      - save_sync
-      - retention
-      - hooks
-  - ジェネレータ関数の拒否（ConfigurationError）
+
+  -   sync/async の自動判定
+
+  -   オプション処理
+
+      -   `save_blob`
+
+      -   `keygen`
+
+      -   `version`
+
+      -   `content_type`
+
+      -   `serializer`
+
+      -   `save_sync`
+
+      -   `retention`
+
+      -   `hooks`
+
+  -   ジェネレータ関数の拒否（`ConfigurationError`）
+
 
   を含む。

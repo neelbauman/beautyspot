@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: BGIO
+header: |
+  バックグラウンドIOアーキテクチャ
+level: 1.5
+links:
+- REQ006: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
+normative: true
+ref: ''
+reviewed: GLYStmznhiJ3a67iWFxn1Bh7f6mBMAyln_OYoSHmwCc=
+text: |
+  キャッシュの保存I/Oをバックグラウンドに委譲し、関数の応答レイテンシへの影響をゼロにするアーキテクチャ。
+
+  `ThreadPoolExecutor` と非同期イベントループ (`_BackgroundLoop`) を組み合わせる。コンテキストマネージャ (`with spot:`) の終了時に保留中の保存を完了するフラッシュ機構を提供し、データ喪失を防止する。バックグラウンド保存の失敗はログに記録し、関数の実行結果には影響を与えない。

@@ -1,0 +1,16 @@
+active: true
+derived: false
+group: CACHE
+header: |
+  関数キャッシュアーキテクチャ
+level: 1.0
+links:
+- REQ001: CfrxtvKuv6dsKGQQZkob55R98VKFzaGfgDcrFVstROc=
+normative: true
+ref: ''
+reviewed: OWAe2PyBNeb6pijIVRzI0117lFCw-cS7liph5Ab5AUY=
+text: |
+  デコレータパターンを用いて、既存の関数コードを変更せずにキャッシュ機能を透過的に追加する。
+  `@spot.mark()` デコレータが関数の入力をキャッシュキーに変換し、キャッシュヒット時は関数を実行せずに保存済みの結果を返す。
+
+  同期関数 (`def`) と非同期関数 (`async def`) を `inspect.iscoroutinefunction` で判別し、それぞれに適した実行パスに分岐する。

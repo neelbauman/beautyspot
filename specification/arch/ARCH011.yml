@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: CLI
+header: |
+  CLIアーキテクチャ
+level: '1.10'
+links:
+- REQ011: f4SKYgu3ykwtA7XfsZTa4XY_rzOQiYl76ebgAGTK94Q=
+normative: true
+ref: ''
+reviewed: iK6tRh8UqxQTX2NmdwTFiiw-hwaf-ntVLBwh554vhz4=
+text: |
+  Typerフレームワーク上に構築し、`MaintenanceService` のファサードとして各管理操作をサブコマンドとして公開する。
+
+  richライブラリでテーブル・パネル等のターミナル出力をフォーマットし、DBパスの自動検出 (`get_service`) でユーザーの操作負荷を軽減する。

@@ -5,9 +5,9 @@ header: |
   SHA-256キャッシュキー
 level: 1.3
 links:
-- REQ002: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
+- ARCH002: VQHRaJry-D0H-Se3lVkMp_GJ7mDlSO2o-V0gqY3PEpc=
 normative: true
 ref: ''
-reviewed: _q1yMCk1zlZ4i-0ujPwZzTPAoWRGs1rdUKxIdzV9Pbs=
+reviewed: UsZSjTVBVeJizXby9dkiuaIj2e5APuZOfdVGx7TLeCk=
 text: |
   キャッシュキーは `func_identifier:input_id[:version]` 形式の文字列に対する SHA-256 ハッシュとして生成する。func_identifier は `module.qualname` 形式。 input_id はデフォルトでは引数の正規化結果を msgpack + SHA-256 でハッシュした値。

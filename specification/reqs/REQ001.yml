@@ -7,6 +7,6 @@ level: 1.0
 links: []
 normative: true
 ref: ''
-reviewed: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
+reviewed: CfrxtvKuv6dsKGQQZkob55R98VKFzaGfgDcrFVstROc=
 text: |
   関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。

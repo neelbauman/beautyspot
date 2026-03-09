@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: MAINT
+header: |
+  メンテナンスアーキテクチャ
+level: 1.9
+links:
+- REQ010: 0xDnfgjsHplchyYDlATXR8BTSnA66KQZOCBnGq94JrY=
+normative: true
+ref: ''
+reviewed: ziZednrJ49dLQdg4IKsuENWl7I1W3MtE8_Bn6xH27kE=
+text: |
+  `MaintenanceService` をファサードとして、期限切れキャッシュの削除・孤立Blobの回収（GC）・統計取得等のメンテナンス操作を集約する。
+
+  DBとストレージの両方を横断的に操作し、GC時はDBに参照されていないBlobファイルを安全に削除する。レースコンディション防止のため、Blobの最終更新時刻を確認してから削除する。

@@ -5,10 +5,10 @@ header: |
   ファクトリ関数と Protocol
 level: 1.21
 links:
-- REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
+- ARCH012: nniRmCRR1IWoQByHrFfFsfKrsEfsZh00ijbWVQrEnRs=
 normative: true
 ref: ''
-reviewed: NZYcb6EGe1rbXhgyhFfvV7ylk1yr48zfQtkySdwhgaY=
+reviewed: XJYkOLJ_PWAk2Xab8_kehjQsmOFKo5-Og8BdZb-GMJA=
 text: |
   `bs.Spot(name, ...)` ファクトリ関数が唯一のパブリックエントリポイント。
   引数未指定時のデフォルト:

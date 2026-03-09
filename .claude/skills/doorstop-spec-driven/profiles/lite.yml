@@ -1,0 +1,91 @@
+# Profile: lite
+# 小規模開発向け（単体ライブラリ、個人開発、プロトタイプ）
+#
+# SPECが基本設計・詳細設計を兼ねる最小構成。
+# beautyspotのようなフォーカスの明確なライブラリに最適。
+
+name: lite
+description: |
+  小規模開発向けプロファイル。
+  SPECが基本設計と詳細設計を兼ね、最小限の文書階層で
+  トレーサビリティを確保する。
+
+tree:
+  - prefix: REQ
+    path: reqs
+    parent: null
+    role: "要件 (What: 何を実現するか)"
+    description: |
+      ビジネス要件・ユーザーストーリー・機能要件を定義する。
+      技術的な実現方法には言及しない。
+
+  - prefix: SPEC
+    path: specs
+    parent: REQ
+    role: "仕様 (How: どう実現するか)"
+    description: |
+      REQを実現するための技術仕様を定義する。
+      基本設計（コンポーネント分割・IF定義）と
+      詳細設計（アルゴリズム・クラス設計）を1つの文書にまとめる。
+
+  - prefix: IMPL
+    path: impl
+    parent: SPEC
+    role: "実装 (Build: 何を作ったか)"
+    description: |
+      SPECに対応する実装成果物（ソースコード）を追跡する。
+
+  - prefix: TST
+    path: tst
+    parent: SPEC
+    role: "テスト (Verify: どう検証するか)"
+    description: |
+      SPECに対する検証手順・期待結果を定義する。
+
+# IMPLとTSTのリンク先（どの文書にリンクするか）
+impl_links_to: SPEC
+tst_links_to: SPEC
+
+# 設計文書の書き方ガイダンス
+guidance:
+  design_depth: |
+    SPECにアーキテクチャ概要とモジュール設計の両方を記述してよい。
+    levelを使って階層化する:
+      - level 1.x: コンポーネント間の設計（IF定義、データフロー）
+      - level 1.1.x: モジュール内の設計（アルゴリズム、クラス設計）
+  test_levels: false
+  test_level_note: |
+    UT/IT/ATの区別は不要。TSTアイテムはすべてSPECに直接リンクする。
+
+# .doorstop.yml のカスタム属性設定
+doorstop_yml_attributes: |
+  # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
+  attributes:
+    defaults:
+      group: ''
+    reviewed:
+      - group
+    publish:
+      - group
+
+  # 設定しない属性（Git/CIの責務）:
+  #   author, creation_date, status
+
+# 派生要求（derived）の運用
+derived_policy: |
+  - 使用可能な層: SPEC のみ
+  - IMPL/TST での使用は禁止
+  - text に「派生要求の根拠」セクション必須
+  - REQからの直接分解ではなく、技術制約から生じた要求に限定
+
+# 外部ファイル紐付け（references）
+references_policy: |
+  - ref は使わず references に統一する
+  - IMPL: ドメインロジックの実装ファイルのみ（最大2–3ファイル）
+  - TST: 直接のテストファイルのみ
+  - conftest.py, __init__.py, 共通ユーティリティは含めない
+
+# トレーサビリティの流れ
+traceability: |
+  REQ ← SPEC ← IMPL
+                TST

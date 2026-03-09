@@ -5,9 +5,17 @@ header: |
   S3Storage
 level: 1.9
 links:
-- REQ004: rYjqEbhXQ56Fioc3LGz6Mxhc_FXw4CfDj7MiJaTCWm8=
+- ARCH004: GZ2cyHLo0XsZsxAL1leQkOdeo-9Qfqdhw0g8j0G_TKE=
 normative: true
 ref: ''
-reviewed: XMaVXe3xdE8aSJJ2Fu6610GOZlkR3PJWlBkRAoK7lnI=
+reviewed: yXUE61yiP-BqmCpHjO8O-csRo5BCki8yfCqpvjBbdPE=
 text: |
-  `S3Storage` はAWS S3互換ストレージにBlobを保存する。 boto3 の `upload_fileobj` によるマルチパートアップロードに対応（5GB超対応）。 s3:// URI 形式でバケット名・プレフィックスを指定する。 boto3 がインストールされていない場合は ImportError を送出する。
+  `S3Storage` はAWS S3互換オブジェクトストレージにBlobを保存する `BlobStorageMaintenable` 実装である。
+
+  - `save(key, data)`: `boto3.upload_fileobj` によるストリームアップロードを行い、5GB超のマルチパートアップロードに自動対応する。保存先を `s3://bucket/prefix/key.bin` 形式のURIとして返す。
+  - `load(location)`: `s3://` URIをパースし `get_object` でデータを取得する。オブジェクト不在時は `CacheCorruptedError` を送出する。
+  - `delete(location)`: `delete_object` で削除する。権限エラー等の深刻な障害はログに記録し、後続のGCに委譲する。
+  - `list_keys()`: `list_objects_v2` をページネーション付きで列挙し、`s3://` URIを返す。
+  - `get_mtime(location)`: `head_object` の `LastModified` をPOSIXタイムスタンプとして返す。
+  - コンストラクタは `s3://bucket/prefix` 形式のURIからバケット名・プレフィックスを分離する。プレフィックス省略時は `blobs` をデフォルトとする。
+  - `boto3` がインストールされていない場合はインスタンス生成時に `ImportError` を送出する。

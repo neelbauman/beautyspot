@@ -5,9 +5,9 @@ header: |
   CLI コマンド実装
 level: '1.20'
 links:
-- SPEC021: EVYBel9M-Oz69bv3Hsl2B10P66BdUt98v1cTUOpraBY=
+- SPEC021: tpts5YHUo0MklbBWNI42lObDQHBcmEVGHA3PxICOD_E=
 normative: true
 ref: ''
-reviewed: pZnw0FmrWpAE45_392DcnfErtdLtxRWuTphA2FOa5nE=
+reviewed: aW2S496lFIoxeecsi8JDYcUc_nEAGlrMS1IhAYWwTaI=
 text: |
   Typer ベースの CLI コマンド群の実装。 list/show/stats/clear/clean/gc/prune/ui/version の各コマンド、 rich による出力フォーマットを含む。

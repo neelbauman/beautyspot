@@ -4,3 +4,10 @@ settings:
   parent: SPEC
   prefix: IMPL
   sep: ''
+attributes:
+  defaults:
+    group: ''
+  reviewed:
+    - group
+  publish:
+    - group

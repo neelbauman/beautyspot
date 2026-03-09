@@ -7,6 +7,6 @@ level: 1.7
 links: []
 normative: true
 ref: ''
-reviewed: JwW37tcsNK-kOTVFLlc_fNR7sIDjO4ES68i3H_55w20=
+reviewed: LpSLzngQTtYFyX5Y_Ke5jjSinbHq2U34SszCwfnZCa8=
 text: |
   関数の実行頻度をトークンバケット方式で制限し、外部APIの呼び出しレートを制御できること。同期・非同期の両方に対応すること。

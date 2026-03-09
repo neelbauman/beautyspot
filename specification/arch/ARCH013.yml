@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: HERD
+header: |
+  Thundering Herd対策アーキテクチャ
+level: 1.12
+links:
+- REQ013: N6PrX1FKmbAcmlmtwhdO9mpiuPePVrz5AA66MJYe1jA=
+normative: true
+ref: ''
+reviewed: 4Tf9NtnX0aWngHPhuF5QutSU9uOuunl4J90TVrHwQu4=
+text: |
+  同一キャッシュキーへの並行リクエストをイベント (`threading.Event`) ベースで直列化する。
+
+  最初のリクエストのみが関数を実行し、後続リクエストはイベント待機後に最初のリクエストの結果を共有する。タイムアウト・リトライ機構により、デッドロックや無限待機を防止する。

@@ -5,9 +5,9 @@ header: |
   MaintenanceService テスト
 level: 1.19
 links:
-- SPEC020: vdH3A4HR2EdSECRqcAziGdJN3E89nNcZVgIZII1q6qU=
+- SPEC020: 4inhRA31nDgyLTnTy4X2JCpXwt_QQViTCSIRjG2mfeU=
 normative: true
 ref: ''
-reviewed: QX6INaRWWV0jkOwQjGAQFro0IvMZkuMg7ovYMaqLWp8=
+reviewed: UJn4SQLYNwXBNZNcfSIO6LuK9kdxmiF6_6SHyyCm4Sc=
 text: |
   MaintenanceService のテスト。タスク詳細取得、 not found 時の None 返却、メンテナンス操作を検証する。

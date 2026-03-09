@@ -5,9 +5,9 @@ header: |
   SQLiteTaskDB 実装
 level: 1.6
 links:
-- SPEC007: wN8PC1GPkKLs4mrCx1q1aFnY8Rm_eL_mW2C1C1HSiCg=
+- SPEC007: WkFwgMYxDCB04PvRYjs4W17YPYyCF1r3u7DFSvQtx70=
 normative: true
 ref: ''
-reviewed: yQ7FLdlj22g97lXzKp-GhgOCx068JSmDDYCoy_B8hA0=
+reviewed: j0CFnIPZ9iuo2sWdJa0a0r5AKHz5gVEbc5YlM-F2fMk=
 text: |
   SQLiteTaskDB の実装。WAL モード、専用ライタースレッド (_writer_loop)、 スレッドローカル読み取り専用接続 (_read_connect)、 自動マイグレーション、_WriteTask キュー、flush/shutdown を含む。

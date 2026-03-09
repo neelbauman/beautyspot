@@ -1,6 +1,13 @@
 settings:
   digits: '3'
   itemformat: yaml
-  parent: REQ
+  parent: ARCH
   prefix: SPEC
   sep: ''
+attributes:
+  defaults:
+    group: ''
+  reviewed:
+    - group
+  publish:
+    - group

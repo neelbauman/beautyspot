@@ -5,9 +5,9 @@ header: |
   再帰的正規化 (canonicalize)
 level: 1.4
 links:
-- SPEC005: EhCEQ5wDwWSVnNmbmjc-PgVSBv9a12JwuH5GSuEJIjw=
+- SPEC005: ffgIJx_L46x7nk9fCA9AkaUzxaiuejr70pw_9c1-n6g=
 normative: true
 ref: ''
-reviewed: _VdNI__YRTVSJ-Wz9NFNO04_3xkOEH6rK1kFSHAXzBQ=
+reviewed: MzgsjwR_qQH0FKGNHCnwxHG5n1730pIp9h4KW7C-Kpw=
 text: |
   canonicalize() singledispatch 関数の実装。 dict/list/tuple/set/frozenset/deque/defaultdict/OrderedDict/Enum/ numpy/Pydantic/カスタムオブジェクトの型別正規化を含む。

@@ -30,53 +30,18 @@ except ImportError:
     print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
     sys.exit(1)
 
-
-def out(data):
-    """JSON出力して終了。"""
-    print(json.dumps(data, ensure_ascii=False, indent=2))
-    sys.exit(0 if data.get("ok", True) else 1)
-
-
-def get_group(item):
-    try:
-        g = item.get("group")
-        return g if g else None
-    except (AttributeError, KeyError):
-        return None
+from _common import (
+    out, get_group, find_item as _find_item_safe,
+    find_doc_prefix as _find_prefix,
+    item_to_dict,
+)
 
 
-def _is_suspect(item, tree):
-    """アイテムがsuspect状態かどうかを判定する。"""
-    for link in item.links:
-        parent = _find_item_safe(tree, str(link))
-        if parent is None:
-            continue
-        if (
-            link.stamp is not None
-            and link.stamp != ""
-            and link.stamp != parent.stamp()
-        ):
-            return True
-    return False
-
-
-def item_to_dict(item, doc_prefix=None, tree=None):
-    """アイテムをdictに変換。"""
-    d = {
-        "uid": str(item.uid),
-        "prefix": doc_prefix or str(item.uid).rstrip("0123456789"),
-        "text": item.text.strip(),
-        "header": item.header.strip() if item.header else "",
-        "group": get_group(item),
-        "level": str(item.level),
-        "ref": item.ref or "",
-        "links": [str(link) for link in item.links],
-        "active": item.active,
-        "reviewed": bool(item.reviewed),
-    }
-    if tree is not None:
-        d["suspect"] = _is_suspect(item, tree)
-    return d
+def _find_item(tree, uid):
+    item = _find_item_safe(tree, uid)
+    if item is None:
+        out({"ok": False, "error": f"UID '{uid}' が見つかりません"})
+    return item
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +63,9 @@ def cmd_add(tree, args):
         item.set("group", args.group)
     if args.ref:
         item.ref = args.ref
+    if args.references:
+        refs = json.loads(args.references)
+        item.set("references", refs)
 
     # リンク
     for link_uid in (args.links or []):
@@ -125,6 +93,9 @@ def cmd_update(tree, args):
         item.set("group", args.group)
     if args.ref is not None:
         item.ref = args.ref
+    if args.references is not None:
+        refs = json.loads(args.references)
+        item.set("references", refs)
 
     item.save()
 
@@ -276,39 +247,6 @@ def cmd_find(tree, args):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _find_item(tree, uid):
-    for doc in tree:
-        try:
-            return doc.find_item(uid)
-        except Exception:
-            continue
-    print(json.dumps({"ok": False, "error": f"UID '{uid}' が見つかりません"}))
-    sys.exit(1)
-
-
-def _find_item_safe(tree, uid):
-    for doc in tree:
-        try:
-            return doc.find_item(uid)
-        except Exception:
-            continue
-    return None
-
-
-def _find_prefix(tree, item):
-    for doc in tree:
-        try:
-            doc.find_item(str(item.uid))
-            return doc.prefix
-        except Exception:
-            continue
-    return "?"
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -325,6 +263,7 @@ def main():
     p_add.add_argument("-g", "--group", help="機能グループ")
     p_add.add_argument("-l", "--level", help="レベル")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
+    p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
 
     # update
@@ -334,6 +273,7 @@ def main():
     p_upd.add_argument("--header", help="新ヘッダー")
     p_upd.add_argument("-g", "--group", help="新グループ")
     p_upd.add_argument("-r", "--ref", help="新参照パス")
+    p_upd.add_argument("--references", help='外部ファイル紐付け（JSON文字列）')
 
     # link
     p_link = sub.add_parser("link", help="リンク追加")

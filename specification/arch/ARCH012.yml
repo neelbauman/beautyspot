@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: DI
+header: |
+  依存注入アーキテクチャ
+level: 1.11
+links:
+- REQ012: 6W0MNBxJZPznZIzPP6XPUdKxQstg4FxSEJOguLc2kr0=
+normative: true
+ref: ''
+reviewed: UttYPARvssV-kEyLNjZjC5XR-_xDvUkmSr2cCeaTs1s=
+text: |
+  ファクトリ関数 `bs.Spot()` を唯一の公開エントリーポイントとし、全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）のデフォルト組み立てを行う。
+
+  `core.Spot.__init__` は全依存を明示的に要求し、暗黙のデフォルトを持たない。全コンポーネントは `Protocol` / `ABC` に基づくインターフェースで定義され、テストや拡張時の差し替えを容易にする。

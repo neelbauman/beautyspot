@@ -25,7 +25,6 @@ import argparse
 import html as html_mod
 import json
 import os
-import re
 import subprocess
 import sys
 from collections import defaultdict
@@ -37,34 +36,11 @@ except ImportError:
     print("ERROR: doorstop がインストールされていません。", file=sys.stderr)
     sys.exit(1)
 
-
-# ---------------------------------------------------------------------------
-# Utility
-# ---------------------------------------------------------------------------
-
-def get_group(item):
-    try:
-        g = item.get("group")
-        return g if g else "(未分類)"
-    except (AttributeError, KeyError):
-        return "(未分類)"
-
-
-def get_ref(item):
-    try:
-        return item.ref or ""
-    except (AttributeError, KeyError):
-        return ""
-
-
-def find_item_in_tree(tree, uid_str):
-    """UID文字列からアイテムを探す。"""
-    for doc in tree:
-        try:
-            return doc.find_item(uid_str)
-        except Exception:
-            continue
-    return None
+from _common import (
+    get_group, get_ref, find_item as find_item_in_tree,
+    find_doc_prefix as _find_doc_prefix, build_link_index,
+    build_doc_file_map,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -119,22 +95,21 @@ def detect_from_git(tree, project_dir, base_ref=None):
             cmd, cwd=project_dir, capture_output=True, text=True, check=True
         )
     except subprocess.CalledProcessError:
-        # HEADが無い場合（初回コミット前）はstagedを使う
         result = subprocess.run(
             ["git", "diff", "--staged", "--name-only"],
             cwd=project_dir, capture_output=True, text=True
         )
 
-    changed_files = [f for f in result.stdout.strip().split("\n") if f]
+    changed_files = [f.replace("\\", "/") for f in result.stdout.strip().split("\n") if f]
 
-    # YAMLファイルからUIDを抽出
-    uid_pattern = re.compile(r"^reqs/.+/([A-Z]+\d+)\.(yml|yaml)$")
+    # ドキュメントツリーの実際のパスからマッピングを構築
+    file_to_uid = build_doc_file_map(tree, project_dir)
+
     changed = []
     for filepath in changed_files:
-        m = uid_pattern.match(filepath)
-        if m:
-            uid = m.group(1)
-            item = find_item_in_tree(tree, uid)
+        uid_str = file_to_uid.get(filepath)
+        if uid_str:
+            item = find_item_in_tree(tree, uid_str)
             if item:
                 changed.append(item)
     return changed
@@ -143,38 +118,6 @@ def detect_from_git(tree, project_dir, base_ref=None):
 # ---------------------------------------------------------------------------
 # Analysis: 影響範囲の分析
 # ---------------------------------------------------------------------------
-
-def build_link_index(tree):
-    """上流・下流のリンクインデックスを構築する。
-
-    Returns:
-        children: {parent_uid: [(child_item, child_doc_prefix), ...]}
-        parents:  {child_uid: [(parent_item, parent_doc_prefix), ...]}
-    """
-    children = defaultdict(list)
-    parents = defaultdict(list)
-
-    for doc in tree:
-        for item in doc:
-            for link in item.links:
-                uid_str = str(link)
-                parent_item = find_item_in_tree(tree, uid_str)
-                if parent_item:
-                    children[uid_str].append((item, doc.prefix))
-                    parents[str(item.uid)].append((parent_item, _find_doc_prefix(tree, parent_item)))
-
-    return children, parents
-
-
-def _find_doc_prefix(tree, item):
-    for doc in tree:
-        try:
-            doc.find_item(str(item.uid))
-            return doc.prefix
-        except Exception:
-            continue
-    return "?"
-
 
 def analyze_impact(tree, changed_items):
     """変更されたアイテムの影響範囲を分析する。"""

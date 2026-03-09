@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: HOOK
+header: |
+  フック機能アーキテクチャ
+level: 1.8
+links:
+- REQ009: Zi57s_V_uBJ55ZQaCuAwQuJQbnm_KFxPW-yDANS2AO0=
+normative: true
+ref: ''
+reviewed: rAnvELMZ92kfxuDhqtjBUuv3dU8vW1q5TxE0jSFX3gI=
+text: |
+  関数の実行ライフサイクル（実行前・キャッシュヒット・キャッシュミス）にカスタム処理を挿入するオブザーバーパターンを採用する。
+
+  `HookBase` 基底クラスを継承してフックを実装し、`@spot.mark(hooks=[...])` で関数ごとに登録する。マルチスレッド環境向けにスレッドセーフな基底クラス (`ThreadSafeHookBase`) も提供する。

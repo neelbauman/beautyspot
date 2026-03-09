@@ -5,9 +5,9 @@ header: |
   Retention 実装
 level: 1.16
 links:
-- SPEC017: 7Uxh2AdDt9ACO6u2rPH2ImbnUQO4OYbKiAr-U5mCL18=
+- SPEC017: MUNFlfM4TR49bOe-T7MYPI9w8qdjUD9-zodjWW-iFQI=
 normative: true
 ref: ''
-reviewed: YbifLEE6Q13xgQxAhQ7pTN6Lahyc6YIn8eePMIJrWFA=
+reviewed: CteocC7BRsyDovP1w1uW5LobgeSsEMgKtXFvfT64OFc=
 text: |
   Retention 定数、_ForeverSentinel シングルトン、 parse_retention() による文字列/timedelta/int/float の正規化、 SQLiteTaskDB.get() での Lazy Expiration チェックの実装を含む。

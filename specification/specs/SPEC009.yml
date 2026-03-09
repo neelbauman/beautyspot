@@ -5,9 +5,18 @@ header: |
   LocalStorage
 level: 1.8
 links:
-- REQ004: rYjqEbhXQ56Fioc3LGz6Mxhc_FXw4CfDj7MiJaTCWm8=
+- ARCH004: GZ2cyHLo0XsZsxAL1leQkOdeo-9Qfqdhw0g8j0G_TKE=
 normative: true
 ref: ''
-reviewed: ZnDs-fU9oVYwbjinfoqyzahYzQHMk_v_IvnV4SoI2nA=
+reviewed: -8CtMI_n5Gfa0zbfjBGUiRDPAL_oHtd4gWQeQVRzpgg=
 text: |
-  `LocalStorage` はローカルファイルシステムにBlobを保存する。 `save()` は `tempfile.mkstemp` + `os.replace` によるアトミック書き込みで、 並行書き込みやプロセスクラッシュ時のファイル破損を防止する。 `load()` はパストラバーサル攻撃を `is_relative_to` で検証する。 `list_keys()` は `.bin` ファイルを再帰的に列挙する。 `clean_temp_files()` で残留一時ファイル (`.spot_tmp`) を清掃する。 `prune_empty_dirs()` で空ディレクトリを再帰的に削除する。
+  `LocalStorage` はローカルファイルシステムにBlobを保存する `BlobStorageMaintenable` 実装である。
+
+  - `save(key, data)`: `tempfile.mkstemp` で一時ファイルを作成し、`flush` + `fsync` の後 `os.replace` でアトミックにリネームする。並行書き込みやクラッシュ時のファイル破損を防止する。キーにパス区切り文字 (`..`, `/`, `\\`) を含む場合は `ValidationError` を送出する。
+  - `load(location)`: 解決パスが `base_dir` 配下であることを `is_relative_to` で検証し、パストラバーサルを防止する。ファイル不在時は `CacheCorruptedError` を送出する。
+  - `delete(location)`: 冪等に動作する。空ディレクトリの削除はメンテナンスタスクに委譲する。
+  - `list_keys()`: `.bin` ファイルを `rglob` で再帰的に列挙し、`base_dir` からの相対パスを返す。
+  - `get_mtime(location)`: パストラバーサル検証後にファイルの最終更新時刻を返す。
+  - `clean_temp_files(max_age_seconds)`: 猶予期間（デフォルト24時間）を超えた `.spot_tmp` ファイルを清掃する。
+  - `prune_empty_dirs()`: 空ディレクトリ（`.DS_Store` 等のみ含むものを含む）を再帰的に削除する。`base_dir` 自体は保持する。
+  - 初期化時に `base_dir` を絶対パスに正規化し、ディレクトリと `.gitignore` を自動作成する。

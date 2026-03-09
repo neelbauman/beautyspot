@@ -78,7 +78,115 @@ text: |
 
 ---
 
+## ARCH（基本設計）— Architecture を定義する（standardプロファイル）
+
+ARCHはコンポーネント分割、コンポーネント間インターフェース、データフロー、
+技術選定を定義する。「何を作るか」ではなく「どう構成するか」に焦点を当てる。
+fullプロファイルではHLD（High-Level Design）が同等の役割を担う。
+
+### テンプレート
+
+```yaml
+active: true
+derived: false
+group: CACHE
+header: |
+  キャッシュサブシステム構成
+level: 1.0
+links:
+- REQ001: <fingerprint>
+normative: true
+ref: ''
+reviewed: null
+text: |
+  ## コンポーネント構成
+
+  ```mermaid
+  graph TD
+    A[bs.Spot Factory] -->|DI| B[core.Spot Engine]
+    B --> C[TaskDBBase]
+    B --> D[SerializerProtocol]
+    B --> E[BlobStorageBase]
+    B --> F[StoragePolicyProtocol]
+    B --> G[LimiterProtocol]
+    B --> H[LifecyclePolicy]
+  ```
+
+  ## コンポーネント責務
+
+  | コンポーネント | 責務 | インターフェース |
+  |---|---|---|
+  | core.Spot | キャッシュエンジン。キー生成→検索→実行→保存の制御 | `mark()`, `cached_run()` |
+  | TaskDBBase | メタデータ永続化。キャッシュキーによる検索と保存 | `find_by_key()`, `insert()` |
+  | SerializerProtocol | データのシリアライズ/デシリアライズ | `pack()`, `unpack()` |
+  | BlobStorageBase | 大規模データの外部ストレージ保存 | `save()`, `load()`, `delete()` |
+  | StoragePolicyProtocol | Blob保存の判定ポリシー | `should_save_as_blob()` |
+
+  ## データフロー
+
+  ```mermaid
+  sequenceDiagram
+    participant User as ユーザーコード
+    participant Spot as core.Spot
+    participant DB as TaskDB
+    participant Ser as Serializer
+    participant Blob as BlobStorage
+
+    User->>Spot: fn(args)
+    Spot->>DB: find_by_key(cache_key)
+    alt キャッシュヒット
+      DB-->>Spot: cached_data
+      Spot->>Ser: unpack(data)
+    else キャッシュミス
+      Spot->>Spot: fn(args) 実行
+      Spot->>Ser: pack(result)
+      Spot->>DB: insert(metadata)
+      opt Blob保存
+        Spot->>Blob: save(key, data)
+      end
+    end
+    Spot-->>User: result
+  ```
+
+  ## 技術選定
+
+  | 技術領域 | 選定 | 理由 |
+  |---|---|---|
+  | メタデータDB | SQLite | ゼロ設定、組み込み可能、十分な性能 |
+  | シリアライズ | MessagePack | JSONより高速・コンパクト、バイナリ対応 |
+  | ストレージ | ローカルファイル / S3 | 小規模はローカル、大規模はS3で透過切替 |
+
+  ## 非機能要件方針
+
+  - **性能**: キャッシュヒット時のオーバーヘッドは1ms以内
+  - **スレッド安全性**: `default_wait=False` 時はThreadPoolExecutorで非同期IO
+  - **拡張性**: 全コンポーネントはProtocol/ABCで抽象化、DI差し替え可能
+```
+
+### ポイント
+
+| セクション | 目的 |
+|---|---|
+| コンポーネント構成 | システムの構成要素と関係を図示（Mermaid推奨） |
+| コンポーネント責務 | 各コンポーネントの責務とインターフェース |
+| データフロー | コンポーネント間のデータの流れ（シーケンス図推奨） |
+| 技術選定 | 採用技術とその理由 |
+| 非機能要件方針 | 性能、セキュリティ、スケーラビリティの目標値 |
+
+> **ARCHとSPECの書き分け基準**:
+> ARCH はコンポーネント **間** の設計（外から見た構造）、
+> SPEC はコンポーネント **内** の設計（中の実装方針）。
+> 「このインターフェースを通じて何をやりとりするか」はARCH、
+> 「このインターフェースの中でどう処理するか」はSPEC。
+
+---
+
 ## SPEC（仕様）— How を定義する
+
+> **プロファイルによる役割の違い:**
+> - **lite**: 基本設計＋詳細設計を兼ねる（REQの直下）
+> - **standard**: 詳細設計に特化する（ARCHの直下）
+> - fullプロファイルではLLD（Low-Level Design）が同等の役割を担う
 
 ### テンプレート
 
@@ -179,7 +287,9 @@ level: 1.0
 links:
 - SPEC001: <fingerprint>
 normative: true
-ref: 'src/beautyspot/core.py'
+references:
+  - path: src/beautyspot/core.py
+    type: file
 reviewed: null
 text: |
   ## 実装場所
@@ -233,8 +343,10 @@ text: |
 | 依存関係 | 利用する他コンポーネント |
 | 注意事項 | 実装時の注意点・落とし穴 |
 
-> **`ref` フィールド**: 実装ファイルパスを `ref` に設定すると、
-> Doorstop がソースコードとの紐付けを自動検証できる。
+> **`references` フィールド**: 実装ファイルパスを `references` に設定すると、
+> 1つのアイテムに対して複数のファイルを紐付けられる。
+> ドメインロジックの実装ファイルのみに厳選し（最大2–3ファイル）、
+> `conftest.py` や共通ユーティリティは含めない（レビュー疲れ防止）。
 
 ---
 
@@ -252,7 +364,9 @@ level: 1.0
 links:
 - SPEC001: <fingerprint>
 normative: true
-ref: 'tests/integration/core/test_mark.py'
+references:
+  - path: tests/integration/core/test_mark.py
+    type: file
 reviewed: null
 text: |
   ## テスト対象

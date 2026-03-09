@@ -5,9 +5,9 @@ header: |
   DB プロトコル階層
 level: 1.7
 links:
-- REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
+- ARCH003: ZBqR8wK4iax8dNf5W4zv0WWBqfrzZ57SVsr0l6l6igw=
 normative: true
 ref: ''
-reviewed: PYYsSZKjqxKzyNdJEhggw9b0JWALu0UKyL1a67B8pZI=
+reviewed: zEzd9blrTBwOXROybSQGvKrRTDNIwr49zls0HZ-pBaA=
 text: |
   `TaskDBCore` プロトコルは init_schema/get/save/delete の4メソッドを定義する。 `TaskDBBase` 抽象基底クラスはメンテナンス系メソッドのデフォルト実装を提供する。 `Maintenable` プロトコルは delete_expired/prune/get_outdated_tasks/get_blob_refs/ delete_all/get_keys_start_with/get_history を定義する。 `TaskDBMaintenable = TaskDBCore + Maintenable`。

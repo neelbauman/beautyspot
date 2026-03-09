@@ -5,9 +5,9 @@ header: |
   DB プロトコル階層テスト
 level: 1.7
 links:
-- SPEC008: jnPnado6r8CdUCSq6nSlCfld7TC3qOnJSElRw4Z0Y6w=
+- SPEC008: xgTQqVbBvQndnPKGjHGQK9GDHWmL2OU49VNn_z7QkIw=
 normative: true
 ref: ''
-reviewed: vbDsZJL2w994hejgXfKGh-p-QoMtZOt_zxcvHt2ciw8=
+reviewed: q_gm3ETlB5fQGb0t8IG-U0Cqwqr5x_XbySPKTNjHRgo=
 text: |
   DB プロトコル階層のテスト。TaskDBCore/TaskDBBase の インターフェース準拠、メンテナンスメソッドのデフォルト動作を検証する。

@@ -1,0 +1,124 @@
+# Profile: full
+# 大規模開発向け（規制産業、多チーム、厳密なV字モデル準拠）
+#
+# HLD（基本設計）とLLD（詳細設計）を分離し、
+# テストレベルも明確に対応させるフルV字モデル構成。
+# 医療機器、航空宇宙、金融等の規制要件がある場合に適する。
+
+name: full
+description: |
+  大規模開発向けプロファイル。
+  HLD（High-Level Design / 基本設計）とLLD（Low-Level Design / 詳細設計）を
+  分離し、V字モデルの各レベルに対応するテストレベルを明確に定義する。
+
+tree:
+  - prefix: REQ
+    path: reqs
+    parent: null
+    role: "要件 (What: 何を実現するか)"
+    description: |
+      ビジネス要件・ユーザーストーリー・機能要件を定義する。
+      技術的な実現方法には言及しない。
+
+  - prefix: HLD
+    path: hld
+    parent: REQ
+    role: "基本設計 (High-Level Design: どう構成するか)"
+    description: |
+      システム全体のアーキテクチャを定義する。
+      サブシステム分割、コンポーネント間インターフェース、
+      データフロー、技術選定、非機能要件の設計方針を記述する。
+      V字モデルの左辺で結合テスト（IT）に対応する。
+
+  - prefix: LLD
+    path: lld
+    parent: HLD
+    role: "詳細設計 (Low-Level Design: どう実装するか)"
+    description: |
+      HLDで定義されたコンポーネントの内部設計を定義する。
+      API仕様、アルゴリズム、クラス設計、データ構造、
+      エラーハンドリング、エッジケースを記述する。
+      V字モデルの左辺で単体テスト（UT）に対応する。
+
+  - prefix: IMPL
+    path: impl
+    parent: LLD
+    role: "実装 (Build: 何を作ったか)"
+    description: |
+      LLDに対応する実装成果物（ソースコード）を追跡する。
+
+  - prefix: TST
+    path: tst
+    parent: LLD
+    role: "テスト (Verify: どう検証するか)"
+    description: |
+      設計文書に対する検証手順・期待結果を定義する。
+      test_level属性でV字モデルの右辺レベルを明示する。
+
+# IMPLとTSTのリンク先
+impl_links_to: LLD
+tst_links_to: LLD
+
+# 設計文書の書き方ガイダンス
+guidance:
+  design_depth: |
+    HLDとLLDの書き分け基準:
+      - HLD: サブシステム間の関係、外部IF、データフロー、技術選定理由、
+        非機能要件の具体値（性能目標、可用性目標等）
+        例: 「認証サブシステムはOAuth 2.0 + JWTを採用する」
+        例: 「API応答時間はp99で200ms以内とする」
+      - LLD: モジュール内部の設計、関数シグネチャ、アルゴリズム詳細、
+        状態遷移、エラー処理の網羅的定義
+        例: 「JWTトークン生成はRS256で署名し、有効期限は3600秒」
+        例: 「TokenBucketのrefill()はGCRAに基づき O(1) で動作する」
+  test_levels: true
+  test_level_note: |
+    TSTアイテムのtest_level属性はV字モデルの右辺レベルに対応する:
+      - unit: 単体テスト（LLD/詳細設計に対応）
+        → LLDアイテムにリンク
+      - integration: 結合テスト（HLD/基本設計に対応）
+        → HLDアイテムにリンク
+      - system: システムテスト（REQ/要件に対応）
+        → REQアイテムにリンク（またはHLD経由）
+      - acceptance: 受入テスト（REQ/要件に対応）
+        → REQアイテムにリンク
+    テストレベルごとにリンク先の文書が異なることに注意。
+
+# .doorstop.yml のカスタム属性設定
+doorstop_yml_attributes: |
+  # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
+  attributes:
+    defaults:
+      group: ''
+    reviewed:
+      - group
+    publish:
+      - group
+
+  # 設定しない属性（Git/CIの責務）:
+  #   author, creation_date, status
+
+# 派生要求（derived）の運用
+derived_policy: |
+  - 使用可能な層: HLD / LLD のみ
+  - IMPL/TST での使用は禁止
+  - text に「派生要求の根拠」セクション必須
+  - REQからの直接分解ではなく、技術制約から生じた要求に限定
+
+# 外部ファイル紐付け（references）
+references_policy: |
+  - ref は使わず references に統一する
+  - IMPL: ドメインロジックの実装ファイルのみ（最大2–3ファイル）
+  - TST: 直接のテストファイルのみ
+  - conftest.py, __init__.py, 共通ユーティリティは含めない
+
+# トレーサビリティの流れ
+traceability: |
+  REQ ← HLD ← LLD ← IMPL
+                     TST
+
+  V字モデル対応:
+    要件定義 (REQ) ─────────────── 受入テスト (TST test_level=acceptance)
+       基本設計 (HLD) ──────── 結合テスト (TST test_level=integration)
+          詳細設計 (LLD) ── 単体テスト (TST test_level=unit)
+             実装 (IMPL)

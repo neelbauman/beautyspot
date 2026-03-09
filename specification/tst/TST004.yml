@@ -5,9 +5,9 @@ header: |
   SHA-256 キャッシュキーテスト
 level: 1.3
 links:
-- SPEC004: tkXUuLLiIDe8ZCqlne_6s-zoOCcGcuwyzaRXp16bDKI=
+- SPEC004: OPn4L9SU4zQjf3i3ZpsD1DGKHCtSQmfhzwiwqcVWheg=
 normative: true
 ref: ''
-reviewed: 540IR9q17RXGpQXwaZZQz4Qp1qE9BlKMoReXqBvyh0o=
+reviewed: 10fHRHP3L_sBiyQ-fdR_VTxI21c-ax-iJnLrQUY_fyk=
 text: |
   SHA-256 キャッシュキーのテスト。ハッシュ安定性、 同一入力からの一貫したキー生成を検証する。

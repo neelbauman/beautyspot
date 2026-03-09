@@ -3,3 +3,10 @@ settings:
   itemformat: yaml
   prefix: REQ
   sep: ''
+attributes:
+  defaults:
+    group: ''
+  reviewed:
+    - group
+  publish:
+    - group

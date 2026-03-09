@@ -5,9 +5,9 @@ header: |
   SQLiteTaskDB テスト
 level: 1.6
 links:
-- SPEC007: wN8PC1GPkKLs4mrCx1q1aFnY8Rm_eL_mW2C1C1HSiCg=
+- SPEC007: WkFwgMYxDCB04PvRYjs4W17YPYyCF1r3u7DFSvQtx70=
 normative: true
 ref: ''
-reviewed: 9_ANm7cnAylqtrdYO5A4kMlm_hPCfpoCPTAr_RuzktE=
+reviewed: QF5b_TxS9W3sJXL_AY9QBQZcuptbeAIC_GlCvwSoKd4=
 text: |
   SQLiteTaskDB のテスト。スキーマ初期化、CRUD操作、 読み取り接続のリカバリとリーク防止、ライタースレッドの タイムアウト処理、GC 時のDB 存続性を検証する。

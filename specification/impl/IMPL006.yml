@@ -5,9 +5,9 @@ header: |
   KeyGenPolicy 実装
 level: 1.5
 links:
-- SPEC006: g8tRTaQaFr-uwAmN4mlisB3i800uqqU7y2waN0Nxxug=
+- SPEC006: RMTxfnsnPFluWYinCimxMmi0VHzXitwMuW9sZkXrxAE=
 normative: true
 ref: ''
-reviewed: yQh-xvnmgWDv3Sfm1VVthduPdw5btleAGy80xPok-9g=
+reviewed: 662Z22kfo8u7kEQx1zJdrsjsmEFPzAPudtVRyjkj61c=
 text: |
   KeyGenPolicy クラスと Strategy enum の実装。 ignore/map/file_content/path_stat ファクトリメソッド、 bind(func) によるシグネチャバインディングを含む。

@@ -5,9 +5,9 @@ header: |
   LifecyclePolicy 実装
 level: 1.15
 links:
-- SPEC016: SVvySN0rXF-2Q4CJi-bFrwfHzMKigeaEwd9bdoFZ6pY=
+- SPEC016: aNGhXSdKb1txC4NQDsQgT7Hc_sr4rbfZnqSfQdcHSAQ=
 normative: true
 ref: ''
-reviewed: gWgC2pOZ6fs6qs66aFPpD8mIiakqwoVF43tZQy6MFSg=
+reviewed: OUwD9jYBHAg2w6xCNVjaTSKSyzyXeZ7Kk7zhlBQe6CU=
 text: |
   LifecyclePolicy の実装。Rule リスト、fnmatch パターンマッチング、 resolve() と resolve_with_fallback() メソッドを含む。

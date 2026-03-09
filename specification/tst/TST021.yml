@@ -5,9 +5,9 @@ header: |
   CLI テスト
 level: '1.20'
 links:
-- SPEC021: EVYBel9M-Oz69bv3Hsl2B10P66BdUt98v1cTUOpraBY=
+- SPEC021: tpts5YHUo0MklbBWNI42lObDQHBcmEVGHA3PxICOD_E=
 normative: true
 ref: ''
-reviewed: GPRA0gGgGQjbbkXyvvM7ha1b1p-rKvDZhjmjcVc7nUg=
+reviewed: MePczkQlBrPklNCIMGkn4YU3zOJA7RGSoVrYAxBTlfg=
 text: |
   CLI コマンドのテスト。 `CliRunner` による list/show/stats/clear 等の コマンド実行、E2E パイプラインとの統合を検証する。

@@ -5,9 +5,9 @@ header: |
   MsgpackSerializer 実装
 level: 1.11
 links:
-- SPEC012: gJdAPnioKY0pdOMlTWHhoKZ7nsoRUwL_q0VzP7uwgjE=
+- SPEC012: Im-o-GZ5ItLezcAABFJGrXjgWZGnKPtXxZSHpfEexkg=
 normative: true
 ref: ''
-reviewed: RNSmvvUdRjUzayWh4FP63tXbvR9yaW9awc0rJiJSw88=
+reviewed: NnCgCwJa1X3hPhWDde8vwl4gO9Qh3CYmFIzR-KTT_ec=
 text: |
   MsgpackSerializer の実装。Copy-on-Write レジストリ、 スレッドローカル LRU キャッシュ、MRO スキャン、 ExtType ラッピング、レジストリ世代管理を含む。

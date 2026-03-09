@@ -5,10 +5,10 @@ header: |
   SQLiteTaskDB
 level: 1.6
 links:
-- REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
+- ARCH003: ZBqR8wK4iax8dNf5W4zv0WWBqfrzZ57SVsr0l6l6igw=
 normative: true
 ref: ''
-reviewed: TyhLcReU4EtzFVKQhqJ3e37ZHgjmKd59N3fyqOz34jE=
+reviewed: 4_1BDJuX-cwU02FKvRNCJparhavGPR9ACUcrfDR17Rk=
 text: |
   ## デフォルトのDBのバックエンド実装はSQLiteを使用する。
 

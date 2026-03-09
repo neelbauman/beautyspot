@@ -5,9 +5,9 @@ header: |
   Retention テスト
 level: 1.16
 links:
-- SPEC017: 7Uxh2AdDt9ACO6u2rPH2ImbnUQO4OYbKiAr-U5mCL18=
+- SPEC017: MUNFlfM4TR49bOe-T7MYPI9w8qdjUD9-zodjWW-iFQI=
 normative: true
 ref: ''
-reviewed: 5XbpDAj7oBcPRritrCpFKqfwTHGzE5ZOycMeZ01dFH0=
+reviewed: xdTg0ncbbqU7LzP1sgcyZC_Hng_W_3ZBSJ2L1nIgQyQ=
 text: |
   Retention 仕様のテスト。文字列フォーマット ("7d", "12h", "30m", "10s")、 timedelta、秒数のパース、Retention.FOREVER シングルトン、 負値・ゼロの ValidationError を検証する。

@@ -5,9 +5,9 @@ header: |
   TokenBucket (GCRA)
 level: 1.17
 links:
-- REQ008: JwW37tcsNK-kOTVFLlc_fNR7sIDjO4ES68i3H_55w20=
+- ARCH008: 1l6Os578APfAeDlsg5iY_2sA44ZTfQMKDdUV6ELJ1-U=
 normative: true
 ref: ''
-reviewed: U9sFe76VhwJFh78l2JDQeONOiew-WS6fnjcjfsVyqR4=
+reviewed: NIwkhvj20ckUA1BdqjmCaVGjLNQtKGUsD2OG_kIeQo8=
 text: |
   `TokenBucket` は GCRA (Generic Cell Rate Algorithm) ベースのスムースレートリミッター。 tokens_per_minute で分あたりのトークン数を指定する。 アイドル後のバースト防止（Strict Pacing）、初回リクエストの遅延なし、 TPM 超過コストの即時拒否 (ValueError) を実装する。 モノトニッククロック使用。スレッドセーフ (threading.Lock)。 `consume(cost)` で同期ブロック、`consume_async(cost)` で非同期待機。 `@spot.consume(cost)` デコレータで関数に適用する。cost は整数またはコスト計算関数。

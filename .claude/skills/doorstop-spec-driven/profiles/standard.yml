@@ -1,0 +1,114 @@
+# Profile: standard
+# 中規模開発向け（複数サブシステム、チーム開発）
+#
+# ARCH（基本設計）を追加し、SPECを詳細設計として位置づける。
+# 設計レビューを段階的に行いたいチームに最適。
+
+name: standard
+description: |
+  中規模開発向けプロファイル。
+  ARCH（基本設計）層を追加し、コンポーネント分割やIF定義と
+  モジュール内の詳細設計を明確に分離する。
+
+tree:
+  - prefix: REQ
+    path: reqs
+    parent: null
+    role: "要件 (What: 何を実現するか)"
+    description: |
+      ビジネス要件・ユーザーストーリー・機能要件を定義する。
+      技術的な実現方法には言及しない。
+
+  - prefix: ARCH
+    path: arch
+    parent: REQ
+    role: "基本設計 (Architecture: どう構成するか)"
+    description: |
+      システム全体のアーキテクチャを定義する。
+      コンポーネント分割、コンポーネント間インターフェース、
+      データフロー、技術選定、非機能要件の方針を記述する。
+      「何を作るか」ではなく「どう構成するか」に焦点を当てる。
+
+  - prefix: SPEC
+    path: specs
+    parent: ARCH
+    role: "詳細設計 (Detail: どう実装するか)"
+    description: |
+      ARCHで定義されたコンポーネントの内部設計を定義する。
+      API仕様、アルゴリズム、クラス設計、データ構造、
+      エラーハンドリング、エッジケースを記述する。
+
+  - prefix: IMPL
+    path: impl
+    parent: SPEC
+    role: "実装 (Build: 何を作ったか)"
+    description: |
+      SPECに対応する実装成果物（ソースコード）を追跡する。
+
+  - prefix: TST
+    path: tst
+    parent: SPEC
+    role: "テスト (Verify: どう検証するか)"
+    description: |
+      SPECに対する検証手順・期待結果を定義する。
+      test_level属性でテストの粒度を区別する。
+
+# IMPLとTSTのリンク先
+impl_links_to: SPEC
+tst_links_to: SPEC
+
+# 設計文書の書き方ガイダンス
+guidance:
+  design_depth: |
+    ARCHとSPECの書き分け基準:
+      - ARCH: コンポーネント間の関係、外部IF、データフロー、技術選定理由
+        例: 「認証サブシステムはJWTベースのトークン認証を採用する」
+        例: 「ストレージ層はBlobStorageBaseインターフェースで抽象化する」
+      - SPEC: コンポーネント内部の設計、APIシグネチャ、アルゴリズム詳細
+        例: 「JWTトークンのペイロードにはuser_id, exp, iatを含む」
+        例: 「BlobStorage.save()はキーの衝突時にOverwriteErrorを送出する」
+  test_levels: true
+  test_level_note: |
+    TSTアイテムにtest_level属性を設定してテスト粒度を区別する:
+      - unit: モジュール単体のテスト（SPEC/詳細設計に対応）
+      - integration: コンポーネント間結合テスト（ARCH/基本設計に対応）
+      - acceptance: ユーザーシナリオテスト（REQ/要件に対応）
+    TSTのリンク先は原則SPECだが、integrationテストはARCHにもリンク可。
+
+# .doorstop.yml のカスタム属性設定
+doorstop_yml_attributes: |
+  # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
+  attributes:
+    defaults:
+      group: ''
+    reviewed:
+      - group
+    publish:
+      - group
+
+  # 設定しない属性（Git/CIの責務）:
+  #   author, creation_date, status
+
+# 派生要求（derived）の運用
+derived_policy: |
+  - 使用可能な層: ARCH / SPEC のみ
+  - IMPL/TST での使用は禁止
+  - text に「派生要求の根拠」セクション必須
+  - REQからの直接分解ではなく、技術制約から生じた要求に限定
+
+# 外部ファイル紐付け（references）
+references_policy: |
+  - ref は使わず references に統一する
+  - IMPL: ドメインロジックの実装ファイルのみ（最大2–3ファイル）
+  - TST: 直接のテストファイルのみ
+  - conftest.py, __init__.py, 共通ユーティリティは含めない
+
+# トレーサビリティの流れ
+traceability: |
+  REQ ← ARCH ← SPEC ← IMPL
+                       TST
+
+  V字対応:
+    REQ ↔ acceptance test (TST test_level=acceptance)
+    ARCH ↔ integration test (TST test_level=integration)
+    SPEC ↔ unit test (TST test_level=unit)

@@ -7,6 +7,6 @@ level: 1.8
 links: []
 normative: true
 ref: ''
-reviewed: Pz2A0pug8oCFm4G1UmkLY_oBU2CrulUJDQCx4D6WXyk=
+reviewed: Zi57s_V_uBJ55ZQaCuAwQuJQbnm_KFxPW-yDANS2AO0=
 text: |
   関数の実行前、キャッシュヒット時、キャッシュミス時にカスタムコールバック（フック）を実行できること。スレッドセーフなフック実装を提供すること。

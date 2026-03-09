@@ -5,9 +5,9 @@ header: |
   カスタム型登録
 level: 1.12
 links:
-- REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
+- ARCH005: Xe3owRo-KHpFNPrfgSQLyc5pjzNb4KoC-4WtdYihUqI=
 normative: true
 ref: ''
-reviewed: 7lkv3h9OktHPDgbeD3OMLfhbJz1t3e282CDqfZFEfNs=
+reviewed: IBjAQkVQhqnqPqwd3xyJQV1FcK3kVqgdY1p8QjYBhZ0=
 text: |
   `spot.register(code, encoder, decoder)` デコレータまたは `spot.register_type(cls, code, encoder, decoder)` メソッドにより、 カスタム型をシリアライザに登録する。code は 0-127 の一意な整数。 同一コードまたは同一型の重複登録は ValueError で拒否する。 `decoder_factory` オプションで型に基づくデコーダ自動生成もサポートする。

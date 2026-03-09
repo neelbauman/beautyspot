@@ -5,10 +5,10 @@ header: |
   mark デコレータテスト
 level: 1.0
 links:
-- SPEC001: VfQBYPsFZq-DXL4HZTKnV19i2K4KduLyZ4XcG1i5tkg=
+- SPEC001: wiOG403oECQMvXPICNVUXTbzlsabT7tZP7gcXL6l5jE=
 normative: true
 ref: ''
-reviewed: 88NCmopxM9vRnJPM7HxIvZHiM8gXbJcsFuFbOFfHbQM=
+reviewed: vDq9EuAR8paemKxrhMvI4cbQnR_9olusGk1v8hH_OWc=
 text: |
   ## `mark` デコレータのテスト。
 

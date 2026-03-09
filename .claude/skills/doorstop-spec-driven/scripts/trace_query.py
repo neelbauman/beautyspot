@@ -35,104 +35,11 @@ except ImportError:
     print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
     sys.exit(1)
 
-
-# ---------------------------------------------------------------------------
-# Utility
-# ---------------------------------------------------------------------------
-
-def out(data):
-    """JSON出力して終了。"""
-    print(json.dumps(data, ensure_ascii=False, indent=2))
-    sys.exit(0 if data.get("ok", True) else 1)
-
-
-def get_group(item):
-    try:
-        g = item.get("group")
-        return g if g else None
-    except (AttributeError, KeyError):
-        return None
-
-
-def get_ref(item):
-    try:
-        return item.ref or ""
-    except (AttributeError, KeyError):
-        return ""
-
-
-def find_item(tree, uid_str):
-    for doc in tree:
-        try:
-            return doc.find_item(uid_str)
-        except Exception:
-            continue
-    return None
-
-
-def find_doc_prefix(tree, item):
-    for doc in tree:
-        try:
-            doc.find_item(str(item.uid))
-            return doc.prefix
-        except Exception:
-            continue
-    return "?"
-
-
-def is_suspect(item, tree):
-    """アイテムがsuspect状態かどうかを判定する。"""
-    for link in item.links:
-        parent = find_item(tree, str(link))
-        if parent is None:
-            continue
-        if (
-            link.stamp is not None
-            and link.stamp != ""
-            and link.stamp != parent.stamp()
-        ):
-            return True
-    return False
-
-
-def item_summary(item, prefix=None, tree=None):
-    """アイテムのコンパクトなdict表現。"""
-    d = {
-        "uid": str(item.uid),
-        "prefix": prefix or find_doc_prefix(tree, item) if tree else "?",
-        "group": get_group(item),
-        "header": item.header.strip() if item.header else "",
-        "text": item.text.strip()[:200],
-        "ref": get_ref(item),
-        "links": [str(link) for link in item.links],
-        "reviewed": bool(item.reviewed),
-    }
-    if tree is not None:
-        d["suspect"] = is_suspect(item, tree)
-    return d
-
-
-# ---------------------------------------------------------------------------
-# Link index
-# ---------------------------------------------------------------------------
-
-def build_link_index(tree):
-    """children[parent_uid] = [(child_item, prefix), ...]
-       parents[child_uid]   = [(parent_item, prefix), ...]
-    """
-    children = defaultdict(list)
-    parents = defaultdict(list)
-    for doc in tree:
-        for item in doc:
-            for link in item.links:
-                uid_str = str(link)
-                parent_item = find_item(tree, uid_str)
-                if parent_item:
-                    children[uid_str].append((item, doc.prefix))
-                    parents[str(item.uid)].append(
-                        (parent_item, find_doc_prefix(tree, parent_item))
-                    )
-    return children, parents
+from _common import (
+    out, get_group, get_references, is_derived,
+    find_item, find_doc_prefix, is_suspect, item_summary,
+    build_link_index,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +161,7 @@ def _trace_up(uid, parents_idx, result, visited, depth=0):
             "prefix": parent_prefix,
             "group": get_group(parent_item),
             "text": parent_item.text.strip()[:120],
+            "derived": is_derived(parent_item),
             "depth": depth,
         })
         _trace_up(parent_uid, parents_idx, result, visited, depth + 1)
@@ -270,7 +178,8 @@ def _trace_down(uid, children_idx, result, visited, depth=0):
             "prefix": child_prefix,
             "group": get_group(child_item),
             "text": child_item.text.strip()[:120],
-            "ref": get_ref(child_item),
+            "references": get_references(child_item),
+            "derived": is_derived(child_item),
             "depth": depth,
         })
         _trace_down(child_uid, children_idx, result, visited, depth + 1)
@@ -378,7 +287,7 @@ def cmd_suspects(tree, args):
                 "prefix": doc.prefix,
                 "group": get_group(item),
                 "text": item.text.strip()[:120],
-                "ref": get_ref(item),
+                "references": get_references(item),
                 "suspect_links": suspect_links,
                 "action": action,
             })
@@ -395,16 +304,17 @@ def cmd_suspects(tree, args):
 def _suggest_action(item, prefix):
     """suspectアイテムに対する推奨アクションを生成する。"""
     uid = str(item.uid)
-    ref = get_ref(item)
+    refs = get_references(item)
+    ref_str = ", ".join(r["path"] for r in refs) if refs else ""
     if prefix == "IMPL":
         base = f"{uid} の実装を確認・修正"
-        if ref:
-            base += f"（{ref}）"
+        if ref_str:
+            base += f"（{ref_str}）"
         return base + f" → doorstop clear {uid}"
     elif prefix == "TST":
         base = f"{uid} のテストを確認・修正"
-        if ref:
-            base += f"（{ref}）"
+        if ref_str:
+            base += f"（{ref_str}）"
         return base + f" → doorstop clear {uid}"
     elif prefix == "SPEC":
         return f"{uid} の仕様が親REQの変更と整合するか確認 → doorstop clear {uid}"
@@ -440,14 +350,14 @@ def cmd_gaps(tree, args):
                     "issue": f"{doc.parent} へのリンクがありません",
                 })
 
-            # refチェック（IMPL/TSTはref必須）
-            if doc.prefix in ("IMPL", "TST") and not get_ref(item):
+            # referencesチェック（IMPL/TSTはreferences必須）
+            if doc.prefix in ("IMPL", "TST") and not get_references(item):
                 missing_refs.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
                     "group": get_group(item),
                     "text": item.text.strip()[:120],
-                    "issue": "ref（ソース/テストファイルパス）が未設定",
+                    "issue": "references（ソース/テストファイルパス）が未設定",
                 })
 
     # 子から参照されていないアイテム（SPEC で IMPL/TST が紐付いていない等）

@@ -5,9 +5,9 @@ header: |
   save_sync / flush / drain 実装
 level: 1.14
 links:
-- SPEC015: WM4zO7qj68RrbxNwclaBaqEHxcw1PKwu_Xih42Uq_YA=
+- SPEC015: NHPUXagB4Uo_DthRH4NpUa1CVPz1leC0D-evxr8i3G4=
 normative: true
 ref: ''
-reviewed: iMBF_mtdvq3dK-aCNFlcX1wD3_kXJ8SsaUJLy8ZmZKY=
+reviewed: W3skfVjJFhaax2rJwOn28h0GmadtW_HxQr-0J1AeEqQ=
 text: |
   save_sync パラメータ処理、Spot.flush() メソッド、 コンテキストマネージャ __exit__ での自動 drain、 on_background_error コールバック呼び出しの実装を含む。

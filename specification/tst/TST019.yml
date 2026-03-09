@@ -5,9 +5,9 @@ header: |
   Hook テスト
 level: 1.18
 links:
-- SPEC019: z0vOxUBeOv9xClN1c6AtPfzVqc-Dw4rP1JuOdQeU3yg=
+- SPEC019: gupudOCO_dHvrr53swzIPSWA-31aZwbaNvo8giAapM4=
 normative: true
 ref: ''
-reviewed: 3d5W5GV7i5d9Wm_l0bXXsLPMCSNxDLwSfyscQdgScdQ=
+reviewed: _IajLdQJwzUFeuaELEZPSwLNWVXjIuFaCm_-zpLSTg0=
 text: |
   HookBase / ThreadSafeHookBase のテスト。フックライフサイクル （pre_execute/on_cache_hit/on_cache_miss）、状態保持、 ThreadSafeHookBase の並行呼び出し時のスレッドセーフ性を検証する。

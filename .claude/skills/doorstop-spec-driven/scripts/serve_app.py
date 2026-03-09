@@ -990,6 +990,52 @@ td.empty { color: #ccc; text-align: center; }
 }
 .editor-area:focus { outline: none; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
 
+/* TipTap Rich Editor */
+.tiptap-wrap { border: 1px solid var(--primary); border-radius: 6px; overflow: hidden; }
+.tiptap-wrap:focus-within { box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+.tiptap-toolbar {
+  display: flex; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--border);
+  background: #f8f9fa; flex-wrap: wrap; align-items: center;
+}
+.tiptap-toolbar button {
+  padding: 4px 7px; border: 1px solid transparent; border-radius: 4px;
+  background: none; cursor: pointer; font-size: 12px; color: var(--text);
+  line-height: 1.2; font-weight: 600;
+}
+.tiptap-toolbar button:hover { background: var(--primary-bg); }
+.tiptap-toolbar button.is-active {
+  background: var(--primary-bg); border-color: var(--primary); color: var(--primary);
+}
+.tiptap-toolbar .tb-sep {
+  display: inline-block; width: 1px; height: 18px; background: var(--border); margin: 0 3px;
+  vertical-align: middle;
+}
+.tiptap-wrap .ProseMirror {
+  padding: 12px; min-height: 150px; max-height: 60vh; overflow-y: auto;
+  outline: none; font-size: 0.92em; line-height: 1.7; color: var(--text);
+}
+.tiptap-wrap .ProseMirror > *:first-child { margin-top: 0; }
+.tiptap-wrap .ProseMirror p { margin: 4px 0; }
+.tiptap-wrap .ProseMirror h1 { font-size: 1.4em; margin: 16px 0 8px; font-weight: 600; }
+.tiptap-wrap .ProseMirror h2 { font-size: 1.2em; margin: 14px 0 6px; font-weight: 600; }
+.tiptap-wrap .ProseMirror h3 { font-size: 1.05em; margin: 12px 0 4px; font-weight: 600; }
+.tiptap-wrap .ProseMirror ul, .tiptap-wrap .ProseMirror ol { padding-left: 24px; margin: 4px 0; }
+.tiptap-wrap .ProseMirror li { margin: 2px 0; }
+.tiptap-wrap .ProseMirror code {
+  background: #f1f3f4; padding: 1px 5px; border-radius: 3px;
+  font-family: monospace; font-size: 0.9em;
+}
+.tiptap-wrap .ProseMirror pre {
+  background: #f1f3f4; padding: 12px; border-radius: 6px; margin: 8px 0;
+  font-family: monospace; font-size: 0.85em; overflow-x: auto;
+}
+.tiptap-wrap .ProseMirror pre code { background: none; padding: 0; font-size: 1em; }
+.tiptap-wrap .ProseMirror blockquote {
+  border-left: 3px solid var(--primary); margin: 8px 0; padding-left: 12px;
+  color: var(--text-secondary);
+}
+.tiptap-wrap .ProseMirror hr { border: none; border-top: 2px solid var(--border); margin: 12px 0; }
+
 /* Item text (markdown rendered) */
 .item-text { line-height: 1.7; color: var(--text); }
 .item-text p { margin: 6px 0; }
@@ -1129,6 +1175,35 @@ function toast(msg, type) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 3200);
 }
+
+// ===================================================================
+// Rich Editor (TipTap) — CDN loader with offline fallback
+// ===================================================================
+let richEditorReady = false;
+let RichEditor = {};
+(async () => {
+  const timeout = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+  try {
+    const [coreMod, skMod, tdMod] = await Promise.race([
+      Promise.all([
+        import('https://esm.sh/@tiptap/core@2'),
+        import('https://esm.sh/@tiptap/starter-kit@2'),
+        import('https://esm.sh/turndown@7'),
+      ]),
+      timeout(5000),
+    ]);
+    RichEditor = {
+      Editor: coreMod.Editor,
+      Extension: coreMod.Extension,
+      StarterKit: skMod.StarterKit || skMod.default,
+      TurndownService: tdMod.default || tdMod,
+    };
+    richEditorReady = true;
+    console.log('Rich editor loaded (online mode)');
+  } catch (e) {
+    console.warn('Rich editor unavailable (offline mode):', e.message);
+  }
+})();
 
 async function forceReload() {
   const btn = document.getElementById('reload-btn');
@@ -1677,6 +1752,7 @@ async function navigateInPanel(panelId, targetUid) {
   }
   ps.uid = targetUid;
   ps.editMode = false;
+  if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
   const contentEl = document.getElementById('pc-' + panelId);
   contentEl.innerHTML = '<div class="loading">Loading...</div>';
   try {
@@ -1691,6 +1767,7 @@ function closePanel(panelId) {
   const idx = activePanels.findIndex(p => p.id === panelId);
   if (idx === -1) return;
   const ps = activePanels[idx];
+  if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
   ps.el.classList.remove('open');
   setTimeout(() => {
     ps.el.remove();
@@ -1707,6 +1784,7 @@ function closePanel(panelId) {
 }
 
 function closeAllPanels() {
+  for (const ps of activePanels) { if (ps.editor) { ps.editor.destroy(); ps.editor = null; } }
   const container = document.getElementById('item-panels-container');
   container.innerHTML = '';
   container.classList.remove('open');
@@ -1721,6 +1799,8 @@ function closeAllPanels() {
 function closeItemPanel() { closeAllPanels(); }
 
 function renderPanelContent(ps, data) {
+  if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
+  ps.editMode = false;
   const pid = ps.id;
   const contentEl = document.getElementById('pc-' + pid);
 
@@ -1749,6 +1829,7 @@ function renderPanelContent(ps, data) {
     <div id="ptv-${pid}" class="item-text">${data.text_html}</div>
     <div id="pte-${pid}" class="hidden">
       <textarea id="pta-${pid}" class="editor-area">${h(data.text)}</textarea>
+      <div id="prich-${pid}" class="tiptap-wrap hidden"></div>
       <div class="actions" style="margin-top:8px">
         <button class="btn btn-primary" id="psb-${pid}" onclick="panelSave(${pid})">Save</button>
         <button class="btn" onclick="panelCancelEdit(${pid})">Cancel</button>
@@ -1774,21 +1855,154 @@ function renderPanelContent(ps, data) {
   `;
 }
 
+// ===================================================================
+// Textarea enhancement (offline fallback)
+// ===================================================================
+function enhanceTextarea(ta) {
+  if (ta._enhanced) return;
+  ta._enhanced = true;
+  ta.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const s = this.selectionStart, end = this.selectionEnd, v = this.value;
+    const ls = v.lastIndexOf('\n', s - 1) + 1;
+    if (e.shiftKey) {
+      const block = v.substring(ls, end);
+      const dedented = block.replace(/^ {1,2}/gm, '');
+      const firstRemoved = (block.match(/^ {1,2}/) || [''])[0].length;
+      this.value = v.substring(0, ls) + dedented + v.substring(end);
+      this.selectionStart = Math.max(ls, s - firstRemoved);
+      this.selectionEnd = end - (block.length - dedented.length);
+    } else if (s === end) {
+      this.value = v.substring(0, s) + '  ' + v.substring(end);
+      this.selectionStart = this.selectionEnd = s + 2;
+    } else {
+      const block = v.substring(ls, end);
+      const indented = block.replace(/^/gm, '  ');
+      this.value = v.substring(0, ls) + indented + v.substring(end);
+      this.selectionStart = s + 2;
+      this.selectionEnd = end + (indented.length - block.length);
+    }
+  });
+}
+
+// ===================================================================
+// TipTap rich editor helpers
+// ===================================================================
+function createTiptapEditor(panelId, htmlContent) {
+  const TabHandler = RichEditor.Extension.create({
+    name: 'tabHandler',
+    addKeyboardShortcuts() {
+      return { 'Tab': () => true, 'Shift-Tab': () => true };
+    },
+  });
+  const editor = new RichEditor.Editor({
+    element: document.getElementById('ptip-' + panelId),
+    extensions: [RichEditor.StarterKit, TabHandler],
+    content: htmlContent,
+  });
+  buildTiptapToolbar(panelId, editor);
+  return editor;
+}
+
+function buildTiptapToolbar(panelId, editor) {
+  const bar = document.getElementById('ptbar-' + panelId);
+  const btns = [
+    { label: 'B', cmd: () => editor.chain().focus().toggleBold().run(), active: () => editor.isActive('bold'), title: 'Bold (Ctrl+B)' },
+    { label: 'I', cmd: () => editor.chain().focus().toggleItalic().run(), active: () => editor.isActive('italic'), title: 'Italic (Ctrl+I)' },
+    { label: 'S', cmd: () => editor.chain().focus().toggleStrike().run(), active: () => editor.isActive('strike'), title: 'Strikethrough' },
+    { label: '<>', cmd: () => editor.chain().focus().toggleCode().run(), active: () => editor.isActive('code'), title: 'Inline code' },
+    'sep',
+    { label: 'H1', cmd: () => editor.chain().focus().toggleHeading({level:1}).run(), active: () => editor.isActive('heading',{level:1}) },
+    { label: 'H2', cmd: () => editor.chain().focus().toggleHeading({level:2}).run(), active: () => editor.isActive('heading',{level:2}) },
+    { label: 'H3', cmd: () => editor.chain().focus().toggleHeading({level:3}).run(), active: () => editor.isActive('heading',{level:3}) },
+    'sep',
+    { label: '\u2022', cmd: () => editor.chain().focus().toggleBulletList().run(), active: () => editor.isActive('bulletList'), title: 'Bullet list' },
+    { label: '1.', cmd: () => editor.chain().focus().toggleOrderedList().run(), active: () => editor.isActive('orderedList'), title: 'Numbered list' },
+    'sep',
+    { label: '```', cmd: () => editor.chain().focus().toggleCodeBlock().run(), active: () => editor.isActive('codeBlock'), title: 'Code block' },
+    { label: '\u275d', cmd: () => editor.chain().focus().toggleBlockquote().run(), active: () => editor.isActive('blockquote'), title: 'Quote' },
+    { label: '\u2014', cmd: () => editor.chain().focus().setHorizontalRule().run(), active: () => false, title: 'Horizontal rule' },
+  ];
+  for (const b of btns) {
+    if (b === 'sep') {
+      const sep = document.createElement('span');
+      sep.className = 'tb-sep';
+      bar.appendChild(sep);
+      continue;
+    }
+    const btn = document.createElement('button');
+    btn.textContent = b.label;
+    btn.title = b.title || b.label;
+    btn.type = 'button';
+    btn.addEventListener('click', (ev) => { ev.preventDefault(); b.cmd(); });
+    bar.appendChild(btn);
+  }
+  const updateState = () => {
+    let i = 0;
+    for (const b of btns) {
+      if (b === 'sep') { i++; continue; }
+      bar.children[i++].classList.toggle('is-active', b.active());
+    }
+  };
+  editor.on('selectionUpdate', updateState);
+  editor.on('transaction', updateState);
+}
+
+function tiptapToMarkdown(editor) {
+  const html = editor.getHTML();
+  const td = new RichEditor.TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    bulletListMarker: '-',
+    emDelimiter: '*',
+    strongDelimiter: '**',
+  });
+  td.addRule('strikethrough', {
+    filter: ['del', 's'],
+    replacement: (content) => '~~' + content + '~~',
+  });
+  return td.turndown(html);
+}
+
+// ===================================================================
+// Panel edit actions
+// ===================================================================
 function panelStartEdit(panelId) {
   const ps = activePanels.find(p => p.id === panelId);
-  if (ps) ps.editMode = true;
+  if (!ps) return;
+  ps.editMode = true;
   document.getElementById('ptv-' + panelId).classList.add('hidden');
   document.getElementById('pte-' + panelId).classList.remove('hidden');
   document.getElementById('pa-' + panelId).classList.add('hidden');
-  const ta = document.getElementById('pta-' + panelId);
-  ta.focus();
-  ta.style.height = 'auto';
-  ta.style.height = Math.max(150, ta.scrollHeight + 4) + 'px';
+
+  if (richEditorReady) {
+    const ta = document.getElementById('pta-' + panelId);
+    ta.classList.add('hidden');
+    const richWrap = document.getElementById('prich-' + panelId);
+    richWrap.classList.remove('hidden');
+    richWrap.innerHTML = '<div class="tiptap-toolbar" id="ptbar-' + panelId + '"></div><div id="ptip-' + panelId + '"></div>';
+    const htmlContent = document.getElementById('ptv-' + panelId).innerHTML;
+    ps.editor = createTiptapEditor(panelId, htmlContent);
+    ps.useRich = true;
+    ps.editor.commands.focus('end');
+  } else {
+    const ta = document.getElementById('pta-' + panelId);
+    ta.classList.remove('hidden');
+    enhanceTextarea(ta);
+    ta.focus();
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(150, ta.scrollHeight + 4) + 'px';
+    ps.useRich = false;
+  }
 }
 
 function panelCancelEdit(panelId) {
   const ps = activePanels.find(p => p.id === panelId);
-  if (ps) ps.editMode = false;
+  if (ps) {
+    ps.editMode = false;
+    if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
+  }
   document.getElementById('ptv-' + panelId).classList.remove('hidden');
   document.getElementById('pte-' + panelId).classList.add('hidden');
   document.getElementById('pa-' + panelId).classList.remove('hidden');
@@ -1797,12 +2011,20 @@ function panelCancelEdit(panelId) {
 async function panelSave(panelId) {
   const ps = activePanels.find(p => p.id === panelId);
   if (!ps) return;
-  const text = document.getElementById('pta-' + panelId).value;
+  let text;
+  if (ps.useRich && ps.editor) {
+    text = tiptapToMarkdown(ps.editor);
+  } else {
+    text = document.getElementById('pta-' + panelId).value;
+  }
   const btn = document.getElementById('psb-' + panelId);
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
     const res = await API.post('/api/items/' + ps.uid + '/edit', { text });
     if (res.ok) {
+      if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
+      ps.editMode = false;
+      ps.useRich = false;
       toast(ps.uid + ' updated');
       refreshCurrentView();
       renderPanelContent(ps, res.item);

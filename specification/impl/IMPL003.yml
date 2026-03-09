@@ -5,9 +5,9 @@ header: |
   同期・非同期実行エンジン
 level: 1.2
 links:
-- SPEC003: melgubGhLg2ZUsF0RDjsRKLPGxNceWKVBp5yJdZHyWg=
+- SPEC003: CVb-B19ollkUexnco2Cn1TfB6jiZ9TEOkURqVv3UJ7o=
 normative: true
 ref: ''
-reviewed: lv7pNnpUZXGSk0wFBtUF89E-TGGAS4UPbda80vlKSK0=
+reviewed: AxS0nGeMFat7RFZMMVYVQl3crO2CDd34DovhNXzkbys=
 text: |
   _execute_sync と _execute_async の実装。 inspect.iscoroutinefunction() による自動判定、 _BackgroundLoop 経由の非同期保存処理を含む。

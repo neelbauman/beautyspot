@@ -5,9 +5,9 @@ header: |
   save_sync / flush / drain
 level: 1.14
 links:
-- REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
+- ARCH006: pWYeGA9KspSQuZnZDEplXfwyk3LYT8HeU5yqjINjBwM=
 normative: true
 ref: ''
-reviewed: kHoCX3AlJQBSUcRhzM-sQFfRbhVM1Qce9yLXGyTpIYA=
+reviewed: wm6PpZcfkWvJ_uH7ntLZMxxVMQpeA4Q3NrIy9ni2i_s=
 text: |
   `save_sync` パラメータにより同期/非同期保存を制御する。 Spot レベルのデフォルト (`save_sync=True`) と `@mark(save_sync=False)` による 関数レベルのオーバーライドをサポートする。 `spot.flush(timeout)` で全バックグラウンド保存の完了を待機する。 `with spot:` コンテキストマネージャの `__exit__` で自動的に drain を実行する。 バックグラウンド保存失敗時は `on_background_error` コールバックで通知する。

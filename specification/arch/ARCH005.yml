@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: SERIAL
+header: |
+  シリアライゼーションアーキテクチャ
+level: 1.4
+links:
+- REQ005: BkvEd9KuNGG34UsYTIEw8eyy5pO6ecDeaQKULGsfZWQ=
+normative: true
+ref: ''
+reviewed: V3Hgw7lKHfzx4SrjM3sUSszixe1P94MSzK-R2Kcn9ik=
+text: |
+  MessagePackベースのシリアライザをデフォルト採用する。JSONより高速・コンパクトで、バイナリデータを直接扱える。
+
+  `SerializerProtocol` による差し替え可能な設計とし、`TypeRegistryProtocol` でユーザー定義型のカスタムエンコーダ・デコーダ登録を可能にする。シリアライザはキャッシュの保存・復元の両方で使用される。

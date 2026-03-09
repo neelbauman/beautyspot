@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: KEY
+header: |
+  キャッシュキー生成アーキテクチャ
+level: 1.1
+links:
+- REQ002: xuAguq0TJX-pZ2I8c1tMm2UvLC6Sr4fF6C7v-UbONtY=
+normative: true
+ref: ''
+reviewed: FCVJFIjOXzivj4OWHoPa1qecQ0cRjtGaeFA8h-Ir72M=
+text: |
+  SHA-256ハッシュベースのキャッシュキー生成アーキテクチャ。関数の引数をシリアライズ・正規化（dictのキーソート、型に応じた変換）し、関数名・バージョンと合わせてハッシュ化する。
+
+  特定の引数をキーから除外する `KeyGenPolicy` パターンを採用し、ユーザーが引数ごとの戦略（無視、カスタム変換等）を宣言的に指定できるようにする。

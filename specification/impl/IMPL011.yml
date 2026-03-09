@@ -5,9 +5,9 @@ header: |
   ストレージポリシー実装
 level: '1.10'
 links:
-- SPEC011: nEMcsRs98U4nVQJTaVHI304xkz6MZMp7cNM6RckSn2Y=
+- SPEC011: JfpIIwRbnC-KgxzgbK_Nl-KAJroRZCWAiyPhkYxw0L0=
 normative: true
 ref: ''
-reviewed: CQvA7RTOa1edGYcf31jbYv_j1BxhJo7Adz9YCkHVirw=
+reviewed: aRinvss1YzDNr45F7KYmAtspEpznQlXshcH-fLhXlhM=
 text: |
   StoragePolicyProtocol と 3 実装の定義。 ThresholdStoragePolicy（閾値）、WarningOnlyPolicy（警告のみ）、 AlwaysBlobPolicy（常にBlob）を含む。

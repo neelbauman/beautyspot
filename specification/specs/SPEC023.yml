@@ -5,9 +5,9 @@ header: |
   Thundering Herd Protection
 level: 1.22
 links:
-- REQ013: tKylQ3MlgP5WxneklHbCBHWMZ7lGffbNKhTuZG9o0Mw=
+- ARCH013: cN80_Jh_nSWmGGZqDbQPxWlqhINEgWvKmexMWJ__6EY=
 normative: true
 ref: ''
-reviewed: OFiVdbBkiLBnNNR7sEYkK0aMnrgiBvWqE_00uuKmnaY=
+reviewed: dAe0OY5JietwMfZmSYGpjK2gi9OIWszrxzrxItybQc0=
 text: |
   `CacheManager` 内の `_inflight` 辞書で同一キャッシュキーへの並行アクセスを管理する。 最初のリクエストが実行者（executor）となり関数を実行する。 後続リクエストは `threading.Event` (同期) または `asyncio.Future` (非同期) で待機し、 実行者の結果を共有する。タイムアウト (HERD_TIMEOUT=300秒) とリトライ (HERD_MAX_RETRIES=3) で無限待機を防止する。 実行者が例外を送出した場合、待機側にも同じ例外を伝播する。

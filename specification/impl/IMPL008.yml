@@ -5,9 +5,9 @@ header: |
   DB プロトコル階層実装
 level: 1.7
 links:
-- SPEC008: jnPnado6r8CdUCSq6nSlCfld7TC3qOnJSElRw4Z0Y6w=
+- SPEC008: xgTQqVbBvQndnPKGjHGQK9GDHWmL2OU49VNn_z7QkIw=
 normative: true
 ref: ''
-reviewed: 6xRZCJdcLgieM8glGLbTHwg_e94q_eflQti8aFpZE2A=
+reviewed: xOZtalFMq0sLWeSc8Sg1KZzorsjuNNPOHuf88Y4H2Co=
 text: |
   TaskDBCore/TaskDBBase/Maintenable/Flushable/Shutdownable プロトコル・抽象基底クラスの定義。 TaskDBBase のメンテナンスメソッドのデフォルト実装を含む。

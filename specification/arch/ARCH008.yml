@@ -1,0 +1,15 @@
+active: true
+derived: false
+group: LIMIT
+header: |
+  レート制限アーキテクチャ
+level: 1.7
+links:
+- REQ008: LpSLzngQTtYFyX5Y_Ke5jjSinbHq2U34SszCwfnZCa8=
+normative: true
+ref: ''
+reviewed: scAC4zGgJ75ucC_osr8w_LFyymL5vJqRdFSQVSjvGHc=
+text: |
+  GCRA（Generic Cell Rate Algorithm）に基づくトークンバケット方式を採用する。固定ウィンドウ方式と異なり、スムースなレート制限を実現する。
+
+  同期 (`consume`) と非同期 (`consume_async`) の両方の消費APIを提供し、`@spot.consume()` デコレータで関数実行前のトークン消費を宣言的に指定できるようにする。

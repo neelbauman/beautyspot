@@ -5,9 +5,9 @@ header: |
   MsgpackSerializer
 level: 1.11
 links:
-- REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
+- ARCH005: Xe3owRo-KHpFNPrfgSQLyc5pjzNb4KoC-4WtdYihUqI=
 normative: true
 ref: ''
-reviewed: oyF3-NS9iwz5h0AgHFiBKTSYl-lsgo6HcqH3uXAfybI=
+reviewed: ptTovnduALOME6nUJz7RAuxifOyx8Drd2kBvRkSrRnk=
 text: |
   `MsgpackSerializer` は MessagePack ベースのシリアライザ。 `dumps(obj) -> bytes` と `loads(data) -> Any` を提供する。 カスタム型は ExtType (code 0-127) で拡張する。 スレッドセーフ: レジストリは Copy-on-Write、サブクラスキャッシュはスレッドローカル LRU。 MRO スキャンによりサブクラスの自動解決を行う。

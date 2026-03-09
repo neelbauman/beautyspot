@@ -7,6 +7,6 @@ level: 1.11
 links: []
 normative: true
 ref: ''
-reviewed: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
+reviewed: 6W0MNBxJZPznZIzPP6XPUdKxQstg4FxSEJOguLc2kr0=
 text: |
   全コンポーネント（DB、ストレージ、シリアライザ、リミッター等）が `Protocol/ABC` に基づく依存注入により差し替え可能であること。ファクトリ関数がデフォルトの組み立てを提供すること。

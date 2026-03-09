@@ -5,9 +5,9 @@ header: |
   同期・非同期サポートテスト
 level: 1.2
 links:
-- SPEC003: melgubGhLg2ZUsF0RDjsRKLPGxNceWKVBp5yJdZHyWg=
+- SPEC003: CVb-B19ollkUexnco2Cn1TfB6jiZ9TEOkURqVv3UJ7o=
 normative: true
 ref: ''
-reviewed: eiRxHFzaMfclcklJ3oXgeyW5Wx-0PTJTfTOAW2dHOAY=
+reviewed: 8SIpR84UNZ3s3KNCgQkU0tjH_ishfvdp_cm-VEoY0wg=
 text: |
   同期・非同期関数サポートのテスト。非同期例外伝播、 `async thundering herd` 、`async save_sync` 動作を検証する。
