@@ -283,6 +283,9 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
     """グループ・状態・IDフィルタ付きHTMLレポートを生成する。"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    with open(f"{os.path.dirname(output_path)}/.gitignore", "w", encoding="utf-8") as f:
+        f.write("*")
+
     all_groups = sorted({get_group(item) for doc in tree for item in doc})
     suspect_uids = detect_suspect_uids(tree)
 
@@ -528,7 +531,7 @@ def main():
         description="Doorstopプロジェクトのバリデーションとレポート生成"
     )
     parser.add_argument("project_dir", help="プロジェクトのルートディレクトリ")
-    parser.add_argument("--output-dir", default="./reports", help="レポート出力先")
+    parser.add_argument("--output-dir", default="./specification/reports", help="レポート出力先")
     parser.add_argument("--strict", action="store_true",
                         help="全ての親アイテムに子リンクがあることを要求する")
     parser.add_argument("--json", action="store_true", help="JSON形式でもサマリを出力する")

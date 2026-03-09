@@ -223,20 +223,20 @@ async function loadGroupNav() {
     API.get('/api/overview'),
   ]);
 
-  // Status summary at top of sidebar
+  // Status summary at top of sidebar (clickable → matrix with filter)
   const totalUnreviewed = overview.review.total - overview.review.reviewed;
   const totalSuspects = overview.suspects;
   const statusEl = document.getElementById('nav-status-summary');
   if (totalUnreviewed > 0 || totalSuspects > 0) {
     let rows = '';
     if (totalUnreviewed > 0)
-      rows += `<div class="nav-status-row"><span class="nav-status-dot unreviewed"></span> Unreviewed <span class="nav-status-count">${totalUnreviewed}</span></div>`;
+      rows += `<div class="nav-status-row nav-status-link" onclick="navigateToMatrixFiltered('unreviewed')"><span class="nav-status-dot unreviewed"></span> Unreviewed <span class="nav-status-count">${totalUnreviewed}</span></div>`;
     if (totalSuspects > 0)
-      rows += `<div class="nav-status-row"><span class="nav-status-dot suspect"></span> Suspect <span class="nav-status-count">${totalSuspects}</span></div>`;
+      rows += `<div class="nav-status-row nav-status-link" onclick="navigateToMatrixFiltered('suspect')"><span class="nav-status-dot suspect"></span> Suspect <span class="nav-status-count">${totalSuspects}</span></div>`;
     statusEl.innerHTML = rows;
     statusEl.style.display = '';
   } else {
-    statusEl.innerHTML = '<div class="nav-status-row"><span class="nav-status-dot ok"></span> All clear</div>';
+    statusEl.innerHTML = '<div class="nav-status-row nav-status-link" onclick="location.hash=\'#/matrix\'"><span class="nav-status-dot ok"></span> All clear</div>';
     statusEl.style.display = '';
   }
 
@@ -328,15 +328,31 @@ async function renderDashboard() {
 // --- Matrix ---
 let matrixData = null;
 let matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+let _pendingMatrixFilter = null;
 
 function naturalCompare(a, b) {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 }
 
+function navigateToMatrixFiltered(status) {
+  _pendingMatrixFilter = status;
+  if (location.hash === '#/matrix') {
+    // Already on matrix — hashchange won't fire, so render directly
+    renderMatrix();
+  } else {
+    location.hash = '#/matrix';
+  }
+}
+
 async function renderMatrix() {
   $main().innerHTML = '<div class="loading">Loading...</div>';
   matrixData = await API.get('/api/matrix');
-  matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+  if (_pendingMatrixFilter) {
+    matrixFilters = { groups: new Set(), statuses: new Set([_pendingMatrixFilter]), query: '', sortCol: -1, sortDir: 'asc' };
+    _pendingMatrixFilter = null;
+  } else {
+    matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+  }
   renderMatrixView();
 }
 
@@ -734,13 +750,8 @@ function createPanelElement(panelId) {
 }
 
 function updateMainMargin() {
-  const main = document.getElementById('main');
-  const count = activePanels.length;
-  if (count > 0) {
-    main.style.marginRight = (count * 520) + 'px';
-  } else {
-    main.style.marginRight = '';
-  }
+  // No-op: main area width should not change when item detail panels open/close.
+  // Panels overlay on top of the main content instead.
 }
 
 async function openItemPanel(uid) {

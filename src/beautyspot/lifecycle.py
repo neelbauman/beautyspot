@@ -47,7 +47,7 @@ RetentionSpec = Union[str, timedelta, int, float, _ForeverSentinel, None]
 
 
 def parse_retention(
-    value: Union[str, timedelta, int, float, None],
+    value: RetentionSpec
 ) -> Optional[timedelta]:
     """
     Helper function to normalize retention specification to timedelta.
@@ -130,19 +130,28 @@ class LifecyclePolicy:
     Manages data retention policies based on function names.
     """
 
-    def __init__(self, rules: List[Rule]):
+    def __init__(
+        self,
+        rules: List[Rule],
+        default_retention: Union[str, timedelta, int, float, None] = "30d",
+    ):
+        if isinstance(default_retention, _ForeverSentinel):
+            raise ValidationError(
+                "Retention.FOREVER cannot be used as default_retention. "
+                "Use it on individual @spot.mark(retention=Retention.FOREVER) instead."
+            )
         self.rules = rules
+        self._default_retention = parse_retention(default_retention)
 
     def resolve(self, func_name: str) -> Optional[timedelta]:
         """
         Find the first matching rule for the given function name.
-        Returns the retention timedelta, or None if indefinite (or no match).
+        Returns the retention timedelta, or the default retention if no match.
         """
         for rule in self.rules:
             if fnmatch.fnmatch(func_name, rule.pattern):
                 return parse_retention(rule.retention)
-        # Default is indefinite (None)
-        return Retention.INDEFINITE
+        return self._default_retention
 
     def resolve_with_fallback(
         self, func_identifier: str, func_name: str
@@ -159,9 +168,9 @@ class LifecyclePolicy:
             if fnmatch.fnmatch(func_name, rule.pattern):
                 return parse_retention(rule.retention)
 
-        return Retention.INDEFINITE
+        return self._default_retention
 
     @classmethod
     def default(cls) -> "LifecyclePolicy":
-        """Default policy: Everything is kept indefinitely."""
-        return cls(rules=[])
+        """Default policy: 30-day retention."""
+        return cls(rules=[], default_retention="30d")

@@ -66,8 +66,10 @@ class TestResolveWithFallback:
         )
         assert result == timedelta(hours=1)
 
-    def test_no_match_returns_indefinite(self):
-        """どちらにもマッチしない場合は INDEFINITE を返すこと"""
+    def test_no_match_returns_default_retention(self):
+        """どちらにもマッチしない場合はデフォルト保持期間(30d)を返すこと"""
+        from datetime import timedelta
+
         rules = [
             Rule(pattern="specific_module.*", retention="1d"),
         ]
@@ -77,7 +79,7 @@ class TestResolveWithFallback:
             func_identifier="other_module.func",
             func_name="func",
         )
-        assert result is Retention.INDEFINITE
+        assert result == timedelta(days=30)
 
     def test_identifier_match_wins_over_name_match(self):
         """同じルールセットで identifier と name の両方がマッチする場合、identifier が優先"""

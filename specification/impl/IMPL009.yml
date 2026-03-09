@@ -11,36 +11,36 @@ ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: VgIhe00oKa2iB_PsXi-GWnjyD_Zfh1Kfzs-mjEYGWHs=
+reviewed: wQlbqS6JiKWlgOME40e2EQk4U8rDIyHKZkrcUjrUmmY=
 text: |
   ## 実装概要
 
-  `LocalStorage` クラスが `BlobStorageBase` を実装。
-  ファイルは `{base_dir}/{key}.bin` 形式で保存される。
-  `save()` は `tempfile.mkstemp()` → `fsync()` → `os.replace()` の
-  アトミック書き込みパターンで実装。
+  -   `LocalStorage` クラスが `BlobStorageBase` を実装。 ファイルは `{base_dir}/{key}.bin` 形式で保存される。
+
+  -   `save()` は `tempfile.mkstemp()` → `fsync()` → `os.replace()` の アトミック書き込みパターンで実装。
+
 
   ## 設計判断
 
   ### アトミック書き込みパターン
 
-  一時ファイルに書き込み → fsync でディスクに確実に反映 → os.replace で
-  アトミックにリネーム。この3段階により、書き込み中のクラッシュや
-  並行アクセスでファイルが半壊状態になることを防ぐ。
-  一時ファイルには `.spot_tmp` 接尾辞を使用し、残存時のクリーンアップを容易にした。
+  一時ファイルに書き込み → fsync でディスクに確実に反映 → os.replace で アトミックにリネーム。この3段階により、書き込み中のクラッシュや 並行アクセスでファイルが半壊状態になることを防ぐ。 一時ファイルには `.spot_tmp` 接尾辞を使用し、残存時のクリーンアップを容易にした。
 
   ### パストラバーサル防止の二重ガード
 
-  - `save()` / `_validate_key()`: キーに `..`, `/`, `\` を含む場合に `ValidationError`
-  - `load()` / `delete()`: 解決済みパスが `base_dir.is_relative_to()` を満たすか検証
-  二重のチェックにより、キー経由とロケーション経由の両方のパストラバーサルを防ぐ。
+  -   `save()` / `_validate_key()`: キーに `..`, `/`, `\` を含む場合に `ValidationError`
+
+  -   `load()` / `delete()`: 解決済みパスが `base_dir.is_relative_to()` を満たすか検証 二重のチェックにより、キー経由とロケーション経由の両方のパストラバーサルを防ぐ。
+
 
   ## 実装メモ
 
-  - 初期化時に `base_dir` を絶対パスに正規化し、ディレクトリと `.gitignore` を自動作成
-  - `delete()` は冪等。ファイル不在時もエラーを送出しない。パーミッションエラーは警告のみ
-  - `list_keys()` は `rglob("*.bin")` でレガシーサブディレクトリ構造にも対応
-  - `clean_temp_files()` は猶予期間（デフォルト24時間）超過の `.spot_tmp` ファイルのみ削除。
-    ファイルロック（アンチウイルス等）のエラーは安全に無視する
-  - `prune_empty_dirs()` はボトムアップで走査し、`.DS_Store` 等のシステムファイルのみの
-    ディレクトリも空とみなして削除する。`base_dir` 自体は保持する
+  -   初期化時に `base_dir` を絶対パスに正規化し、ディレクトリと `.gitignore` を自動作成
+
+  -   `delete()` は冪等。ファイル不在時もエラーを送出しない。パーミッションエラーは警告のみ
+
+  -   `list_keys()` は `rglob("*.bin")` でレガシーサブディレクトリ構造にも対応
+
+  -   `clean_temp_files()` は猶予期間（デフォルト24時間）超過の `.spot_tmp` ファイルのみ削除。 ファイルロック（アンチウイルス等）のエラーは安全に無視する
+
+  -   `prune_empty_dirs()` はボトムアップで走査し、`.DS_Store` 等のシステムファイルのみの ディレクトリも空とみなして削除する。`base_dir` 自体は保持する

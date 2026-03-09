@@ -5,7 +5,7 @@ header: |
   LifecyclePolicy 実装
 level: 1.15
 links:
-- SPEC016: iQGZXI93vzApRaKQgMF9ymDXpUzyrOmviVclRNAVX2s=
+- SPEC016: Ma4HLSHRQ1uNOKeME77e27yPYf5c-6q4ImjREYYZF6Y=
 normative: true
 ref: ''
 references:
@@ -35,8 +35,14 @@ text: |
   マッチングを試み、マッチしなかった場合は `func_name` (短い関数名) で再度マッチングを
   試みる `resolve_with_fallback()` を提供している。
 
+  ### default_retention の導入
+
+  `LifecyclePolicy` コンストラクタに `default_retention` パラメータを追加。
+  どのルールにもマッチしない場合に返す保持期間を指定できる。
+  `LifecyclePolicy.default()` は `default_retention="30d"` で生成し、
+  デフォルトで30日の保持期間を設定する。
+
   ## 実装メモ
 
-  - `LifecyclePolicy.default()` は空のルールリストを持ち、常に無期限保持を返す
-  - ポリシーが未設定（`None`）のデフォルト挙動を表現するため、
-    内部では `Retention.INDEFINITE` を返す
+  - `LifecyclePolicy.default()` は空のルールリスト + `default_retention="30d"` を持つ
+  - `default_retention=None` を指定すれば従来通り無期限保持となる

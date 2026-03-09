@@ -91,10 +91,16 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
 #nav-status-summary .nav-status-count {
   font-weight: 600; margin-left: auto;
 }
+#nav-status-summary .nav-status-link {
+  cursor: pointer; border-radius: 4px; padding: 3px 4px; margin: 0 -4px;
+  transition: background 0.15s;
+}
+#nav-status-summary .nav-status-link:hover {
+  background: var(--bg);
+}
 
 #main {
   margin-left: var(--sidebar-w); padding: 24px 32px; min-height: 100vh;
-  transition: margin-right 0.3s;
 }
 /* Item Panels Container (multi-panel comparison support) */
 #item-panels-container {

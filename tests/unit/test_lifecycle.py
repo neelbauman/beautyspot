@@ -115,14 +115,19 @@ class TestLifecyclePolicy:
         )  # 1y not supported explicitly in parser test above, assuming 365d logic or just checking fallback logic logic if we used "365d"
 
     def test_resolve_no_match_default(self):
-        """どのルールにもマッチしない場合は None (Indefinite) を返すこと"""
+        """どのルールにもマッチしない場合はデフォルト保持期間(30d)を返すこと"""
         rules = [Rule(pattern="specific", retention="1h")]
         policy = LifecyclePolicy(rules)
 
-        assert policy.resolve("unknown_func") is Retention.INDEFINITE
+        assert policy.resolve("unknown_func") == timedelta(days=30)
 
     def test_default_policy(self):
-        """default() ファクトリは空のルールを持つこと"""
+        """default() ファクトリは空のルールを持ち、30日のデフォルト保持期間を返すこと"""
         policy = LifecyclePolicy.default()
         assert policy.rules == []
+        assert policy.resolve("anything") == timedelta(days=30)
+
+    def test_default_retention_none_returns_indefinite(self):
+        """default_retention=None で従来通り無期限保持を返すこと"""
+        policy = LifecyclePolicy(rules=[], default_retention=None)
         assert policy.resolve("anything") is Retention.INDEFINITE
