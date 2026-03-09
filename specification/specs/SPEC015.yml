@@ -5,17 +5,17 @@ header: |
   save_sync / flush / drain
 level: 1.14
 links:
-- ARCH006: pWYeGA9KspSQuZnZDEplXfwyk3LYT8HeU5yqjINjBwM=
+- ARCH006: 1fOa5aogbVR6dSD78DpzvKnUg22Oe7yNS7fQs1v7mEs=
 normative: true
 ref: ''
-reviewed: wm6PpZcfkWvJ_uH7ntLZMxxVMQpeA4Q3NrIy9ni2i_s=
+reviewed: _R8xE5tKSUc2DKyMKPA7xhk-OEA2_HjsCFimmLElH2k=
 text: |
-  `save_sync` パラメータにより同期/非同期保存を制御する。
+  -   `save_sync` パラメータにより同期/非同期保存を制御する。
 
-  \`Spot\` レベルのデフォルト (`save_sync=True`) と `@mark(save_sync=False)` による 関数レベルのオーバーライドをサポ`トする。`
+  -   `Spot` レベルのデフォルト (`save_sync=True`) と `@mark(save_sync=False)` による 関数レベルのオーバーライドをサポ`トする。`
 
-  `spot.flush(timeout)` で全バックグラウンド保存の完了を待機する。
+  -   `spot.flush(timeout)` で全バックグラウンド保存の完了を待機する。
 
-  `with spot:` コンテキストマネージャの `__exit__` で自動的に drain を実行する。
+  -   `with spot:` コンテキストマネージャの `__exit__` で自動的に drain を実行する。
 
-  バックグラウンド保存失敗時は `on_background_error` コールバックで通知する。
+  -   バックグラウンド保存失敗時は `on_background_error` コールバックで通知する。
