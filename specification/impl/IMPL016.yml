@@ -11,7 +11,7 @@ ref: ''
 references:
 - path: src/beautyspot/lifecycle.py
   type: file
-reviewed: d9iY9R-VqejHrSWm9a91JFHKHuwG3halqH3aPTXAVAI=
+reviewed: M5AGu-hvwdRj9Cwe2KJM5Bfk4dBlGINYTCYpfO34MdA=
 text: |
   ## 実装概要
 
