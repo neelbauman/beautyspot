@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: ''
+header: |
+  詳細仕様
+level: 2.0
+links: []
+normative: false
+ref: ''
+reviewed: FuaIgO_oIMR-XkCYIdh3CWHpal18MtXw3bA9HWpz43Y=
+text: |
+  各コンポーネントが提供するAPI、内部状態遷移、および例外ハンドリングの詳細を定義する。

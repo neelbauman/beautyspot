@@ -3,7 +3,7 @@ derived: false
 group: CLI
 header: |
   CLI構成
-level: '1.10'
+level: 2.11
 links:
 - REQ011: f4SKYgu3ykwtA7XfsZTa4XY_rzOQiYl76ebgAGTK94Q=
 normative: true

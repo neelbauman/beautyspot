@@ -3,7 +3,7 @@ derived: false
 group: BGIO
 header: |
   バックグラウンドIO構成
-level: 1.5
+level: 2.6
 links:
 - REQ006: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
 normative: true

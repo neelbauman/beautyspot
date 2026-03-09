@@ -3,7 +3,7 @@ derived: false
 group: LIFE
 header: |
   Retention 仕様
-level: 1.16
+level: 2.17
 links:
 - ARCH007: dcQKjpQgug6soznIhy_nxk5fos3N6i0VtWTqtBXkgWc=
 normative: true

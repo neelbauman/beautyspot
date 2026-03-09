@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   同期・非同期関数サポート
-level: 1.2
+level: 2.3
 links:
 - ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
 normative: true

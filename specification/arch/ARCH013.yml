@@ -3,7 +3,7 @@ derived: false
 group: HERD
 header: |
   Thundering Herd対策構成
-level: 1.12
+level: 2.13
 links:
 - REQ013: N6PrX1FKmbAcmlmtwhdO9mpiuPePVrz5AA66MJYe1jA=
 normative: true

@@ -80,6 +80,16 @@ def is_derived(item):
         return False
 
 
+def is_normative(item):
+    try:
+        val = item.get("normative")
+        if val is None:
+            return True
+        return str(val).lower() != "false"
+    except (AttributeError, KeyError):
+        return True
+
+
 def find_item(tree, uid_str):
     for doc in tree:
         try:

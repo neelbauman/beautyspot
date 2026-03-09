@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   Blobストレージ
-level: 1.3
+level: 4.4
 links: []
 normative: true
 ref: ''

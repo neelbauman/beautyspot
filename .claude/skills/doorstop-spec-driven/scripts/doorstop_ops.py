@@ -66,6 +66,8 @@ def cmd_add(tree, args):
     if args.references:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.non_normative:
+        item.set("normative", False)
 
     # リンク（追加後に clear でフィンガープリントを保存し、suspect を防ぐ）
     link_uids = args.links or []
@@ -99,6 +101,10 @@ def cmd_update(tree, args):
     if args.references is not None:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.set_normative:
+        item.set("normative", True)
+    elif args.set_non_normative:
+        item.set("normative", False)
 
     item.save()
 
@@ -268,6 +274,7 @@ def main():
     p_add.add_argument("-l", "--level", help="レベル")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
+    p_add.add_argument("--non-normative", action="store_true", help="非規範的アイテム（見出し等）として追加")
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
 
     # update
@@ -278,6 +285,8 @@ def main():
     p_upd.add_argument("-g", "--group", help="新グループ")
     p_upd.add_argument("-r", "--ref", help="新参照パス")
     p_upd.add_argument("--references", help='外部ファイル紐付け（JSON文字列）')
+    p_upd.add_argument("--set-normative", action="store_true", help="規範的アイテムに設定")
+    p_upd.add_argument("--set-non-normative", action="store_true", help="非規範的アイテムに設定")
 
     # link
     p_link = sub.add_parser("link", help="リンク追加")

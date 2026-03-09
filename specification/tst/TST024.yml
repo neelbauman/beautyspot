@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   BlobStorageBase インターフェース契約テスト
-level: 1.23
+level: 2.24
 links:
 - SPEC024: EQkOktEyVNr6_5K93xGEbWwGbckgJcpB1IQaHGahApE=
 normative: true

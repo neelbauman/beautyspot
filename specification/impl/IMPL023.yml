@@ -3,7 +3,7 @@ derived: false
 group: HERD
 header: |
   Thundering Herd 実装
-level: 1.22
+level: 2.23
 links:
 - SPEC023: F2Qery4xr687DbpEMWQ0vu23pOnidPy0aVzHAyiZi-8=
 normative: true

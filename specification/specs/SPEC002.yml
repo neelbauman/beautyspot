@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   cached_run コンテキストマネージャ
-level: 1.1
+level: 2.2
 links:
 - ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
 normative: true

@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: ''
+header: |
+  序文
+level: 1.0
+links: []
+normative: false
+ref: ''
+reviewed: X3M8bNCF8iYThqQzQnXFXij3IqFg1RErdHhlCdQF9X0=
+text: |
+  本ドキュメントは、『beautyspot』の各機能における詳細な仕様、インターフェース、およびアルゴリズムを定義する。

@@ -3,7 +3,7 @@ derived: false
 group: MAINT
 header: |
   MaintenanceService 実装
-level: 1.19
+level: '2.20'
 links:
 - SPEC020: CDOBSBsS_kAriXTDKUM2LGeIn5tF_XNALSfkc_y4XPk=
 normative: true

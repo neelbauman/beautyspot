@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   LocalStorage
-level: 1.8
+level: 2.9
 links:
 - ARCH004: UuQC--QCHV754xwdpcb2sZHyyJH9N5TNQaJkd_3rqD4=
 normative: true

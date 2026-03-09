@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   関数キャッシュ
-level: 1.0
+level: 4.1
 links: []
 normative: true
 ref: ''

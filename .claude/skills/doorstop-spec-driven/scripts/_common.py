@@ -76,6 +76,17 @@ def is_derived(item):
         return False
 
 
+def is_normative(item):
+    """アイテムが規範的（要件）かどうかを判定する。デフォルトはTrue。"""
+    try:
+        val = item.get("normative")
+        if val is None:
+            return True
+        return str(val).lower() != "false"
+    except (AttributeError, KeyError):
+        return True
+
+
 # ---------------------------------------------------------------------------
 # Tree navigation
 # ---------------------------------------------------------------------------
@@ -157,6 +168,7 @@ def item_summary(item, prefix=None, tree=None):
         "text": item.text.strip()[:200],
         "references": get_references(item),
         "derived": is_derived(item),
+        "normative": is_normative(item),
         "links": [str(link) for link in item.links],
         "reviewed": bool(item.reviewed),
     }
@@ -175,6 +187,7 @@ def item_to_dict(item, doc_prefix=None, tree=None):
         "group": get_group(item),
         "level": str(item.level),
         "references": get_references(item),
+        "normative": is_normative(item),
         "links": [str(link) for link in item.links],
         "active": item.active,
         "reviewed": bool(item.reviewed),

@@ -3,7 +3,7 @@ derived: false
 group: HOOK
 header: |
   Hook テスト
-level: 1.18
+level: 2.19
 links:
 - SPEC019: JP3vnsNVnXn5tWC6IKdsSN5yAsMKdG4f48Rlt8L3Bhc=
 normative: true

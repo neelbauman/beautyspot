@@ -3,7 +3,7 @@ derived: false
 group: CLI
 header: |
   CLIコマンド
-level: '1.20'
+level: 2.21
 links:
 - ARCH011: 1bE4RU99DGa-YRUds2yh9rrEH1qsVO-vhAcp4upZ5vw=
 normative: true

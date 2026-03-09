@@ -3,7 +3,7 @@ derived: false
 group: DB
 header: |
   DB プロトコル階層実装
-level: 1.7
+level: 2.8
 links:
 - SPEC008: _DJWcnn0I_H3AGBk3ZBnC1izPe7QJlPBcJRWhxmg0WQ=
 normative: true

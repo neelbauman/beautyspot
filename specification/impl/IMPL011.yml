@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   ストレージポリシー実装
-level: '1.10'
+level: 2.11
 links:
 - SPEC011: IqISNTq9V1g4pLP7Bn9g6ogOp0gUt3_2RFse64s4CR8=
 normative: true

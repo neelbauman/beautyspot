@@ -3,7 +3,7 @@ derived: false
 group: LIFE
 header: |
   LifecyclePolicy
-level: 1.15
+level: 2.16
 links:
 - ARCH007: dcQKjpQgug6soznIhy_nxk5fos3N6i0VtWTqtBXkgWc=
 normative: true

@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: ''
+header: |
+  機能要件
+level: 4.0
+links: []
+normative: false
+ref: ''
+reviewed: null
+text: |
+  本章ではシステムが提供すべき具体的な機能要件について定義する。

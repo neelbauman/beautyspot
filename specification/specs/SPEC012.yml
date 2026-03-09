@@ -3,7 +3,7 @@ derived: false
 group: SERIAL
 header: |
   MsgpackSerializer
-level: 1.11
+level: 2.12
 links:
 - ARCH005: S0a7VydYJftkFYF8cO-MvMBW3ZgZET-pPjuZH3aN6yQ=
 normative: true

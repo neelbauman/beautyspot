@@ -3,7 +3,7 @@ derived: false
 group: DB
 header: |
   DB プロトコル階層
-level: 1.7
+level: 2.8
 links:
 - ARCH003: Y6GPTXrSsRPoTaL579G2PYcbmeQG0zdc6FAC0rTKEYY=
 normative: true

@@ -3,7 +3,7 @@ derived: false
 group: DI
 header: |
   ファクトリ関数実装
-level: 1.21
+level: 2.22
 links:
 - SPEC022: QjXRUubB9V_x8GdTmSHirTg9zgFPwDEiQcpQQFZVicI=
 normative: true

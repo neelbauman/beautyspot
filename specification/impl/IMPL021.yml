@@ -3,7 +3,7 @@ derived: false
 group: CLI
 header: |
   CLI コマンド実装
-level: '1.20'
+level: 2.21
 links:
 - SPEC021: Kq5bqKv-Ni3s3xIA49ZWN9pWR7AjFG5gclfkh4_lP2Q=
 normative: true

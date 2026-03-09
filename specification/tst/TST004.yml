@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   SHA-256 キャッシュキーテスト
-level: 1.3
+level: 2.4
 links:
 - SPEC004: oIrCcbiiQeaMVr3cg3RgDsBJnq3HUFxvUIh8OUH3kcI=
 normative: true

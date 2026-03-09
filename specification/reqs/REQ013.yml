@@ -3,7 +3,7 @@ derived: false
 group: HERD
 header: |
   Thundering Herd対策
-level: 1.12
+level: 4.13
 links: []
 normative: true
 ref: ''

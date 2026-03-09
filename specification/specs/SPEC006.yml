@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   KeyGenPolicy 戦略
-level: 1.5
+level: 2.6
 links:
 - ARCH002: h2OB0u7bf4d0UvEZ0zjry469NFQ4GBrDYCyS-AH1R_4=
 normative: true
