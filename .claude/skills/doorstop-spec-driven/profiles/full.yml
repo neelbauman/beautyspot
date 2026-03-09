@@ -89,11 +89,11 @@ doorstop_yml_attributes: |
   # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
   attributes:
     defaults:
-      group: ''
+      groups: []
     reviewed:
-      - group
+      - groups
     publish:
-      - group
+      - groups
 
   # 設定しない属性（Git/CIの責務）:
   #   author, creation_date, status

@@ -36,7 +36,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    out, get_group, get_references, is_derived, is_normative,
+    out, get_groups, get_references, is_derived, is_normative,
     find_item, find_doc_prefix, is_suspect, item_summary,
     build_link_index,
 )
@@ -96,7 +96,7 @@ def cmd_status(tree, args):
         }
 
     # グループ
-    groups = sorted({get_group(i) for i, _ in all_items if get_group(i)})
+    groups = sorted({g for i, _ in all_items for g in get_groups(i) if g != "(未分類)"})
 
     out({
         "ok": True,
@@ -161,7 +161,7 @@ def _trace_up(uid, parents_idx, result, visited, depth=0):
         result.append({
             "uid": parent_uid,
             "prefix": parent_prefix,
-            "group": get_group(parent_item),
+            "groups": get_groups(parent_item),
             "text": parent_item.text.strip()[:120],
             "derived": is_derived(parent_item),
             "depth": depth,
@@ -178,7 +178,7 @@ def _trace_down(uid, children_idx, result, visited, depth=0):
         result.append({
             "uid": child_uid,
             "prefix": child_prefix,
-            "group": get_group(child_item),
+            "groups": get_groups(child_item),
             "text": child_item.text.strip()[:120],
             "references": get_references(child_item),
             "derived": is_derived(child_item),
@@ -199,7 +199,7 @@ def cmd_coverage(tree, args):
 
         # グループフィルタ
         if args.group:
-            parent_items = [i for i in parent_doc if get_group(i) == args.group and is_normative(i)]
+            parent_items = [i for i in parent_doc if args.group in get_groups(i) and is_normative(i)]
         else:
             parent_items = [i for i in parent_doc if is_normative(i)]
 
@@ -213,7 +213,7 @@ def cmd_coverage(tree, args):
 
         child_items = [i for i in doc if is_normative(i)]
         if args.group:
-            child_items = [i for i in child_items if get_group(i) == args.group]
+            child_items = [i for i in child_items if args.group in get_groups(i)]
             
         for item in child_items:
             for link in item.links:
@@ -233,7 +233,7 @@ def cmd_coverage(tree, args):
             if item:
                 uncovered_details.append({
                     "uid": uid,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                 })
 
@@ -263,7 +263,7 @@ def cmd_suspects(tree, args):
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and get_group(item) != args.group:
+            if args.group and args.group not in get_groups(item):
                 continue
             if not is_suspect(item, tree):
                 continue
@@ -290,7 +290,7 @@ def cmd_suspects(tree, args):
             suspects.append({
                 "uid": str(item.uid),
                 "prefix": doc.prefix,
-                "group": get_group(item),
+                "groups": get_groups(item),
                 "text": item.text.strip()[:120],
                 "references": get_references(item),
                 "suspect_links": suspect_links,
@@ -341,7 +341,7 @@ def cmd_gaps(tree, args):
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and get_group(item) != args.group:
+            if args.group and args.group not in get_groups(item):
                 continue
 
             uid_str = str(item.uid)
@@ -351,7 +351,7 @@ def cmd_gaps(tree, args):
                 missing_links.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "expected_parent_doc": doc.parent,
                     "issue": f"{doc.parent} へのリンクがありません",
@@ -362,7 +362,7 @@ def cmd_gaps(tree, args):
                 missing_refs.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "issue": "references（ソース/テストファイルパス）が未設定",
                 })
@@ -378,14 +378,14 @@ def cmd_gaps(tree, args):
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and get_group(item) != args.group:
+            if args.group and args.group not in get_groups(item):
                 continue
             uid_str = str(item.uid)
             if not children_idx.get(uid_str):
                 orphan_children.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "issue": f"子ドキュメント（{', '.join(d.prefix for d in child_docs)}）"
                              f"からの参照がありません",

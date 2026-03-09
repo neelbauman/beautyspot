@@ -406,7 +406,7 @@ function renderMatrixView() {
   if (!matrixData) return;
   const { rows } = matrixData;
 
-  const allGroups = [...new Set(rows.map(r => r.group))].sort();
+  const allGroups = [...new Set(rows.flatMap(r => r.groups))].sort();
   const groupPills = allGroups.map(g =>
     `<span class="pill ${matrixFilters.groups.has(g)?'active':''}" onclick="toggleMatrixGroup('${h(g)}')">${h(g)}</span>`
   ).join('');
@@ -484,7 +484,7 @@ function renderMatrixTable() {
 
   // Filter rows
   let filtered = rows.filter(row => {
-    if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) return false;
+    if (matrixFilters.groups.size > 0 && !row.groups.some(g => matrixFilters.groups.has(g))) return false;
     if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) return false;
     if (matrixFilters.authors.size > 0) {
       const matchesAuthor = Object.values(row.cells).some(cell =>
@@ -517,8 +517,8 @@ function renderMatrixTable() {
     filtered.sort((a, b) => {
       let aKey, bKey;
       if (col === 0) {
-        aKey = a.group || '';
-        bKey = b.group || '';
+        aKey = a.groups ? a.groups[0] : '';
+        bKey = b.groups ? b.groups[0] : '';
       } else {
         const prefix = prefixes[col - 1];
         aKey = a.cells[prefix]?.uid || '';
@@ -534,7 +534,8 @@ function renderMatrixTable() {
 
   let bodyRows = '';
   for (const row of filtered) {
-    let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
+    const groupTags = (row.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ');
+    let cells = `<td>${groupTags}</td>`;
     for (const prefix of prefixes) {
       const cell = row.cells[prefix];
       if (cell) {
@@ -568,7 +569,7 @@ function renderMatrixTable() {
 function updateMatrixPills() {
   if (!matrixData) return;
   const { rows } = matrixData;
-  const allGroups = [...new Set(rows.map(r => r.group))].sort();
+  const allGroups = [...new Set(rows.flatMap(r => r.groups))].sort();
 
   const groupBar = document.getElementById('matrix-group-bar');
   if (groupBar) {
@@ -699,7 +700,8 @@ async function renderGroup(name) {
   let matHeader = '<th>Group</th>' + mat.prefixes.map(p => `<th>${h(p)}</th>`).join('');
   let matBody = '';
   for (const row of mat.rows) {
-    let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
+    const groupTags = (row.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ');
+    let cells = `<td>${groupTags}</td>`;
     for (const prefix of mat.prefixes) {
       const cell = row.cells[prefix];
       if (cell) {
@@ -802,7 +804,7 @@ async function renderDocument(prefix) {
             </div>
           </div>
           <div style="margin-bottom:8px;">
-            ${item.group !== '(未分類)' ? `<span class="tag tag-group">${h(item.group)}</span>` : ''}
+            ${(item.groups || []).filter(g => g !== '(未分類)').map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
             ${statusTags(item.reviewed, item.suspect, item.normative)}
           </div>
           <div class="item-text">${item.text_html}</div>
@@ -1046,7 +1048,7 @@ function renderPanelContent(ps, data) {
         ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
         <div style="margin-top:4px">
           <span class="tag tag-prefix">${h(data.prefix)}</span>
-          <span class="tag tag-group">${h(data.group)}</span>
+          ${(data.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
         </div>
         ${(data.author || data.created_at || data.updated_at) ? `<div class="git-meta-inline">
           ${data.author ? `<span class="git-meta-item" title="Author">${h(data.author)}</span>` : ''}

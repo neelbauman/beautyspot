@@ -161,7 +161,7 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 | 属性 | 対象 | 説明 |
 |---|---|---|
 | `text` | 全アイテム | 内容（必須） |
-| `group` | 全アイテム | 機能グループ: AUTH, PAY, USR 等（必須） |
+| `groups` | 全アイテム | 機能グループ: AUTH, PAY, USR 等（必須） |
 | `links` | REQ以外 | 親へのリンク（`derived: true` の場合は空でもよい） |
 | `derived` | 設計層のみ | 派生要求フラグ。`text` に根拠セクション必須 |
 | `references` | IMPL/TST | 外部ファイル紐付け（辞書型リスト、最大2–3ファイル） |

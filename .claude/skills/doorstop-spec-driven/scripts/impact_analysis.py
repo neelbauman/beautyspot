@@ -37,7 +37,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    get_group, get_ref, find_item as find_item_in_tree,
+    get_groups, get_ref, find_item as find_item_in_tree,
     find_doc_prefix as _find_doc_prefix, build_link_index,
     build_doc_file_map,
 )
@@ -150,7 +150,7 @@ def analyze_impact(tree, changed_items):
                         suspect_children.append({
                             "uid": str(child_item.uid),
                             "prefix": child_prefix,
-                            "group": get_group(child_item),
+                            "groups": get_groups(child_item),
                             "text": child_item.text.strip()[:100],
                             "ref": get_ref(child_item),
                         })
@@ -161,7 +161,7 @@ def analyze_impact(tree, changed_items):
         results.append({
             "uid": uid,
             "prefix": doc_prefix,
-            "group": get_group(item),
+            "groups": get_groups(item),
             "text": item.text.strip()[:120],
             "ref": get_ref(item),
             "upstream": upstream,
@@ -182,7 +182,7 @@ def _trace_upstream(uid, parents_idx, result, visited, depth=0):
         entry = {
             "uid": parent_uid,
             "prefix": parent_prefix,
-            "group": get_group(parent_item),
+            "groups": get_groups(parent_item),
             "text": parent_item.text.strip()[:100],
             "depth": depth,
         }
@@ -199,7 +199,7 @@ def _trace_downstream(uid, children_idx, result, visited, depth=0):
         entry = {
             "uid": child_uid,
             "prefix": child_prefix,
-            "group": get_group(child_item),
+            "groups": get_groups(child_item),
             "text": child_item.text.strip()[:100],
             "ref": get_ref(child_item),
             "depth": depth,
@@ -288,11 +288,14 @@ def print_console(results, tree):
     # グループ別サマリ
     group_impact = defaultdict(lambda: {"changed": 0, "suspect": 0, "affected": 0})
     for r in results:
-        group_impact[r["group"]]["changed"] += 1
+        for g in r["groups"]:
+            group_impact[g]["changed"] += 1
         for s in r["suspect_children"]:
-            group_impact[s["group"]]["suspect"] += 1
+            for g in s["groups"]:
+                group_impact[g]["suspect"] += 1
         for d in r["downstream"]:
-            group_impact[d["group"]]["affected"] += 1
+            for g in d["groups"]:
+                group_impact[g]["affected"] += 1
 
     print(f"\n{'─'*60}")
     print("[グループ別影響サマリ]")
@@ -339,11 +342,14 @@ def write_html(results, output_path):
     # グループ別サマリ
     group_impact = defaultdict(lambda: {"changed": 0, "suspect": 0, "affected": 0})
     for r in results:
-        group_impact[r["group"]]["changed"] += 1
+        for g in r["groups"]:
+            group_impact[g]["changed"] += 1
         for s in r["suspect_children"]:
-            group_impact[s["group"]]["suspect"] += 1
+            for g in s["groups"]:
+                group_impact[g]["suspect"] += 1
         for d in r["downstream"]:
-            group_impact[d["group"]]["affected"] += 1
+            for g in d["groups"]:
+                group_impact[g]["affected"] += 1
 
     group_rows = ""
     for g, d in sorted(group_impact.items()):

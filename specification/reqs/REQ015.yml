@@ -7,6 +7,6 @@ level: 2.0
 links: []
 normative: false
 ref: ''
-reviewed: null
+reviewed: LIkfKS2Ep9Srq2CKS4H4PYRpCrgucWkGnYhfezt_Q1c=
 text: |
   データパイプラインや機械学習の実験、外部API呼び出し等において、同一入力での不要な再実行を防ぐことで、実行時間の短縮とリソースの節約を実現する。開発者が最小限のコード変更で強力なキャッシュ・レート制限機能を導入できることを目指す。

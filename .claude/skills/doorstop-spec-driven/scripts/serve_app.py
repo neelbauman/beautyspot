@@ -283,12 +283,21 @@ class DoorstopDataStore:
         except (AttributeError, KeyError):
             return True
 
-    def _get_group(self, item):
+    def _get_groups(self, item):
         try:
+            g = item.get("groups")
+            if isinstance(g, list):
+                return g if g else ["(未分類)"]
+            elif isinstance(g, str) and g:
+                return [s.strip() for s in g.split(",") if s.strip()]
             g = item.get("group")
-            return g if g else "(未分類)"
+            if g:
+                if isinstance(g, str):
+                    return [s.strip() for s in g.split(",") if s.strip()]
+                return [g]
+            return ["(未分類)"]
         except (AttributeError, KeyError):
-            return "(未分類)"
+            return ["(未分類)"]
 
     def _get_ref(self, item):
         try:
@@ -337,7 +346,7 @@ class DoorstopDataStore:
             "prefix": prefix,
             "level": str(item.level),
             "header": self._get_header(item),
-            "group": self._get_group(item),
+            "groups": self._get_groups(item),
             "text": item.text,
             "text_html": render_markdown(item.text),
             "text_preview": item.text[:100] + ("..." if len(item.text) > 100 else ""),
@@ -381,7 +390,7 @@ class DoorstopDataStore:
             "prefix": prefix,
             "level": str(item.level),
             "header": self._get_header(item),
-            "group": self._get_group(item),
+            "groups": self._get_groups(item),
             "text_preview": item.text[:80] + ("..." if len(item.text) > 80 else ""),
             "ref": self._get_ref(item),
             "normative": self._is_normative(item),
@@ -406,7 +415,7 @@ class DoorstopDataStore:
             total += count
             reviewed += sum(1 for item in doc if item.reviewed and self._is_normative(item))
 
-        groups = sorted({self._get_group(item) for doc in self.tree for item in doc})
+        groups = sorted({g for doc in self.tree for item in doc for g in self._get_groups(item) if g != "(未分類)"})
         validation = self.get_validation()
         coverage = self.get_coverage()
 
@@ -458,7 +467,7 @@ class DoorstopDataStore:
                 ]
                 if not linked_parents:
                     issues["warnings"].append(
-                        f"{item.uid} [{self._get_group(item)}]: "
+                        f"{item.uid} [{self._get_groups(item)}]: "
                         f"親ドキュメント {document.parent} へのリンクがありません"
                     )
                 for link in linked_parents:
@@ -468,20 +477,20 @@ class DoorstopDataStore:
                             f"{item.uid}: リンク先 {link_uid} が存在しません"
                         )
 
-            parent_groups = {str(i.uid): self._get_group(i) for i in parent_doc if self._is_normative(i)}
+            parent_groups = {str(i.uid): self._get_groups(i) for i in parent_doc if self._is_normative(i)}
             for item in document:
                 if not self._is_normative(item):
                     continue
-                child_group = self._get_group(item)
-                if child_group == "(未分類)":
+                child_groups = self._get_groups(item)
+                if not child_groups or child_groups == ["(未分類)"]:
                     continue
                 for link in item.links:
                     link_str = str(link)
                     if link_str in parent_groups:
-                        pg = parent_groups[link_str]
-                        if pg != "(未分類)" and pg != child_group:
+                        pgs = parent_groups[link_str]
+                        if pgs and pgs != ["(未分類)"] and not set(child_groups).intersection(set(pgs)):
                             issues["warnings"].append(
-                                f"{item.uid} [{child_group}] -> {link_str} [{pg}]: "
+                                f"{item.uid} [{', '.join(child_groups)}] -> {link_str} [{', '.join(pgs)}]: "
                                 f"クロスグループリンクです"
                             )
 
@@ -499,7 +508,7 @@ class DoorstopDataStore:
                         continue
                     if str(parent_item.uid) not in child_links:
                         issues["warnings"].append(
-                            f"{parent_item.uid} [{self._get_group(parent_item)}]: "
+                            f"{parent_item.uid} [{self._get_groups(parent_item)}]: "
                             f"子ドキュメント {document.prefix} からのリンクがありません"
                         )
 
@@ -559,7 +568,8 @@ class DoorstopDataStore:
             group_cov = defaultdict(lambda: {"total": set(), "covered": set()})
             for pi in parent_doc:
                 if self._is_normative(pi):
-                    group_cov[self._get_group(pi)]["total"].add(str(pi.uid))
+                    for g in self._get_groups(pi):
+                        group_cov[g]["total"].add(str(pi.uid))
             for item in doc:
                 if not self._is_normative(item):
                     continue
@@ -567,7 +577,8 @@ class DoorstopDataStore:
                     link_str = str(link)
                     if link_str in parent_uids:
                         po = parent_doc.find_item(link_str)
-                        group_cov[self._get_group(po)]["covered"].add(link_str)
+                        for g in self._get_groups(po):
+                            group_cov[g]["covered"].add(link_str)
 
             groups = {}
             for g, d in sorted(group_cov.items()):
@@ -597,7 +608,7 @@ class DoorstopDataStore:
             for item in root_doc:
                 if not self._is_normative(item):
                     continue
-                row = {root_doc.prefix: item, "_group": self._get_group(item)}
+                row = {root_doc.prefix: item, "_groups": self._get_groups(item)}
                 matrix.append(row)
 
         def expand_children(doc, parent_prefix):
@@ -632,8 +643,8 @@ class DoorstopDataStore:
 
         result_rows = []
         for row in matrix:
-            g = row.get("_group", "(未分類)")
-            if group and g != group:
+            gs = row.get("_groups", ["(未分類)"])
+            if group and group not in gs:
                 continue
             cells = {}
             statuses = set()
@@ -674,7 +685,7 @@ class DoorstopDataStore:
                 else:
                     cells[prefix] = None
             result_rows.append({
-                "group": g,
+                "groups": gs,
                 "cells": cells,
                 "uids": uids,
                 "statuses": sorted(statuses),
@@ -686,20 +697,20 @@ class DoorstopDataStore:
         groups = defaultdict(lambda: {"items": 0, "reviewed": 0, "suspect": 0})
         for doc in self.tree:
             for item in doc:
-                g = self._get_group(item)
-                groups[g]["items"] += 1
-                if self._is_normative(item):
-                    if item.reviewed:
-                        groups[g]["reviewed"] += 1
-                    if str(item.uid) in self._suspect_uids:
-                        groups[g]["suspect"] += 1
+                for g in self._get_groups(item):
+                    groups[g]["items"] += 1
+                    if self._is_normative(item):
+                        if item.reviewed:
+                            groups[g]["reviewed"] += 1
+                        if str(item.uid) in self._suspect_uids:
+                            groups[g]["suspect"] += 1
         return {g: dict(d) for g, d in sorted(groups.items())}
 
     def get_group_detail(self, group_name):
         group_uids = set()
         for doc in self.tree:
             for item in doc:
-                if self._get_group(item) == group_name:
+                if group_name in self._get_groups(item):
                     group_uids.add(str(item.uid))
 
         if not group_uids:
@@ -763,7 +774,7 @@ class DoorstopDataStore:
             if prefix and doc.prefix != prefix:
                 continue
             for item in doc:
-                if group and self._get_group(item) != group:
+                if group and group not in self._get_groups(item):
                     continue
                 items.append(self._item_summary(item, doc.prefix))
         return items
@@ -942,14 +953,14 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
         elif path in ("", "/", "/index.html"):
             self._serve_html(_load_spa_html())
         elif path == "/api/download_report":
-            report_path = os.path.join(self.store.project_dir, "specification", "reports", "traceability_report.html")
+            report_path = os.path.join(self.store.project_dir, "specification", "reports", "publish", "published_docs.html")
             if os.path.exists(report_path):
                 with open(report_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 body = content.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Disposition", 'attachment; filename="traceability_report.html"')
+                self.send_header("Content-Disposition", 'attachment; filename="published_docs.html"')
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -966,14 +977,13 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
 
         if self.path.rstrip("/") == "/api/generate_report":
             self.store.force_reload()
-            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate_and_report.py")
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "publish_docs.py")
             cmd = [
                 sys.executable,
                 script_path,
-                self.store.project_dir
+                self.store.project_dir,
+                "--single-file"
             ]
-            if self.store.strict:
-                cmd.append("--strict")
             try:
                 subprocess.run(cmd, check=True, capture_output=True, text=True)
                 self._json_ok({"ok": True, "message": "Report generated successfully.", "report_url": "/api/download_report"})

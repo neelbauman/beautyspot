@@ -28,12 +28,24 @@ h = _html.escape
 # Item attribute helpers
 # ---------------------------------------------------------------------------
 
-def get_group(item):
+def get_groups(item):
     try:
+        g = item.get("groups")
+        if isinstance(g, list):
+            return g if g else ["(未分類)"]
+        elif isinstance(g, str) and g:
+            return [s.strip() for s in g.split(",") if s.strip()]
+        
+        # backward compatibility
         g = item.get("group")
-        return g if g else "(未分類)"
+        if g:
+            if isinstance(g, str):
+                return [s.strip() for s in g.split(",") if s.strip()]
+            return [g]
+        
+        return ["(未分類)"]
     except (AttributeError, KeyError):
-        return "(未分類)"
+        return ["(未分類)"]
 
 
 def get_ref(item):
@@ -214,7 +226,7 @@ def build_detail_card(item, doc_prefix, suspect_uids, children_map, tree,
     is_suspect = uid_str in suspect_uids
     is_reviewed = bool(item.reviewed)
     badge = build_status_badge(is_suspect, is_reviewed)
-    group = get_group(item)
+    groups = get_groups(item)
 
     # References
     ref = get_references_display(item)
@@ -283,8 +295,8 @@ def build_detail_card(item, doc_prefix, suspect_uids, children_map, tree,
         local_link = f'<a class="local-view-link" href="{h(local_view_href)}">局所ビュー →</a>'
 
     return f"""
-    <div class="item-detail" id="detail-{h(uid_str)}" data-group="{h(group)}" data-uid="{h(uid_str)}" data-statuses="{h(detail_statuses_str)}">
-      <h3>{h(uid_str)} {prefix_tag}<span class="group-tag">{h(group)}</span> <span class="status-badge">{badge}</span>
+    <div class="item-detail" id="detail-{h(uid_str)}" data-groups="{h(' '.join(groups))}" data-uid="{h(uid_str)}" data-statuses="{h(detail_statuses_str)}">
+      <h3>{h(uid_str)} {prefix_tag}{''.join('<span class="group-tag">{h(g)}</span> ' for g in groups)} <span class="status-badge">{badge}</span>
         {local_link}
       </h3>
       <div class="item-text" data-uid="{h(uid_str)}">{text_html}</div>

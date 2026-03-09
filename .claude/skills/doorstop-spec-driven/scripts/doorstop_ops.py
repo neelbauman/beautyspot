@@ -31,7 +31,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    out, get_group, find_item as _find_item_safe,
+    out, get_groups, find_item as _find_item_safe,
     find_doc_prefix as _find_prefix,
     item_to_dict,
 )
@@ -60,7 +60,7 @@ def cmd_add(tree, args):
     if args.header:
         item.header = args.header
     if args.group:
-        item.set("group", args.group)
+        item.set("groups", [g.strip() for g in args.group.split(",") if g.strip()])
     if args.ref:
         item.ref = args.ref
     if args.references:
@@ -95,7 +95,7 @@ def cmd_update(tree, args):
     if args.header is not None:
         item.header = args.header
     if args.group is not None:
-        item.set("group", args.group)
+        item.set("groups", [g.strip() for g in args.group.split(",") if g.strip()])
     if args.ref is not None:
         item.ref = args.ref
     if args.references is not None:
@@ -185,7 +185,7 @@ def cmd_list(tree, args):
         if args.document and doc.prefix != args.document:
             continue
         for item in doc:
-            if args.group and get_group(item) != args.group:
+            if args.group and args.group not in get_groups(item):
                 continue
             items.append(item_to_dict(item, doc.prefix, tree=tree))
 
@@ -202,11 +202,11 @@ def cmd_groups(tree, args):
     groups = {}
     for doc in tree:
         for item in doc:
-            g = get_group(item) or "(未分類)"
-            if g not in groups:
-                groups[g] = {"count": 0, "documents": set()}
-            groups[g]["count"] += 1
-            groups[g]["documents"].add(doc.prefix)
+            for g in get_groups(item):
+                if g not in groups:
+                    groups[g] = {"count": 0, "documents": set()}
+                groups[g]["count"] += 1
+                groups[g]["documents"].add(doc.prefix)
 
     result = {
         g: {"count": d["count"], "documents": sorted(d["documents"])}

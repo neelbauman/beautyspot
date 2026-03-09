@@ -68,7 +68,7 @@ settings:
 
 attributes:
   defaults:             # doorstop_ops.py add 時に自動付与される初期値
-    group: ''
+    groups: []
   reviewed:             # フィンガープリント計算に含めるカスタム属性
     - group             #   → group を変更すると「未レビュー」状態になる
   publish:              # doorstop publish 時に出力に含めるカスタム属性
@@ -142,12 +142,13 @@ attributes:
 
 ### 機能グループ（group カスタム属性）
 
-各アイテムに `group` 属性を設定して、機能単位で横断的に分類できる。
+各アイテムに `groups` 属性を設定して、機能単位で横断的に分類できる。
 
 ```yaml
 # YAMLファイル内での表現
 active: true
-group: AUTH          # ← カスタム属性
+groups:
+  - AUTH          # ← カスタム属性
 header: 'ログイン'
 level: 1.1
 links:
@@ -159,10 +160,10 @@ text: |
 doorstop_ops.py での設定:
 ```bash
 # 追加時に指定
-doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH
+doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH,PAY
 
 # 既存アイテムのグループ変更
-doorstop_ops.py <dir> update SPEC001 -g AUTH
+doorstop_ops.py <dir> update SPEC001 -g AUTH,PAY
 ```
 
 推奨グループ名の例:
@@ -193,24 +194,24 @@ uv run python <skill-path>/scripts/doorstop_ops.py <project-dir> <command> [opti
 #### アイテム追加（add）
 ```bash
 # REQ追加（テキスト + グループ指定）
-doorstop_ops.py <dir> add -d REQ -t "システムはユーザー認証を提供すること" -g AUTH
+doorstop_ops.py <dir> add -d REQ -t "システムはユーザー認証を提供すること" -g AUTH,PAY
 
 # SPEC追加（ヘッダー + 親リンク付き）
-doorstop_ops.py <dir> add -d SPEC -t "JWTベースの認証を実装する" --header "JWT認証" -g AUTH --links REQ001
+doorstop_ops.py <dir> add -d SPEC -t "JWTベースの認証を実装する" --header "JWT認証" -g AUTH,PAY --links REQ001
 
 # 非規範的アイテム（見出しや背景）の追加
 doorstop_ops.py <dir> add -d REQ -t "本章では認証について定義する。" --header "認証システム" --non-normative -l 1.0
 
 # IMPL追加（references付き）
-doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH \
+doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH,PAY \
   --references '[{"path":"src/auth.py","type":"file"}]' --links SPEC001
 
 # TST追加（references付き）
-doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH \
+doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH,PAY \
   --references '[{"path":"tests/test_auth.py","type":"file"}]' --links SPEC001
 
 # レベル指定で追加
-doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH -l 1.2
+doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH,PAY -l 1.2
 ```
 
 #### アイテム更新（update）
@@ -253,10 +254,10 @@ doorstop_ops.py <dir> list
 doorstop_ops.py <dir> list -d SPEC
 
 # グループ絞り込み
-doorstop_ops.py <dir> list -g AUTH
+doorstop_ops.py <dir> list -g AUTH,PAY
 
 # ドキュメント + グループ絞り込み
-doorstop_ops.py <dir> list -d IMPL -g AUTH
+doorstop_ops.py <dir> list -d IMPL -g AUTH,PAY
 
 # グループ一覧
 doorstop_ops.py <dir> groups
