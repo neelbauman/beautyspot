@@ -28,6 +28,7 @@ description: >
 6. **関連アイテムの探索には `trace_query.py` を使う。** doorstop YAMLをgrepしない
 7. **派生要求は設計層のみで使う。** `derived: true` + 根拠明記。IMPL/TSTでの使用は禁止
 8. **外部ファイル紐付けには `references` を使う。** `ref` ではなく `references` 属性。最大2–3ファイル
+9. **仕様変更のコミットはドキュメント層ごとに分ける。** 詳細は「コミット粒度規約」を参照
 
 ## プロファイル
 
@@ -165,6 +166,49 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 `conftest.py`, `__init__.py`, 共通ユーティリティは含めない。
 
 詳細は `references/doorstop_reference.md`、書き方は `references/item_writing_guide.md` を参照。
+
+## コミット粒度規約
+
+ダッシュボードはアイテムごとにgitの作成日・更新日・作成者・コミットハッシュを表示する。
+コミットの粒度がアイテムの変更履歴としての意味を持つため、
+仕様駆動の変更フローではコミットを **ドキュメント層の変更単位** で分ける。
+
+### コミットを分けるタイミング（必須）
+
+| タイミング | コミット内容 | メッセージ例 |
+|---|---|---|
+| REQ追加・変更 | REQのYMLファイル | `spec: add REQ017 [LIFECYCLE]` |
+| 設計策定・変更 | SPEC（+ARCH/HLD/LLD）のYMLファイル | `spec: add SPEC017 for REQ017` |
+| 実装＋IMPL登録 | ソースコード + IMPLのYMLファイル | `impl: IMPL017 lifecycle gc policy` |
+| テスト＋TST登録 | テストコード + TSTのYMLファイル | `test: TST017 lifecycle gc tests` |
+| suspect解消・review | clear/reviewされたYMLファイル | `spec: clear suspects for SPEC012` |
+
+### コミットをまとめてよいケース
+
+- 同一層の複数アイテムを同時に変更した場合（例: SPEC001〜003を一括修正）
+- IMPL + TST を同一コミットにまとめる（実装とテストは密結合のため許容）
+- 開発途中の試行錯誤（WIP）— ただし最終的にはsquashまたは整理を推奨
+- ツール・CI設定・ドキュメント生成など仕様アイテムに関係しない変更
+
+### コミットメッセージ規約
+
+```
+<type>: <summary>
+
+type:
+  spec:  REQ/SPEC/ARCH/HLD/LLD のYML変更
+  impl:  IMPL + ソースコード
+  test:  TST + テストコード
+  fix:   バグ修正（実装バグ）
+  tool:  スキルスクリプト・CI・ツール変更
+```
+
+アイテムUIDをメッセージに含めると、git logからアイテムの変更履歴を追跡しやすくなる。
+
+### エージェントへの指示
+
+フロー [A]〜[C] の各ステップでコミットを作成する際は上記規約に従う。
+ただし、ユーザーが明示的に「まとめてコミットして」「saveして」等と指示した場合はそちらを優先する。
 
 ## エージェントの振る舞い規約
 

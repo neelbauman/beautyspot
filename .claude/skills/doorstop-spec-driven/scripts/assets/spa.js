@@ -327,7 +327,7 @@ async function renderDashboard() {
 
 // --- Matrix ---
 let matrixData = null;
-let matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+let matrixFilters = { groups: new Set(), statuses: new Set(), authors: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
 let _pendingMatrixFilter = null;
 
 function naturalCompare(a, b) {
@@ -348,10 +348,10 @@ async function renderMatrix() {
   $main().innerHTML = '<div class="loading">Loading...</div>';
   matrixData = await API.get('/api/matrix');
   if (_pendingMatrixFilter) {
-    matrixFilters = { groups: new Set(), statuses: new Set([_pendingMatrixFilter]), query: '', sortCol: -1, sortDir: 'asc' };
+    matrixFilters = { groups: new Set(), statuses: new Set([_pendingMatrixFilter]), authors: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
     _pendingMatrixFilter = null;
   } else {
-    matrixFilters = { groups: new Set(), statuses: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
+    matrixFilters = { groups: new Set(), statuses: new Set(), authors: new Set(), query: '', sortCol: -1, sortDir: 'asc' };
   }
   renderMatrixView();
 }
@@ -370,6 +370,14 @@ function renderMatrixView() {
     `<span class="pill ${matrixFilters.statuses.has(s)?'active':''}" onclick="toggleMatrixStatus('${s}')">${s==='reviewed'?'&#x2713; Reviewed':s==='unreviewed'?'&#x25CB; Unreviewed':'&#x26A0; Suspect'}</span>`
   ).join('');
 
+  // Collect unique authors from all cells
+  const allAuthors = [...new Set(
+    rows.flatMap(r => Object.values(r.cells).filter(Boolean).map(c => c.author).filter(Boolean))
+  )].sort();
+  const authorPills = allAuthors.map(a =>
+    `<span class="pill ${matrixFilters.authors.has(a)?'active':''}" onclick="toggleMatrixAuthor('${h(a)}')">${h(a)}</span>`
+  ).join('');
+
   $main().innerHTML = `
     <div class="page-title">Traceability Matrix</div>
     <div class="page-subtitle">&#x2713;=Reviewed  &#x25CB;=Unreviewed  &#x26A0;=Suspect &mdash; Click UID for detail</div>
@@ -383,8 +391,13 @@ function renderMatrixView() {
       <label>Status:</label>
       ${statusPills}
       <label style="margin-left:12px">Search:</label>
-      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref" value="${h(matrixFilters.query)}">
+      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref / author / date" value="${h(matrixFilters.query)}">
     </div>
+    ${allAuthors.length > 1 ? `<div class="filter-bar" id="matrix-author-bar">
+      <label>Author:</label>
+      <span class="pill ${matrixFilters.authors.size===0?'active':''}" onclick="clearMatrixAuthors()">All</span>
+      ${authorPills}
+    </div>` : ''}
 
     <div id="matrix-table-wrap"></div>
   `;
@@ -428,6 +441,12 @@ function renderMatrixTable() {
   let filtered = rows.filter(row => {
     if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) return false;
     if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) return false;
+    if (matrixFilters.authors.size > 0) {
+      const matchesAuthor = Object.values(row.cells).some(cell =>
+        cell && cell.author && matrixFilters.authors.has(cell.author)
+      );
+      if (!matchesAuthor) return false;
+    }
     if (matrixFilters.query) {
       const q = matrixFilters.query.toLowerCase();
       const matchesAnyCell = Object.values(row.cells).some(cell => {
@@ -437,6 +456,9 @@ function renderMatrixTable() {
         if (cell.text_preview && cell.text_preview.toLowerCase().includes(q)) return true;
         if (cell.ref && cell.ref.toLowerCase().includes(q)) return true;
         if (cell.references && cell.references.some(r => r.path && r.path.toLowerCase().includes(q))) return true;
+        if (cell.author && cell.author.toLowerCase().includes(q)) return true;
+        if (cell.created_at && cell.created_at.includes(q)) return true;
+        if (cell.updated_at && cell.updated_at.includes(q)) return true;
         return false;
       });
       if (!matchesAnyCell) return false;
@@ -526,7 +548,7 @@ function updateMatrixPills() {
         `<span class="pill ${matrixFilters.statuses.has(s)?'active':''}" onclick="toggleMatrixStatus('${s}')">${s==='reviewed'?'&#x2713; Reviewed':s==='unreviewed'?'&#x25CB; Unreviewed':'&#x26A0; Suspect'}</span>`
       ).join('')}
       <label style="margin-left:12px">Search:</label>
-      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref" value="${h(matrixFilters.query)}">
+      <input class="search-input" id="matrix-search" type="text" placeholder="UID / header / text / ref / author / date" value="${h(matrixFilters.query)}">
     `;
 
     // Re-attach search listeners
@@ -546,6 +568,20 @@ function updateMatrixPills() {
       newInput.setSelectionRange(cursorPos, cursorPos);
     }
   }
+
+  const authorBar = document.getElementById('matrix-author-bar');
+  if (authorBar) {
+    const allAuthors = [...new Set(
+      rows.flatMap(r => Object.values(r.cells).filter(Boolean).map(c => c.author).filter(Boolean))
+    )].sort();
+    authorBar.innerHTML = `
+      <label>Author:</label>
+      <span class="pill ${matrixFilters.authors.size===0?'active':''}" onclick="clearMatrixAuthors()">All</span>
+      ${allAuthors.map(a =>
+        `<span class="pill ${matrixFilters.authors.has(a)?'active':''}" onclick="toggleMatrixAuthor('${h(a)}')">${h(a)}</span>`
+      ).join('')}
+    `;
+  }
 }
 
 function toggleMatrixGroup(g) {
@@ -556,6 +592,17 @@ function toggleMatrixGroup(g) {
 }
 function clearMatrixGroups() {
   matrixFilters.groups.clear();
+  updateMatrixPills();
+  renderMatrixTable();
+}
+function toggleMatrixAuthor(a) {
+  if (matrixFilters.authors.has(a)) matrixFilters.authors.delete(a);
+  else matrixFilters.authors.add(a);
+  updateMatrixPills();
+  renderMatrixTable();
+}
+function clearMatrixAuthors() {
+  matrixFilters.authors.clear();
   updateMatrixPills();
   renderMatrixTable();
 }
@@ -884,8 +931,16 @@ function renderPanelContent(ps, data) {
       <div>
         <strong style="font-size:1.15em">${h(data.uid)}</strong>
         ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
-        <span class="tag tag-prefix">${h(data.prefix)}</span>
-        <span class="tag tag-group">${h(data.group)}</span>
+        <div style="margin-top:4px">
+          <span class="tag tag-prefix">${h(data.prefix)}</span>
+          <span class="tag tag-group">${h(data.group)}</span>
+        </div>
+        ${(data.author || data.created_at || data.updated_at) ? `<div class="git-meta-inline">
+          ${data.author ? `<span class="git-meta-item" title="Author">${h(data.author)}</span>` : ''}
+          ${data.created_at ? `<span class="git-meta-item" title="Created">${h(data.created_at)}${data.created_commit ? ' <span class="git-commit-hash" title="Created: ' + h(data.created_commit) + '">' + h(data.created_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
+          ${data.updated_at && data.updated_at !== data.created_at ? `<span class="git-meta-item" title="Updated">${h(data.updated_at)}${data.updated_commit ? ' <span class="git-commit-hash" title="Updated: ' + h(data.updated_commit) + '">' + h(data.updated_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
+          ${data.updated_at && data.updated_at === data.created_at && data.updated_commit && data.updated_commit !== data.created_commit ? `<span class="git-meta-item" title="Updated commit"><span class="git-commit-hash" title="Updated: ${h(data.updated_commit)}">${h(data.updated_commit.slice(0,7))}</span></span>` : ''}
+        </div>` : ''}
       </div>
       <button class="panel-close" onclick="closePanel(${pid})">&times;</button>
     </div>

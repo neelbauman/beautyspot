@@ -28,6 +28,7 @@ import html as html_module
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import defaultdict
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -124,6 +125,116 @@ class DoorstopDataStore:
         self._rebuild_indexes()
 
     # ---------------------------------------------------------------
+    # Git metadata collection
+    # ---------------------------------------------------------------
+
+    def _collect_git_metadata(self):
+        """全ドキュメントのYMLファイルについてgit logから作成日・更新日・作成者を取得する。
+
+        Returns:
+            dict: {relative_path: {"created_at": str, "updated_at": str, "author": str}}
+        """
+        meta = {}
+        # Collect all document directories
+        doc_dirs = []
+        for doc in self.tree:
+            if os.path.isdir(doc.path):
+                doc_dirs.append(doc.path)
+        if not doc_dirs:
+            return meta
+
+        # Build list of YML file paths relative to project_dir
+        yml_files = []
+        abs_to_rel = {}
+        for doc_dir in doc_dirs:
+            for fname in os.listdir(doc_dir):
+                if fname.endswith(".yml") and not fname.startswith("."):
+                    abs_path = os.path.join(doc_dir, fname)
+                    rel_path = os.path.relpath(abs_path, self.project_dir)
+                    yml_files.append(rel_path)
+                    abs_to_rel[abs_path] = rel_path
+
+        if not yml_files:
+            return meta
+
+        try:
+            # Single git log command: get all commits touching spec YML files
+            # Format: COMMIT|ISO-date|author-name|hash followed by name-status lines
+            result = subprocess.run(
+                ["git", "log", "--format=COMMIT|%aI|%aN|%H", "--name-status", "--"]
+                + yml_files,
+                capture_output=True, text=True, timeout=30,
+                cwd=self.project_dir,
+            )
+            if result.returncode != 0:
+                return meta
+
+            # Parse output: track first (oldest) and last (newest) commit per file
+            current_date = None
+            current_author = None
+            current_hash = None
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("COMMIT|"):
+                    parts = line.split("|", 3)
+                    current_date = parts[1] if len(parts) > 1 else None
+                    current_author = parts[2] if len(parts) > 2 else None
+                    current_hash = parts[3] if len(parts) > 3 else None
+                    continue
+                if current_date is None:
+                    continue
+                # Name-status line: e.g. "A\tspecification/reqs/REQ001.yml"
+                # or "M\tspecification/reqs/REQ001.yml"
+                parts = line.split("\t", 1)
+                if len(parts) != 2:
+                    continue
+                status, fpath = parts
+                fpath = fpath.strip()
+                if fpath not in meta:
+                    # First encounter = most recent commit (git log is newest-first)
+                    meta[fpath] = {
+                        "created_at": current_date,
+                        "updated_at": current_date,
+                        "author": current_author,
+                        "created_commit": current_hash,
+                        "updated_commit": current_hash,
+                    }
+                else:
+                    # Older commits: update created_at/author/commit (will keep being
+                    # overwritten until we reach the oldest commit = file creation)
+                    meta[fpath] = {
+                        **meta[fpath],
+                        "created_at": current_date,
+                        "author": current_author,
+                        "created_commit": current_hash,
+                    }
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
+
+        # Convert ISO dates to short format (YYYY-MM-DD)
+        for fpath, m in meta.items():
+            for key in ("created_at", "updated_at"):
+                if m.get(key) and "T" in m[key]:
+                    m[key] = m[key].split("T")[0]
+
+        self._git_meta = meta
+        return meta
+
+    def _get_git_meta_for_item(self, item):
+        """アイテムのYMLファイルに対応するgitメタデータを返す。"""
+        if not hasattr(self, "_git_meta"):
+            return {}
+        # Build the relative path for this item's YML file
+        try:
+            yml_path = item.path
+            rel_path = os.path.relpath(yml_path, self.project_dir)
+            return self._git_meta.get(rel_path, {})
+        except (AttributeError, ValueError):
+            return {}
+
+    # ---------------------------------------------------------------
     # Internal index management
     # ---------------------------------------------------------------
 
@@ -152,6 +263,8 @@ class DoorstopDataStore:
                     ):
                         self._suspect_uids.add(str(item.uid))
                         break
+
+        self._collect_git_metadata()
 
     def _find_item(self, uid_str):
         for doc in self.tree:
@@ -209,6 +322,7 @@ class DoorstopDataStore:
             derived = bool(item.get("derived"))
         except (AttributeError, KeyError):
             pass
+        git = self._get_git_meta_for_item(item)
         return {
             "uid": uid_str,
             "prefix": prefix,
@@ -223,6 +337,11 @@ class DoorstopDataStore:
             "reviewed": bool(item.reviewed),
             "suspect": uid_str in self._suspect_uids,
             "active": bool(item.active),
+            "created_at": git.get("created_at", ""),
+            "updated_at": git.get("updated_at", ""),
+            "author": git.get("author", ""),
+            "created_commit": git.get("created_commit", ""),
+            "updated_commit": git.get("updated_commit", ""),
             "parents": [
                 {
                     "uid": str(p.uid),
@@ -245,6 +364,7 @@ class DoorstopDataStore:
         uid_str = str(item.uid)
         if prefix is None:
             prefix = self._find_prefix(item)
+        git = self._get_git_meta_for_item(item)
         return {
             "uid": uid_str,
             "prefix": prefix,
@@ -254,6 +374,9 @@ class DoorstopDataStore:
             "ref": self._get_ref(item),
             "reviewed": bool(item.reviewed),
             "suspect": uid_str in self._suspect_uids,
+            "created_at": git.get("created_at", ""),
+            "updated_at": git.get("updated_at", ""),
+            "author": git.get("author", ""),
         }
 
     # ---------------------------------------------------------------
@@ -501,6 +624,7 @@ class DoorstopDataStore:
                             references = refs
                     except (AttributeError, KeyError):
                         pass
+                    git = self._get_git_meta_for_item(item)
                     cells[prefix] = {
                         "uid": uid_str,
                         "header": self._get_header(item),
@@ -509,6 +633,9 @@ class DoorstopDataStore:
                         "references": references,
                         "reviewed": is_reviewed,
                         "suspect": is_suspect,
+                        "created_at": git.get("created_at", ""),
+                        "updated_at": git.get("updated_at", ""),
+                        "author": git.get("author", ""),
                     }
                 else:
                     cells[prefix] = None
