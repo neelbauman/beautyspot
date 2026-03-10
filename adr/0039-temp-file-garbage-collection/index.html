@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>0039: Garbage Collection Strategy for Abandoned Temporary Files - beautyspot</title>
+        <title>Garbage Collection Strategy for Abandoned Temporary Files - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#0039-garbage-collection-strategy-for-abandoned-temporary-files" class="md-skip">
+        <a href="#garbage-collection-strategy-for-abandoned-temporary-files" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              0039: Garbage Collection Strategy for Abandoned Temporary Files
+              Garbage Collection Strategy for Abandoned Temporary Files
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,20 +1496,40 @@
   
 
 
-<h1 id="0039-garbage-collection-strategy-for-abandoned-temporary-files">0039: Garbage Collection Strategy for Abandoned Temporary Files</h1>
-<h2 id="context">Context</h2>
-<p>Blobデータの保存時、アトミックな書き込みを実現するために <code>tempfile.mkstemp</code> を使用して一時ファイルを作成し、書き込み完了後に <code>os.replace</code> で正規のファイル名（<code>.bin</code>）にリネームする設計を採用している。
-しかし、Windowsのアンチウイルスソフトやバックアッププロセスの介入により <code>os.replace</code> が失敗するエッジケースが存在する。この際、フォールバックとして <code>os.unlink</code> で一時ファイルの削除を試みるが、ファイルがロックされている場合はこれも失敗し、一時ファイルがストレージ上に永久に残留し続ける（サイレントなストレージリーク）問題が指摘された。</p>
-<h2 id="decision">Decision</h2>
-<p>アトミック書き込みのフェイルセーフとして、以下の機構を導入する：
-1. <strong>専用サフィックスの導入</strong>: 一時ファイルの生成時に、標準のランダム名ではなく <code>.spot_tmp</code> という専用のサフィックスを付与し、追跡を容易にする。
-2. <strong>遅延ガベージコレクション (GC)</strong>: <code>MaintenanceService.clean_garbage</code> のパイプラインに、一時ファイルの削除処理 (<code>LocalStorage.clean_temp_files</code>) を統合する。
-3. <strong>Grace Period (猶予期間) の設定</strong>: 現在書き込み中の別プロセスのファイルを誤って削除しないよう、ファイルの最終更新時刻 (<code>mtime</code>) が指定時間（デフォルト24時間）を経過しているもののみを削除対象とする。</p>
-<h2 id="consequences">Consequences</h2>
+<h1 id="garbage-collection-strategy-for-abandoned-temporary-files">Garbage Collection Strategy for Abandoned Temporary Files</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>Blob データの保存時、アトミックな書き込みを実現するために一時ファイルを作成し、完了後にリネームする設計を採用しています。しかし、アンチウイルスソフトやバックアッププロセスの介入によりリネームが失敗するエッジケースが存在します。この際、一時ファイルの削除もロックにより失敗すると、一時ファイルがストレージ上に永久に残留し続ける（ストレージリーク）という問題がありました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: アプリケーションのクラッシュや予期せぬファイルロックが発生した場合でも、後続の自動エビクション処理によってストレージが自動的に自己修復されるようになった。</li>
-<li><strong>Positive</strong>: ユーザーはストレージリークを意識することなく、<code>beautyspot</code> を安全に運用できる。</li>
-<li><strong>Negative</strong>: 失敗した一時ファイルは最大24時間ストレージの容量を占有し続けるが、実用上のパフォーマンスインパクトは皆無であると評価した。</li>
+<li><strong>Self-Healing</strong>: 書き込み失敗やクラッシュによって残された一時ファイルを、ユーザーの介入なしに自動でクリーンアップすること。</li>
+<li><strong>Safety</strong>: 現在書き込み中の別プロセスのファイルを誤って削除しないよう、適切な猶予期間を設けること。</li>
+<li><strong>Traceability</strong>: 管理対象の一時ファイルを、通常のキャッシュファイルや他のファイルと容易に区別できるようにすること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 失敗した一時ファイルを無視する（ストレージリークを許容）。</li>
+<li><strong>Option 2</strong>: 失敗時に即座にループで再試行する。長時間ロックされている場合にプロセスを停滞させるリスクがある。</li>
+<li><strong>Option 3</strong>: 専用のサフィックスを付与し、<code>MaintenanceService</code> による遅延ガベージコレクション (GC) を導入する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
+<p>アトミック書き込みのフェイルセーフとして、以下の機構を導入します。</p>
+<ol>
+<li><strong>専用サフィックスの導入</strong>: 一時ファイルの生成時に <code>.spot_tmp</code> という専用のサフィックスを付与し、追跡を容易にします。</li>
+<li><strong>遅延ガベージコレクション (GC)</strong>: <code>MaintenanceService.clean_garbage</code> に、一時ファイルの削除処理を統合します。</li>
+<li><strong>Grace Period (猶予期間) の設定</strong>: 更新時刻が指定時間（デフォルト24時間）を経過しているもののみを削除対象とし、並行プロセスへの影響を回避します。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li>アプリのクラッシュやファイルロックが発生しても、自動エビクションによってストレージが自己修復される。</li>
+<li>ユーザーはストレージリークを意識することなく安全に運用できる。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>失敗した一時ファイルは最大24時間ストレージ容量を占有し続けるが、実用上の影響は皆無である。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1467,6 +1537,9 @@
 
 
 
+
+  
+  
 
 
 

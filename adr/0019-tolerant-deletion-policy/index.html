@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>17. Tolerant Deletion Policy for Task Cleanup - beautyspot</title>
+        <title>Tolerant Deletion Policy for Task Cleanup - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#17-tolerant-deletion-policy-for-task-cleanup" class="md-skip">
+        <a href="#tolerant-deletion-policy-for-task-cleanup" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              17. Tolerant Deletion Policy for Task Cleanup
+              Tolerant Deletion Policy for Task Cleanup
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1485,36 +1496,46 @@
   
 
 
-<h1 id="17-tolerant-deletion-policy-for-task-cleanup">17. Tolerant Deletion Policy for Task Cleanup</h1>
-<p>Date: 2026-02-14</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
+<h1 id="tolerant-deletion-policy-for-task-cleanup">Tolerant Deletion Policy for Task Cleanup</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p><code>spot.delete(key)</code> 機能は、特定のタスクに関連する「キャッシュレコード（DB）」と「実データ（Blob/File）」の両方を削除することを目的としています。</p>
 <p>ローカルファイルシステムやS3などの外部ストレージにおいて、Blobの削除操作は様々な理由（ネットワーク障害、一時的な権限エラー、ファイルが既に手動で削除されている等）で失敗する可能性があります。</p>
-<p>このとき、厳密な整合性を求めて「Blob削除に失敗したらDBレコードの削除もロールバック（中断）する」という実装にすると、以下のような問題が発生します：</p>
+<p>このとき、厳密な整合性を求めて「Blob削除に失敗したらDBレコードの削除もロールバック（中断）する」という実装にすると、以下の問題が発生します：</p>
 <ol>
 <li><strong>ゾンビレコード</strong>: 物理ファイルが見つからないだけなのに、DBからレコードを消せず、ユーザーは永遠にそのタスクを「無効化」できない。</li>
 <li><strong>再計算の阻害</strong>: 破損したキャッシュエントリが残り続けることで、新しい計算結果での上書きや、クリーンな状態からの再実行が妨げられる。</li>
 </ol>
-<h2 id="decision">Decision</h2>
-<p>我々は、削除操作において <strong>「メタデータの削除を優先する（Tolerant Deletion）」</strong> ポリシーを採用します。</p>
-<p>具体的には、<code>delete</code> メソッドの実装を以下のように規定します：</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Guaranteed Invalidation</strong>: ストレージの状態に関わらず、ユーザーが「削除」を指示したタスクを確実に管理対象から外すこと。</li>
+<li><strong>Workflow Continuity</strong>: 物理ファイルの欠落などの非本質的なエラーで、ユーザーのワークフローを中断させないこと。</li>
+<li><strong>Consistency Management</strong>: DB とストレージの乖離を最小限に抑えつつ、システムの健全性を維持すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 厳密な削除。Blob の削除に失敗した場合は例外を送出し、DB のレコード削除も行わない。</li>
+<li><strong>Option 2</strong>: 寛容な削除（Tolerant Deletion）。DB レコードの削除を優先し、Blob 削除時のエラーはログ出力に留めて処理を継続する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>削除操作において <strong>「メタデータの削除を優先する」</strong> ポリシーを採用します。</p>
 <ol>
 <li>まず、Blob（実データ）の削除を試みる。</li>
-<li>Blobの削除中に例外が発生した場合、<strong>処理を中断せず</strong>、<code>WARNING</code> レベルのログを出力してエラーを捕捉（swallow）する。</li>
+<li>Blobの削除中に例外が発生した場合、<strong>処理を中断せず</strong>、<code>WARNING</code> レベルのログを出力してエラーを捕捉する。</li>
 <li>Blob削除の成否に関わらず、DB上のタスクレコードの削除を必ず実行する。</li>
 </ol>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>確実なリセット</strong>: ユーザーはストレージの状態に関わらず、<code>beautyspot</code> の管理下からタスクを確実に削除できる。</li>
-<li><strong>UXの向上</strong>: 「ファイルが見つからない」といった些細なエラーでワークフローが止まることを防げる。</li>
+<li><strong>Positive</strong>:<ul>
+<li>ユーザーはストレージの状態に関わらず、<code>beautyspot</code> の管理下からタスクを確実に削除できる。</li>
+<li>「ファイルが見つからない」といった些細なエラーでワークフローが止まることを防げる。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>Orphaned Blobs（孤立ファイル）</strong>: DBレコードは削除されたが、ストレージ上にファイルだけが残るケースが発生しうる（ストレージ容量の浪費）。</li>
-<li><strong>対策</strong>: これらは <code>beautyspot</code> のランタイムでは管理不能となるため、必要に応じて別途ガベージコレクション（GC）ツールや、S3のライフサイクルポリシー等で対処する必要がある。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>孤立ファイル (Orphaned Blobs)</strong>: DBレコードは削除されたが、ストレージ上にファイルだけが残るケースが発生しうる。</li>
+<li>対策として、別途ガベージコレクション（GC）ツールやストレージ側のライフサイクルポリシーでの対処が必要になる場合がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1522,6 +1543,9 @@
 
 
 
+
+  
+  
 
 
 

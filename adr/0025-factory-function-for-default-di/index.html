@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>25. Factory Function for Default Dependency Injection - beautyspot</title>
+        <title>Factory Function for Default Dependency Injection - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#25-factory-function-for-default-dependency-injection" class="md-skip">
+        <a href="#factory-function-for-default-dependency-injection" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              25. Factory Function for Default Dependency Injection
+              Factory Function for Default Dependency Injection
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1457,30 +1496,49 @@
   
 
 
-<h1 id="25-factory-function-for-default-dependency-injection">25. Factory Function for Default Dependency Injection</h1>
-<p>Date: 2024-02-17</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
-<p>In v2.0, <code>beautyspot</code> adopted a Dependency Injection (DI) architecture. The <code>Spot</code> class (in <code>core.py</code>) requires explicit instances of <code>TaskDB</code>, <code>Serializer</code>, and <code>Storage</code> for initialization.</p>
-<p>While this is excellent for testability and flexibility, it creates a verbose API for end-users who just want a "quick start" experience:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Too verbose for simple scripts</span>
+<h1 id="factory-function-for-default-dependency-injection">Factory Function for Default Dependency Injection</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>v2.0 以降、<code>beautyspot</code> は依存性注入 (DI) アーキテクチャを採用しました。<code>Spot</code> クラス（<code>core.py</code>）の初期化には、<code>TaskDB</code>, <code>Serializer</code>, <code>Storage</code> の各インスタンスを明示的に渡す必要があります。</p>
+<p>これはテスト容易性と柔軟性の観点では優れていますが、単に「すぐに使い始めたい」だけのユーザーにとっては、初期化が非常に冗長になってしまうという課題がありました。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 一般的なスクリプトには冗長すぎる</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">db</span> <span class="o">=</span> <span class="n">SQLiteTaskDB</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">storage</span> <span class="o">=</span> <span class="n">LocalStorage</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">serializer</span> <span class="o">=</span> <span class="n">MsgpackSerializer</span><span class="p">()</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">spot</span> <span class="o">=</span> <span class="n">Spot</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;app&quot;</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">,</span> <span class="n">storage</span><span class="o">=</span><span class="n">storage</span><span class="p">,</span> <span class="n">serializer</span><span class="o">=</span><span class="n">serializer</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="decision">Decision</h2>
-<p>We decided to expose a <strong>factory function</strong> named <code>Spot</code> in <code>beautyspot/__init__.py</code>, which constructs the underlying <code>_Spot</code> class with sensible default implementations.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">Spot</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">resolved_db</span> <span class="o">=</span> <span class="n">db</span> <span class="ow">or</span> <span class="n">SQLiteTaskDB</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">return</span> <span class="n">_Spot</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">resolved_db</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
-</code></pre></div>
-<h2 id="consequences">Consequences</h2>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: <strong>"Opinionated Defaults, Flexible Internals"</strong>. Beginners get a one-liner initialization, while advanced users can still inject custom components.</li>
-<li><strong>Positive</strong>: Keeps the core <code>_Spot</code> class pure and free from default implementation details (it doesn't need to import <code>SQLiteTaskDB</code>).</li>
-<li><strong>Negative</strong>: Users cannot easily subclass <code>Spot</code> because the public symbol is a function, not a class. If inheritance is needed, they must import <code>_Spot</code> (aliased) from <code>core</code>. We consider composition preferable to inheritance for this library, so this is an acceptable trade-off.</li>
+<li><strong>Developer Experience (DX)</strong>: ライトユーザーが最小限の設定（名前のみなど）で即座に開始できること。</li>
+<li><strong>Clean Architecture</strong>: <code>core.py</code> の <code>Spot</code> クラスを具象クラス（SQLite 等）の詳細から保護し、ピュアな状態に保つこと。</li>
+<li><strong>Flexibility</strong>: 高度なユーザーが引き続き任意のコンポーネントを注入できる余地を残すこと。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: ユーザーに常に全ての DI コンポーネントを手動で提供させる。</li>
+<li><strong>Option 2</strong>: <code>Spot.__init__</code> の引数にデフォルト値（具象クラス）を設定する。</li>
+<li><strong>Option 3</strong>: <code>__init__.py</code> でファクトリ関数 <code>Spot</code> を提供し、そこでデフォルトの組み立てを行う。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
+<p><code>beautyspot/__init__.py</code> において、具象クラスのインスタンス化を伴う<strong>ファクトリ関数 <code>Spot</code></strong> を公開します。</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># beautyspot/__init__.py</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">Spot</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">resolved_db</span> <span class="o">=</span> <span class="n">db</span> <span class="ow">or</span> <span class="n">SQLiteTaskDB</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="c1"># ... 他の解決ロジック ...</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">return</span> <span class="n">_Spot</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">resolved_db</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</code></pre></div>
+<p>これにより、ライブラリのトップレベルからインポートされる <code>Spot</code> は関数となり、内部で <code>core.py</code> の <code>_Spot</code> クラスを組み立てて返します。</p>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li><strong>"Opinionated Defaults, Flexible Internals"</strong>: 初心者は1行で初期化でき、上級者はカスタムコンポーネントを注入できる。</li>
+<li>コアとなる <code>_Spot</code> クラスが、<code>SQLiteTaskDB</code> などの具象実装をインポートする必要がなくなる（関心の分離）。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>公開シンボル <code>Spot</code> がクラスではなく関数になるため、<code>Spot</code> を直接継承することが難しくなる。継承が必要な場合は <code>core</code> から <code>_Spot</code> をインポートする必要があるが、本ライブラリでは継承よりもコンポジションを推奨するため、許容範囲とする。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1488,6 +1546,9 @@
 
 
 
+
+  
+  
 
 
 

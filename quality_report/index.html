@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -921,6 +921,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/cachekey/" class="md-nav__link">
         
   
@@ -1434,6 +1462,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#13-class-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 クラス図 (Class Diagram)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1599,6 +1638,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#13-class-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 クラス図 (Class Diagram)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1709,35 +1759,38 @@
 
 
 <h1 id="beautyspot-quality-report">📊 Beautyspot Quality Report</h1>
-<p><strong>最終更新:</strong> 2026-02-24 14:16:25</p>
+<p><strong>最終更新:</strong> 2026-03-06 13:49:11</p>
 <h2 id="1">1. アーキテクチャ可視化</h2>
 <h3 id="11-pydeps">1.1 依存関係図 (Pydeps)</h3>
 <p><img alt="Dependency Graph" src="../statics/img/generated/dependency_graph.png" /></p>
 <h3 id="12-instability-analysis">1.2 安定度分析 (Instability Analysis)</h3>
 <p>青: 安定(Core系) / 赤: 不安定(高依存系)。矢印は依存の方向を示します。
 <img alt="Stability Graph" src="../statics/img/generated/architecture_metrics.png" /></p>
+<h3 id="13-class-diagram">1.3 クラス図 (Class Diagram)</h3>
+<p><img alt="Class Diagram" src="../statics/img/generated/classes_beautyspot.png" /></p>
 <details>
 <summary>🔍 安定度メトリクスの詳細（Ca/Ce/I）を表示</summary>
 
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Module          | Ca  | Ce  | I (Instability)
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>---------------------------------------------
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>limiter         | 1   | 0   | 0.00
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>exceptions      | 4   | 0   | 0.00
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>_version        | 0   | 0   | 0.00
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>types           | 2   | 0   | 0.00
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>content_types   | 2   | 0   | 0.00
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>cachekey        | 1   | 0   | 0.00
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>exceptions      | 5   | 0   | 0.00
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>_version        | 0   | 0   | 0.00
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>content_types   | 3   | 0   | 0.00
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>cli             | 0   | 2   | 1.00
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>types           | 3   | 0   | 0.00
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>cachekey        | 2   | 0   | 0.00
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>hooks           | 1   | 1   | 0.50
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>lifecycle       | 1   | 1   | 0.50
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>db              | 2   | 0   | 0.00
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>cli             | 0   | 1   | 1.00
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>dashboard       | 0   | 2   | 1.00
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>maintenance     | 3   | 3   | 0.50
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>serializer      | 2   | 1   | 0.33
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>storage         | 2   | 1   | 0.33
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>core            | 0   | 11  | 1.00
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>Graph generated at: docs/statics/img/generated/architecture_metrics.png
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>limiter         | 1   | 0   | 0.00
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>dashboard       | 0   | 2   | 1.00
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>serializer      | 3   | 1   | 0.25
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>lifecycle       | 2   | 1   | 0.33
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>core            | 0   | 11  | 1.00
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>db              | 4   | 1   | 0.20
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>cache           | 1   | 7   | 0.88
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>storage         | 2   | 1   | 0.33
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>maintenance     | 3   | 3   | 0.50
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>Graph generated at: docs/statics/img/generated/architecture_metrics.png
 </code></pre></div>
 </details>
 
@@ -1746,246 +1799,338 @@
 <h4 id="rank-c">⚠️ 警告 (Rank C 以上)</h4>
 <p>複雑すぎてリファクタリングが推奨される箇所です。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>src/beautyspot/cli.py
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    F 304:0 show_cmd - C
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    F 556:0 gc_cmd - C
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    F 671:0 prune_cmd - C
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>src/beautyspot/maintenance.py
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    M 185:4 MaintenanceService.clean_garbage - C
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>4 blocks (classes, functions, methods) analyzed.
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>Average complexity: C (14.25)
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    F 581:0 gc_cmd - D
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    F 326:0 _show_cmd_inner - C
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    F 149:0 _list_tasks_inner - C
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    F 419:0 _stats_cmd_inner - C
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    F 766:0 _prune_cmd_inner - C
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>src/beautyspot/cachekey.py
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    F 239:0 _canonicalize_type - C
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>src/beautyspot/serializer.py
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    M 144:4 MsgpackSerializer._default_packer - C
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>src/beautyspot/lifecycle.py
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    F 49:0 parse_retention - C
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>src/beautyspot/db.py
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    M 394:4 SQLiteTaskDB._enqueue_write - C
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    M 759:4 SQLiteTaskDB.flush - C
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>src/beautyspot/maintenance.py
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    M 253:4 MaintenanceService.clean_garbage - C
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    M 203:4 MaintenanceService.scan_garbage - C
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>12 blocks (classes, functions, methods) analyzed.
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>Average complexity: C (13.416666666666666)
 </code></pre></div>
 <details>
 <summary>📄 すべての CC メトリクス一覧を表示</summary>
 
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>src/beautyspot/limiter.py
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    M 44:4 TokenBucket._consume_reservation - A
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    C 16:0 TokenBucket - A
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    C 10:0 LimiterProtocol - A
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    M 28:4 TokenBucket.__init__ - A
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    M 74:4 TokenBucket.consume - A
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    M 92:4 TokenBucket.consume_async - A
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    M 11:4 LimiterProtocol.consume - A
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    M 13:4 LimiterProtocol.consume_async - A
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>src/beautyspot/exceptions.py
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    C 4:0 BeautySpotError - A
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    C 12:0 CacheCorruptedError - A
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    C 19:0 SerializationError - A
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    C 25:0 ConfigurationError - A
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    C 32:0 ValidationError - A
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    C 39:0 IncompatibleProviderError - A
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>src/beautyspot/types.py
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    C 9:0 SaveErrorContext - A
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    C 43:0 HookContextBase - A
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    C 54:0 PreExecuteContext - A
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    C 61:0 CacheHitContext - A
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    C 69:0 CacheMissContext - A
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>src/beautyspot/content_types.py
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    C 6:0 ContentType - A
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>src/beautyspot/cachekey.py
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    F 126:0 _canonicalize_type - B
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    F 64:0 canonicalize - B
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    F 41:0 _canonicalize_instance - A
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    M 272:4 KeyGen.from_file_content - A
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>    M 290:4 KeyGen._default - A
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    F 53:0 _is_ndarray_like - A
-<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>    C 251:0 KeyGen - A
-<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>    M 322:4 KeyGen.hash_items - A
-<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>    F 20:0 _safe_sort_key - A
-<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>    F 91:0 _canonicalize_dict - A
-<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>    F 101:0 _canonicalize_sequence - A
-<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>    F 108:0 _canonicalize_set - A
-<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>    C 194:0 KeyGenPolicy - A
-<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>    M 263:4 KeyGen.from_path_stat - A
-<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>    M 339:4 KeyGen.ignore - A
-<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>    M 354:4 KeyGen.file_content - A
-<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>    M 362:4 KeyGen.path_stat - A
-<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>    F 36:0 _canonicalize_ndarray - A
-<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>    F 115:0 _canonicalize_enum - A
-<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a>    F 169:4 _canonicalize_np_ndarray - A
-<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a>    C 181:0 Strategy - A
-<a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a>    M 200:4 KeyGenPolicy.__init__ - A
-<a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a>    M 208:4 KeyGenPolicy.bind - A
-<a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a>    M 347:4 KeyGen.map - A
-<a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a>src/beautyspot/hooks.py
-<a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a>    C 44:0 ThreadSafeHookBase - A
-<a id="__codelineno-2-52" name="__codelineno-2-52" href="#__codelineno-2-52"></a>    M 68:4 ThreadSafeHookBase.__init_subclass__ - A
-<a id="__codelineno-2-53" name="__codelineno-2-53" href="#__codelineno-2-53"></a>    C 12:0 HookBase - A
-<a id="__codelineno-2-54" name="__codelineno-2-54" href="#__codelineno-2-54"></a>    F 33:0 _wrap_with_lock - A
-<a id="__codelineno-2-55" name="__codelineno-2-55" href="#__codelineno-2-55"></a>    M 23:4 HookBase.pre_execute - A
-<a id="__codelineno-2-56" name="__codelineno-2-56" href="#__codelineno-2-56"></a>    M 26:4 HookBase.on_cache_hit - A
-<a id="__codelineno-2-57" name="__codelineno-2-57" href="#__codelineno-2-57"></a>    M 29:4 HookBase.on_cache_miss - A
-<a id="__codelineno-2-58" name="__codelineno-2-58" href="#__codelineno-2-58"></a>    M 74:4 ThreadSafeHookBase.__init__ - A
-<a id="__codelineno-2-59" name="__codelineno-2-59" href="#__codelineno-2-59"></a>src/beautyspot/lifecycle.py
-<a id="__codelineno-2-60" name="__codelineno-2-60" href="#__codelineno-2-60"></a>    F 14:0 parse_retention - B
-<a id="__codelineno-2-61" name="__codelineno-2-61" href="#__codelineno-2-61"></a>    C 65:0 LifecyclePolicy - A
-<a id="__codelineno-2-62" name="__codelineno-2-62" href="#__codelineno-2-62"></a>    M 73:4 LifecyclePolicy.resolve - A
-<a id="__codelineno-2-63" name="__codelineno-2-63" href="#__codelineno-2-63"></a>    C 49:0 Retention - A
-<a id="__codelineno-2-64" name="__codelineno-2-64" href="#__codelineno-2-64"></a>    C 56:0 Rule - A
-<a id="__codelineno-2-65" name="__codelineno-2-65" href="#__codelineno-2-65"></a>    M 70:4 LifecyclePolicy.__init__ - A
-<a id="__codelineno-2-66" name="__codelineno-2-66" href="#__codelineno-2-66"></a>    M 85:4 LifecyclePolicy.default - A
-<a id="__codelineno-2-67" name="__codelineno-2-67" href="#__codelineno-2-67"></a>src/beautyspot/__init__.py
-<a id="__codelineno-2-68" name="__codelineno-2-68" href="#__codelineno-2-68"></a>    F 45:0 Spot - B
-<a id="__codelineno-2-69" name="__codelineno-2-69" href="#__codelineno-2-69"></a>src/beautyspot/db.py
-<a id="__codelineno-2-70" name="__codelineno-2-70" href="#__codelineno-2-70"></a>    M 180:4 SQLiteTaskDB.get - B
-<a id="__codelineno-2-71" name="__codelineno-2-71" href="#__codelineno-2-71"></a>    M 146:4 SQLiteTaskDB.init_schema - B
-<a id="__codelineno-2-72" name="__codelineno-2-72" href="#__codelineno-2-72"></a>    M 297:4 SQLiteTaskDB.get_outdated_tasks - A
-<a id="__codelineno-2-73" name="__codelineno-2-73" href="#__codelineno-2-73"></a>    M 328:4 SQLiteTaskDB.get_blob_refs - A
-<a id="__codelineno-2-74" name="__codelineno-2-74" href="#__codelineno-2-74"></a>    F 20:0 _ensure_utc_isoformat - A
-<a id="__codelineno-2-75" name="__codelineno-2-75" href="#__codelineno-2-75"></a>    C 107:0 SQLiteTaskDB - A
-<a id="__codelineno-2-76" name="__codelineno-2-76" href="#__codelineno-2-76"></a>    M 248:4 SQLiteTaskDB.get_history - A
-<a id="__codelineno-2-77" name="__codelineno-2-77" href="#__codelineno-2-77"></a>    M 339:4 SQLiteTaskDB.get_keys_start_with - A
-<a id="__codelineno-2-78" name="__codelineno-2-78" href="#__codelineno-2-78"></a>    C 36:0 TaskDBBase - A
-<a id="__codelineno-2-79" name="__codelineno-2-79" href="#__codelineno-2-79"></a>    M 117:4 SQLiteTaskDB._connect - A
-<a id="__codelineno-2-80" name="__codelineno-2-80" href="#__codelineno-2-80"></a>    M 272:4 SQLiteTaskDB.delete_all - A
-<a id="__codelineno-2-81" name="__codelineno-2-81" href="#__codelineno-2-81"></a>    M 282:4 SQLiteTaskDB.prune - A
-<a id="__codelineno-2-82" name="__codelineno-2-82" href="#__codelineno-2-82"></a>    M 317:4 SQLiteTaskDB.delete_expired - A
-<a id="__codelineno-2-83" name="__codelineno-2-83" href="#__codelineno-2-83"></a>    C 29:0 TaskRecord - A
-<a id="__codelineno-2-84" name="__codelineno-2-84" href="#__codelineno-2-84"></a>    M 42:4 TaskDBBase.init_schema - A
-<a id="__codelineno-2-85" name="__codelineno-2-85" href="#__codelineno-2-85"></a>    M 46:4 TaskDBBase.get - A
-<a id="__codelineno-2-86" name="__codelineno-2-86" href="#__codelineno-2-86"></a>    M 52:4 TaskDBBase.save - A
-<a id="__codelineno-2-87" name="__codelineno-2-87" href="#__codelineno-2-87"></a>    M 67:4 TaskDBBase.get_history - A
-<a id="__codelineno-2-88" name="__codelineno-2-88" href="#__codelineno-2-88"></a>    M 71:4 TaskDBBase.delete - A
-<a id="__codelineno-2-89" name="__codelineno-2-89" href="#__codelineno-2-89"></a>    M 75:4 TaskDBBase.delete_expired - A
-<a id="__codelineno-2-90" name="__codelineno-2-90" href="#__codelineno-2-90"></a>    M 79:4 TaskDBBase.prune - A
-<a id="__codelineno-2-91" name="__codelineno-2-91" href="#__codelineno-2-91"></a>    M 86:4 TaskDBBase.get_outdated_tasks - A
-<a id="__codelineno-2-92" name="__codelineno-2-92" href="#__codelineno-2-92"></a>    M 94:4 TaskDBBase.get_blob_refs - A
-<a id="__codelineno-2-93" name="__codelineno-2-93" href="#__codelineno-2-93"></a>    M 98:4 TaskDBBase.delete_all - A
-<a id="__codelineno-2-94" name="__codelineno-2-94" href="#__codelineno-2-94"></a>    M 102:4 TaskDBBase.get_keys_start_with - A
-<a id="__codelineno-2-95" name="__codelineno-2-95" href="#__codelineno-2-95"></a>    M 112:4 SQLiteTaskDB.__init__ - A
-<a id="__codelineno-2-96" name="__codelineno-2-96" href="#__codelineno-2-96"></a>    M 135:4 SQLiteTaskDB._read_connect - A
-<a id="__codelineno-2-97" name="__codelineno-2-97" href="#__codelineno-2-97"></a>    M 216:4 SQLiteTaskDB.save - A
-<a id="__codelineno-2-98" name="__codelineno-2-98" href="#__codelineno-2-98"></a>    M 267:4 SQLiteTaskDB.delete - A
-<a id="__codelineno-2-99" name="__codelineno-2-99" href="#__codelineno-2-99"></a>src/beautyspot/cli.py
-<a id="__codelineno-2-100" name="__codelineno-2-100" href="#__codelineno-2-100"></a>    F 304:0 show_cmd - C
-<a id="__codelineno-2-101" name="__codelineno-2-101" href="#__codelineno-2-101"></a>    F 556:0 gc_cmd - C
-<a id="__codelineno-2-102" name="__codelineno-2-102" href="#__codelineno-2-102"></a>    F 671:0 prune_cmd - C
-<a id="__codelineno-2-103" name="__codelineno-2-103" href="#__codelineno-2-103"></a>    F 395:0 stats_cmd - B
-<a id="__codelineno-2-104" name="__codelineno-2-104" href="#__codelineno-2-104"></a>    F 150:0 _list_tasks - B
-<a id="__codelineno-2-105" name="__codelineno-2-105" href="#__codelineno-2-105"></a>    F 216:0 ui_cmd - B
-<a id="__codelineno-2-106" name="__codelineno-2-106" href="#__codelineno-2-106"></a>    F 480:0 clean_cmd - B
-<a id="__codelineno-2-107" name="__codelineno-2-107" href="#__codelineno-2-107"></a>    F 90:0 _list_databases - A
-<a id="__codelineno-2-108" name="__codelineno-2-108" href="#__codelineno-2-108"></a>    F 453:0 clear_cmd - A
-<a id="__codelineno-2-109" name="__codelineno-2-109" href="#__codelineno-2-109"></a>    F 50:0 _find_available_port - A
-<a id="__codelineno-2-110" name="__codelineno-2-110" href="#__codelineno-2-110"></a>    F 60:0 _format_size - A
-<a id="__codelineno-2-111" name="__codelineno-2-111" href="#__codelineno-2-111"></a>    F 75:0 _get_task_count - A
-<a id="__codelineno-2-112" name="__codelineno-2-112" href="#__codelineno-2-112"></a>    F 33:0 get_service - A
-<a id="__codelineno-2-113" name="__codelineno-2-113" href="#__codelineno-2-113"></a>    F 286:0 list_cmd - A
-<a id="__codelineno-2-114" name="__codelineno-2-114" href="#__codelineno-2-114"></a>    F 771:0 version_cmd - A
-<a id="__codelineno-2-115" name="__codelineno-2-115" href="#__codelineno-2-115"></a>    F 45:0 _is_port_in_use - A
-<a id="__codelineno-2-116" name="__codelineno-2-116" href="#__codelineno-2-116"></a>    F 68:0 _format_timestamp - A
-<a id="__codelineno-2-117" name="__codelineno-2-117" href="#__codelineno-2-117"></a>    F 790:0 main - A
-<a id="__codelineno-2-118" name="__codelineno-2-118" href="#__codelineno-2-118"></a>src/beautyspot/dashboard.py
-<a id="__codelineno-2-119" name="__codelineno-2-119" href="#__codelineno-2-119"></a>    F 54:0 load_data - A
-<a id="__codelineno-2-120" name="__codelineno-2-120" href="#__codelineno-2-120"></a>    F 14:0 get_args - A
-<a id="__codelineno-2-121" name="__codelineno-2-121" href="#__codelineno-2-121"></a>    F 35:0 render_mermaid - A
-<a id="__codelineno-2-122" name="__codelineno-2-122" href="#__codelineno-2-122"></a>src/beautyspot/maintenance.py
-<a id="__codelineno-2-123" name="__codelineno-2-123" href="#__codelineno-2-123"></a>    M 185:4 MaintenanceService.clean_garbage - C
-<a id="__codelineno-2-124" name="__codelineno-2-124" href="#__codelineno-2-124"></a>    M 84:4 MaintenanceService.get_task_detail - B
-<a id="__codelineno-2-125" name="__codelineno-2-125" href="#__codelineno-2-125"></a>    M 32:4 MaintenanceService.from_path - A
-<a id="__codelineno-2-126" name="__codelineno-2-126" href="#__codelineno-2-126"></a>    M 128:4 MaintenanceService.delete_task - A
-<a id="__codelineno-2-127" name="__codelineno-2-127" href="#__codelineno-2-127"></a>    M 279:4 MaintenanceService.scan_orphan_projects - A
-<a id="__codelineno-2-128" name="__codelineno-2-128" href="#__codelineno-2-128"></a>    C 18:0 MaintenanceService - A
-<a id="__codelineno-2-129" name="__codelineno-2-129" href="#__codelineno-2-129"></a>    M 169:4 MaintenanceService.scan_garbage - A
-<a id="__codelineno-2-130" name="__codelineno-2-130" href="#__codelineno-2-130"></a>    M 251:4 MaintenanceService.resolve_key_prefix - A
-<a id="__codelineno-2-131" name="__codelineno-2-131" href="#__codelineno-2-131"></a>    M 299:4 MaintenanceService.delete_project_storage - A
-<a id="__codelineno-2-132" name="__codelineno-2-132" href="#__codelineno-2-132"></a>    M 23:4 MaintenanceService.__init__ - A
-<a id="__codelineno-2-133" name="__codelineno-2-133" href="#__codelineno-2-133"></a>    M 80:4 MaintenanceService.get_history - A
-<a id="__codelineno-2-134" name="__codelineno-2-134" href="#__codelineno-2-134"></a>    M 123:4 MaintenanceService.delete_expired_tasks - A
-<a id="__codelineno-2-135" name="__codelineno-2-135" href="#__codelineno-2-135"></a>    M 150:4 MaintenanceService.get_prunable_tasks - A
-<a id="__codelineno-2-136" name="__codelineno-2-136" href="#__codelineno-2-136"></a>    M 156:4 MaintenanceService.prune - A
-<a id="__codelineno-2-137" name="__codelineno-2-137" href="#__codelineno-2-137"></a>    M 163:4 MaintenanceService.clear - A
-<a id="__codelineno-2-138" name="__codelineno-2-138" href="#__codelineno-2-138"></a>src/beautyspot/serializer.py
-<a id="__codelineno-2-139" name="__codelineno-2-139" href="#__codelineno-2-139"></a>    M 95:4 MsgpackSerializer._default_packer - B
-<a id="__codelineno-2-140" name="__codelineno-2-140" href="#__codelineno-2-140"></a>    C 38:0 MsgpackSerializer - A
-<a id="__codelineno-2-141" name="__codelineno-2-141" href="#__codelineno-2-141"></a>    M 160:4 MsgpackSerializer.dumps - A
-<a id="__codelineno-2-142" name="__codelineno-2-142" href="#__codelineno-2-142"></a>    M 67:4 MsgpackSerializer.register - A
-<a id="__codelineno-2-143" name="__codelineno-2-143" href="#__codelineno-2-143"></a>    M 147:4 MsgpackSerializer._ext_hook - A
-<a id="__codelineno-2-144" name="__codelineno-2-144" href="#__codelineno-2-144"></a>    M 171:4 MsgpackSerializer.loads - A
-<a id="__codelineno-2-145" name="__codelineno-2-145" href="#__codelineno-2-145"></a>    C 22:0 SerializerProtocol - A
-<a id="__codelineno-2-146" name="__codelineno-2-146" href="#__codelineno-2-146"></a>    C 28:0 TypeRegistryProtocol - A
-<a id="__codelineno-2-147" name="__codelineno-2-147" href="#__codelineno-2-147"></a>    M 85:4 MsgpackSerializer._enforce_cache_size - A
-<a id="__codelineno-2-148" name="__codelineno-2-148" href="#__codelineno-2-148"></a>    M 23:4 SerializerProtocol.dumps - A
-<a id="__codelineno-2-149" name="__codelineno-2-149" href="#__codelineno-2-149"></a>    M 24:4 SerializerProtocol.loads - A
-<a id="__codelineno-2-150" name="__codelineno-2-150" href="#__codelineno-2-150"></a>    M 29:4 TypeRegistryProtocol.register - A
-<a id="__codelineno-2-151" name="__codelineno-2-151" href="#__codelineno-2-151"></a>    M 56:4 MsgpackSerializer.__init__ - A
-<a id="__codelineno-2-152" name="__codelineno-2-152" href="#__codelineno-2-152"></a>src/beautyspot/storage.py
-<a id="__codelineno-2-153" name="__codelineno-2-153" href="#__codelineno-2-153"></a>    M 259:4 LocalStorage.prune_empty_dirs - B
-<a id="__codelineno-2-154" name="__codelineno-2-154" href="#__codelineno-2-154"></a>    M 235:4 LocalStorage.clean_temp_files - B
-<a id="__codelineno-2-155" name="__codelineno-2-155" href="#__codelineno-2-155"></a>    C 137:0 LocalStorage - A
-<a id="__codelineno-2-156" name="__codelineno-2-156" href="#__codelineno-2-156"></a>    M 315:4 S3Storage._parse_s3_uri - A
-<a id="__codelineno-2-157" name="__codelineno-2-157" href="#__codelineno-2-157"></a>    M 143:4 LocalStorage._validate_key - A
-<a id="__codelineno-2-158" name="__codelineno-2-158" href="#__codelineno-2-158"></a>    M 176:4 LocalStorage.load - A
-<a id="__codelineno-2-159" name="__codelineno-2-159" href="#__codelineno-2-159"></a>    M 197:4 LocalStorage.delete - A
-<a id="__codelineno-2-160" name="__codelineno-2-160" href="#__codelineno-2-160"></a>    M 221:4 LocalStorage.list_keys - A
-<a id="__codelineno-2-161" name="__codelineno-2-161" href="#__codelineno-2-161"></a>    C 298:0 S3Storage - A
-<a id="__codelineno-2-162" name="__codelineno-2-162" href="#__codelineno-2-162"></a>    M 299:4 S3Storage.__init__ - A
-<a id="__codelineno-2-163" name="__codelineno-2-163" href="#__codelineno-2-163"></a>    C 51:0 WarningOnlyPolicy - A
-<a id="__codelineno-2-164" name="__codelineno-2-164" href="#__codelineno-2-164"></a>    M 150:4 LocalStorage.save - A
-<a id="__codelineno-2-165" name="__codelineno-2-165" href="#__codelineno-2-165"></a>    M 348:4 S3Storage.list_keys - A
-<a id="__codelineno-2-166" name="__codelineno-2-166" href="#__codelineno-2-166"></a>    F 356:0 create_storage - A
-<a id="__codelineno-2-167" name="__codelineno-2-167" href="#__codelineno-2-167"></a>    C 28:0 StoragePolicyProtocol - A
-<a id="__codelineno-2-168" name="__codelineno-2-168" href="#__codelineno-2-168"></a>    C 38:0 ThresholdStoragePolicy - A
-<a id="__codelineno-2-169" name="__codelineno-2-169" href="#__codelineno-2-169"></a>    M 60:4 WarningOnlyPolicy.should_save_as_blob - A
-<a id="__codelineno-2-170" name="__codelineno-2-170" href="#__codelineno-2-170"></a>    C 70:0 AlwaysBlobPolicy - A
-<a id="__codelineno-2-171" name="__codelineno-2-171" href="#__codelineno-2-171"></a>    C 83:0 BlobStorageBase - A
-<a id="__codelineno-2-172" name="__codelineno-2-172" href="#__codelineno-2-172"></a>    M 333:4 S3Storage.load - A
-<a id="__codelineno-2-173" name="__codelineno-2-173" href="#__codelineno-2-173"></a>    M 341:4 S3Storage.delete - A
-<a id="__codelineno-2-174" name="__codelineno-2-174" href="#__codelineno-2-174"></a>    M 34:4 StoragePolicyProtocol.should_save_as_blob - A
-<a id="__codelineno-2-175" name="__codelineno-2-175" href="#__codelineno-2-175"></a>    M 46:4 ThresholdStoragePolicy.should_save_as_blob - A
-<a id="__codelineno-2-176" name="__codelineno-2-176" href="#__codelineno-2-176"></a>    M 76:4 AlwaysBlobPolicy.should_save_as_blob - A
-<a id="__codelineno-2-177" name="__codelineno-2-177" href="#__codelineno-2-177"></a>    M 89:4 BlobStorageBase.save - A
-<a id="__codelineno-2-178" name="__codelineno-2-178" href="#__codelineno-2-178"></a>    M 97:4 BlobStorageBase.load - A
-<a id="__codelineno-2-179" name="__codelineno-2-179" href="#__codelineno-2-179"></a>    M 104:4 BlobStorageBase.delete - A
-<a id="__codelineno-2-180" name="__codelineno-2-180" href="#__codelineno-2-180"></a>    M 112:4 BlobStorageBase.list_keys - A
-<a id="__codelineno-2-181" name="__codelineno-2-181" href="#__codelineno-2-181"></a>    M 120:4 BlobStorageBase.prune_empty_dirs - A
-<a id="__codelineno-2-182" name="__codelineno-2-182" href="#__codelineno-2-182"></a>    M 128:4 BlobStorageBase.clean_temp_files - A
-<a id="__codelineno-2-183" name="__codelineno-2-183" href="#__codelineno-2-183"></a>    M 138:4 LocalStorage.__init__ - A
-<a id="__codelineno-2-184" name="__codelineno-2-184" href="#__codelineno-2-184"></a>    M 327:4 S3Storage.save - A
-<a id="__codelineno-2-185" name="__codelineno-2-185" href="#__codelineno-2-185"></a>src/beautyspot/core.py
-<a id="__codelineno-2-186" name="__codelineno-2-186" href="#__codelineno-2-186"></a>    M 795:4 Spot._check_cache_sync - B
-<a id="__codelineno-2-187" name="__codelineno-2-187" href="#__codelineno-2-187"></a>    M 366:4 Spot.shutdown - B
-<a id="__codelineno-2-188" name="__codelineno-2-188" href="#__codelineno-2-188"></a>    M 403:4 Spot._trigger_auto_eviction - B
-<a id="__codelineno-2-189" name="__codelineno-2-189" href="#__codelineno-2-189"></a>    M 324:4 Spot._ensure_bg_resources - B
-<a id="__codelineno-2-190" name="__codelineno-2-190" href="#__codelineno-2-190"></a>    M 1085:4 Spot.cached_run - B
-<a id="__codelineno-2-191" name="__codelineno-2-191" href="#__codelineno-2-191"></a>    M 126:4 _BackgroundLoop.stop - A
-<a id="__codelineno-2-192" name="__codelineno-2-192" href="#__codelineno-2-192"></a>    M 385:4 Spot._drain_futures - A
-<a id="__codelineno-2-193" name="__codelineno-2-193" href="#__codelineno-2-193"></a>    M 444:4 Spot._resolve_key_fn - A
-<a id="__codelineno-2-194" name="__codelineno-2-194" href="#__codelineno-2-194"></a>    M 843:4 Spot._submit_background_save - A
-<a id="__codelineno-2-195" name="__codelineno-2-195" href="#__codelineno-2-195"></a>    C 160:0 Spot - A
-<a id="__codelineno-2-196" name="__codelineno-2-196" href="#__codelineno-2-196"></a>    M 206:4 Spot.__init__ - A
-<a id="__codelineno-2-197" name="__codelineno-2-197" href="#__codelineno-2-197"></a>    M 308:4 Spot.maintenance - A
-<a id="__codelineno-2-198" name="__codelineno-2-198" href="#__codelineno-2-198"></a>    M 530:4 Spot._dispatch_hooks - A
-<a id="__codelineno-2-199" name="__codelineno-2-199" href="#__codelineno-2-199"></a>    M 548:4 Spot._resolve_settings - A
-<a id="__codelineno-2-200" name="__codelineno-2-200" href="#__codelineno-2-200"></a>    M 588:4 Spot._execute_sync - A
-<a id="__codelineno-2-201" name="__codelineno-2-201" href="#__codelineno-2-201"></a>    M 687:4 Spot._execute_async - A
-<a id="__codelineno-2-202" name="__codelineno-2-202" href="#__codelineno-2-202"></a>    M 868:4 Spot._save_result_safe - A
-<a id="__codelineno-2-203" name="__codelineno-2-203" href="#__codelineno-2-203"></a>    M 902:4 Spot._save_result_sync - A
-<a id="__codelineno-2-204" name="__codelineno-2-204" href="#__codelineno-2-204"></a>    C 64:0 _BackgroundLoop - A
-<a id="__codelineno-2-205" name="__codelineno-2-205" href="#__codelineno-2-205"></a>    M 95:4 _BackgroundLoop._task_wrapper - A
-<a id="__codelineno-2-206" name="__codelineno-2-206" href="#__codelineno-2-206"></a>    M 106:4 _BackgroundLoop.submit - A
-<a id="__codelineno-2-207" name="__codelineno-2-207" href="#__codelineno-2-207"></a>    M 471:4 Spot.register - A
-<a id="__codelineno-2-208" name="__codelineno-2-208" href="#__codelineno-2-208"></a>    M 512:4 Spot._calculate_expires_at - A
-<a id="__codelineno-2-209" name="__codelineno-2-209" href="#__codelineno-2-209"></a>    M 567:4 Spot._make_cache_key - A
-<a id="__codelineno-2-210" name="__codelineno-2-210" href="#__codelineno-2-210"></a>    M 986:4 Spot.mark - A
-<a id="__codelineno-2-211" name="__codelineno-2-211" href="#__codelineno-2-211"></a>    M 294:4 Spot._track_future - A
-<a id="__codelineno-2-212" name="__codelineno-2-212" href="#__codelineno-2-212"></a>    M 352:4 Spot._setup_workspace - A
-<a id="__codelineno-2-213" name="__codelineno-2-213" href="#__codelineno-2-213"></a>    M 496:4 Spot.register_type - A
-<a id="__codelineno-2-214" name="__codelineno-2-214" href="#__codelineno-2-214"></a>    M 70:4 _BackgroundLoop.__init__ - A
-<a id="__codelineno-2-215" name="__codelineno-2-215" href="#__codelineno-2-215"></a>    M 87:4 _BackgroundLoop._run_event_loop - A
-<a id="__codelineno-2-216" name="__codelineno-2-216" href="#__codelineno-2-216"></a>    M 152:4 _BackgroundLoop._shutdown - A
-<a id="__codelineno-2-217" name="__codelineno-2-217" href="#__codelineno-2-217"></a>    M 283:4 Spot.__enter__ - A
-<a id="__codelineno-2-218" name="__codelineno-2-218" href="#__codelineno-2-218"></a>    M 286:4 Spot.__exit__ - A
-<a id="__codelineno-2-219" name="__codelineno-2-219" href="#__codelineno-2-219"></a>    M 361:4 Spot._shutdown_resources - A
-<a id="__codelineno-2-220" name="__codelineno-2-220" href="#__codelineno-2-220"></a>    M 860:4 Spot._save_result_async - A
-<a id="__codelineno-2-221" name="__codelineno-2-221" href="#__codelineno-2-221"></a>    M 948:4 Spot.consume - A
-<a id="__codelineno-2-222" name="__codelineno-2-222" href="#__codelineno-2-222"></a>    M 969:4 Spot.mark - A
-<a id="__codelineno-2-223" name="__codelineno-2-223" href="#__codelineno-2-223"></a>    M 972:4 Spot.mark - A
-<a id="__codelineno-2-224" name="__codelineno-2-224" href="#__codelineno-2-224"></a>    M 1053:4 Spot.cached_run - A
-<a id="__codelineno-2-225" name="__codelineno-2-225" href="#__codelineno-2-225"></a>    M 1070:4 Spot.cached_run - A
-<a id="__codelineno-2-226" name="__codelineno-2-226" href="#__codelineno-2-226"></a>
-<a id="__codelineno-2-227" name="__codelineno-2-227" href="#__codelineno-2-227"></a>210 blocks (classes, functions, methods) analyzed.
-<a id="__codelineno-2-228" name="__codelineno-2-228" href="#__codelineno-2-228"></a>Average complexity: A (2.9095238095238094)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>src/beautyspot/exceptions.py
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    C 4:0 BeautySpotError - A
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    C 12:0 CacheCorruptedError - A
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    C 19:0 SerializationError - A
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    C 25:0 ConfigurationError - A
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    C 32:0 ValidationError - A
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    C 39:0 IncompatibleProviderError - A
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>src/beautyspot/content_types.py
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    C 6:0 ContentType - A
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>src/beautyspot/cli.py
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    F 581:0 gc_cmd - D
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    F 326:0 _show_cmd_inner - C
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    F 149:0 _list_tasks_inner - C
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    F 419:0 _stats_cmd_inner - C
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    F 766:0 _prune_cmd_inner - C
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    F 227:0 ui_cmd - B
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    F 527:0 _clean_cmd_inner - B
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    F 84:0 _list_databases - A
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    F 474:0 clear_cmd - A
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    F 50:0 _find_available_port - A
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    F 60:0 _format_size - A
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    F 33:0 get_service - A
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>    F 297:0 list_cmd - A
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    F 731:0 prune_cmd - A
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    F 842:0 version_cmd - A
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    F 45:0 _is_port_in_use - A
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    F 68:0 _format_timestamp - A
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    F 75:0 _get_task_count - A
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    F 144:0 _list_tasks - A
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>    F 315:0 show_cmd - A
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    F 409:0 stats_cmd - A
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>    F 501:0 clean_cmd - A
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>    F 861:0 main - A
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>src/beautyspot/types.py
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>    C 51:0 HookContextBase - A
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>    M 65:4 HookContextBase.__post_init__ - A
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>    C 10:0 TaskRecord - A
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>    C 22:0 SaveErrorContext - A
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>    C 73:0 PreExecuteContext - A
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>    C 80:0 CacheHitContext - A
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>    C 88:0 CacheMissContext - A
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>src/beautyspot/cachekey.py
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>    F 239:0 _canonicalize_type - C
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>    F 42:0 _canonicalize_instance - B
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a>    F 95:0 canonicalize - B
+<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a>    M 385:4 KeyGen.from_file_content - A
+<a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a>    M 403:4 KeyGen._default - A
+<a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a>    F 84:0 _is_ndarray_like - A
+<a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a>    F 133:0 _canonicalize_dict - A
+<a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a>    C 364:0 KeyGen - A
+<a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a>    M 435:4 KeyGen.hash_items - A
+<a id="__codelineno-2-52" name="__codelineno-2-52" href="#__codelineno-2-52"></a>    F 21:0 _safe_sort_key - A
+<a id="__codelineno-2-53" name="__codelineno-2-53" href="#__codelineno-2-53"></a>    F 142:0 _canonicalize_list - A
+<a id="__codelineno-2-54" name="__codelineno-2-54" href="#__codelineno-2-54"></a>    F 153:0 _canonicalize_tuple - A
+<a id="__codelineno-2-55" name="__codelineno-2-55" href="#__codelineno-2-55"></a>    F 163:0 _canonicalize_set - A
+<a id="__codelineno-2-56" name="__codelineno-2-56" href="#__codelineno-2-56"></a>    F 178:0 _canonicalize_frozenset - A
+<a id="__codelineno-2-57" name="__codelineno-2-57" href="#__codelineno-2-57"></a>    F 192:0 _canonicalize_deque - A
+<a id="__codelineno-2-58" name="__codelineno-2-58" href="#__codelineno-2-58"></a>    F 213:0 _canonicalize_ordereddict - A
+<a id="__codelineno-2-59" name="__codelineno-2-59" href="#__codelineno-2-59"></a>    C 307:0 KeyGenPolicy - A
+<a id="__codelineno-2-60" name="__codelineno-2-60" href="#__codelineno-2-60"></a>    M 376:4 KeyGen.from_path_stat - A
+<a id="__codelineno-2-61" name="__codelineno-2-61" href="#__codelineno-2-61"></a>    M 452:4 KeyGen.ignore - A
+<a id="__codelineno-2-62" name="__codelineno-2-62" href="#__codelineno-2-62"></a>    M 467:4 KeyGen.file_content - A
+<a id="__codelineno-2-63" name="__codelineno-2-63" href="#__codelineno-2-63"></a>    M 475:4 KeyGen.path_stat - A
+<a id="__codelineno-2-64" name="__codelineno-2-64" href="#__codelineno-2-64"></a>    F 37:0 _canonicalize_ndarray - A
+<a id="__codelineno-2-65" name="__codelineno-2-65" href="#__codelineno-2-65"></a>    F 202:0 _canonicalize_defaultdict - A
+<a id="__codelineno-2-66" name="__codelineno-2-66" href="#__codelineno-2-66"></a>    F 228:0 _canonicalize_enum - A
+<a id="__codelineno-2-67" name="__codelineno-2-67" href="#__codelineno-2-67"></a>    F 282:4 _canonicalize_np_ndarray - A
+<a id="__codelineno-2-68" name="__codelineno-2-68" href="#__codelineno-2-68"></a>    C 294:0 Strategy - A
+<a id="__codelineno-2-69" name="__codelineno-2-69" href="#__codelineno-2-69"></a>    M 313:4 KeyGenPolicy.__init__ - A
+<a id="__codelineno-2-70" name="__codelineno-2-70" href="#__codelineno-2-70"></a>    M 321:4 KeyGenPolicy.bind - A
+<a id="__codelineno-2-71" name="__codelineno-2-71" href="#__codelineno-2-71"></a>    M 460:4 KeyGen.map - A
+<a id="__codelineno-2-72" name="__codelineno-2-72" href="#__codelineno-2-72"></a>src/beautyspot/hooks.py
+<a id="__codelineno-2-73" name="__codelineno-2-73" href="#__codelineno-2-73"></a>    C 51:0 ThreadSafeHookBase - A
+<a id="__codelineno-2-74" name="__codelineno-2-74" href="#__codelineno-2-74"></a>    M 80:4 ThreadSafeHookBase.__init_subclass__ - A
+<a id="__codelineno-2-75" name="__codelineno-2-75" href="#__codelineno-2-75"></a>    C 12:0 HookBase - A
+<a id="__codelineno-2-76" name="__codelineno-2-76" href="#__codelineno-2-76"></a>    M 93:4 ThreadSafeHookBase.__getattr__ - A
+<a id="__codelineno-2-77" name="__codelineno-2-77" href="#__codelineno-2-77"></a>    F 40:0 _wrap_with_lock - A
+<a id="__codelineno-2-78" name="__codelineno-2-78" href="#__codelineno-2-78"></a>    M 23:4 HookBase.pre_execute - A
+<a id="__codelineno-2-79" name="__codelineno-2-79" href="#__codelineno-2-79"></a>    M 26:4 HookBase.on_cache_hit - A
+<a id="__codelineno-2-80" name="__codelineno-2-80" href="#__codelineno-2-80"></a>    M 29:4 HookBase.on_cache_miss - A
+<a id="__codelineno-2-81" name="__codelineno-2-81" href="#__codelineno-2-81"></a>    M 86:4 ThreadSafeHookBase.__init__ - A
+<a id="__codelineno-2-82" name="__codelineno-2-82" href="#__codelineno-2-82"></a>src/beautyspot/limiter.py
+<a id="__codelineno-2-83" name="__codelineno-2-83" href="#__codelineno-2-83"></a>    M 44:4 TokenBucket._consume_reservation - A
+<a id="__codelineno-2-84" name="__codelineno-2-84" href="#__codelineno-2-84"></a>    C 16:0 TokenBucket - A
+<a id="__codelineno-2-85" name="__codelineno-2-85" href="#__codelineno-2-85"></a>    C 10:0 LimiterProtocol - A
+<a id="__codelineno-2-86" name="__codelineno-2-86" href="#__codelineno-2-86"></a>    M 28:4 TokenBucket.__init__ - A
+<a id="__codelineno-2-87" name="__codelineno-2-87" href="#__codelineno-2-87"></a>    M 74:4 TokenBucket.consume - A
+<a id="__codelineno-2-88" name="__codelineno-2-88" href="#__codelineno-2-88"></a>    M 92:4 TokenBucket.consume_async - A
+<a id="__codelineno-2-89" name="__codelineno-2-89" href="#__codelineno-2-89"></a>    M 11:4 LimiterProtocol.consume - A
+<a id="__codelineno-2-90" name="__codelineno-2-90" href="#__codelineno-2-90"></a>    M 13:4 LimiterProtocol.consume_async - A
+<a id="__codelineno-2-91" name="__codelineno-2-91" href="#__codelineno-2-91"></a>src/beautyspot/dashboard.py
+<a id="__codelineno-2-92" name="__codelineno-2-92" href="#__codelineno-2-92"></a>    F 44:0 load_data - A
+<a id="__codelineno-2-93" name="__codelineno-2-93" href="#__codelineno-2-93"></a>    F 15:0 get_args - A
+<a id="__codelineno-2-94" name="__codelineno-2-94" href="#__codelineno-2-94"></a>src/beautyspot/serializer.py
+<a id="__codelineno-2-95" name="__codelineno-2-95" href="#__codelineno-2-95"></a>    M 144:4 MsgpackSerializer._default_packer - C
+<a id="__codelineno-2-96" name="__codelineno-2-96" href="#__codelineno-2-96"></a>    C 38:0 MsgpackSerializer - A
+<a id="__codelineno-2-97" name="__codelineno-2-97" href="#__codelineno-2-97"></a>    M 100:4 MsgpackSerializer.register - A
+<a id="__codelineno-2-98" name="__codelineno-2-98" href="#__codelineno-2-98"></a>    M 203:4 MsgpackSerializer._ext_hook - A
+<a id="__codelineno-2-99" name="__codelineno-2-99" href="#__codelineno-2-99"></a>    M 226:4 MsgpackSerializer.dumps - A
+<a id="__codelineno-2-100" name="__codelineno-2-100" href="#__codelineno-2-100"></a>    M 78:4 MsgpackSerializer._get_local_cache - A
+<a id="__codelineno-2-101" name="__codelineno-2-101" href="#__codelineno-2-101"></a>    M 237:4 MsgpackSerializer.loads - A
+<a id="__codelineno-2-102" name="__codelineno-2-102" href="#__codelineno-2-102"></a>    C 22:0 SerializerProtocol - A
+<a id="__codelineno-2-103" name="__codelineno-2-103" href="#__codelineno-2-103"></a>    C 28:0 TypeRegistryProtocol - A
+<a id="__codelineno-2-104" name="__codelineno-2-104" href="#__codelineno-2-104"></a>    M 95:4 MsgpackSerializer._enforce_cache_size - A
+<a id="__codelineno-2-105" name="__codelineno-2-105" href="#__codelineno-2-105"></a>    M 23:4 SerializerProtocol.dumps - A
+<a id="__codelineno-2-106" name="__codelineno-2-106" href="#__codelineno-2-106"></a>    M 24:4 SerializerProtocol.loads - A
+<a id="__codelineno-2-107" name="__codelineno-2-107" href="#__codelineno-2-107"></a>    M 29:4 TypeRegistryProtocol.register - A
+<a id="__codelineno-2-108" name="__codelineno-2-108" href="#__codelineno-2-108"></a>    M 61:4 MsgpackSerializer.__init__ - A
+<a id="__codelineno-2-109" name="__codelineno-2-109" href="#__codelineno-2-109"></a>src/beautyspot/lifecycle.py
+<a id="__codelineno-2-110" name="__codelineno-2-110" href="#__codelineno-2-110"></a>    F 49:0 parse_retention - C
+<a id="__codelineno-2-111" name="__codelineno-2-111" href="#__codelineno-2-111"></a>    M 147:4 LifecyclePolicy.resolve_with_fallback - A
+<a id="__codelineno-2-112" name="__codelineno-2-112" href="#__codelineno-2-112"></a>    C 15:0 _ForeverSentinel - A
+<a id="__codelineno-2-113" name="__codelineno-2-113" href="#__codelineno-2-113"></a>    M 26:4 _ForeverSentinel.__new__ - A
+<a id="__codelineno-2-114" name="__codelineno-2-114" href="#__codelineno-2-114"></a>    C 128:0 LifecyclePolicy - A
+<a id="__codelineno-2-115" name="__codelineno-2-115" href="#__codelineno-2-115"></a>    M 136:4 LifecyclePolicy.resolve - A
+<a id="__codelineno-2-116" name="__codelineno-2-116" href="#__codelineno-2-116"></a>    M 35:4 _ForeverSentinel.__repr__ - A
+<a id="__codelineno-2-117" name="__codelineno-2-117" href="#__codelineno-2-117"></a>    M 38:4 _ForeverSentinel.__bool__ - A
+<a id="__codelineno-2-118" name="__codelineno-2-118" href="#__codelineno-2-118"></a>    C 102:0 Retention - A
+<a id="__codelineno-2-119" name="__codelineno-2-119" href="#__codelineno-2-119"></a>    C 119:0 Rule - A
+<a id="__codelineno-2-120" name="__codelineno-2-120" href="#__codelineno-2-120"></a>    M 133:4 LifecyclePolicy.__init__ - A
+<a id="__codelineno-2-121" name="__codelineno-2-121" href="#__codelineno-2-121"></a>    M 165:4 LifecyclePolicy.default - A
+<a id="__codelineno-2-122" name="__codelineno-2-122" href="#__codelineno-2-122"></a>src/beautyspot/core.py
+<a id="__codelineno-2-123" name="__codelineno-2-123" href="#__codelineno-2-123"></a>    M 300:4 Spot._ensure_bg_resources - B
+<a id="__codelineno-2-124" name="__codelineno-2-124" href="#__codelineno-2-124"></a>    M 686:4 Spot._execute_sync - B
+<a id="__codelineno-2-125" name="__codelineno-2-125" href="#__codelineno-2-125"></a>    M 801:4 Spot._execute_async - B
+<a id="__codelineno-2-126" name="__codelineno-2-126" href="#__codelineno-2-126"></a>    M 129:4 _BackgroundLoop.submit - B
+<a id="__codelineno-2-127" name="__codelineno-2-127" href="#__codelineno-2-127"></a>    M 358:4 Spot.flush - B
+<a id="__codelineno-2-128" name="__codelineno-2-128" href="#__codelineno-2-128"></a>    M 390:4 Spot._trigger_auto_eviction - B
+<a id="__codelineno-2-129" name="__codelineno-2-129" href="#__codelineno-2-129"></a>    M 662:4 Spot._persist_result_async - B
+<a id="__codelineno-2-130" name="__codelineno-2-130" href="#__codelineno-2-130"></a>    M 339:4 Spot.shutdown - B
+<a id="__codelineno-2-131" name="__codelineno-2-131" href="#__codelineno-2-131"></a>    M 441:4 Spot._resolve_key_fn - B
+<a id="__codelineno-2-132" name="__codelineno-2-132" href="#__codelineno-2-132"></a>    M 646:4 Spot._persist_result_sync - B
+<a id="__codelineno-2-133" name="__codelineno-2-133" href="#__codelineno-2-133"></a>    M 160:4 _BackgroundLoop.stop - A
+<a id="__codelineno-2-134" name="__codelineno-2-134" href="#__codelineno-2-134"></a>    M 975:4 Spot._save_result_async - A
+<a id="__codelineno-2-135" name="__codelineno-2-135" href="#__codelineno-2-135"></a>    C 79:0 _BackgroundLoop - A
+<a id="__codelineno-2-136" name="__codelineno-2-136" href="#__codelineno-2-136"></a>    C 197:0 Spot - A
+<a id="__codelineno-2-137" name="__codelineno-2-137" href="#__codelineno-2-137"></a>    M 214:4 Spot.__init__ - A
+<a id="__codelineno-2-138" name="__codelineno-2-138" href="#__codelineno-2-138"></a>    M 286:4 Spot.maintenance - A
+<a id="__codelineno-2-139" name="__codelineno-2-139" href="#__codelineno-2-139"></a>    M 523:4 Spot._dispatch_hooks - A
+<a id="__codelineno-2-140" name="__codelineno-2-140" href="#__codelineno-2-140"></a>    M 930:4 Spot._handle_save_error - A
+<a id="__codelineno-2-141" name="__codelineno-2-141" href="#__codelineno-2-141"></a>    M 1113:4 Spot.cached_run - A
+<a id="__codelineno-2-142" name="__codelineno-2-142" href="#__codelineno-2-142"></a>    M 118:4 _BackgroundLoop._task_wrapper - A
+<a id="__codelineno-2-143" name="__codelineno-2-143" href="#__codelineno-2-143"></a>    M 328:4 Spot._shutdown_resources - A
+<a id="__codelineno-2-144" name="__codelineno-2-144" href="#__codelineno-2-144"></a>    M 385:4 Spot._get_func_identifier - A
+<a id="__codelineno-2-145" name="__codelineno-2-145" href="#__codelineno-2-145"></a>    M 456:4 Spot.register - A
+<a id="__codelineno-2-146" name="__codelineno-2-146" href="#__codelineno-2-146"></a>    M 273:4 Spot._track_future - A
+<a id="__codelineno-2-147" name="__codelineno-2-147" href="#__codelineno-2-147"></a>    M 497:4 Spot.register_type - A
+<a id="__codelineno-2-148" name="__codelineno-2-148" href="#__codelineno-2-148"></a>    M 537:4 Spot._dispatch_hooks_async - A
+<a id="__codelineno-2-149" name="__codelineno-2-149" href="#__codelineno-2-149"></a>    M 553:4 Spot._resolve_settings - A
+<a id="__codelineno-2-150" name="__codelineno-2-150" href="#__codelineno-2-150"></a>    M 567:4 Spot._prepare_execution - A
+<a id="__codelineno-2-151" name="__codelineno-2-151" href="#__codelineno-2-151"></a>    M 966:4 Spot._submit_background_save - A
+<a id="__codelineno-2-152" name="__codelineno-2-152" href="#__codelineno-2-152"></a>    M 990:4 Spot._save_result_safe - A
+<a id="__codelineno-2-153" name="__codelineno-2-153" href="#__codelineno-2-153"></a>    M 1042:4 Spot.mark - A
+<a id="__codelineno-2-154" name="__codelineno-2-154" href="#__codelineno-2-154"></a>    C 66:0 _ExecutionContext - A
+<a id="__codelineno-2-155" name="__codelineno-2-155" href="#__codelineno-2-155"></a>    M 88:4 _BackgroundLoop.__init__ - A
+<a id="__codelineno-2-156" name="__codelineno-2-156" href="#__codelineno-2-156"></a>    M 110:4 _BackgroundLoop._run_event_loop - A
+<a id="__codelineno-2-157" name="__codelineno-2-157" href="#__codelineno-2-157"></a>    M 189:4 _BackgroundLoop._shutdown - A
+<a id="__codelineno-2-158" name="__codelineno-2-158" href="#__codelineno-2-158"></a>    M 267:4 Spot.__enter__ - A
+<a id="__codelineno-2-159" name="__codelineno-2-159" href="#__codelineno-2-159"></a>    M 270:4 Spot.__exit__ - A
+<a id="__codelineno-2-160" name="__codelineno-2-160" href="#__codelineno-2-160"></a>    M 382:4 Spot._drain_futures - A
+<a id="__codelineno-2-161" name="__codelineno-2-161" href="#__codelineno-2-161"></a>    M 597:4 Spot._build_cache_hit_context - A
+<a id="__codelineno-2-162" name="__codelineno-2-162" href="#__codelineno-2-162"></a>    M 617:4 Spot._build_save_kwargs - A
+<a id="__codelineno-2-163" name="__codelineno-2-163" href="#__codelineno-2-163"></a>    M 960:4 Spot._notify_save_discarded - A
+<a id="__codelineno-2-164" name="__codelineno-2-164" href="#__codelineno-2-164"></a>    M 996:4 Spot.consume - A
+<a id="__codelineno-2-165" name="__codelineno-2-165" href="#__codelineno-2-165"></a>    M 1025:4 Spot.mark - A
+<a id="__codelineno-2-166" name="__codelineno-2-166" href="#__codelineno-2-166"></a>    M 1028:4 Spot.mark - A
+<a id="__codelineno-2-167" name="__codelineno-2-167" href="#__codelineno-2-167"></a>    M 1107:4 Spot.cached_run - A
+<a id="__codelineno-2-168" name="__codelineno-2-168" href="#__codelineno-2-168"></a>    M 1110:4 Spot.cached_run - A
+<a id="__codelineno-2-169" name="__codelineno-2-169" href="#__codelineno-2-169"></a>src/beautyspot/db.py
+<a id="__codelineno-2-170" name="__codelineno-2-170" href="#__codelineno-2-170"></a>    M 394:4 SQLiteTaskDB._enqueue_write - C
+<a id="__codelineno-2-171" name="__codelineno-2-171" href="#__codelineno-2-171"></a>    M 759:4 SQLiteTaskDB.flush - C
+<a id="__codelineno-2-172" name="__codelineno-2-172" href="#__codelineno-2-172"></a>    M 297:4 SQLiteTaskDB._read_connect - B
+<a id="__codelineno-2-173" name="__codelineno-2-173" href="#__codelineno-2-173"></a>    M 356:4 SQLiteTaskDB._writer_loop - B
+<a id="__codelineno-2-174" name="__codelineno-2-174" href="#__codelineno-2-174"></a>    M 438:4 SQLiteTaskDB.shutdown - B
+<a id="__codelineno-2-175" name="__codelineno-2-175" href="#__codelineno-2-175"></a>    M 538:4 SQLiteTaskDB.get - B
+<a id="__codelineno-2-176" name="__codelineno-2-176" href="#__codelineno-2-176"></a>    M 100:4 _ReadConnWrapper.close - A
+<a id="__codelineno-2-177" name="__codelineno-2-177" href="#__codelineno-2-177"></a>    C 254:0 SQLiteTaskDB - A
+<a id="__codelineno-2-178" name="__codelineno-2-178" href="#__codelineno-2-178"></a>    M 675:4 SQLiteTaskDB.get_outdated_tasks - A
+<a id="__codelineno-2-179" name="__codelineno-2-179" href="#__codelineno-2-179"></a>    M 712:4 SQLiteTaskDB.get_blob_refs - A
+<a id="__codelineno-2-180" name="__codelineno-2-180" href="#__codelineno-2-180"></a>    F 135:0 _ensure_utc_isoformat - A
+<a id="__codelineno-2-181" name="__codelineno-2-181" href="#__codelineno-2-181"></a>    C 93:0 _ReadConnWrapper - A
+<a id="__codelineno-2-182" name="__codelineno-2-182" href="#__codelineno-2-182"></a>    C 147:0 _WriteTask - A
+<a id="__codelineno-2-183" name="__codelineno-2-183" href="#__codelineno-2-183"></a>    M 259:4 SQLiteTaskDB.__init__ - A
+<a id="__codelineno-2-184" name="__codelineno-2-184" href="#__codelineno-2-184"></a>    M 284:4 SQLiteTaskDB._ensure_cache_dir - A
+<a id="__codelineno-2-185" name="__codelineno-2-185" href="#__codelineno-2-185"></a>    M 618:4 SQLiteTaskDB.get_history - A
+<a id="__codelineno-2-186" name="__codelineno-2-186" href="#__codelineno-2-186"></a>    M 723:4 SQLiteTaskDB.get_keys_start_with - A
+<a id="__codelineno-2-187" name="__codelineno-2-187" href="#__codelineno-2-187"></a>    M 739:4 SQLiteTaskDB.count_tasks - A
+<a id="__codelineno-2-188" name="__codelineno-2-188" href="#__codelineno-2-188"></a>    C 22:0 TaskDBCore - A
+<a id="__codelineno-2-189" name="__codelineno-2-189" href="#__codelineno-2-189"></a>    C 51:0 Flushable - A
+<a id="__codelineno-2-190" name="__codelineno-2-190" href="#__codelineno-2-190"></a>    C 58:0 Shutdownable - A
+<a id="__codelineno-2-191" name="__codelineno-2-191" href="#__codelineno-2-191"></a>    C 65:0 Maintenable - A
+<a id="__codelineno-2-192" name="__codelineno-2-192" href="#__codelineno-2-192"></a>    M 155:4 _WriteTask.try_cancel - A
+<a id="__codelineno-2-193" name="__codelineno-2-193" href="#__codelineno-2-193"></a>    M 163:4 _WriteTask.try_start - A
+<a id="__codelineno-2-194" name="__codelineno-2-194" href="#__codelineno-2-194"></a>    M 171:4 _WriteTask.mark_done - A
+<a id="__codelineno-2-195" name="__codelineno-2-195" href="#__codelineno-2-195"></a>    C 181:0 TaskDBBase - A
+<a id="__codelineno-2-196" name="__codelineno-2-196" href="#__codelineno-2-196"></a>    M 244:4 TaskDBBase.get_history - A
+<a id="__codelineno-2-197" name="__codelineno-2-197" href="#__codelineno-2-197"></a>    M 696:4 SQLiteTaskDB.delete_expired - A
+<a id="__codelineno-2-198" name="__codelineno-2-198" href="#__codelineno-2-198"></a>    M 27:4 TaskDBCore.init_schema - A
+<a id="__codelineno-2-199" name="__codelineno-2-199" href="#__codelineno-2-199"></a>    M 29:4 TaskDBCore.get - A
+<a id="__codelineno-2-200" name="__codelineno-2-200" href="#__codelineno-2-200"></a>    M 33:4 TaskDBCore.save - A
+<a id="__codelineno-2-201" name="__codelineno-2-201" href="#__codelineno-2-201"></a>    M 47:4 TaskDBCore.delete - A
+<a id="__codelineno-2-202" name="__codelineno-2-202" href="#__codelineno-2-202"></a>    M 54:4 Flushable.flush - A
+<a id="__codelineno-2-203" name="__codelineno-2-203" href="#__codelineno-2-203"></a>    M 61:4 Shutdownable.shutdown - A
+<a id="__codelineno-2-204" name="__codelineno-2-204" href="#__codelineno-2-204"></a>    M 70:4 Maintenable.delete_expired - A
+<a id="__codelineno-2-205" name="__codelineno-2-205" href="#__codelineno-2-205"></a>    M 72:4 Maintenable.prune - A
+<a id="__codelineno-2-206" name="__codelineno-2-206" href="#__codelineno-2-206"></a>    M 74:4 Maintenable.get_outdated_tasks - A
+<a id="__codelineno-2-207" name="__codelineno-2-207" href="#__codelineno-2-207"></a>    M 78:4 Maintenable.get_blob_refs - A
+<a id="__codelineno-2-208" name="__codelineno-2-208" href="#__codelineno-2-208"></a>    M 80:4 Maintenable.delete_all - A
+<a id="__codelineno-2-209" name="__codelineno-2-209" href="#__codelineno-2-209"></a>    M 82:4 Maintenable.get_keys_start_with - A
+<a id="__codelineno-2-210" name="__codelineno-2-210" href="#__codelineno-2-210"></a>    M 84:4 Maintenable.get_history - A
+<a id="__codelineno-2-211" name="__codelineno-2-211" href="#__codelineno-2-211"></a>    C 88:0 TaskDBMaintenable - A
+<a id="__codelineno-2-212" name="__codelineno-2-212" href="#__codelineno-2-212"></a>    M 94:4 _ReadConnWrapper.__init__ - A
+<a id="__codelineno-2-213" name="__codelineno-2-213" href="#__codelineno-2-213"></a>    M 124:4 _ReadConnWrapper.__del__ - A
+<a id="__codelineno-2-214" name="__codelineno-2-214" href="#__codelineno-2-214"></a>    M 188:4 TaskDBBase.init_schema - A
+<a id="__codelineno-2-215" name="__codelineno-2-215" href="#__codelineno-2-215"></a>    M 192:4 TaskDBBase.get - A
+<a id="__codelineno-2-216" name="__codelineno-2-216" href="#__codelineno-2-216"></a>    M 198:4 TaskDBBase.save - A
+<a id="__codelineno-2-217" name="__codelineno-2-217" href="#__codelineno-2-217"></a>    M 214:4 TaskDBBase.delete - A
+<a id="__codelineno-2-218" name="__codelineno-2-218" href="#__codelineno-2-218"></a>    M 218:4 TaskDBBase.delete_expired - A
+<a id="__codelineno-2-219" name="__codelineno-2-219" href="#__codelineno-2-219"></a>    M 222:4 TaskDBBase.prune - A
+<a id="__codelineno-2-220" name="__codelineno-2-220" href="#__codelineno-2-220"></a>    M 226:4 TaskDBBase.get_outdated_tasks - A
+<a id="__codelineno-2-221" name="__codelineno-2-221" href="#__codelineno-2-221"></a>    M 232:4 TaskDBBase.get_blob_refs - A
+<a id="__codelineno-2-222" name="__codelineno-2-222" href="#__codelineno-2-222"></a>    M 236:4 TaskDBBase.delete_all - A
+<a id="__codelineno-2-223" name="__codelineno-2-223" href="#__codelineno-2-223"></a>    M 240:4 TaskDBBase.get_keys_start_with - A
+<a id="__codelineno-2-224" name="__codelineno-2-224" href="#__codelineno-2-224"></a>    M 466:4 SQLiteTaskDB.init_schema - A
+<a id="__codelineno-2-225" name="__codelineno-2-225" href="#__codelineno-2-225"></a>    M 575:4 SQLiteTaskDB.save - A
+<a id="__codelineno-2-226" name="__codelineno-2-226" href="#__codelineno-2-226"></a>    M 637:4 SQLiteTaskDB.delete - A
+<a id="__codelineno-2-227" name="__codelineno-2-227" href="#__codelineno-2-227"></a>    M 644:4 SQLiteTaskDB.delete_all - A
+<a id="__codelineno-2-228" name="__codelineno-2-228" href="#__codelineno-2-228"></a>    M 657:4 SQLiteTaskDB.prune - A
+<a id="__codelineno-2-229" name="__codelineno-2-229" href="#__codelineno-2-229"></a>src/beautyspot/cache.py
+<a id="__codelineno-2-230" name="__codelineno-2-230" href="#__codelineno-2-230"></a>    M 126:4 CacheManager.get - B
+<a id="__codelineno-2-231" name="__codelineno-2-231" href="#__codelineno-2-231"></a>    M 228:4 CacheManager.wait_herd_sync - B
+<a id="__codelineno-2-232" name="__codelineno-2-232" href="#__codelineno-2-232"></a>    M 297:4 CacheManager._await_herd_signal_async - B
+<a id="__codelineno-2-233" name="__codelineno-2-233" href="#__codelineno-2-233"></a>    M 327:4 CacheManager.notify_and_cleanup_inflight - B
+<a id="__codelineno-2-234" name="__codelineno-2-234" href="#__codelineno-2-234"></a>    C 42:0 CacheManager - B
+<a id="__codelineno-2-235" name="__codelineno-2-235" href="#__codelineno-2-235"></a>    M 170:4 CacheManager.set - B
+<a id="__codelineno-2-236" name="__codelineno-2-236" href="#__codelineno-2-236"></a>    M 261:4 CacheManager.wait_herd_async - B
+<a id="__codelineno-2-237" name="__codelineno-2-237" href="#__codelineno-2-237"></a>    M 99:4 CacheManager.calculate_expires_at - A
+<a id="__codelineno-2-238" name="__codelineno-2-238" href="#__codelineno-2-238"></a>    M 77:4 CacheManager.make_cache_key - A
+<a id="__codelineno-2-239" name="__codelineno-2-239" href="#__codelineno-2-239"></a>    M 52:4 CacheManager.__init__ - A
+<a id="__codelineno-2-240" name="__codelineno-2-240" href="#__codelineno-2-240"></a>    C 32:0 HerdWaitResult - A
+<a id="__codelineno-2-241" name="__codelineno-2-241" href="#__codelineno-2-241"></a>    M 349:4 CacheManager._notify_future - A
+<a id="__codelineno-2-242" name="__codelineno-2-242" href="#__codelineno-2-242"></a>src/beautyspot/storage.py
+<a id="__codelineno-2-243" name="__codelineno-2-243" href="#__codelineno-2-243"></a>    M 328:4 LocalStorage.prune_empty_dirs - B
+<a id="__codelineno-2-244" name="__codelineno-2-244" href="#__codelineno-2-244"></a>    M 304:4 LocalStorage.clean_temp_files - B
+<a id="__codelineno-2-245" name="__codelineno-2-245" href="#__codelineno-2-245"></a>    C 159:0 LocalStorage - A
+<a id="__codelineno-2-246" name="__codelineno-2-246" href="#__codelineno-2-246"></a>    M 376:4 S3Storage.__init__ - A
+<a id="__codelineno-2-247" name="__codelineno-2-247" href="#__codelineno-2-247"></a>    M 393:4 S3Storage._parse_s3_uri - A
+<a id="__codelineno-2-248" name="__codelineno-2-248" href="#__codelineno-2-248"></a>    M 179:4 LocalStorage._validate_key - A
+<a id="__codelineno-2-249" name="__codelineno-2-249" href="#__codelineno-2-249"></a>    M 236:4 LocalStorage.load - A
+<a id="__codelineno-2-250" name="__codelineno-2-250" href="#__codelineno-2-250"></a>    M 257:4 LocalStorage.delete - A
+<a id="__codelineno-2-251" name="__codelineno-2-251" href="#__codelineno-2-251"></a>    M 281:4 LocalStorage.list_keys - A
+<a id="__codelineno-2-252" name="__codelineno-2-252" href="#__codelineno-2-252"></a>    C 375:0 S3Storage - A
+<a id="__codelineno-2-253" name="__codelineno-2-253" href="#__codelineno-2-253"></a>    C 50:0 WarningOnlyPolicy - A
+<a id="__codelineno-2-254" name="__codelineno-2-254" href="#__codelineno-2-254"></a>    M 166:4 LocalStorage._ensure_cache_dir - A
+<a id="__codelineno-2-255" name="__codelineno-2-255" href="#__codelineno-2-255"></a>    M 194:4 LocalStorage.save - A
+<a id="__codelineno-2-256" name="__codelineno-2-256" href="#__codelineno-2-256"></a>    M 295:4 LocalStorage.get_mtime - A
+<a id="__codelineno-2-257" name="__codelineno-2-257" href="#__codelineno-2-257"></a>    M 449:4 S3Storage.list_keys - A
+<a id="__codelineno-2-258" name="__codelineno-2-258" href="#__codelineno-2-258"></a>    F 457:0 create_storage - A
+<a id="__codelineno-2-259" name="__codelineno-2-259" href="#__codelineno-2-259"></a>    C 27:0 StoragePolicyProtocol - A
+<a id="__codelineno-2-260" name="__codelineno-2-260" href="#__codelineno-2-260"></a>    C 37:0 ThresholdStoragePolicy - A
+<a id="__codelineno-2-261" name="__codelineno-2-261" href="#__codelineno-2-261"></a>    M 65:4 WarningOnlyPolicy.should_save_as_blob - A
+<a id="__codelineno-2-262" name="__codelineno-2-262" href="#__codelineno-2-262"></a>    C 75:0 AlwaysBlobPolicy - A
+<a id="__codelineno-2-263" name="__codelineno-2-263" href="#__codelineno-2-263"></a>    C 88:0 BlobStorageCore - A
+<a id="__codelineno-2-264" name="__codelineno-2-264" href="#__codelineno-2-264"></a>    C 98:0 Maintenable - A
+<a id="__codelineno-2-265" name="__codelineno-2-265" href="#__codelineno-2-265"></a>    C 112:0 BlobStorageBase - A
+<a id="__codelineno-2-266" name="__codelineno-2-266" href="#__codelineno-2-266"></a>    M 413:4 S3Storage.load - A
+<a id="__codelineno-2-267" name="__codelineno-2-267" href="#__codelineno-2-267"></a>    M 425:4 S3Storage.delete - A
+<a id="__codelineno-2-268" name="__codelineno-2-268" href="#__codelineno-2-268"></a>    M 438:4 S3Storage.get_mtime - A
+<a id="__codelineno-2-269" name="__codelineno-2-269" href="#__codelineno-2-269"></a>    M 33:4 StoragePolicyProtocol.should_save_as_blob - A
+<a id="__codelineno-2-270" name="__codelineno-2-270" href="#__codelineno-2-270"></a>    M 45:4 ThresholdStoragePolicy.should_save_as_blob - A
+<a id="__codelineno-2-271" name="__codelineno-2-271" href="#__codelineno-2-271"></a>    M 81:4 AlwaysBlobPolicy.should_save_as_blob - A
+<a id="__codelineno-2-272" name="__codelineno-2-272" href="#__codelineno-2-272"></a>    M 93:4 BlobStorageCore.save - A
+<a id="__codelineno-2-273" name="__codelineno-2-273" href="#__codelineno-2-273"></a>    M 94:4 BlobStorageCore.load - A
+<a id="__codelineno-2-274" name="__codelineno-2-274" href="#__codelineno-2-274"></a>    M 95:4 BlobStorageCore.delete - A
+<a id="__codelineno-2-275" name="__codelineno-2-275" href="#__codelineno-2-275"></a>    M 103:4 Maintenable.list_keys - A
+<a id="__codelineno-2-276" name="__codelineno-2-276" href="#__codelineno-2-276"></a>    M 104:4 Maintenable.get_mtime - A
+<a id="__codelineno-2-277" name="__codelineno-2-277" href="#__codelineno-2-277"></a>    C 108:0 BlobStorageMaintenable - A
+<a id="__codelineno-2-278" name="__codelineno-2-278" href="#__codelineno-2-278"></a>    M 119:4 BlobStorageBase.save - A
+<a id="__codelineno-2-279" name="__codelineno-2-279" href="#__codelineno-2-279"></a>    M 127:4 BlobStorageBase.load - A
+<a id="__codelineno-2-280" name="__codelineno-2-280" href="#__codelineno-2-280"></a>    M 134:4 BlobStorageBase.delete - A
+<a id="__codelineno-2-281" name="__codelineno-2-281" href="#__codelineno-2-281"></a>    M 142:4 BlobStorageBase.list_keys - A
+<a id="__codelineno-2-282" name="__codelineno-2-282" href="#__codelineno-2-282"></a>    M 151:4 BlobStorageBase.get_mtime - A
+<a id="__codelineno-2-283" name="__codelineno-2-283" href="#__codelineno-2-283"></a>    M 160:4 LocalStorage.__init__ - A
+<a id="__codelineno-2-284" name="__codelineno-2-284" href="#__codelineno-2-284"></a>    M 405:4 S3Storage.save - A
+<a id="__codelineno-2-285" name="__codelineno-2-285" href="#__codelineno-2-285"></a>src/beautyspot/maintenance.py
+<a id="__codelineno-2-286" name="__codelineno-2-286" href="#__codelineno-2-286"></a>    M 253:4 MaintenanceService.clean_garbage - C
+<a id="__codelineno-2-287" name="__codelineno-2-287" href="#__codelineno-2-287"></a>    M 203:4 MaintenanceService.scan_garbage - C
+<a id="__codelineno-2-288" name="__codelineno-2-288" href="#__codelineno-2-288"></a>    M 106:4 MaintenanceService.get_task_detail - B
+<a id="__codelineno-2-289" name="__codelineno-2-289" href="#__codelineno-2-289"></a>    M 150:4 MaintenanceService.delete_task - B
+<a id="__codelineno-2-290" name="__codelineno-2-290" href="#__codelineno-2-290"></a>    C 19:0 MaintenanceService - A
+<a id="__codelineno-2-291" name="__codelineno-2-291" href="#__codelineno-2-291"></a>    M 52:4 MaintenanceService.from_path - A
+<a id="__codelineno-2-292" name="__codelineno-2-292" href="#__codelineno-2-292"></a>    M 363:4 MaintenanceService.scan_orphan_projects - A
+<a id="__codelineno-2-293" name="__codelineno-2-293" href="#__codelineno-2-293"></a>    M 335:4 MaintenanceService.resolve_key_prefix - A
+<a id="__codelineno-2-294" name="__codelineno-2-294" href="#__codelineno-2-294"></a>    M 383:4 MaintenanceService.delete_project_storage - A
+<a id="__codelineno-2-295" name="__codelineno-2-295" href="#__codelineno-2-295"></a>    M 36:4 MaintenanceService.close - A
+<a id="__codelineno-2-296" name="__codelineno-2-296" href="#__codelineno-2-296"></a>    M 24:4 MaintenanceService.__init__ - A
+<a id="__codelineno-2-297" name="__codelineno-2-297" href="#__codelineno-2-297"></a>    M 45:4 MaintenanceService.__enter__ - A
+<a id="__codelineno-2-298" name="__codelineno-2-298" href="#__codelineno-2-298"></a>    M 48:4 MaintenanceService.__exit__ - A
+<a id="__codelineno-2-299" name="__codelineno-2-299" href="#__codelineno-2-299"></a>    M 102:4 MaintenanceService.get_history - A
+<a id="__codelineno-2-300" name="__codelineno-2-300" href="#__codelineno-2-300"></a>    M 145:4 MaintenanceService.delete_expired_tasks - A
+<a id="__codelineno-2-301" name="__codelineno-2-301" href="#__codelineno-2-301"></a>    M 184:4 MaintenanceService.get_prunable_tasks - A
+<a id="__codelineno-2-302" name="__codelineno-2-302" href="#__codelineno-2-302"></a>    M 190:4 MaintenanceService.prune - A
+<a id="__codelineno-2-303" name="__codelineno-2-303" href="#__codelineno-2-303"></a>    M 197:4 MaintenanceService.clear - A
+<a id="__codelineno-2-304" name="__codelineno-2-304" href="#__codelineno-2-304"></a>src/beautyspot/__init__.py
+<a id="__codelineno-2-305" name="__codelineno-2-305" href="#__codelineno-2-305"></a>    F 49:0 Spot - B
+<a id="__codelineno-2-306" name="__codelineno-2-306" href="#__codelineno-2-306"></a>
+<a id="__codelineno-2-307" name="__codelineno-2-307" href="#__codelineno-2-307"></a>289 blocks (classes, functions, methods) analyzed.
+<a id="__codelineno-2-308" name="__codelineno-2-308" href="#__codelineno-2-308"></a>Average complexity: A (3.0588235294117645)
 </code></pre></div>
 </details>
 
@@ -1997,22 +2142,23 @@
 <details>
 <summary>📄 すべての MI メトリクス一覧を表示</summary>
 
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>src/beautyspot/limiter.py - A
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>src/beautyspot/exceptions.py - A
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>src/beautyspot/_version.py - A
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>src/beautyspot/types.py - A
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>src/beautyspot/content_types.py - A
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>src/beautyspot/exceptions.py - A
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>src/beautyspot/_version.py - A
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>src/beautyspot/content_types.py - A
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>src/beautyspot/cli.py - A
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>src/beautyspot/types.py - A
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>src/beautyspot/cachekey.py - A
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>src/beautyspot/hooks.py - A
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>src/beautyspot/lifecycle.py - A
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>src/beautyspot/__init__.py - A
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>src/beautyspot/db.py - A
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>src/beautyspot/cli.py - A
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>src/beautyspot/dashboard.py - A
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>src/beautyspot/maintenance.py - A
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>src/beautyspot/serializer.py - A
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>src/beautyspot/limiter.py - A
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>src/beautyspot/dashboard.py - A
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>src/beautyspot/serializer.py - A
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>src/beautyspot/lifecycle.py - A
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>src/beautyspot/core.py - A
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>src/beautyspot/db.py - A
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>src/beautyspot/cache.py - A
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>src/beautyspot/storage.py - A
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>src/beautyspot/core.py - A
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>src/beautyspot/maintenance.py - A
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>src/beautyspot/__init__.py - A
 </code></pre></div>
 </details>
 
@@ -2023,14 +2169,31 @@
     class LimiterProtocol protocol;
     class SerializerProtocol protocol;
     class TypeRegistryProtocol protocol;
+    class TaskDBCore protocol;
+    class Flushable protocol;
+    class Shutdownable protocol;
+    class Maintenable protocol;
+    class TaskDBMaintenable protocol;
     class StoragePolicyProtocol protocol;
+    class BlobStorageCore protocol;
+    class BlobStorageMaintenable protocol;
     AlwaysBlobPolicy -. "implements" .-&gt; StoragePolicyProtocol
+    BlobStorageBase -. "implements" .-&gt; BlobStorageCore
+    BlobStorageBase -. "implements" .-&gt; Maintenable
+    CacheManager -- "creates" --&gt; HerdWaitResult
+    CacheManager -. "uses" .-&gt; KeyGen._default
+    CacheManager -. "uses" .-&gt; LifecyclePolicy.default
+    CacheManager -- "creates" --&gt; RuntimeError
+    CacheManager -- "creates" --&gt; TimeoutError
+    HookContextBase -- "creates" --&gt; MappingProxyType
     KeyGen -- "creates" --&gt; KeyGenPolicy
     KeyGen -- "creates" --&gt; ValueError
     KeyGenPolicy -. "uses" .-&gt; KeyGen.from_file_content
     KeyGenPolicy -. "uses" .-&gt; KeyGen.from_path_stat
     KeyGenPolicy -. "uses" .-&gt; KeyGen.hash_items
+    LocalStorage -. "implements" .-&gt; BlobStorageCore
     LocalStorage -- "creates" --&gt; CacheCorruptedError
+    LocalStorage -. "implements" .-&gt; Maintenable
     LocalStorage -- "creates" --&gt; Path
     LocalStorage -- "creates" --&gt; ValidationError
     LocalStorage -- "creates" --&gt; ValueError
@@ -2042,27 +2205,38 @@
     MsgpackSerializer -. "implements" .-&gt; SerializerProtocol
     MsgpackSerializer -. "implements" .-&gt; TypeRegistryProtocol
     MsgpackSerializer -- "creates" --&gt; ValueError
+    S3Storage -. "implements" .-&gt; BlobStorageCore
     S3Storage -- "creates" --&gt; CacheCorruptedError
     S3Storage -- "creates" --&gt; ImportError
+    S3Storage -. "implements" .-&gt; Maintenable
     S3Storage -- "creates" --&gt; ValidationError
+    SQLiteTaskDB -. "implements" .-&gt; Flushable
     SQLiteTaskDB -- "creates" --&gt; ImportError
     SQLiteTaskDB -- "creates" --&gt; Path
+    SQLiteTaskDB -- "creates" --&gt; RuntimeError
+    SQLiteTaskDB -. "implements" .-&gt; Shutdownable
+    SQLiteTaskDB -. "implements" .-&gt; TaskDBCore
     SQLiteTaskDB -- "creates" --&gt; TaskRecord
+    SQLiteTaskDB -- "creates" --&gt; TimeoutError
     Spot -- "creates" --&gt; CacheHitContext
     Spot -- "creates" --&gt; CacheMissContext
+    Spot -- "creates" --&gt; ConfigurationError
+    Spot -. "implements" .-&gt; Flushable
     Spot -- "creates" --&gt; IncompatibleProviderError
-    Spot -. "uses" .-&gt; KeyGen._default
-    Spot -. "uses" .-&gt; LifecyclePolicy.default
     Spot -. "implements" .-&gt; LimiterProtocol
     Spot -- "creates" --&gt; MaintenanceService
     Spot -- "creates" --&gt; NotImplementedError
     Spot -- "creates" --&gt; PreExecuteContext
     Spot -- "creates" --&gt; RuntimeError
     Spot -- "creates" --&gt; SaveErrorContext
+    Spot -. "implements" .-&gt; Shutdownable
     Spot -- "creates" --&gt; ThreadPoolExecutor
     Spot -. "implements" .-&gt; TypeRegistryProtocol
     Spot -- "creates" --&gt; ValidationError
     Spot -- "creates" --&gt; ValueError
+    TaskDBBase -- "creates" --&gt; ImportError
+    TaskDBBase -. "implements" .-&gt; TaskDBCore
+    ThreadSafeHookBase -- "creates" --&gt; AttributeError
     ThresholdStoragePolicy -. "implements" .-&gt; StoragePolicyProtocol
     TokenBucket -. "implements" .-&gt; LimiterProtocol
     TokenBucket -- "creates" --&gt; ValueError

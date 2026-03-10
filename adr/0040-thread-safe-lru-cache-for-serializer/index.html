@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>40. Thread-safe LRU Cache for Serializer - beautyspot</title>
+        <title>Thread-safe LRU Cache for Serializer - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#40-thread-safe-lru-cache-for-serializer" class="md-skip">
+        <a href="#thread-safe-lru-cache-for-serializer" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              40. Thread-safe LRU Cache for Serializer
+              Thread-safe LRU Cache for Serializer
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        状況・背景 (Context)
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        決定事項 (Decision)
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rationale" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        理由 (Rationale)
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        結果 (Consequences)
+        Consequences / 決定
       
     </span>
   </a>
@@ -1457,22 +1496,38 @@
   
 
 
-<h1 id="40-thread-safe-lru-cache-for-serializer">40. Thread-safe LRU Cache for Serializer</h1>
-<h2 id="context">状況・背景 (Context)</h2>
-<p><code>MsgpackSerializer</code> は動的型生成時のメモリリークを防ぐために、内部で <code>OrderedDict</code> を用いた LRU (Least Recently Used) キャッシュを運用している。
-しかし、<code>beautyspot</code> のアーキテクチャでは <code>Spot</code> インスタンスを通じたバックグラウンド保存（<code>wait=False</code>）や、Webフレームワークでのシングルトン利用など、マルチスレッド環境からの並行アクセスが日常的に発生する。
-ロックを持たない <code>OrderedDict</code> への並行操作は <code>RuntimeError: OrderedDict mutated during iteration</code> やデータの破損を引き起こす致命的なバグの温床となっていた。</p>
-<h2 id="decision">決定事項 (Decision)</h2>
-<p><code>MsgpackSerializer</code> の内部状態（<code>_subclass_cache</code> およびレジストリ）に対するすべての読み書き操作を <code>threading.Lock()</code> で保護する。</p>
-<h2 id="rationale">理由 (Rationale)</h2>
-<ol>
-<li><strong>安定性の優先</strong>: 稀に発生するクラッシュはデバッグが極めて困難であり、ライブラリの信頼性を著しく損なうため、確実な排他制御が不可欠である。</li>
-<li><strong>パフォーマンスへの影響の最小化</strong>: ロックの範囲は「型の解決とキャッシュの更新」というメモリアクセス領域に限定し、シリアライズ処理そのもの（I/Oやエンコード計算）はロック外で実行する。これにより、並行処理スループットの低下を最小限に抑えつつスレッドセーフ性を担保できる。</li>
-</ol>
-<h2 id="consequences">結果 (Consequences)</h2>
+<h1 id="thread-safe-lru-cache-for-serializer">Thread-safe LRU Cache for Serializer</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>MsgpackSerializer</code> は動的型生成時のメモリリークを防ぐために、内部で <code>OrderedDict</code> を用いた LRU キャッシュを運用しています。しかし、バックグラウンド保存や Web フレームワークでの利用など、マルチスレッド環境からの並行アクセスが日常的に発生します。ロックを持たない <code>OrderedDict</code> への並行操作は、<code>RuntimeError</code> やデータの破損を引き起こす致命的なバグの温床となっていました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: <code>MsgpackSerializer</code> をシングルトンとして安全にマルチスレッド環境で使い回せるようになった。</li>
-<li><strong>Negative</strong>: 型の初回解決時やキャッシュヒット時のロック取得により、ごくわずかなオーバーヘッドが追加されるが、実用上問題ないレベルであると判断した。</li>
+<li><strong>Stability</strong>: マルチスレッド環境下での並行アクセスによるクラッシュやデータ破損を完全に排除すること。</li>
+<li><strong>Reliability</strong>: デバッグ困難な稀に発生する競合状態を未然に防ぎ、ライブラリの信頼性を高めること。</li>
+<li><strong>Performance</strong>: ロックの範囲を最小限に留め、シリアライズ処理全体のスループットへの影響を最小化すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 引き続きロックフリーなアプローチをとり、エラー発生時にリトライする。</li>
+<li><strong>Option 2</strong>: <code>threading.Lock()</code> を導入し、キャッシュ操作を排他的に行う。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><code>MsgpackSerializer</code> の内部状態（キャッシュおよびレジストリ）に対するすべての読み書き操作を <code>threading.Lock()</code> で保護します。</p>
+<ol>
+<li><strong>安定性の優先</strong>: 確実な排他制御により、マルチスレッド下での信頼性を担保します。</li>
+<li><strong>限定的なロック範囲</strong>: ロックの範囲を「型の解決とキャッシュの更新」というメモリアクセス領域に限定し、重いシリアライズ処理（I/O や計算）はロック外で実行します。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li><code>MsgpackSerializer</code> をシングルトンとして安全にマルチスレッド環境で使い回せるようになった。</li>
+<li>競合状態に起因する非決定的なクラッシュを排除できた。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>キャッシュアクセスごとにロック取得のオーバーヘッドが追加されるが、実用上のパフォーマンスインパクトは極めて軽微である。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1480,6 +1535,9 @@
 
 
 
+
+  
+  
 
 
 

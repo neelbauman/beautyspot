@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>0026 pragmatic cli refactoring - beautyspot</title>
+        <title>Pragmatic CLI Refactoring Policy - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0026-cli" class="md-skip">
+        <a href="#pragmatic-cli-refactoring-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              0026 pragmatic cli refactoring
+              Pragmatic CLI Refactoring Policy
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1384,6 +1412,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1392,74 +1422,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#adr-0026-cli" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ADR 0026: CLI モジュールにおける複雑度許容の判断
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ADR 0026: CLI モジュールにおける複雑度許容の判断">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        状態
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        コンテキスト
+        Decision Drivers / 要求
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        検討された選択肢
+        Considered Options / 検討
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        決定事項
+        Decision Outcome / 決定
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        結果
+        Consequences / 決定
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1483,30 +1496,40 @@
   
 
 
-  <h1>0026 pragmatic cli refactoring</h1>
-
-<h2 id="adr-0026-cli">ADR 0026: CLI モジュールにおける複雑度許容の判断</h2>
-<h3 id="_1">状態</h3>
-<p>Accepted</p>
-<h3 id="_2">コンテキスト</h3>
+<h1 id="pragmatic-cli-refactoring-policy">Pragmatic CLI Refactoring Policy</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p><code>quality_report.md</code> において、<code>src/beautyspot/cli.py</code> 内の複数の関数（<code>show_cmd</code>, <code>prune_cmd</code>, <code>stats_cmd</code>）が循環的複雑度（CC）で <strong>Rank C</strong> の警告を受けています。一般的にプロジェクトでは CC の低減を推奨していますが、CLI モジュールに関してはその優先度と費用対効果を再検討する必要があります。</p>
-<h3 id="_3">検討された選択肢</h3>
-<ol>
-<li><strong>厳格なリファクタリング</strong>: すべての Rank C 関数を Rank A/B になるまで分解する。</li>
-<li><strong>現状維持（放置）</strong>: 数値を無視して現状のまま進める。</li>
-<li><strong>戦略的許容（採用案）</strong>: 表示ロジックに起因する複雑さは許容し、可読性と保守コストのバランスが取れる最小限の整理のみを行う。</li>
-</ol>
-<h3 id="_4">決定事項</h3>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Efficiency</strong>: リファクタリングのリソースを、ユーザーに直接影響するコアロジックに優先的に配分すること。</li>
+<li><strong>Readability</strong>: CLI コマンドの「上から下への命令的フロー」を維持し、挙動の追いやすさを損なわないこと。</li>
+<li><strong>Architectural Impact</strong>: 依存関係の末端にある CLI モジュールの複雑さが、システム全体の安定性に与える影響を考慮すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 厳格なリファクタリング。すべての Rank C 関数を Rank A/B になるまで分解する。</li>
+<li><strong>Option 2</strong>: 戦略的許容。表示ロジックに起因する複雑さは許容し、現状の構造を維持する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
 <p>CLI モジュールの Rank C スコアについては、以下の理由から<strong>「即時の抜本的なリファクタリングは行わず、現状の構造を維持する」</strong>ことを決定しました。</p>
 <ul>
 <li><strong>表示ロジックの特性</strong>: <code>cli.py</code> の複雑さは、データ取得後の表示フォーマット分岐（Rich ライブラリによる出力制御）に集中しており、純粋なビジネスロジックの複雑さとは性質が異なります。</li>
-<li><strong>設計上の影響の小ささ</strong>: <code>cli.py</code> は依存関係の末端（Instability ）に位置しており、他モジュールへの波及効果がありません。</li>
-<li><strong>可読性の維持</strong>: CLI コマンドは「上から下への命令的フロー」で書かれている方が、コマンドの挙動を追いやすい場合があります。</li>
+<li><strong>設計上の影響の小ささ</strong>: <code>cli.py</code> は依存関係の末端に位置しており、他モジュールへの波及効果がありません。</li>
+<li><strong>可読性の維持</strong>: CLI コマンドは、過度に抽象化されるよりも命令的に記述されている方が挙動を追いやすい場合があります。</li>
 </ul>
-<h3 id="_5">結果</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>メリット</strong>: コアロジック（<code>cachekey.py</code> など）のリファクタリングにリソースを集中できる。不要な抽象化による「コードの追いづらさ」を回避できる。</li>
-<li><strong>デメリット</strong>: 品質レポート上の警告は残り続ける。</li>
+<li><strong>Positive</strong>:<ul>
+<li>コアロジック（<code>cachekey.py</code> など）のリファクタリングにリソースを集中できる。</li>
+<li>不要な抽象化による「コードの追いづらさ」を回避できる。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>品質レポート上の警告は残り続ける。</li>
+<li>将来的にコマンドがさらに肥大化した場合には、改めて分割を検討する必要がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1514,6 +1537,9 @@
 
 
 
+
+  
+  
 
 
 

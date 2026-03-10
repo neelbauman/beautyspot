@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>21. Refactoring Complex Modules with Single Dispatch - beautyspot</title>
+        <title>Refactoring Complex Modules with Single Dispatch - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#21-refactoring-complex-modules-with-single-dispatch" class="md-skip">
+        <a href="#refactoring-complex-modules-with-single-dispatch" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              21. Refactoring Complex Modules with Single Dispatch
+              Refactoring Complex Modules with Single Dispatch
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,30 +1496,40 @@
   
 
 
-<h1 id="21-refactoring-complex-modules-with-single-dispatch">21. Refactoring Complex Modules with Single Dispatch</h1>
+<h1 id="refactoring-complex-modules-with-single-dispatch">Refactoring Complex Modules with Single Dispatch</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>quality_report</code> により、<code>src/beautyspot/cachekey.py</code> の <code>canonicalize</code> 関数が非常に高い循環的複雑度（ランク D）を持っていることが判明しました。この関数は、ハッシュ化のためのオブジェクト正規化において、<code>dict</code>, <code>list</code>, <code>set</code>, <code>numpy</code>, <code>type</code> など多岐にわたる型をチェックするために長い <code>if-elif-else</code> チェーンを使用していました。</p>
+<p>この構造は開放閉鎖の原則 (Open-Closed Principle) に違反しており、新しい型のサポートを追加するたびにコア関数を修正する必要があるため、退行（デグレード）のリスクを高めていました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li>Status: Accepted</li>
-<li>Date: 2026-02-16</li>
+<li><strong>Maintainability</strong>: 高い複雑度を解消し、各型の処理ロジックを独立させること。</li>
+<li><strong>Extensibility</strong>: 既存のコードを変更することなく、新しい型への対応を容易にすること。</li>
+<li><strong>Readability</strong>: 1つの関数が負うべき責任を明確にし、コードの可読性を向上させること。</li>
 </ul>
-<h2 id="context">Context</h2>
-<p>The <code>quality_report</code> highlighted that <code>src/beautyspot/cachekey.py</code> has a high Cyclomatic Complexity (Rank D), specifically in the <code>canonicalize</code> function. This function uses a long chain of <code>if-elif-else</code> statements checking for various types (<code>dict</code>, <code>list</code>, <code>set</code>, <code>numpy</code>, <code>type</code>, etc.) to normalize objects for hashing.</p>
-<p>This structure violates the Open-Closed Principle: adding support for a new type requires modifying the core function, increasing the risk of regression.</p>
-<h2 id="decision">Decision</h2>
-<p>We will refactor <code>canonicalize</code> using Python's standard library <code>functools.singledispatch</code>.</p>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ul>
-<li><strong>Default Dispatch</strong>: Handles primitives, fallback logic (<code>str</code>), and duck-typing checks (e.g., Numpy arrays, objects with <code>__dict__</code>).</li>
-<li><strong>Registered Handlers</strong>: Specific logic for <code>dict</code>, <code>list</code>, <code>tuple</code>, <code>set</code>, <code>frozenset</code>, and <code>type</code> will be moved to decorated functions.</li>
+<li><strong>Option 1</strong>: 現状の巨大な <code>if-elif</code> チェーンを維持する。</li>
+<li><strong>Option 2</strong>: Python 標準ライブラリの <code>functools.singledispatch</code> を使用してリファクタリングする。</li>
 </ul>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><code>canonicalize</code> 関数を <code>functools.singledispatch</code> を用いて刷新します。</p>
 <ul>
-<li><strong>Reduced Complexity</strong>: The main function logic is split into smaller, focused handlers.</li>
-<li><strong>Extensibility</strong>: Future types can be supported by registering new handlers without changing existing code.</li>
-<li><strong>Readability</strong>: Each handler focuses on a single type responsibility.</li>
+<li><strong>Default Dispatch</strong>: プリミティブ型、フォールバックロジック (<code>str</code>)、およびダックタイピングによるチェック（Numpy 配列や <code>__dict__</code> を持つオブジェクト等）を処理する。</li>
+<li><strong>Registered Handlers</strong>: <code>dict</code>, <code>list</code>, <code>tuple</code>, <code>set</code>, <code>frozenset</code>, <code>type</code> 等の特定のロジックは、装飾された独立した関数に移動する。</li>
 </ul>
-<h3 id="negative">Negative</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Duck Typing Limitation</strong>: <code>singledispatch</code> relies on types. Duck typing logic (like checking for <code>.shape</code> on Numpy-like objects) must still reside in the default handler or a base checking layer.</li>
+<li><strong>Positive</strong>:<ul>
+<li><strong>複雑度の低減</strong>: メイン関数のロジックが、焦点を絞った小さなハンドラに分割される。</li>
+<li><strong>拡張性</strong>: 既存コードを変更せずに、新しいハンドラを登録するだけで将来の型をサポートできる。</li>
+<li><strong>可読性</strong>: 各ハンドラが単一の型に対する責任に集中できる。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>ダックタイピングの制限</strong>: <code>singledispatch</code> は厳密な型に基づいているため、Numpy のようなダックタイピングによるチェックは依然としてデフォルトハンドラや基底層で行う必要がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1505,6 +1537,9 @@
 
 
 
+
+  
+  
 
 
 

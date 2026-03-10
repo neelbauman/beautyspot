@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1397,7 +1425,7 @@
   <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1408,7 +1436,18 @@
   <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
       
     </span>
   </a>
@@ -1419,7 +1458,7 @@
   <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Outcome
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1458,22 +1497,28 @@
 
 
 <h1 id="canonical-input-serialization-with-msgpack-and-sha-256">Canonical Input Serialization with Msgpack and SHA-256</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p><code>beautyspot</code> はこれまで、キャッシュキーの生成に <code>json.dumps(sort_keys=True)</code> と <code>MD5</code> を使用していた。
-しかし、以下の課題が顕在化していた：</p>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> はこれまで、キャッシュキーの生成に <code>json.dumps(sort_keys=True)</code> と <code>MD5</code> を使用していました。
+しかし、以下の課題が顕在化していました：</p>
 <ol>
 <li><strong>バイナリデータの非効率性:</strong> Numpy配列や画像データなどをJSON化する際、テキスト変換（<code>tolist()</code> や <code>str()</code>）による巨大なオーバーヘッドとメモリ消費が発生する。</li>
 <li><strong>ハッシュの衝突リスク:</strong> <code>str()</code> に依存したフォールバックでは、巨大なNumpy配列が省略表示（<code>...</code>）された際にハッシュが衝突し、誤ったキャッシュヒットを引き起こす危険性がある。</li>
 <li><strong>アルゴリズムの老朽化:</strong> <code>MD5</code> は現代のセキュリティ基準では非推奨とされており、コンプライアンス上の懸念がある。</li>
 </ol>
-<h2 id="decision-drivers">Decision Drivers</h2>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
 <li><strong>Accuracy:</strong> 入力データが少しでも異なれば、確実に異なるキーを生成したい（特にNumpy配列）。</li>
 <li><strong>Performance:</strong> バイナリデータを効率的に扱いたい。</li>
 <li><strong>Consistency:</strong> 入力（キー生成）も出力（データ保存）も <code>msgpack</code> エコシステムで統一したい。</li>
 </ul>
-<h2 id="decision-outcome">Decision Outcome</h2>
-<p>キャッシュキー生成ロジックを以下のように刷新する：</p>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: <code>json.dumps(sort_keys=True)</code> と <code>MD5</code> を継続利用する。</li>
+<li><strong>Option 2</strong>: <code>msgpack</code> を用いた独自正規化ロジックと <code>SHA-256</code> を採用する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>キャッシュキー生成ロジックを以下のように刷新します：</p>
 <ol>
 <li><strong>Canonicalization (正規化):</strong><ul>
 <li>独自の正規化関数 <code>canonicalize(obj)</code> を実装する。</li>
@@ -1491,15 +1536,15 @@
 </ul>
 </li>
 </ol>
-<h2 id="consequences">Consequences</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Positive:</strong><ul>
+<li><strong>Positive</strong>:<ul>
 <li>Numpy配列などのバイナリデータに対するハッシュ生成が劇的に高速化・省メモリ化される。</li>
 <li>省略表示によるハッシュ衝突バグが解消される。</li>
 <li><code>pickle</code> を使用しないため、安全性（RCEフリー）が維持される。</li>
 </ul>
 </li>
-<li><strong>Negative:</strong><ul>
+<li><strong>Negative</strong>:<ul>
 <li><strong>破壊的変更:</strong> 既存のキャッシュ（v1.x）とはキーが一致しなくなるため、v2.0.0 でのリリースが必要。</li>
 <li>巨大で深くネストした辞書データの場合、Python側での正規化処理により若干のオーバーヘッド増が発生する可能性がある。</li>
 </ul>

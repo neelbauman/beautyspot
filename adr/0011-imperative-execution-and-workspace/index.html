@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>11. Imperative Execution, Smart Defaults, and Workspace Management - beautyspot</title>
+        <title>Imperative Execution, Smart Defaults, and Workspace Management - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#11-imperative-execution-smart-defaults-and-workspace-management" class="md-skip">
+        <a href="#imperative-execution-smart-defaults-and-workspace-management" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              11. Imperative Execution, Smart Defaults, and Workspace Management
+              Imperative Execution, Smart Defaults, and Workspace Management
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,15 +1444,26 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1491,38 +1530,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1546,11 +1557,8 @@
   
 
 
-<h1 id="11-imperative-execution-smart-defaults-and-workspace-management">11. Imperative Execution, Smart Defaults, and Workspace Management</h1>
-<p>Date: 2026-01-18</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
+<h1 id="imperative-execution-smart-defaults-and-workspace-management">Imperative Execution, Smart Defaults, and Workspace Management</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p>これまで <code>beautyspot</code> は、関数のキャッシュ化にデコレータ (<code>@project.task</code>) を使用する方法のみを提供していました。しかし、実際の利用シナリオにおいて以下の課題が浮き彫りになりました：</p>
 <ol>
 <li><strong>サードパーティライブラリの利用</strong>: ソースコードを変更できない関数（例: <code>pandas.read_csv</code>）や、外部APIクライアントのメソッドをキャッシュしたい場合、わざわざラッパー関数を定義する必要があり、記述が冗長になる。</li>
@@ -1560,8 +1568,21 @@
 <li><strong>設定の重複</strong>: 複数のタスクで「常にBlob保存したい」「特定のバージョンを一律適用したい」といった場合、都度引数を指定するのは DRY (Don't Repeat Yourself) 原則に反する。</li>
 <li><strong><code>None</code> 結果のキャッシュ</strong>: <code>time.sleep</code> のように戻り値が <code>None</code> である関数をキャッシュしようとすると、キャッシュミスと誤認され再実行されてしまうバグが存在した。</li>
 </ol>
-<h2 id="decision">Decision</h2>
-<p>これらの課題を解決するため、以下の包括的なアーキテクチャ変更を行います。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Flexibility</strong>: ソースコードを変更できない外部関数やアドホックな処理に対しても、簡単にキャッシュを適用できること。</li>
+<li><strong>Safety</strong>: 非同期タスクや Executor のリソース管理を確実に行い、プロセスのクリーンな終了を保証すること。</li>
+<li><strong>Clutter-free</strong>: 生成されるキャッシュファイルを1箇所に集約し、プロジェクト構成をきれいに保つこと。</li>
+<li><strong>Accuracy</strong>: <code>None</code> を返す関数も含め、あらゆる戻り値を正しくキャッシュできること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 現状のデコレータ方式のみを維持し、ユーザーにラッパー関数の作成を求める。</li>
+<li><strong>Option 2</strong>: 命令的な <code>run</code> メソッドの導入、ワークスペースディレクトリ（<code>.beautyspot/</code>）による集約、コンテキストマネージャによるリソース管理を統合的に実装する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>以下の包括的なアーキテクチャ変更を行います。</p>
 <h3 id="1-projectrun">1. 命令的実行メソッド (<code>project.run</code>) の導入</h3>
 <p>デコレータを使用せず、関数オブジェクトとその引数を渡すことで即座にキャッシュ付き実行を行う <code>run</code> メソッドを <code>Project</code> クラスに追加します。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="n">_save_blob</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1572,35 +1593,25 @@
 <h3 id="2">2. コンテキストマネージャとリソース管理</h3>
 <p><code>Project</code> クラスをコンテキストマネージャとして設計し、<code>with</code> ブロック内での利用を推奨パターンとします。これにより、ブロック終了時に確実に <code>shutdown()</code> が呼ばれ、スレッドプール等のリソースが解放されることを保証します。</p>
 <h3 id="3">3. 設定の階層化とスマートデフォルト</h3>
-<p><code>Project</code> 初期化時にデフォルト設定を受け入れ、個別の実行時にそれを継承・上書きできる仕組みを導入します。</p>
-<ul>
-<li><strong>優先順位</strong>:</li>
-<li>個別の指定 (<code>run</code> や <code>@task</code> の引数)</li>
-<li>プロジェクトのデフォルト (<code>Project</code> コンストラクタ引数)</li>
-<li>
-<p>システムのデフォルト</p>
-</li>
-<li>
-<p><strong>実装詳細</strong>: これを実現するため、<code>task</code> および <code>run</code> メソッドの引数デフォルト値を固定値（<code>False</code> 等）から <code>None</code> に変更し、未指定状態を検出可能にします。</p>
-</li>
-</ul>
+<p><code>Project</code> 初期化時にデフォルト設定を受け入れ、個別の実行時にそれを継承・上書きできる仕組みを導入します。優先順位は「個別指定 &gt; プロジェクトデフォルト &gt; システムデフォルト」とします。</p>
 <h3 id="4">4. ワークスペースディレクトリによる集約</h3>
-<p>すべての生成アーティファクト（DB、Blob）を、デフォルトで隠しディレクトリ <code>.beautyspot/</code> 配下に集約します。
-また、初期化時にこのディレクトリ内に <code>.gitignore</code> （内容: <code>*</code>）を自動生成し、キャッシュファイルが誤ってバージョン管理に含まれるのを防ぎます。</p>
+<p>すべての生成アーティファクト（DB、Blob）を、デフォルトで隠しディレクトリ <code>.beautyspot/</code> 配下に集約します。また、初期化時に <code>.gitignore</code> を自動生成し、キャッシュファイルがバージョン管理に含まれるのを防ぎます。</p>
 <h3 id="5">5. 番兵オブジェクトによるキャッシュ判定</h3>
-<p>キャッシュヒットの判定ロジックにおいて、<code>None</code> を「データなし」と見なすのではなく、専用の番兵オブジェクト (<code>CACHE_MISS = object()</code>) を導入して判定を行います。これにより、<code>None</code> を返す関数も正しくキャッシュ可能とします。</p>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<p>キャッシュヒットの判定において <code>None</code> を特別視せず、専用の番兵オブジェクト (<code>CACHE_MISS</code>) を導入することで、<code>None</code> を返す関数も正しくキャッシュ可能とします。</p>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
+<li><strong>Positive</strong>:<ul>
 <li><strong>高い柔軟性</strong>: 既存のコードやライブラリ呼び出しに対して、ボイラープレートなしで即座にキャッシュを適用可能になった。</li>
 <li><strong>安全なリソース管理</strong>: <code>with</code> 文の使用により、プロセスハングのリスクが大幅に低減した。</li>
 <li><strong>クリーンな環境</strong>: プロジェクトルートが汚れず、Git管理からの除外も自動化されたため、ユーザーの負担が減った。</li>
 <li><strong>正確なキャッシュ</strong>: 副作用のみを目的とした関数（戻り値なし）も扱えるようになり、適用範囲が広がった。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
+</li>
+<li><strong>Negative</strong>:<ul>
 <li><strong>APIの複雑化</strong>: <code>project.run</code> の引数に特殊なプレフィックスルール（<code>_</code>）が導入されたため、ドキュメントでの周知が必要。</li>
-<li><strong>後方互換性の注意</strong>: <code>Project</code> のコンストラクタや <code>task</code> デコレータの引数処理が変更されたため、内部実装レベルでは厳密なチェックが必要（ただし公開APIとしての破壊的変更は最小限に留めている）。</li>
+<li><strong>後方互換性の注意</strong>: 引数処理の変更に伴い、内部実装での厳密なチェックが必要になった。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1608,6 +1619,9 @@
 
 
 
+
+  
+  
 
 
 

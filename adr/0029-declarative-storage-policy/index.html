@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>29. Declarative Storage Policy - beautyspot</title>
+        <title>Declarative Storage Policy - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#29-declarative-storage-policy" class="md-skip">
+        <a href="#declarative-storage-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              29. Declarative Storage Policy
+              Declarative Storage Policy
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,52 +1496,60 @@
   
 
 
-<h1 id="29-declarative-storage-policy">29. Declarative Storage Policy</h1>
-<p>Date: 2026-02-18
-Status: Accepted</p>
-<h2 id="context">Context</h2>
-<p>これまでの <code>beautyspot</code> では、関数の実行結果をBlobストレージ（ファイル）に保存するか、DBのレコードに直接埋め込むかは、ユーザーが <code>save_blob=True</code> フラグで明示的に指定する必要があった。
-また、データサイズが大きい場合に警告を出す機能 (<code>blob_warning_threshold</code>) はあったが、自動的に対処する機能はなかった。
-これにより、ユーザーはデータのサイズを予測してフラグを管理する「How」の負担を強いられていた。</p>
-<h2 id="decision">Decision</h2>
-<p>ストレージ保存方式の決定ロジックを抽象化した <code>StoragePolicy</code> プロトコルを導入し、宣言的な設定を可能にする。</p>
+<h1 id="declarative-storage-policy">Declarative Storage Policy</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>これまでの <code>beautyspot</code> では、関数の実行結果を Blob ストレージ（ファイル）に保存するか、DB のレコードに直接埋め込むかは、ユーザーが <code>save_blob=True</code> フラグで明示的に指定する必要がありました。
+また、データサイズが大きい場合に警告を出す機能はありましたが、自動的に対処する機能はありませんでした。これにより、ユーザーはデータのサイズを予測してフラグを管理するという負担を強いられていました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Automation</strong>: データサイズに応じて最適な保存先（DB または Blob）を自動的に選択し、ユーザーの負担を軽減すること。</li>
+<li><strong>Declarative Configuration</strong>: 「1MB以上はファイルに保存する」といったルールを宣言的に記述できるようにすること。</li>
+<li><strong>Separation of Concerns</strong>: キャッシュキー生成（Identity）と保存方式（Persistence）の責務を明確に分離すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 引き続きユーザーによる手動の <code>save_blob</code> フラグ管理に任せる。</li>
+<li><strong>Option 2</strong>: 宣言的な <code>StoragePolicy</code> プロトコルを導入し、データ内容に基づいて自動的に保存方式を決定する仕組みを構築する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>ストレージ保存方式の決定ロジックを抽象化した <code>StoragePolicy</code> プロトコルを導入します。</p>
 <ol>
 <li>
 <p><strong>StoragePolicy Interface</strong>:</p>
 <ul>
-<li><code>should_save_as_blob(data: bytes) -&gt; bool</code> を持つプロトコルを定義する。</li>
-<li>配置場所は <code>src/beautyspot/storage.py</code> とし、ストレージ関連の責務を凝集させる（<code>KeyGenPolicy</code> とは混ぜない）。</li>
+<li><code>should_save_as_blob(data: bytes) -&gt; bool</code> を持つプロトコルを定義します。</li>
+<li>配置場所は <code>src/beautyspot/storage.py</code> とし、ストレージ関連の責務を凝集させます。</li>
 </ul>
 </li>
 <li>
 <p><strong>Standard Implementations</strong>:</p>
 <ul>
-<li><code>ThresholdStoragePolicy</code>: 指定したバイト数を超えた場合にBlob保存を選択する（推奨デフォルト）。</li>
-<li><code>WarningOnlyPolicy</code>: 従来動作互換。Blob化はせず、閾値超えでログ警告のみ行う。</li>
+<li><code>ThresholdStoragePolicy</code>: 指定したバイト数を超えた場合に Blob 保存を選択する（推奨デフォルト）。</li>
+<li><code>WarningOnlyPolicy</code>: 従来動作互換。Blob 化はせず、閾値超えでログ警告のみ行う。</li>
 </ul>
-</li>
-<li>
-<p><strong>Configuration</strong>: <code>Spot</code> 初期化時に <code>storage_policy</code> 引数で注入可能にする。</p>
 </li>
 <li>
 <p><strong>Precedence (優先順位)</strong>:</p>
 <ul>
-<li>Level 1 (最強): 関数ごとの指定 (<code>@mark(save_blob=...)</code>) - ユーザーが意図を持って指定した場合は常に最優先。</li>
-<li>Level 2 (デフォルト): ポリシーによる自動判定 (<code>storage_policy.should_save_as_blob(...)</code>)</li>
+<li>優先度1: 関数ごとの明示的指定 (<code>@mark(save_blob=...)</code>)。</li>
+<li>優先度2: ポリシーによる自動判定。</li>
 </ul>
 </li>
 </ol>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li>ユーザーは「1MB以上はBlob」というルール（What）を定義するだけで、個々の関数のデータサイズを気にせず最適化できる。</li>
-<li>DBの肥大化を自動的に防げる。</li>
-<li><code>KeyGenPolicy</code> と配置を分けることで、モジュールの役割分担（Identity vs Persistence）が明確に保たれる。</li>
+<li><strong>Positive</strong>:<ul>
+<li>ユーザーは個々の関数のデータサイズを気にせず、全体的なルールを定義するだけで最適化が可能になる。</li>
+<li>DB の肥大化を自動的に防げる。</li>
+<li>責務の分離により、モジュールの保守性が向上する。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li>シリアライズ後のデータサイズを見てから判定するため、一度メモリ上に全データを展開する必要がある。</li>
-<li><code>Spot</code> クラスのコンストラクタ引数が増えるため、移行期間中は <code>blob_warning_threshold</code> 等の旧引数との共存・非推奨警告の管理が必要になる。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>シリアライズ後のデータサイズを見てから判定するため、メモリ上に全データを一時的に展開する必要がある。</li>
+<li><code>Spot</code> クラスのコンストラクタ引数が増え、旧引数（<code>blob_warning_threshold</code> 等）との互換性管理が必要になる。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1527,6 +1557,9 @@ Status: Accepted</p>
 
 
 
+
+  
+  
 
 
 

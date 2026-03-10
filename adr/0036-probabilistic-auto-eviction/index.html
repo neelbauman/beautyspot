@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance - beautyspot</title>
+        <title>Probabilistic Auto-Eviction for Storage Maintenance - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0034-probabilistic-auto-eviction-for-storage-maintenance" class="md-skip">
+        <a href="#probabilistic-auto-eviction-for-storage-maintenance" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance
+              Probabilistic Auto-Eviction for Storage Maintenance
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#options-considered" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Options Considered
+        Considered Options / 検討
       
     </span>
   </a>
@@ -1427,10 +1455,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1441,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1468,51 +1496,53 @@
   
 
 
-<h1 id="adr-0034-probabilistic-auto-eviction-for-storage-maintenance">ADR-0034: Probabilistic Auto-Eviction for Storage Maintenance</h1>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
-<p><code>beautyspot</code> は、キャッシュのTTL (Time-To-Live) をサポートしており、期限切れのデータは論理的に無効化され、次回のアクセス時に関数が再実行されます。
-しかし、ユーザーが明示的に <code>MaintenanceService.clean_garbage()</code> を呼び出さない限り、有効期限切れのメタデータ（SQLite内のレコード）や、巨大な孤立したBlobファイル（S3やLocal Storage）は物理的に削除されず、長期間稼働するアプリケーションにおいてストレージが肥大化し続けるという問題がありました。</p>
-<p>この問題を解決するため、ユーザーにインフラ管理を意識させない「黒子」としての哲学を維持しつつ、自動でガベージコレクション（エビクション）を行う仕組みが必要になりました。</p>
-<h2 id="options-considered">Options Considered</h2>
-<p>自動エビクションを実装するにあたり、以下の3つのアプローチを検討しました。</p>
+<h1 id="probabilistic-auto-eviction-for-storage-maintenance">Probabilistic Auto-Eviction for Storage Maintenance</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> はキャッシュの TTL をサポートしており、期限切れデータは論理的に無効化されます。しかし、ユーザーが明示的にクリーンアップを呼び出さない限り、有効期限切れのメタデータや巨大な孤立 Blob ファイルは物理的に削除されず、ストレージが肥大化し続けるという問題がありました。</p>
+<p>ユーザーにインフラ管理を意識させない「黒子」としての哲学を維持しつつ、自動でガベージコレクション（エビクション）を行う仕組みが必要になりました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Autonomy</strong>: ユーザーが手動でメンテナンススクリプトを書くことなく、ストレージの肥大化が自動的に抑制されること。</li>
+<li><strong>Zero Latency Impact</strong>: エビクション処理がアプリケーションのメインロジックの応答速度（レイテンシ）を低下させないこと。</li>
+<li><strong>Simplicity</strong>: 複雑な容量計算や頻繁な DB 更新を避け、実装と保守のコストを最小限に抑えること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ol>
-<li>
-<p><strong>Capacity-based LRU (Least Recently Used) Policy:</strong></p>
-<ul>
-<li><strong>概要:</strong> ストレージ容量やDBの最大レコード数を設定し、上限に達した際に最も古いアクセス履歴を持つデータを削除する。</li>
-<li><strong>評価:</strong> 棄却。キャッシュヒットのたびに <code>last_accessed_at</code> などのタイムスタンプをDBに書き込む (UPDATE) 必要があり、メインスレッドのレイテンシ低下や SQLite の Write-Lock 競合を引き起こします。また、S3などのクラウドストレージにおける総容量の計算はAPIコールのコストが高すぎます。</li>
+<li><strong>Capacity-based LRU (Least Recently Used) Policy:</strong><ul>
+<li>ストレージ容量やレコード数の上限に達した際に古いデータを削除する。</li>
+<li><strong>評価:</strong> 却下。キャッシュヒットのたびにタイムスタンプを更新する必要があり、DB の書き込み競合やレイテンシ低下を招く。</li>
 </ul>
 </li>
-<li>
-<p><strong>Load-Adaptive Background Eviction:</strong></p>
-<ul>
-<li><strong>概要:</strong> バックグラウンドの保存キューの長さを監視し、システムが完全にアイドル状態のときにのみクリーンアップタスクを投入する。</li>
-<li><strong>評価:</strong> 棄却。実装が複雑になる（オーバーエンジニアリング）。<code>beautyspot</code> の主なユースケースにおいて、キューの厳密な状態管理を作り込むコストに見合うほどのメリットが得られないと判断しました。</li>
+<li><strong>Load-Adaptive Background Eviction:</strong><ul>
+<li>アイドル状態のときにのみクリーンアップタスクを投入する。</li>
+<li><strong>評価:</strong> 却下。実装が複雑になりすぎる（オーバーエンジニアリング）。</li>
 </ul>
 </li>
-<li>
-<p><strong>Probabilistic Auto-Eviction (確率的自動実行):</strong></p>
-<ul>
-<li><strong>概要:</strong> キャッシュミスに伴う新しい結果の保存処理が発生した直後、設定された確率（例: 1%）に基づいて、バックグラウンドでクリーンアップタスクをエンキューする。</li>
-<li><strong>評価:</strong> <strong>採用。</strong></li>
+<li><strong>Probabilistic Auto-Eviction (確率的自動実行):</strong><ul>
+<li>新しい結果の保存直後、設定された確率に基づいてバックグラウンドでクリーンアップタスクを投入する。</li>
+<li><strong>評価:</strong> <strong>採用。</strong> シンプルかつ低コスト。</li>
 </ul>
 </li>
 </ol>
-<h2 id="decision">Decision</h2>
-<p><strong>Option 3 (Probabilistic Auto-Eviction)</strong> を採用します。</p>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
+<p><strong>確率的自動エビクション</strong>を採用します。</p>
 <ul>
-<li><code>Spot</code> の初期化パラメータに <code>eviction_rate: float = 0.0</code> を追加します。</li>
-<li>デフォルト値は <code>0.0</code>（無効）とし、意図しないデータの消失を防ぐオプトイン方式とします。</li>
-<li>エビクション処理（<code>clean_garbage</code>）はファイルI/Oを伴うため、メインスレッドや <code>asyncio</code> ループをブロックしないよう、別スレッドにオフロードして <code>_BackgroundLoop</code> に投入します。</li>
-<li>マルチスレッド環境での SQLite のロック競合や無駄な同時実行を防ぐため、<code>MaintenanceService.clean_garbage</code> の内部に非ブロッキングロック（Try-Lock）を導入し、既に他の掃除タスクが実行中の場合は安全にスキップ（無視）させます。</li>
+<li><code>Spot</code> の初期化パラメータに <code>eviction_rate: float = 0.0</code> を追加し、オプトイン方式とします。</li>
+<li>エビクション処理は、メインスレッドやイベントループをブロックしないよう、<code>_BackgroundLoop</code> にオフロードします。</li>
+<li>ロック競合を防ぐため、掃除タスクの内部に非ブロッキングロックを導入し、重複実行を安全にスキップさせます。</li>
 </ul>
-<h2 id="consequences">Consequences</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Positive:</strong> ユーザーは <code>eviction_rate=0.01</code> のように設定するだけで、アプリケーションのメインロジックの応答速度（レイテンシ）を一切犠牲にすることなく、ストレージの肥大化を自動で防ぐことができます。</li>
-<li><strong>Positive:</strong> 実装が極めてシンプルであり、バグの混入リスクや保守コストを低く抑えることができます。</li>
-<li><strong>Negative:</strong> エビクションは確率に依存するため、「この関数を1回呼べば確実にストレージ容量が空く」といった決定論的な保証はありません。厳密な容量管理が必要なユーザーは、引き続き定期的なバッチスクリプト等で <code>clean_garbage()</code> を明示的に呼び出す必要があります。</li>
+<li><strong>Positive</strong>:<ul>
+<li>ユーザーは設定一つで、メインロジックの性能を犠牲にすることなくストレージの肥大化を防げる。</li>
+<li>実装がシンプルで保守コストが低い。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>確率に依存するため、決定論的な容量解放の保証はない。厳密な管理が必要な場合は引き続き手動での呼び出しが必要。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1520,6 +1550,9 @@
 
 
 
+
+  
+  
 
 
 

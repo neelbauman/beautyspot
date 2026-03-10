@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,15 +1433,37 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1480,38 +1530,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative-risks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative / Risks
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1536,11 +1558,24 @@
 
 
 <h1 id="semantic-content-type-support">Semantic Content Type Support</h1>
-<h2 id="context">Context</h2>
-<p>生成AIタスクの出力は、テキストだけでなく、画像、構造化データ、ダイアグラム（Mermaid, Graphviz/DOT, HTML）など多岐にわたる。
-現状のデータベーススキーマ（<code>result_type</code> = <code>FILE</code> | <code>DIRECT</code>）は「データの保存形式」しか保持しておらず、「データの意味的種類（Semantic Type）」が不明であるため、ダッシュボードでの復元時に適切な可視化（レンダリング）ができない。</p>
-<p>また、<code>beautyspot</code> はライブラリとしてユーザーの手元で動作するため、複雑なマイグレーション手順や重量級の依存関係（Alembicなど）を強制することはUXを損なう。</p>
-<h2 id="decision">Decision</h2>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>生成AIタスクの出力は、テキストだけでなく、画像、構造化データ、ダイアグラム（Mermaid, Graphviz/DOT, HTML）など多岐にわたります。
+現状のデータベーススキーマ（<code>result_type</code> = <code>FILE</code> | <code>DIRECT</code>）は「データの保存形式」しか保持しておらず、「データの意味的種類（Semantic Type）」が不明であるため、ダッシュボードでの復元時に適切な可視化（レンダリング）ができません。</p>
+<p>また、<code>beautyspot</code> はライブラリとしてユーザーの手元で動作するため、複雑なマイグレーション手順や重量級の依存関係（Alembicなど）を強制することはUXを損なうという課題があります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Rich Visualization</strong>: 生成された図やデータを、ダッシュボード上で適切な形式で閲覧できること。</li>
+<li><strong>Zero-Touch Upgrade</strong>: スキーマ変更時にユーザーが手動でマイグレーションコマンドを打つ必要がないこと。</li>
+<li><strong>Lightweight</strong>: ライブラリの依存関係を最小限に保つこと。</li>
+<li><strong>Type Safety</strong>: データの保存形式（Blob/Text）と意味（Mermaid/Image等）を明確に分離すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 保存されたデータの拡張子や中身から動的に型を推論する。</li>
+<li><strong>Option 2</strong>: スキーマに <code>content_type</code> カラムを追加し、開発者が <code>@task</code> で明示的に指定できるようにする。あわせて自動マイグレーション機能を実装する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
 <h3 id="1-database-schema-migration">1. Database Schema &amp; Migration</h3>
 <ul>
 <li><strong>Schema Change:</strong> <code>tasks</code> テーブルに <code>content_type</code> (TEXT) カラムを追加する。</li>
@@ -1572,17 +1607,19 @@
 <ul>
 <li><code>pyproject.toml</code> に <code>graphviz&gt;=0.20.1</code> を追加する。</li>
 </ul>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
+<li><strong>Positive</strong>:<ul>
 <li>ダッシュボードで、生成AIが出力したアーキテクチャ図やフローチャートを直感的に閲覧できるようになる。</li>
 <li>ユーザーはデータベースのアップグレード作業を意識する必要がない（自動化）。</li>
 <li>データの「中身」を解析して表示形式を推測する不安定なロジックを排除できる。</li>
 </ul>
-<h3 id="negative-risks">Negative / Risks</h3>
-<ul>
+</li>
+<li><strong>Negative</strong>:<ul>
 <li><strong>OS依存:</strong> Graphvizのレンダリングには、ユーザー環境に <code>dot</code> コマンド（OSレベルのパッケージ）がインストールされている必要がある。</li>
 <li><strong>Client-Side Rendering:</strong> MermaidはCDN経由のJS実行となるため、オフライン環境では表示されない場合がある。</li>
+</ul>
+</li>
 </ul>
 
 

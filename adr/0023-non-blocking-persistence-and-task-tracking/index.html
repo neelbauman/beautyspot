@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>23. Non-blocking Cache Persistence and Task Tracking - beautyspot</title>
+        <title>Non-blocking Cache Persistence and Task Tracking - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#23-non-blocking-cache-persistence-and-task-tracking" class="md-skip">
+        <a href="#non-blocking-cache-persistence-and-task-tracking" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              23. Non-blocking Cache Persistence and Task Tracking
+              Non-blocking Cache Persistence and Task Tracking
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,31 +1496,41 @@
   
 
 
-<h1 id="23-non-blocking-cache-persistence-and-task-tracking">23. Non-blocking Cache Persistence and Task Tracking</h1>
+<h1 id="non-blocking-cache-persistence-and-task-tracking">Non-blocking Cache Persistence and Task Tracking</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>大規模なデータのシリアライズや、S3 等のリモートストレージへの保存処理は、ユーザーのメインロジックの実行を妨げる（ブロッキング）要因となっていました。「インフラとしてのキャッシュ処理がユーザーを待たせない」という設計思想を強化する必要があります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li>Status: Accepted</li>
-<li>Date: 2026-02-17</li>
+<li><strong>Latency Reduction</strong>: キャッシュの保存処理（特に入出力の重い処理）が、メインスレッドの実行速度を低下させないこと。</li>
+<li><strong>Data Integrity</strong>: バックグラウンド保存であっても、プログラムの終了前には全ての保存が完了していることを保証し、データロストを防ぐこと。</li>
+<li><strong>API Reusability</strong>: <code>Spot</code> インスタンスを何度も再利用でき、かつリソースの適切なクリーンアップ（フラッシュ）が行えること。</li>
 </ul>
-<h2 id="context">Context</h2>
-<p>大規模なデータのシリアライズや、S3 等のリモートストレージへの保存処理は、ユーザーのメインロジックの実行を妨げる（ブロッキング）要因となっていました。v2.0 では、「インフラとしてのキャッシュ処理がユーザーを待たせない」という設計思想を強化する必要があります。</p>
-<h2 id="decision">Decision</h2>
-<p>キャッシュの保存処理をバックグラウンドで実行（Fire-and-Forget）し、かつリソースの整合性を保つためのライフサイクル管理を導入します。</p>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 全ての保存処理をメインスレッドで同期的に行う。</li>
+<li><strong>Option 2</strong>: 保存処理をバックグラウンド（Fire-and-Forget）で実行し、タスク追跡と <code>with</code> ブロックによる自動フラッシュの仕組みを導入する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>キャッシュの保存処理をバックグラウンドで実行し、かつリソースの整合性を保つためのライフサイクル管理を導入します。</p>
 <ol>
-<li><strong><code>wait=False</code> モードの導入</strong>: <code>@spot.mark</code> や <code>cached_run</code> に <code>wait</code> オプションを追加し、保存完了を待たずに結果を返すことを可能にします。</li>
-<li><strong>タスク追跡メカニズム</strong>: 実行中のバックグラウンドタスク（Future）を <code>_active_futures</code> セットで追跡します。</li>
-<li><strong>Flush (非破壊的待機) の導入</strong>: <code>with spot:</code> ブロックを抜ける際の挙動を、Executor の <code>shutdown</code> から、タスクの完了を待機する <code>wait</code> (Flush) に変更します。</li>
-<li><strong>再利用性の確保</strong>: コンテキストを抜けても Executor を生存させ、グローバルな <code>Spot</code> インスタンスを繰り返し再利用可能にします。</li>
+<li><strong><code>wait=False</code> モードの導入</strong>: <code>@spot.mark</code> や <code>cached_run</code> に <code>wait</code> オプションを追加し、保存完了を待たずにメインロジックに結果を返すことを可能にします。</li>
+<li><strong>タスク追跡メカニズム</strong>: 実行中のバックグラウンドタスク（Future）を内部のセットで追跡します。</li>
+<li><strong>Flush (非破壊的待機) の導入</strong>: <code>with spot:</code> ブロックを抜ける際に、全てのバックグラウンドタスクの完了を待機する（Flush）処理を実行します。</li>
+<li><strong>再利用性の確保</strong>: コンテキストを抜けても Executor は即座にシャットダウンせず、<code>Spot</code> インスタンスを繰り返し安全に利用可能にします。</li>
 </ol>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>レイテンシの改善</strong>: 保存処理がバックグラウンド化され、ユーザーの体感速度が劇的に向上しました。</li>
-<li><strong>データ整合性の保証</strong>: <code>with</code> ブロックやプロセス終了時に未完了タスクを必ず待機するため、データロストを防げます。</li>
-<li><strong>直感的な API</strong>: グローバルに定義したオブジェクトを何度も <code>with</code> ブロックで安全に「フラッシュ」しながら使い回せます。</li>
+<li><strong>Positive</strong>:<ul>
+<li><strong>レイテンシの改善</strong>: 保存処理がバックグラウンド化され、ユーザーの体感速度が向上する。</li>
+<li><strong>データ整合性の保証</strong>: <code>with</code> ブロックやプロセス終了時に未完了タスクを必ず待機するため、データの整合性が保たれる。</li>
+<li><strong>直感的な API</strong>: グローバルに定義したオブジェクトを、何度も安全に「フラッシュ」しながら使い回せる。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>例外ハンドリングの複雑化</strong>: バックグラウンドで発生したエラーは即座に呼び出し元へ伝播しないため、ログによる通知 (<code>_save_result_safe</code>) に依存します。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>例外ハンドリングの複雑化</strong>: バックグラウンドで発生したエラーは即座に呼び出し元へ伝播しないため、ログによる通知に依存することになる。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1506,6 +1538,9 @@
 
 
 
+
+  
+  
 
 
 

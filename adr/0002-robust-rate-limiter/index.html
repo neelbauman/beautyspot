@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#2-smooth-rate-limiter-gcra" class="md-skip">
+        <a href="#smooth-rate-limiter-gcra" class="md-skip">
           Skip to content
         </a>
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context / コンテキスト
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision / 決定
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences / 結果
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,8 +1496,8 @@
   
 
 
-<h1 id="2-smooth-rate-limiter-gcra">2. Smooth Rate Limiter (GCRA)</h1>
-<h2 id="context">Context / コンテキスト</h2>
+<h1 id="smooth-rate-limiter-gcra">Smooth Rate Limiter (GCRA)</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p><code>beautyspot</code> のレート制限機能 (<code>limiter</code>) において、以下の課題があった。</p>
 <ol>
 <li><strong>Idle Burst:</strong> トークンバケット方式では、アイドル中にトークンが溜まり、再開直後にバースト（集中アクセス）が発生してしまう。これを防ぐために容量(<code>capacity</code>)を小さくすると、今度は巨大なコストを持つタスクが実行できなくなる（デッドロック）問題が発生する。</li>
@@ -1459,24 +1509,37 @@
 </ul>
 </li>
 </ol>
-<h2 id="decision">Decision / 決定</h2>
-<p>アルゴリズムをトークンバケットから <strong>GCRA (Generic Cell Rate Algorithm)</strong>、あるいは "Leaky Bucket as a Meter" と呼ばれる方式に変更する。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Burst Prevention</strong>: 長時間のアイドル後に大量のタスクが集中するのを防ぎ、一定のレートを維持すること。</li>
+<li><strong>Deadlock Freedom</strong>: レート制限設定値（TPM）以下のコストであれば、どんなに大きなコストのタスクでも（待機時間を経て）実行可能であること。</li>
+<li><strong>Zero Initial Latency</strong>: 最初のタスクは待機時間なしで即座に開始できること。</li>
+<li><strong>Fail Fast</strong>: システムの設定（TPM）で物理的に不可能なリクエストは、実行前に即座にエラーにすること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: トークンバケット（既存実装）。バーストしやすく、容量設定によってはデッドロックのリスクがある。</li>
+<li><strong>Option 2</strong>: GCRA (Generic Cell Rate Algorithm)。別名 "Leaky Bucket as a Meter"。定速性が高く、貯金を許さないためバーストに強い。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>アルゴリズムをトークンバケットから <strong>GCRA (Generic Cell Rate Algorithm)</strong> に変更する。</p>
 <ul>
 <li><strong>理論的到達時刻 (TAT: Theoretical Arrival Time)</strong> を管理する。</li>
 <li>タスクが来ると、そのコスト分だけ TAT を未来へ進める。</li>
 <li><code>現在時刻 &lt; TAT</code> ならば、その差分だけ待機（sleep）してから実行する。</li>
 <li><code>現在時刻 &gt;= TAT</code> （アイドル状態）ならば、TAT を現在時刻にリセットしてから計算する（過去の貯金は捨てる）。</li>
 </ul>
-<h2 id="consequences">Consequences / 結果</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>メリット:</strong><ul>
+<li><strong>Positive</strong>:<ul>
 <li><strong>完全な定速運転:</strong> アイドル後でもバーストせず、設定されたレート（TPM）を厳守する。</li>
 <li><strong>デッドロックフリー:</strong> どんなに大きなコストのタスクでも、必要な待機時間を計算して処理できる。</li>
 <li><strong>即時起動:</strong> 最初の1回のリクエストは待ち時間なしで実行され、2回目以降からペーシングが効く。</li>
 <li><strong>Fail Fast:</strong> 設定値を超える無茶なリクエストを早期発見できる。</li>
 </ul>
 </li>
-<li><strong>デメリット:</strong><ul>
+<li><strong>Negative</strong>:<ul>
 <li>実装が「トークンを消費する」という直感的なメタファーから少し離れる（コード内の説明で補足する）。</li>
 </ul>
 </li>

@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>29. Limiter Dependency Injection - beautyspot</title>
+        <title>Limiter Dependency Injection - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#29-limiter-dependency-injection" class="md-skip">
+        <a href="#limiter-dependency-injection" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              29. Limiter Dependency Injection
+              Limiter Dependency Injection
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1457,31 +1496,45 @@
   
 
 
-<h1 id="29-limiter-dependency-injection">29. Limiter Dependency Injection</h1>
-<p>Date: 2026-02-18</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
-<p>Previously, the <code>Spot</code> class in <code>core.py</code> was tightly coupled with the <code>TokenBucket</code> implementation. It accepted a <code>tpm</code> (tokens per minute) integer argument and instantiated the <code>TokenBucket</code> internally.</p>
-<p>This design had several limitations:
-1.  <strong>Testing</strong>: Unit tests were slow because they relied on real <code>time.sleep</code> calls within <code>TokenBucket</code>.
-2.  <strong>Extensibility</strong>: Users could not provide custom rate limiters (e.g., Redis-based distributed limiters) or different algorithms.
-3.  <strong>Separation of Concerns</strong>: <code>core.Spot</code> was managing the lifecycle and configuration of the limiter, which violated the Single Responsibility Principle.</p>
-<h2 id="decision">Decision</h2>
-<p>We decided to decouple the rate limiter from <code>core.Spot</code> using Dependency Injection (DI).</p>
-<ol>
-<li><strong>Protocol Definition</strong>: Define a <code>LimiterProtocol</code> in <code>beautyspot.limiter</code> that mandates <code>consume(cost: int)</code> and <code>consume_async(cost: int)</code> methods.</li>
-<li><strong>Explicit Inheritance</strong>: The default <code>TokenBucket</code> implementation will explicitly inherit from <code>LimiterProtocol</code> to ensure type safety and clarity.</li>
-<li><strong>Injection</strong>: Modify <code>core.Spot.__init__</code> to accept a <code>limiter: LimiterProtocol</code> instance instead of <code>tpm</code>.</li>
-<li><strong>Factory Responsibility</strong>: The <code>Spot</code> factory function in <code>__init__.py</code> will handle the creation of the default <code>TokenBucket</code> if no custom limiter is provided.</li>
-<li><strong>Isolation</strong>: The limiter will not share the <code>Executor</code> or <code>io_workers</code> with <code>Spot</code>. If a limiter requires background threads (e.g., for network I/O), it must manage its own resources or receive them via its own DI.</li>
-</ol>
-<h2 id="consequences">Consequences</h2>
+<h1 id="limiter-dependency-injection">Limiter Dependency Injection</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>以前、<code>core.py</code> の <code>Spot</code> クラスは <code>TokenBucket</code> 実装と密結合していました。<code>Spot</code> は <code>tpm</code> (tokens per minute) 整数引数を受け取り、内部で <code>TokenBucket</code> をインスタンス化していました。</p>
+<p>この設計にはいくつかの制限がありました：
+1.  <strong>Testing</strong>: ユニットテストが <code>TokenBucket</code> 内の本物の <code>time.sleep</code> 呼び出しに依存するため、実行が遅くなっていました。
+2.  <strong>Extensibility</strong>: ユーザーがカスタムレートリミッター（例：Redisベースの分散リミッター）や異なるアルゴリズムを提供できませんでした。
+3.  <strong>Separation of Concerns</strong>: <code>core.Spot</code> がリミッターのライフサイクルと設定を管理しており、単一責任の原則に違反していました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: <strong>Testability</strong>. We can now inject a <code>MockLimiter</code> or <code>NoOpLimiter</code> during tests to eliminate sleep times.</li>
-<li><strong>Positive</strong>: <strong>Flexibility</strong>. Users can implement custom limiters (e.g., sliding window, external stores) without modifying the core logic.</li>
-<li><strong>Positive</strong>: <strong>Clean Core</strong>. <code>core.Spot</code> is simplified as it no longer handles rate limiter initialization.</li>
-<li><strong>Negative</strong>: The signature of the internal class <code>_Spot</code> changes, breaking any code that instantiated it directly (though <code>Spot</code> factory usage remains compatible).</li>
+<li><strong>Testability</strong>: テスト中にスリープ時間を排除するために、<code>MockLimiter</code> や <code>NoOpLimiter</code> を注入できるようにすること。</li>
+<li><strong>Flexibility</strong>: コアロジックを修正することなく、ユーザーがカスタムリミッターを実装できるようにすること。</li>
+<li><strong>Clean Core</strong>: <code>core.Spot</code> を簡素化し、リミッターの初期化処理を排除すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 引き続き <code>Spot</code> クラス内でリミッターの実装をハードコードする。</li>
+<li><strong>Option 2</strong>: 抽象プロトコル <code>LimiterProtocol</code> を導入し、依存性注入 (DI) を使用してリミッターを外部から提供する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>レートリミッターを <code>core.Spot</code> から切り離し、依存性注入 (DI) を使用します。</p>
+<ol>
+<li><strong>Protocol Definition</strong>: <code>beautyspot.limiter</code> に <code>consume(cost: int)</code> と <code>consume_async(cost: int)</code> メソッドを規定する <code>LimiterProtocol</code> を定義します。</li>
+<li><strong>Explicit Inheritance</strong>: デフォルトの <code>TokenBucket</code> 実装は、型安全性と明確さのために <code>LimiterProtocol</code> を明示的に継承します。</li>
+<li><strong>Injection</strong>: <code>core.Spot.__init__</code> を、<code>tpm</code> の代わりに <code>limiter: LimiterProtocol</code> インスタンスを受け取るように変更します。</li>
+<li><strong>Factory Responsibility</strong>: <code>__init__.py</code> の <code>Spot</code> ファクトリ関数が、カスタムリミッターが提供されない場合のデフォルトの <code>TokenBucket</code> 作成を担当します。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li><strong>テスト容易性</strong>: <code>MockLimiter</code> などを注入することで、テストの高速化が可能になった。</li>
+<li><strong>柔軟性</strong>: 外部ストアを利用したリミッターなどを、コアを汚さずに実装可能になった。</li>
+<li><strong>クリーンなコア</strong>: <code>Spot</code> クラスの責務が削減され、コードが簡素化された。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>内部クラス <code>_Spot</code> のシグネチャが変更されるため、直接インスタンス化していたコードに影響がある（公開されている <code>Spot</code> ファクトリ経由であれば影響なし）。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1489,6 +1542,9 @@
 
 
 
+
+  
+  
 
 
 

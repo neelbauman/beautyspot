@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>ADR 0035: GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略 - beautyspot</title>
+        <title>GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略 - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0035-gc" class="md-skip">
+        <a href="#gc" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR 0035: GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略
+              GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        背景と課題 (Context)
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        決定事項 (Decision)
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        結果 (Consequences)
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,39 +1496,52 @@
   
 
 
-<h1 id="adr-0035-gc">ADR 0035: GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略</h1>
-<h2 id="context">背景と課題 (Context)</h2>
-<p><code>beautyspot</code> の <code>Spot</code> クラスは、非同期でのキャッシュ保存タスクを構造的に直列化するため、内部で専用の <code>asyncio</code> ループを実行するバックグラウンドスレッド (<code>_BackgroundLoop</code>) を保持している。
-インスタンスのライフサイクル終了時、これらのバックグラウンドタスクを安全に終了させる必要があるが、シャットダウンのトリガー（明示的な呼び出し、アプリケーションの終了、ガベージコレクション）によって、メインスレッドへの影響とプロセスの振る舞いが大きく異なるという課題があった。</p>
-<p>特に、ガベージコレクション (GC) はユーザーコードの予測不能なタイミングで発生する。ここでタスク完了を待機（スレッドを <code>join</code>）してしまうと、メインスレッドがフリーズしたりデッドロックを引き起こす危険性がある。一方で、待機せずにタスクを強制キャンセル（<code>wait=False</code>）すると、保存待ちだったキャッシュデータが失われてしまう。</p>
-<h2 id="decision">決定事項 (Decision)</h2>
-<p>バックグラウンドループのシャットダウンにおいて、「メインスレッドのブロック有無」と「タスクの完了保証」のトレードオフを解決するため、以下の3つの明確なシャットダウン方式を実装し、状況に応じて厳密に使い分けることとする。</p>
-<ol>
-<li><strong><code>stop(wait=True)</code></strong> (完全同期シャットダウン)</li>
-<li><strong>挙動:</strong> キューにある全タスクの完了を待機し、メインスレッドをブロック（<code>join</code>）する。</li>
-<li><strong>使い所:</strong> ユーザーによる明示的な <code>shutdown()</code> 呼び出し、コンテキストマネージャの <code>__exit__</code>、およびプロセス終了時の <code>atexit</code> フック。</li>
-<li>
-<p><strong>理由:</strong> キャッシュの保存状態が「確定」したことをユーザーに保証するため。また、プロセス終了時 (<code>atexit</code>) には、メインスレッドをブロックしてプロセスを生き延びさせないと、OSによってスレッドごと強制終了されてしまうため。</p>
-</li>
-<li>
-<p><strong><code>stop_gracefully_no_wait()</code></strong> (非同期ドレイン / スレッド切り離し)</p>
-</li>
-<li><strong>挙動:</strong> メインスレッドは一切ブロックせず即座にリターンするが、バックグラウンドの <code>asyncio</code> ループには「現在積まれているタスクをすべて完了させてから自発的に終了せよ」という指示を出し、スレッドを切り離す（ゾンビ化させる）。</li>
-<li><strong>使い所:</strong> <code>weakref.finalize</code> など、GC (ガベージコレクション) による破棄時のみ。</li>
-<li>
-<p><strong>理由:</strong> メインスレッドのフリーズ（デッドロック）を完全に回避しつつ、未保存のタスクをキャンセルせずに救済するため。</p>
-</li>
-<li>
-<p><strong><code>stop(wait=False)</code></strong> (強制停止)</p>
-</li>
-<li><strong>挙動:</strong> 実行中のタスクを強制キャンセルし、スレッドを即座に破棄する。</li>
-<li><strong>使い所:</strong> エラー発生時の緊急停止や、テストコードでの強制クリーンアップ時。</li>
-</ol>
-<h2 id="consequences">結果 (Consequences)</h2>
+<h1 id="gc">GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> の <code>Spot</code> クラスは、非同期でのキャッシュ保存タスクを構造的に直列化するため、内部で専用の <code>asyncio</code> ループを実行するバックグラウンドスレッド (<code>_BackgroundLoop</code>) を保持しています。インスタンスのライフサイクル終了時、これらのバックグラウンドタスクを安全に終了させる必要がありますが、シャットダウンのトリガー（明示的呼び出し、アプリ終了、GC）によって、メインスレッドへの影響とプロセスの振る舞いが大きく異なるという課題がありました。</p>
+<p>特に、GC は予測不能なタイミングで発生します。ここでタスク完了を待機（スレッドを <code>join</code>）してしまうと、メインスレッドがフリーズしたりデッドロックを引き起こす危険性があります。一方で、待機せずにタスクを強制キャンセルすると、保存待ちだったキャッシュデータが失われてしまいます。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>堅牢性の向上:</strong> ユーザーが <code>Spot</code> を一時的なスコープでインスタンス化し、GCの対象になった場合でも、キャッシュデータが失われる（データロスト）リスクがほぼ解消された。</li>
-<li><strong>安全性の担保:</strong> GC発生時にメイン処理がブロックされることがなくなり、ユーザーアプリケーションのパフォーマンスや安定性に悪影響を与えない。</li>
-<li><strong>明確なメンタルモデル:</strong> 開発者・メンテナーに対し、「いつ・どのシャットダウン方式を使うべきか」という明確な基準が提示された。</li>
+<li><strong>Stability</strong>: GC 発生時にメイン処理をブロックせず、アプリの安定性とパフォーマンスを維持すること。</li>
+<li><strong>Data Reliability</strong>: インスタンスがスコープを抜けた後でも、投入された保存タスクを可能な限り完了させること。</li>
+<li><strong>Safety</strong>: プロセス終了時には確実にデータをドレイン（排出）し、不完全な書き込みを防ぐこと。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 常に同期的にシャットダウンする（GC 時のフリーズリスク）。</li>
+<li><strong>Option 2</strong>: 常に非同期でシャットダウンし、タスクをキャンセルする（データロストリスク）。</li>
+<li><strong>Option 3</strong>: シャットダウン方式を状況（明示的、GC、終了時）に応じて使い分ける多段的な戦略を導入する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
+<p>以下の3つの方式を実装し、状況に応じて使い分けます。</p>
+<ol>
+<li><strong><code>stop(wait=True)</code></strong> (完全同期シャットダウン)<ul>
+<li><strong>用途:</strong> 明示的な <code>shutdown()</code>、<code>with</code> ブロックの終了、<code>atexit</code>。</li>
+<li><strong>理由:</strong> データの確定を保証するため。プロセス終了時はメインスレッドをブロックしないと OS に強制終了されるため。</li>
+</ul>
+</li>
+<li><strong><code>stop_gracefully_no_wait()</code></strong> (非同期ドレイン / スレッド切り離し)<ul>
+<li><strong>用途:</strong> <code>weakref.finalize</code> による GC 時。</li>
+<li><strong>理由:</strong> メインスレッドのフリーズを回避しつつ、既存タスクを完了させてから自発的に終了させるため。</li>
+</ul>
+</li>
+<li><strong><code>stop(wait=False)</code></strong> (強制停止)<ul>
+<li><strong>用途:</strong> エラー発生時の緊急停止など。</li>
+</ul>
+</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li><strong>堅牢性の向上</strong>: <code>Spot</code> が一時的なスコープでインスタンス化され GC された場合でも、データロストのリスクがほぼ解消された。</li>
+<li><strong>安全性の担保</strong>: GC 発生時にメイン処理がブロックされない。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>実装が複雑になり、バックグラウンドスレッドの状態管理（状態遷移）が重要になる。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1486,6 +1549,9 @@
 
 
 
+
+  
+  
 
 
 

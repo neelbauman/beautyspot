@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策 - beautyspot</title>
+        <title>バックグラウンドループのライフサイクル管理とGC時のデータロスト対策 - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0034-gc" class="md-skip">
+        <a href="#gc" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策
+              バックグラウンドループのライフサイクル管理とGC時のデータロスト対策
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        背景と課題
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        決定事項
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        結果
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,23 +1496,41 @@
   
 
 
-<h1 id="adr-0034-gc">ADR 0034: バックグラウンドループのライフサイクル管理とGC時のデータロスト対策</h1>
-<h2 id="_1">背景と課題</h2>
-<p><code>Spot</code> クラスは非同期のキャッシュ保存を構造的に直列化するため、内部で専用の <code>asyncio</code> ループを実行するスレッド (<code>_BackgroundLoop</code>) を保持している。
-インスタンスがガベージコレクション (GC) によって破棄される際、未保存のキャッシュデータを待機 (<code>wait=True</code>) してしまうと、メインスレッド（アプリのメイン処理）を予測不能なタイミングでフリーズさせたり、デッドロックを引き起こす危険性がある。
-そのため、<code>weakref.finalize</code> による GC 処理では安全を優先し、<code>wait=False</code> で即座にタスクをキャンセルしてリソースを解放する設計となっている。</p>
-<p>しかし、この設計では「関数内で一時的に <code>Spot</code> をインスタンス化し、バックグラウンド保存を投入してすぐに関数を抜ける」ような使い方をされた場合、GC のタイミングによってキャッシュデータが失われる（データロスト）という課題があった。</p>
-<h2 id="_2">決定事項</h2>
+<h1 id="gc">バックグラウンドループのライフサイクル管理とGC時のデータロスト対策</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>Spot</code> クラスは非同期のキャッシュ保存を構造的に直列化するため、内部で専用の <code>asyncio</code> ループを実行するスレッド (<code>_BackgroundLoop</code>) を保持しています。インスタンスがガベージコレクション (GC) によって破棄される際、未保存のキャッシュデータを厳密に待機してしまうと、メインスレッドを予測不能なタイミングでフリーズさせたり、デッドロックを引き起こす危険性があります。</p>
+<p>そのため、これまでは安全を優先し、GC 時にはタスクをキャンセルしてリソースを解放する設計となっていました。しかし、この設計では一時的なスコープで <code>Spot</code> を使用した場合、GC のタイミングによってキャッシュデータが失われるという課題がありました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Safety</strong>: GC 時の予期せぬブロッキングやデッドロックを回避し、アプリケーションの安定性を損なわないこと。</li>
+<li><strong>Data Integrity</strong>: バックグラウンドに投入された保存タスクを、可能な限り完了させること。</li>
+<li><strong>Predictability</strong>: ユーザーがライフサイクルを制御できる手段を提供し、挙動を明確にすること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: GC 時に常に保存完了を待機する。フリーズやデッドロックのリスクが高い。</li>
+<li><strong>Option 2</strong>: GC 時に即座にタスクをキャンセルする。データロストのリスクがある。</li>
+<li><strong>Option 3</strong>: <code>atexit</code> によるグローバルな安全網を導入し、プロセス終了時に未完了タスクをドレインする。あわせて明示的な管理を推奨する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
 <ol>
 <li><strong><code>atexit</code> によるグローバルな安全網の追加</strong>: 
-   <code>weakref.WeakSet</code> を用いて起動中のバックグラウンドループを追跡し、プロセス終了時 (<code>atexit</code>) に <code>wait=True</code> でドレインを行うフックを実装する。プロセス終了時であれば、メインスレッドをブロックしてもデッドロックの危険性が低いためである。</li>
+   <code>weakref.WeakSet</code> を用いて起動中のバックグラウンドループを追跡し、プロセス終了時 (<code>atexit</code>) に <code>wait=True</code> でドレイン（残存タスクの処理）を行うフックを実装します。プロセス終了時であれば、メインスレッドをブロックしてもデッドロックの危険性が低いためです。</li>
 <li><strong>明示的なリソース管理の推奨</strong>: 
-   Docstring に警告を追記し、<code>Spot</code> インスタンスは長寿命なオブジェクトとして扱うか、コンテキストマネージャ (<code>with</code>) または <code>shutdown(wait=True)</code> による明示的なライフサイクル管理を行うべきであることをユーザーに周知する。</li>
+   <code>Spot</code> インスタンスは長寿命なオブジェクトとして扱うか、コンテキストマネージャ (<code>with</code>) または <code>shutdown(wait=True)</code> による明示的な管理を行うべきであることを周知します。</li>
 </ol>
-<h2 id="_3">結果</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li>ユーザーが一時的なスコープで <code>Spot</code> を使ってしまった場合でも、アプリ終了時まではGCで破棄されない限りデータが救済される可能性が高まる。</li>
-<li>メインスレッドの安全性（GC時のフリーズ回避）と、キャッシュ保存の確実性のバランスを取ることができた。</li>
+<li><strong>Positive</strong>:<ul>
+<li>一時的なスコープで <code>Spot</code> を使った場合でも、アプリ終了時まではデータが救済される可能性が高まる。</li>
+<li>メインスレッドの安全性（GC 時のフリーズ回避）と、キャッシュ保存の確実性のバランスが取れる。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><code>atexit</code> 時に大量の未完了タスクがあると、プロセス終了に時間がかかる場合がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1470,6 +1538,9 @@
 
 
 
+
+  
+  
 
 
 

@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1397,7 +1425,7 @@
   <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1408,7 +1436,7 @@
   <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1419,7 +1447,7 @@
   <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered Options
+        Considered Options / 検討
       
     </span>
   </a>
@@ -1430,19 +1458,19 @@
   <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Outcome
+        Decision Outcome / 決定
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision Outcome">
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#technical-details-why-weakreffinalize-instead-of-atexit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Technical Details: Why weakref.finalize instead of atexit?
+        Technical Details / 技術詳細: Why weakref.finalize instead of atexit?
       
     </span>
   </a>
@@ -1458,7 +1486,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1486,7 +1514,7 @@
 
 
 <h1 id="manage-executor-lifecycle-via-instance-ownership-and-weak-references">Manage Executor Lifecycle via Instance Ownership and Weak References</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p><code>src/beautyspot/core.py</code> において、非同期タスクのIOオフロード用に <code>ThreadPoolExecutor</code> がグローバル変数 <code>_io_executor</code> として定義されている。</p>
 <p>この実装には以下の課題がある：</p>
 <ol>
@@ -1495,21 +1523,21 @@
 <li><strong>テスト困難性</strong>: グローバル変数はモック化が難しく、ユニットテストの分離を妨げる。</li>
 </ol>
 <p>代替案として <code>with</code> 文（Context Manager）による管理も検討されたが、<code>beautyspot</code> の「デコレータを付与するだけで動作する」という簡易な利用体験（DX）を損なうため、採用には至らなかった。ユーザーコードを変更させずに、安全にリソースをクリーンアップする仕組みが必要である。</p>
-<h2 id="decision-drivers">Decision Drivers</h2>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
 <li><strong>Developer Experience (DX)</strong>: ユーザーに <code>shutdown()</code> の呼び出しや <code>with</code> 文を強制したくない。</li>
 <li><strong>Configurability</strong>: スレッド数や Executor の実装をユーザーが制御できるようにしたい。</li>
 <li><strong>Safety</strong>: プロセス終了時やインスタンス破棄時に、確実にスレッドプールを閉じたい。</li>
 <li><strong>Memory Safety</strong>: クリーンアップ処理の登録によって、メモリリーク（循環参照）を引き起こしてはならない。</li>
 </ul>
-<h2 id="considered-options">Considered Options</h2>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ul>
 <li><strong>Option 1</strong>: 現状維持（グローバル変数のまま）。</li>
 <li><strong>Option 2</strong>: <code>Project</code> を Context Manager 化し、<code>__exit__</code> で <code>shutdown()</code> を呼ぶ。</li>
 <li><strong>Option 3</strong>: <code>atexit</code> モジュールを使い、終了時に <code>shutdown()</code> を呼ぶ。</li>
 <li><strong>Option 4</strong>: インスタンス管理に変更し、<code>weakref.finalize</code> で自動クリーンアップを行う。</li>
 </ul>
-<h2 id="decision-outcome">Decision Outcome</h2>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
 <p>Chosen option: <strong>Option 4</strong>.</p>
 <p><code>Project</code> クラスの設計を以下のように変更する：</p>
 <ol>
@@ -1525,7 +1553,7 @@
 <li><strong>自動クリーンアップ</strong>:
     内部生成した場合に限り、<code>weakref.finalize</code> を使用してシャットダウンを自動化する。</li>
 </ol>
-<h3 id="technical-details-why-weakreffinalize-instead-of-atexit">Technical Details: Why <code>weakref.finalize</code> instead of <code>atexit</code>?</h3>
+<h3 id="technical-details-why-weakreffinalize-instead-of-atexit">Technical Details / 技術詳細: Why <code>weakref.finalize</code> instead of <code>atexit</code>?</h3>
 <p>単純な <code>atexit.register(self.shutdown)</code> を採用しなかった理由は、<strong>メモリリーク（循環参照）のリスク</strong> である。</p>
 <ul>
 <li><strong>問題点</strong>: <code>atexit</code> レジストリにインスタンスメソッド（<code>self.shutdown</code>）を登録すると、<code>atexit</code> が <code>self</code> への強参照（Strong Reference）を保持し続ける。これにより、アプリケーション実行中に <code>Project</code> インスタンスが不要になってもガベージコレクション（GC）されず、メモリリークを引き起こす。これを防ぐには <code>atexit.unregister</code> が必要になるが、管理が複雑になる。</li>
@@ -1548,7 +1576,7 @@
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_shutdown_executor</span><span class="p">(</span><span class="n">executor</span><span class="p">):</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">executor</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="consequences">Consequences</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
 <li><strong>Positive</strong>:<ul>
 <li>ユーザーはリソース管理を意識する必要がなくなり、APIもシンプルに保たれる。</li>

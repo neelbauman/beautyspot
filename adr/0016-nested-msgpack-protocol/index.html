@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1413,26 +1441,39 @@ date: 2026-02-02
 context: Improving DX for Custom Types</p>
 <hr />
 <h1 id="nested-msgpack-protocol-via-serializer-wrapping">Nested Msgpack Protocol via Serializer Wrapping</h1>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p>これまでは、カスタム型のエンコーダは <code>ExtType</code> の仕様に合わせて「生のバイト列」を返す必要があった。
-これにより、ユーザーは <code>msgpack</code> ライブラリを直接操作する必要があり、Pydantic モデルなどの扱いが煩雑になっていた。</p>
-<h2 id="decision-drivers">Decision Drivers</h2>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>これまでは、カスタム型のエンコーダは <code>ExtType</code> の仕様に合わせて「生のバイト列」を返す必要がありました。
+これにより、ユーザーは <code>msgpack</code> ライブラリを直接操作する必要があり、Pydantic モデルなどの扱いが煩雑になっていました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
 <li><strong>Simplicity:</strong> ユーザー関数は、ただの型変換（Obj &lt;-&gt; Dict）のみに集中すべきである。</li>
 <li><strong>Encapsulation:</strong> バイナリ化（Pack/Unpack）の責務はライブラリ側が負うべきである。</li>
 </ul>
-<h2 id="decision-outcome">Decision Outcome</h2>
-<p><strong>Serializer Wrapping (Nested Protocol)</strong> を採用する。</p>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: エンコーダが生のバイト列（<code>bytes</code>）を返し、デコーダがそれを受け取る（旧仕様）。</li>
+<li><strong>Option 2</strong>: シリアライザラッピングを採用。エンコーダは Python オブジェクト（Dict 等）を返し、ライブラリが内部で Msgpack 化して保持する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><strong>Serializer Wrapping (Nested Protocol)</strong> を採用します。</p>
 <ol>
 <li><code>MsgpackSerializer</code> は、ユーザー定義のエンコーダ/デコーダに対する<strong>ラッパー（Wrapper）</strong>として機能する。</li>
 <li><strong>Encode時:</strong> エンコーダが返したオブジェクト（中間表現）を、ライブラリが自動的に <code>packb</code> して <code>ExtType</code> に格納する。</li>
 <li><strong>Decode時:</strong> <code>ExtType</code> のデータを、ライブラリが自動的に <code>unpackb</code> してからデコーダに渡す。</li>
 <li>これにより、ユーザーは <code>import msgpack</code> をする必要がなくなり、直感的な実装が可能になる。</li>
 </ol>
-<h2 id="consequences">Consequences</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
+<li><strong>Positive</strong>:<ul>
 <li>Pydantic v2 や Dataclasses のサポートが極めて容易になる。</li>
 <li>内部的に再帰呼び出しを行うため、カスタム型のネストも自動的に解決される。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>内部での再帰的な Pack/Unpack による、わずかなパフォーマンス上のオーバーヘッドが発生する可能性がある。</li>
+</ul>
+</li>
 </ul>
 
 

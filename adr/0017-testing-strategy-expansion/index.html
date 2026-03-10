@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1449,19 +1477,19 @@
   
 </li>
         
-          <li class="md-nav__item">
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences / 決定による影響
+        Consequences / 決定
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1549,14 +1577,14 @@ context: Enhancement of QA Process</p>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="c1"># 4. Version Upgrade of Middle Task (Assert downstream re-executed)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="c1"># 5. CLI &quot;stats&quot; command check (Assert DB integrity)</span>
 </code></pre></div>
-<h3 id="consequences">Consequences / 決定による影響</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Positive:</strong><ul>
+<li><strong>Positive</strong>:<ul>
 <li>リリース前の信頼性が大幅に向上する。特に「キャッシュが効きすぎて更新されない」「意図せず再計算される」といった複雑なバグを検知しやすくなる。</li>
 <li>CLI と Python API の互換性が常に保証される。</li>
 </ul>
 </li>
-<li><strong>Negative:</strong><ul>
+<li><strong>Negative</strong>:<ul>
 <li>テスト実行時間が増加する（ファイルIOを含むため）。</li>
 <li>テストコードのメンテナンスコストが若干増加する。</li>
 </ul>

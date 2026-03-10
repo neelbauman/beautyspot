@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -915,6 +915,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1957,10 +1985,10 @@
 <a id="__codelineno-0-56" name="__codelineno-0-56"></a>                <span class="s2">&quot;This task cannot be processed within the defined rate limit.&quot;</span>
 <a id="__codelineno-0-57" name="__codelineno-0-57"></a>            <span class="p">)</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a>        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a>        <span class="n">increment</span> <span class="o">=</span> <span class="n">cost</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a>        <span class="n">increment</span> <span class="o">=</span> <span class="n">cost</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62"></a>            <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
 <a id="__codelineno-0-63" name="__codelineno-0-63"></a>            <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tat</span><span class="p">:</span>
 <a id="__codelineno-0-64" name="__codelineno-0-64"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">tat</span> <span class="o">=</span> <span class="n">now</span>
 <a id="__codelineno-0-65" name="__codelineno-0-65"></a>

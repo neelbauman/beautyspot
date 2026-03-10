@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#1-stable-hashing-for-function-arguments" class="md-skip">
+        <a href="#stable-hashing-for-function-arguments" class="md-skip">
           Skip to content
         </a>
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context / コンテキスト
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision / 決定
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences / 結果
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,8 +1496,8 @@
   
 
 
-<h1 id="1-stable-hashing-for-function-arguments">1. Stable Hashing for Function Arguments</h1>
-<h2 id="context">Context / コンテキスト</h2>
+<h1 id="stable-hashing-for-function-arguments">Stable Hashing for Function Arguments</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
 <p><code>beautyspot</code> のコア機能である「関数のメモ化（キャッシュ）」において、関数の引数 (<code>args</code>, <code>kwargs</code>) から一意なキャッシュキーを生成する必要があります。</p>
 <p>初期実装 (<code>v0.1.0</code>) では、<code>json.dumps</code> が失敗した場合のフォールバックとして <code>str((args, kwargs))</code> のハッシュ値を使用していました。</p>
 <p>しかし、Pythonのデフォルトの <code>__str__</code> / <code>__repr__</code> 実装は、オブジェクトのメモリアドレス（例: <code>&lt;MyObject at 0x10a...&gt;</code>）を含むことが多くあります。</p>
@@ -1457,7 +1507,21 @@
 <li><strong>分散環境での不整合:</strong> 異なるマシン（あるいは異なるプロセス）で実行した場合、キャッシュキーが一致しない。</li>
 </ol>
 <p>外部ライブラリ（<code>joblib</code> 等）を使えば解決しますが、<code>beautyspot</code> は軽量な「黒子」ライブラリを目指しており、依存関係を増やしたくありません。</p>
-<h2 id="decision">Decision / 決定</h2>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Stability across restarts</strong>: プロセス再起動後もキャッシュが有効に機能すること。</li>
+<li><strong>Environment Independence</strong>: 異なるマシンや環境間でも一貫したハッシュ値が得られること。</li>
+<li><strong>Zero External Dependencies</strong>: 軽量さを維持するため、外部ライブラリ（joblib, numpy等）に依存しないこと。</li>
+<li><strong>Broad Type Support</strong>: <code>pydantic</code> モデルや <code>dataclass</code> 等、一般的なPythonオブジェクトを透過的に扱えること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 現状維持（<code>str()</code> によるフォールバック）。</li>
+<li><strong>Option 2</strong>: 外部ライブラリ（<code>joblib</code> 等）の導入。</li>
+<li><strong>Option 3</strong>: 標準ライブラリの <code>json</code> を拡張した、独自の安定化シリアライザの実装。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 3</strong>.</p>
 <p>標準ライブラリの <code>json</code> モジュールを使用し、独自の <code>default</code> シリアライザ (<code>_stable_serialize_default</code>) を実装することで、<strong>依存関係なしで</strong> 堅牢なハッシュ生成を実現します。</p>
 <p>具体的には以下の戦略を採用します：</p>
 <ol>
@@ -1466,19 +1530,15 @@
 <li><strong>Bytes型:</strong> 16進数文字列 (<code>hex</code>) に変換します。</li>
 <li><strong>最終手段:</strong> それでもシリアライズできない型（循環参照など）については、例外的に <code>str()</code> を使用します（この場合のみ不安定になるリスクを許容します）。</li>
 </ol>
-<h2 id="consequences">Consequences / 結果</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li>
-<p><strong>メリット:</strong></p>
-<ul>
+<li><strong>Positive</strong>:<ul>
 <li>アプリ再起動後もキャッシュが有効に機能する（永続化の信頼性向上）。</li>
 <li><code>pydantic</code> モデルや <code>dataclass</code> も設定なしでキャッシュ可能になる。</li>
 <li>外部依存（<code>numpy</code>, <code>joblib</code> 等）を増やさずに済む。</li>
 </ul>
 </li>
-<li>
-<p><strong>デメリット:</strong></p>
-<ul>
+<li><strong>Negative</strong>:<ul>
 <li>単なる <code>str()</code> 変換よりも、シリアライズ処理のオーバーヘッド（CPUコスト）がわずかに増加する。</li>
 <li>循環参照を持つオブジェクトを渡された場合の完全な解決策ではない（ただし、タスクの入力引数としては稀であると判断）。</li>
 </ul>

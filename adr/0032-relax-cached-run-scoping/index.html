@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>32. cached_run スコープ制限の廃止 - beautyspot</title>
+        <title>cached_run スコープ制限の廃止 - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#32-cached_run" class="md-skip">
+        <a href="#cached_run" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              32. cached_run スコープ制限の廃止
+              cached_run スコープ制限の廃止
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,41 +1496,40 @@
   
 
 
-<h1 id="32-cached_run">32. cached_run スコープ制限の廃止</h1>
-<p>Date: 2026-02-21
-Status: Accepted
-Supersedes: <a href="../0014-strict-scoping-for-cached-run/">ADR-0014</a></p>
-<h2 id="context">Context</h2>
-<p>ADR-0014 では、<code>cached_run</code> が返すラッパー関数を <code>with</code> ブロック外から呼び出した場合に
-<code>RuntimeError</code> を raise する Runtime Guard パターンを導入した。</p>
-<p>しかし、ADR-0023 で <code>Spot</code> インスタンス自体の再利用性（<code>with spot:</code> はフラッシュのみで
-制限ではない）が確立されたことにより、<code>cached_run</code> のラッパーについても同様に
-スコープ外での利用を妨げない方針が自然な帰結となった。</p>
-<p>また、Runtime Guard の実装に <code>ContextVar</code> を使用していたが、
-<code>cached_run</code> 呼び出しごとに新規の <code>ContextVar</code> を作成するため、
-コンテキスト分離の恩恵が得られない構造になっていた。
-さらに asyncio のデタッチドタスクパターンでは <code>reset()</code> が伝播せず、
-<code>with</code> 外から呼べてしまうという逆効果のバグも内包していた。</p>
-<h2 id="decision">Decision</h2>
-<p><code>cached_run</code> の Runtime Guard を廃止し、返されたラッパー関数は
-<code>with</code> ブロック外でも呼び出し可能とする。</p>
+<h1 id="cached_run">cached_run スコープ制限の廃止</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>ADR-0014 では、<code>cached_run</code> が返すラッパー関数を <code>with</code> ブロック外から呼び出した場合に <code>RuntimeError</code> を送出する Runtime Guard パターンを導入しました。しかし、ADR-0023 で <code>Spot</code> インスタンス自体の再利用性（<code>with spot:</code> はフラッシュのみを目的とし、インスタンスの無効化ではない）が確立されたことにより、<code>cached_run</code> のラッパーについても同様にスコープ外での利用を妨げない方針が自然な帰結となりました。</p>
+<p>また、Runtime Guard の実装において <code>ContextVar</code> を使用していましたが、呼び出しごとに新規の <code>ContextVar</code> を作成する構造になっており、コンテキスト分離の恩恵が得られていませんでした。さらに、asyncio の一部のパターンにおいてガードが機能しないバグも内包していました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><code>ContextVar</code>、<code>is_active</code>、<code>make_scoped_guard</code>、<code>_sync_guard</code>、<code>_async_guard</code> を削除</li>
-<li><code>make_cached</code> に簡略化（<code>self.mark()</code> を適用して返すだけ）</li>
-<li><code>try/finally</code> による <code>reset()</code> も不要のため削除</li>
+<li><strong>Consistency</strong>: <code>Spot</code> インスタンスのライフサイクル管理方針と、<code>cached_run</code> ラッパーの挙動に一貫性を持たせること。</li>
+<li><strong>Simplicity</strong>: 複雑でバグを含みやすい <code>ContextVar</code> によるガードロジックを排除し、コードを簡素化すること。</li>
+<li><strong>Predictability</strong>: asyncio を含む非同期コンテキストにおいても、一貫した挙動を提供すること。</li>
 </ul>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ul>
-<li><strong>シンプルな実装</strong>: ガード層がなくなり、<code>cached_run</code> は単純な <code>@mark</code> の一括適用に帰結する。</li>
-<li><strong>バグの除去</strong>: <code>ContextVar</code> の誤用に起因する asyncio デタッチドタスクでのガード素通りが解消される。</li>
-<li><strong>ADR-0023 との一貫性</strong>: <code>Spot</code> インスタンスと同様に、ラッパーもスコープに縛られない利用が可能になる。</li>
+<li><strong>Option 1</strong>: ADR-0014 の方針を維持し、<code>ContextVar</code> の実装を修正してガードを強化する。</li>
+<li><strong>Option 2</strong>: スコープ制限（ガード）を廃止し、ラッパー関数をブロック外でも呼び出し可能とする。</li>
 </ul>
-<h3 id="negative">Negative</h3>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><code>cached_run</code> の Runtime Guard を廃止し、返されたラッパー関数は <code>with</code> ブロック外でも呼び出し可能とします。</p>
+<ol>
+<li><strong>簡略化</strong>: <code>ContextVar</code>, <code>is_active</code>, <code>make_scoped_guard</code> などの関連ロジックを全て削除します。</li>
+<li><strong>実装の純粋化</strong>: <code>cached_run</code> は単に <code>self.mark()</code> を対象関数に適用して返すだけの、直感的な実装に変更します。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>誤用の検出不可</strong>: <code>with</code> ブロック外でのラッパー使用がランタイムで検出されなくなる。
-  ただし、ラッパー自体は通常の <code>@spot.mark()</code> 相当の関数であり、
-  呼び出しても意図しない副作用は生じない。</li>
+<li><strong>Positive</strong>:<ul>
+<li><strong>シンプルな実装</strong>: ガード層がなくなり、コードの保守性が向上した。</li>
+<li><strong>バグの除去</strong>: <code>ContextVar</code> の誤用や非同期タスクでの不整合リスクが解消された。</li>
+<li><strong>一貫性</strong>: <code>Spot</code> インスタンスと同様、ラッパーもスコープに縛られず柔軟に利用可能になった。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>誤用の検出不可</strong>: <code>with</code> ブロック外でのラッパー使用がランタイムで検出されなくなる。ただし、ラッパー自体は <code>@spot.mark</code> 相当の正当な関数であり、副作用は生じないため問題視しない。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1516,6 +1537,9 @@ Supersedes: <a href="../0014-strict-scoping-for-cached-run/">ADR-0014</a></p>
 
 
 
+
+  
+  
 
 
 

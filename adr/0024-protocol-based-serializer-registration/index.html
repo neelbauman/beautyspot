@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>24. Protocol-based Serializer Registration - beautyspot</title>
+        <title>Protocol-based Serializer Registration - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#24-protocol-based-serializer-registration" class="md-skip">
+        <a href="#protocol-based-serializer-registration" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              24. Protocol-based Serializer Registration
+              Protocol-based Serializer Registration
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#status" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1457,29 +1496,44 @@
   
 
 
-<h1 id="24-protocol-based-serializer-registration">24. Protocol-based Serializer Registration</h1>
-<p>Date: 2024-02-17</p>
-<h2 id="status">Status</h2>
-<p>Accepted</p>
-<h2 id="context">Context</h2>
-<p><code>beautyspot</code> allows users to register custom types for serialization using the <code>@spot.register</code> decorator.
-Initially, the implementation in <code>core.py</code> explicitly checked if the serializer was an instance of <code>MsgpackSerializer</code>.</p>
+<h1 id="protocol-based-serializer-registration">Protocol-based Serializer Registration</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> では、<code>@spot.register</code> デコレータを使用してカスタム型を登録できます。
+当初の実装では、<code>Spot</code> クラス内でシリアライザが <code>MsgpackSerializer</code> のインスタンスであるかどうかを明示的にチェックしていました。</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">serializer</span><span class="p">,</span> <span class="n">MsgpackSerializer</span><span class="p">):</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">serializer</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </code></pre></div>
-<p>This violated the Dependency Inversion Principle by coupling the high-level <code>Spot</code> class to a specific concrete implementation (<code>MsgpackSerializer</code>). It made it impossible to use other serializers that might support type registration (e.g., a future <code>JsonSerializer</code> or a custom wrapper).</p>
-<h2 id="decision">Decision</h2>
-<p>We introduced a new protocol, <code>TypeRegistryProtocol</code>, in <code>beautyspot.serializer</code>.</p>
-<ol>
-<li><strong>Define Protocol</strong>: The protocol defines a <code>register</code> method signature required for type registration.</li>
-<li>** decoupling**: The <code>Spot</code> class now checks against this protocol instead of the concrete <code>MsgpackSerializer</code> class.</li>
-<li><strong>Interface Segregation</strong>: We separated <code>TypeRegistryProtocol</code> from the basic <code>SerializerProtocol</code> (dump/load), acknowledging that not all serializers support custom type registration.</li>
-</ol>
-<h2 id="consequences">Consequences</h2>
+<p>これは、高レベルの <code>Spot</code> クラスを特定の具象クラス (<code>MsgpackSerializer</code>) に結合させており、依存関係逆転の原則 (Dependency Inversion Principle) に違反していました。その結果、カスタム型登録をサポートする他のシリアライザ（将来的な <code>JsonSerializer</code> やカスタムラッパーなど）を使用することが不可能でした。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: The core logic is now decoupled from <code>msgpack</code>. Users can implement their own serializers with registration support by conforming to <code>TypeRegistryProtocol</code>.</li>
-<li><strong>Positive</strong>: Testing is easier as we can mock the protocol without instantiating the full <code>MsgpackSerializer</code>.</li>
-<li><strong>Negative</strong>: Serializer implementations must explicitly match the <code>register</code> signature defined in the protocol.</li>
+<li><strong>Decoupling</strong>: <code>Spot</code> クラスを特定のライブラリ（<code>msgpack</code>）や実装から切り離すこと。</li>
+<li><strong>Extensibility</strong>: ユーザーが独自のシリアライザを実装し、かつカスタム型登録機能も維持できるようにすること。</li>
+<li><strong>Interface Segregation</strong>: 基本的なシリアライズ機能と、型登録機能という異なる責務を明確に分離すること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 具象クラスに対する <code>isinstance</code> チェックを維持する。</li>
+<li><strong>Option 2</strong>: 構造的部分型（Protocol）を導入し、インターフェースに基づくチェックに切り替える。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><code>beautyspot.serializer</code> に <strong><code>TypeRegistryProtocol</code></strong> を導入します。</p>
+<ol>
+<li><strong>Define Protocol</strong>: 型登録に必要な <code>register</code> メソッドのシグネチャを規定するプロトコルを定義します。</li>
+<li><strong>Decoupling</strong>: <code>Spot</code> クラスは、具象クラスではなくこのプロトコルに対して適合性チェックを行うように変更します。</li>
+<li><strong>Interface Segregation</strong>: 基本的な <code>SerializerProtocol</code> (dump/load) と <code>TypeRegistryProtocol</code> を分離し、型登録をサポートしないシリアライザも許容できるようにします。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li>コアロジックが <code>msgpack</code> から解放され、<code>TypeRegistryProtocol</code> に従う任意のシリアライザを使用可能になった。</li>
+<li>モックを使用したテストが容易になった。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>シリアライザの実装者は、プロトコルで定義された <code>register</code> メソッドのシグネチャを正確に遵守する必要がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1487,6 +1541,9 @@ Initially, the implementation in <code>core.py</code> explicitly checked if the 
 
 
 
+
+  
+  
 
 
 

@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>15. Interactive Deletion and Cleanup Policy - beautyspot</title>
+        <title>Interactive Deletion and Cleanup Policy - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#15-interactive-deletion-and-cleanup-policy" class="md-skip">
+        <a href="#interactive-deletion-and-cleanup-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              15. Interactive Deletion and Cleanup Policy
+              Interactive Deletion and Cleanup Policy
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1397,7 +1425,7 @@
   <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1408,7 +1436,7 @@
   <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision Drivers
+        Decision Drivers / 要求
       
     </span>
   </a>
@@ -1416,10 +1444,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1430,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1485,51 +1496,55 @@
   
 
 
-<h1 id="15-interactive-deletion-and-cleanup-policy">15. Interactive Deletion and Cleanup Policy</h1>
-<ul>
-<li>Status: Accepted</li>
-<li>Date: 2026-02-02</li>
-<li>Context: v2.2.6</li>
-</ul>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p><code>beautyspot</code> は「試行錯誤の高速化」を掲げているが、ユーザーが失敗した実験結果（キャッシュ）を即座に破棄する手段が Dashboard 上に存在しなかった。
-また、キャッシュ削除のロジックが <code>cli.py</code> に直接実装されており、Core API (<code>Spot</code> クラス) として提供されていないため、プログラムからの制御やテストが困難な状態だった。</p>
-<p>加えて、削除機能を実現するには <code>BlobStorageBase</code> (Storage backend) に物理ファイルを削除するインターフェースが必要だが、これまでの定義には <code>save</code> と <code>load</code> しか存在しなかった。</p>
-<h2 id="decision-drivers">Decision Drivers</h2>
+<h1 id="interactive-deletion-and-cleanup-policy">Interactive Deletion and Cleanup Policy</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> は「試行錯誤の高速化」を掲げていますが、ユーザーが失敗した実験結果（キャッシュ）を即座に破棄する手段が Dashboard 上に存在しませんでした。
+また、キャッシュ削除のロジックが <code>cli.py</code> に直接実装されており、Core API (<code>Spot</code> クラス) として提供されていないため、プログラムからの制御やテストが困難な状態でした。</p>
+<p>加えて、削除機能を実現するには <code>BlobStorageBase</code> (Storage backend) に物理ファイルを削除するインターフェースが必要ですが、これまでの定義には <code>save</code> と <code>load</code> しか存在しませんでした。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
 <li><strong>User Experience:</strong> Dashboard 上で「結果を見て、即座に消して、やり直す」というループを実現したい。</li>
 <li><strong>Consistency:</strong> CLI, Dashboard, Python Script すべてで同一の削除ロジックを利用したい。</li>
 <li><strong>Cleanliness:</strong> DBレコードを消した際に、対応する Blob ファイルも確実に消去したい。</li>
 </ul>
-<h2 id="decision">Decision</h2>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 手動での削除（OS コマンドや DB の直接編集）をユーザーに委ねる。</li>
+<li><strong>Option 2</strong>: Core API に <code>delete</code> メソッドを追加し、Storage インターフェースを拡張して、Dashboard からも操作可能にする。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
 <ol>
 <li>
 <p><strong>Core API への <code>delete</code> メソッドの追加</strong>
-   <code>Spot.delete(cache_key)</code> を正式な API として追加する。このメソッドは、「DBレコードの削除」と「Blobファイルの削除」をアトミック（ベストエフォート）に行う責任を持つ。</p>
+   <code>Spot.delete(cache_key)</code> を正式な API として追加します。このメソッドは、「DBレコードの削除」と「Blobファイルの削除」をアトミック（ベストエフォート）に行う責任を持ちます。</p>
 </li>
 <li>
-<p><strong>Storage Interface への破壊的変更</strong>
-   <code>BlobStorageBase</code> 抽象基底クラスに <code>delete(location)</code> メソッドを追加する。</p>
+<p><strong>Storage Interface への拡張</strong>
+   <code>BlobStorageBase</code> 抽象基底クラスに <code>delete(location)</code> メソッドを追加します。</p>
 </li>
-<li><strong>Breaking Change:</strong> ユーザーが独自の Storage Backend を実装している場合、<code>delete</code> メソッドの実装が必須となる。</li>
+<li><strong>Breaking Change:</strong> ユーザーが独自の Storage Backend を実装している場合、<code>delete</code> メソッドの実装が必要となります。</li>
 <li>
-<p><strong>Idempotency:</strong> ファイルが既に存在しない場合でもエラーを送出せず、静かに終了する（Idempotentな挙動）ことを推奨実装とする。</p>
+<p><strong>Idempotency:</strong> ファイルが既に存在しない場合でもエラーを送出せず、静かに終了する（冪等な挙動）ことを推奨実装とします。</p>
 </li>
 <li>
 <p><strong>Dashboard への削除機能の露出</strong>
-   Dashboard に削除ボタンを配置する。誤操作を防ぐため、確認ダイアログ（Popover）を経由する UI とし、<code>Spot.delete</code> (相当のロジック) を呼び出す。</p>
+   Dashboard に削除ボタンを配置します。誤操作を防ぐため、確認ダイアログを経由する UI とし、<code>Spot.delete</code> を呼び出します。</p>
 </li>
 </ol>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
+<li><strong>Positive</strong>:<ul>
 <li>ユーザーは Dashboard から離れることなく、不要なキャッシュを整理できる。</li>
 <li>キャッシュ削除ロジックが一元化され、メンテナンス性が向上する。</li>
-<li>将来的に「古いキャッシュの自動ローテーション」などの機能を実装する際の基盤となる。</li>
+<li>将来的な「自動ローテーション」機能の基盤となる。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><code>BlobStorageBase</code> を継承したカスタムクラスを持つ既存ユーザーコードは、<code>delete</code> メソッド未実装により <code>TypeError</code> となる可能性がある（v2.x のパッチバージョンでの変更としては大きいため、リリースノートでの周知が必須）。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><code>BlobStorageBase</code> を継承したカスタムクラスを持つ既存ユーザーコードは、<code>delete</code> メソッドの実装が必要になる。</li>
+<li>リリースノートでの周知が必須となる規模の変更である。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1537,6 +1552,9 @@
 
 
 
+
+  
+  
 
 
 

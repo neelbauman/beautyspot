@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>27. CLI Scope Definition and Explicit Storage Linkage - beautyspot</title>
+        <title>CLI Scope Definition and Explicit Storage Linkage - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#27-cli-scope-definition-and-explicit-storage-linkage" class="md-skip">
+        <a href="#cli-scope-definition-and-explicit-storage-linkage" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              27. CLI Scope Definition and Explicit Storage Linkage
+              CLI Scope Definition and Explicit Storage Linkage
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1397,7 +1425,7 @@
   <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context and Problem Statement
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,15 +1433,37 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1447,38 +1497,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1502,33 +1524,38 @@
   
 
 
-<h1 id="27-cli-scope-definition-and-explicit-storage-linkage">27. CLI Scope Definition and Explicit Storage Linkage</h1>
+<h1 id="cli-scope-definition-and-explicit-storage-linkage">CLI Scope Definition and Explicit Storage Linkage</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>beautyspot</code> の <code>clean</code> コマンドやガベージコレクション機能は、DBファイルとBlobストレージディレクトリの対応関係が「自明」であることを前提としています。標準構成（<code>.beautyspot/</code> 配下）ではこの前提は成立しますが、ユーザーがカスタムパスを設定したり、外部バックエンド（S3等）を使用した場合、CLIツールは安全に依存関係を特定できません。この状態で推測に基づく削除を行うと、誤って無関係なデータを削除するリスクがあります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li>Status: Accepted</li>
-<li>Date: 2026-02-17</li>
-<li>Context: v2.3.0 (Planned)</li>
+<li><strong>Data Safety</strong>: 管理対象外のデータや、他のプロジェクトが使用しているデータを誤って削除しないこと。</li>
+<li><strong>Predictability</strong>: CLI ツールがどの範囲までを安全に管理できるかを明確に定義すること。</li>
+<li><strong>Extensibility</strong>: 将来的にカスタム構成であっても安全にメンテナンスが行えるような道筋を立てること。</li>
 </ul>
-<h2 id="context-and-problem-statement">Context and Problem Statement</h2>
-<p><code>beautyspot</code> の <code>clean</code> コマンドや、将来実装予定の <code>gc</code> (Zombie Project Cleanup) 機能は、DBファイルとBlobストレージディレクトリの対応関係が「自明」であることを前提としています。
-標準構成（<code>.beautyspot/{name}.db</code> と <code>.beautyspot/blobs/{name}/</code>）ではこの前提は成立しますが、ユーザーが <code>TaskDB</code> や <code>BlobStorage</code> をカスタム実装したり、パスを標準外の場所に設定した場合、CLIツールは安全に依存関係を特定できません。
-この状態で推測に基づく削除を行うと、誤って無関係なデータを削除するリスクがあります。</p>
-<h2 id="decision">Decision</h2>
-<h3 id="1-cli-scope-limitation-policy">1. CLI Scope Limitation (Policy)</h3>
-<p>CLIが提供する「ストレージの自動クリーニング・削除機能」のサポート範囲を、<strong>標準ディレクトリ構成（<code>.beautyspot/</code> 配下）を使用しているプロジェクト</strong> に限定します。
-カスタム構成（外部DB、S3バケットの共有、カスタムパス等）を利用している場合、CLIによる自動削除は保証されず、ユーザー自身の責任でリソース管理を行う必要がある旨をドキュメントに明記します。</p>
-<h3 id="2-explicit-storage-linkage-roadmap">2. Explicit Storage Linkage (Roadmap)</h3>
-<p>「対応関係が自明でない」問題を根本解決するため、将来のバージョンで <strong>TaskDB内に使用しているStorageの情報をメタデータとして記録する</strong> 仕組みを導入します。
-具体的には、DB初期化時に <code>storage_uri</code> (例: <code>file://relative/path</code>, <code>s3://bucket/prefix</code>) を保存し、メンテナンスコマンド実行時に「操作対象のDBが参照しているストレージと、今消そうとしているディレクトリが一致するか」を検証可能にします。</p>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="considered-options">Considered Options / 検討</h2>
 <ul>
-<li><strong>安全性:</strong> 推測による誤削除（False Positive）を確実に防ぐことができる。</li>
+<li><strong>Option 1</strong>: パス構造や設定から対応関係を推測し、ベストエフォートでクリーンアップを試みる。</li>
+<li><strong>Option 2</strong>: CLI の自動クリーンアップ機能を標準構成に限定し、カスタム構成についてはユーザー管理とする。あわせてメタデータによるリンクを将来的に導入する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<h3 id="1-cli-scope-limitation-policy">1. CLI Scope Limitation (Policy)</h3>
+<p>CLIが提供する「ストレージの自動クリーニング・削除機能」のサポート範囲を、<strong>標準ディレクトリ構成（<code>.beautyspot/</code> 配下）を使用しているプロジェクト</strong> に限定します。カスタム構成を利用している場合は、CLI による自動削除は保証されず、ユーザー自身の責任で管理を行う必要がある旨を明記します。</p>
+<h3 id="2-explicit-storage-linkage-roadmap">2. Explicit Storage Linkage (Roadmap)</h3>
+<p>「対応関係が自明でない」問題を根本解決するため、将来のバージョンで <strong>TaskDB内に使用しているStorageの情報をメタデータとして記録する</strong> 仕組みを導入します。DB初期化時に <code>storage_uri</code> を保存し、メンテナンス時に「操作対象のDBが参照しているストレージと、今操作しようとしている実体が一致するか」を検証可能にします。</p>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li><strong>安全性:</strong> 推測による誤削除を確実に防ぐことができる。</li>
 <li><strong>明確な責任分界点:</strong> ツールが面倒を見る範囲と、ユーザーが管理すべき範囲が明確になる。</li>
 <li><strong>将来の拡張性:</strong> メタデータ記録が実装されれば、カスタム構成でも安全なGCが可能になる。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>ユーザーの負担:</strong> カスタム構成で利用する上級ユーザーは、<code>beautyspot clean</code> の恩恵を完全には受けられない（手動管理が必要になる場合がある）。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>ユーザーの負担:</strong> カスタム構成を利用する上級ユーザーは、<code>beautyspot clean</code> などの恩恵をフルには受けられない場合がある。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1536,6 +1563,9 @@
 
 
 
+
+  
+  
 
 
 

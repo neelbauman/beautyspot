@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>31. Declarative Lifecycle Policy - beautyspot</title>
+        <title>Declarative Lifecycle Policy - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#31-declarative-lifecycle-policy" class="md-skip">
+        <a href="#declarative-lifecycle-policy" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              31. Declarative Lifecycle Policy
+              Declarative Lifecycle Policy
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,15 +1433,37 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Decision">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision Outcome / 決定">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1469,46 +1519,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Alternatives Considered
+        Consequences / 決定
       
     </span>
   </a>
@@ -1535,65 +1546,45 @@
   
 
 
-<h1 id="31-declarative-lifecycle-policy">31. Declarative Lifecycle Policy</h1>
-<p>Date: 2026-02-18
-Status: Proposed</p>
-<h2 id="context">Context</h2>
-<p>機械学習や生成AIの実験プロセスにおいて、生成されるデータの重要度は均一ではない。
-数ヶ月保持すべき「最終モデル」もあれば、数時間で不要になる「一時的なデバッグ出力」もある。</p>
-<p>現在、これらの古いデータを削除するには、ユーザーが <code>MaintenanceService.prune(older_than=...)</code> を呼び出すスクリプトを自作し、cron等で定期実行する必要がある（Imperative/命令的アプローチ）。
-これはユーザーにとって「Toil（苦役）」であり、設定を忘れるとディスク容量を圧迫する原因となる。</p>
-<p>また、<code>beautyspot</code> は分散システムではないため、バックグラウンドで常にクリーンアップを行う常駐ワーカープロセスを持たない。そのため、データ削除のトリガーをどのように設計するかが課題となる。</p>
-<h2 id="decision">Decision</h2>
-<p>ユーザーが「データの寿命（What）」を宣言するだけで済むよう、以下の仕組みを導入する。</p>
+<h1 id="declarative-lifecycle-policy">Declarative Lifecycle Policy</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>機械学習や生成AIの実験プロセスにおいて、生成されるデータの重要度は均一ではありません。数ヶ月保持すべき「最終モデル」もあれば、数時間で不要になる「一時的なデバッグ出力」もあります。</p>
+<p>現在、これらの古いデータを削除するには、ユーザーが <code>MaintenanceService.prune(older_than=...)</code> を呼び出すスクリプトを自作し、定期実行する必要があります。これはユーザーにとって負担であり、設定を忘れるとディスク容量を圧迫する原因となります。また、<code>beautyspot</code> は常駐プロセスを持たないため、クリーンアップのトリガー設計が課題となります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Cognitive Load Reduction</strong>: ユーザーが「Toil（苦役）」から解放され、データの寿命を宣言するだけで管理が完結すること。</li>
+<li><strong>Predictable Performance</strong>: 有効期限の判定や削除処理が、メインの実行パスのレイテンシに悪影響を与えないこと。</li>
+<li><strong>Safety</strong>: デフォルトではデータを無期限に保持し、意図しないデータ消失を防ぐこと。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 命令的なアプローチ。ユーザーが必要に応じて削除スクリプトを記述・実行する。</li>
+<li><strong>Option 2</strong>: 宣言的な <code>retention</code> パラメータとデータベースでの有効期限管理を導入し、アクセス時のチェック（Lazy Expiration）と CLI による一括削除を組み合わせる。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>ユーザーが「データの寿命（What）」を宣言するだけで済むよう、以下の仕組みを導入します。</p>
 <h3 id="1-retention-parameter-for-mark">1. <code>retention</code> Parameter for <code>@mark</code></h3>
-<p>デコレータおよび <code>run</code> メソッドに <code>retention</code> 引数を追加する。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 文字列による指定（パースしてtimedeltaに変換）</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="s2">&quot;7d&quot;</span><span class="p">)</span>  <span class="c1"># 7日間保持</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">weekly_report</span><span class="p">():</span> <span class="o">...</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="s2">&quot;1h&quot;</span><span class="p">)</span>  <span class="c1"># 1時間のみ保持（一時データ）</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">quick_debug</span><span class="p">():</span> <span class="o">...</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># None は「無期限（Indefinite）」を意味する（デフォルト）</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nd">@spot</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">retention</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">gold_dataset</span><span class="p">():</span> <span class="o">...</span>
-</code></pre></div>
+<p>デコレータおよび <code>run</code> メソッドに <code>retention</code> 引数を追加します（例: <code>"7d"</code>, <code>"1h"</code>, <code>None</code>）。</p>
 <h3 id="2-database-schema-change-expires_at">2. Database Schema Change (<code>expires_at</code>)</h3>
-<p>タスク作成時に寿命を計算し、DBに静的に保存する。これにより、読み込み時やGC時の計算コストをゼロにする。</p>
-<ul>
-<li><strong>変更点:</strong> <code>tasks</code> テーブルに <code>expires_at</code> (TIMESTAMP, Nullable) カラムを追加し、Indexを貼る。</li>
-<li><strong>ロジック:</strong> <code>expires_at = created_at + retention</code></li>
-</ul>
+<p>タスク作成時に寿命を計算し、<code>tasks</code> テーブルの <code>expires_at</code> カラムに保存します。</p>
 <h3 id="3-lazy-expiration-access-time-check">3. Lazy Expiration (Access-time Check)</h3>
-<p>キャッシュ取得時（<code>spot.db.get</code>）に、有効期限をチェックする。</p>
-<ul>
-<li><strong>挙動:</strong></li>
-<li><code>expires_at &lt; current_time</code> の場合、そのタスクは「存在しない（Cache Miss）」とみなして <code>None</code> を返す。</li>
-<li><strong>Note:</strong> この時点では物理削除は行わない（読み込み処理のレイテンシ悪化を防ぐため、または非同期削除のみ試みる）。</li>
-</ul>
+<p>キャッシュ取得時（<code>spot.db.get</code>）に、<code>expires_at &lt; current_time</code> であれば「キャッシュミス」とみなして <code>None</code> を返します。この時点では物理削除は行わず、レイテンシへの影響を最小限にします。</p>
 <h3 id="4-explicit-garbage-collection-cli">4. Explicit Garbage Collection (CLI)</h3>
-<p>期限切れデータの物理削除は、CLIコマンドによって一括で行う。</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 期限切れ（expires_at &lt; NOW）のタスクを全て削除</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$<span class="w"> </span>beautyspot<span class="w"> </span>gc<span class="w"> </span>--expired
-</code></pre></div>
-<p>これにより、ユーザーは <code>beautyspot gc --expired</code> を適当なタイミング（開発の合間やCIの前後）に叩くだけで良くなり、複雑な条件指定（<code>older_than</code> 等）から解放される。</p>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<p>期限切れデータの物理削除は、CLI コマンド <code>$ beautyspot gc --expired</code> によって一括で行います。</p>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Cognitive Load Reduction:</strong> ユーザーは関数定義時に「これは一時データ」と決めるだけでよく、後片付けを気にする必要がなくなる。</li>
-<li><strong>Performance:</strong> 有効期限の判定は <code>TIMESTAMP</code> 比較のみで高速。</li>
-<li><strong>Safety:</strong> デフォルトは <code>None</code>（無期限）であるため、意図せずデータが消えることはない。</li>
+<li><strong>Positive</strong>:<ul>
+<li><strong>認知負荷の低減</strong>: 関数定義時に寿命を決めるだけで、後片付けを気にする必要がなくなる。</li>
+<li><strong>パフォーマンス</strong>: 有効期限の判定は TIMESTAMP 比較のみで高速。</li>
+<li><strong>安全性</strong>: デフォルトは無期限であるため、安全。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>Storage Consumption:</strong> Lazy Expiration を採用するため、実際に <code>beautyspot gc</code> コマンドが実行されるまでは、期限切れのデータもディスク上に残り続ける（容量は即時には解放されない）。</li>
-<li><strong>Migration Required:</strong> 既存の <code>tasks</code> テーブルへのカラム追加マイグレーションが必要。</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li><strong>容量解放の遅延</strong>: CLI コマンドが実行されるまで、期限切れデータもディスクに残り続ける。</li>
+<li><strong>マイグレーション</strong>: 既存テーブルへのカラム追加が必要。</li>
 </ul>
-<h2 id="alternatives-considered">Alternatives Considered</h2>
-<ul>
-<li><strong>Auto-Deletion on Write:</strong> 新しいタスクを保存するたびに、確率的（例: 1%の確率）にクリーンアップを走らせる案。</li>
-<li>-&gt; <strong>却下:</strong> 保存処理（<code>save</code>）のレイテンシが予測不能になり、ユーザー体験を損なうため。</li>
+</li>
 </ul>
 
 
@@ -1601,6 +1592,9 @@ Status: Proposed</p>
 
 
 
+
+  
+  
 
 
 

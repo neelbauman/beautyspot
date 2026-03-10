@@ -17,7 +17,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1416,6 +1444,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#decision-outcome" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1430,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences / 結果
+        Consequences / 決定
       
     </span>
   </a>
@@ -1475,8 +1514,14 @@
 <li><strong>Backward Compatibility / DX:</strong> 従来通りファイルパス（文字列）を渡すだけの初期化もサポートし、ライトユーザーの負担を増やさない。</li>
 <li><strong>Testability:</strong> データベース層のモック化を容易にする。</li>
 </ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: 現状維持（SQLiteを内部でハードコード）。</li>
+<li><strong>Option 2</strong>: <code>db_path</code> は維持しつつ、内部のファクトリで実装を切り替える。</li>
+<li><strong>Option 3</strong>: <code>Project</code> に DB インスタンスを直接渡す Dependency Injection (DI) パターン。</li>
+</ul>
 <h2 id="decision-outcome">Decision Outcome / 決定</h2>
-<p>Chosen option: <strong>Dependency Injection with Abstract Base Class</strong>.</p>
+<p>Chosen option: <strong>Option 3</strong>.</p>
 <ol>
 <li><strong>抽象化:</strong> <code>src/beautyspot/db.py</code> に抽象基底クラス <code>TaskDB</code> を定義し、インターフェース（<code>save</code>, <code>get</code>, <code>init_schema</code> 等）を強制する。</li>
 <li><strong>具象化:</strong> 従来のSQLite実装を <code>SQLiteTaskDB</code> として再定義する。</li>
@@ -1486,7 +1531,7 @@
 </ul>
 </li>
 </ol>
-<h2 id="consequences">Consequences / 結果</h2>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
 <li><strong>Positive:</strong><ul>
 <li>PostgreSQL や MySQL などのアダプタをユーザー側で実装し、<code>Project(..., db=PostgresDB(...))</code> のように利用可能になる。</li>

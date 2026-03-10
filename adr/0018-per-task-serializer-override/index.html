@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>18. Per-Task Serializer Override - beautyspot</title>
+        <title>Per-Task Serializer Override - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#18-per-task-serializer-override" class="md-skip">
+        <a href="#per-task-serializer-override" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              18. Per-Task Serializer Override
+              Per-Task Serializer Override
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,26 +1496,38 @@
   
 
 
-<h1 id="18-per-task-serializer-override">18. Per-Task Serializer Override</h1>
-<h2 id="context">Context</h2>
-<p>プロジェクト全体としては安全性と互換性の観点から <code>msgpack</code> を標準シリアライザとしている。
-しかし、探索的データ分析（EDA）やプロトタイピング、あるいは <code>msgpack</code> でのシリアライズが困難なサードパーティ製オブジェクトを扱う特定のタスクにおいては、Python標準の <code>pickle</code> のような柔軟なシリアライザを局所的に使用したいというニーズがある。</p>
-<h2 id="decision">Decision</h2>
-<ol>
-<li><strong>Override Mechanism:</strong> <code>Spot.mark()</code> および <code>Spot.cached_run()</code> に、オプショナル引数 <code>serializer</code> を追加する。</li>
-<li><strong>Protocol:</strong> ユーザーは <code>dumps(obj) -&gt; bytes</code> および <code>loads(bytes) -&gt; obj</code> メソッドを持つ任意のオブジェクトを渡すことができる。</li>
-<li><strong>Fallback Behavior:</strong> 指定されたシリアライザでデシリアライズに失敗した場合（例: <code>pickle.UnpicklingError</code>, <code>AttributeError</code>）、ADR-0003 の方針に従い、キャッシュ破損として扱い、タスクを再実行する。</li>
-</ol>
-<h2 id="consequences">Consequences</h2>
+<h1 id="per-task-serializer-override">Per-Task Serializer Override</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>プロジェクト全体としては安全性と互換性の観点から <code>msgpack</code> を標準シリアライザとしています。
+しかし、探索的データ分析（EDA）やプロトタイピング、あるいは <code>msgpack</code> でのシリアライズが困難なサードパーティ製オブジェクトを扱う特定のタスクにおいては、Python標準の <code>pickle</code> のような柔軟なシリアライザを局所的に使用したいというニーズがあります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Pros:</strong><ul>
-<li>ユーザーはプロジェクト全体の設定を変更することなく、必要な箇所だけで <code>pickle</code> 等の強力なシリアライズ機能を利用できる。</li>
-<li>クラス定義の変更などでキャッシュが読み込めなくなった場合も、自動的に再計算されるため、開発体験（DX）が損なわれない。</li>
+<li><strong>Flexibility</strong>: 標準シリアライザで扱いにくい特殊なオブジェクトに対して、最適な保存方法を選択できること。</li>
+<li><strong>Locality</strong>: プロジェクト全体の設定（セキュリティポリシー等）を損なうことなく、特定の箇所だけで設定を上書きできること。</li>
+<li><strong>Fault Tolerance</strong>: オーバーライドされたシリアライザでエラーが発生しても、再計算によって実行を継続できること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: グローバルなシリアライザ設定のみを提供し、個別の変更は認めない。</li>
+<li><strong>Option 2</strong>: <code>Spot.mark()</code> および <code>Spot.cached_run()</code> に <code>serializer</code> 引数を追加し、局所的なオーバーライドを可能にする。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<ol>
+<li><strong>Override Mechanism:</strong> <code>Spot.mark()</code> および <code>Spot.cached_run()</code> に、オプショナル引数 <code>serializer</code> を追加します。</li>
+<li><strong>Protocol:</strong> ユーザーは <code>dumps(obj) -&gt; bytes</code> および <code>loads(bytes) -&gt; obj</code> メソッドを持つ任意のオブジェクトを渡すことができます。</li>
+<li><strong>Fallback Behavior:</strong> 指定されたシリアライザでデシリアライズに失敗した場合、ADR-0003 の方針に従い、キャッシュ破損として扱い、タスクを再実行します。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li>ユーザーはプロジェクト全体の設定を変更することなく、必要な箇所だけで <code>pickle</code> 等の機能を利用できる。</li>
+<li>キャッシュが読み込めなくなった場合も、自動的に再計算されるため、開発体験（DX）が損なわれない。</li>
 </ul>
 </li>
-<li><strong>Cons:</strong><ul>
-<li><code>pickle</code> を使用したタスクは、異なるPython環境間や長期間の保存において互換性が保証されない（ユーザー責任となる）。</li>
-<li><code>Spot.register()</code> で登録したカスタム型変換は、オーバーライドされたシリアライザ（例: <code>pickle</code>）には適用されない。</li>
+<li><strong>Negative</strong>:<ul>
+<li><code>pickle</code> を使用したタスクは、異なる環境間や長期間の保存において互換性が保証されない。</li>
+<li><code>Spot.register()</code> で登録したカスタム型変換は、オーバーライドされたシリアライザには適用されない。</li>
 </ul>
 </li>
 </ul>
@@ -1475,6 +1537,9 @@
 
 
 
+
+  
+  
 
 
 

@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>0038: Background Loop Shutdown Strategy and Threading Model - beautyspot</title>
+        <title>Background Loop Shutdown Strategy and Threading Model - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#0038-background-loop-shutdown-strategy-and-threading-model" class="md-skip">
+        <a href="#background-loop-shutdown-strategy-and-threading-model" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              0038: Background Loop Shutdown Strategy and Threading Model
+              Background Loop Shutdown Strategy and Threading Model
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,7 +1469,7 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
@@ -1446,20 +1496,39 @@
   
 
 
-<h1 id="0038-background-loop-shutdown-strategy-and-threading-model">0038: Background Loop Shutdown Strategy and Threading Model</h1>
-<h2 id="context">Context</h2>
-<p>バックグラウンドでの非同期IOタスク（キャッシュのディスク保存やDB書き込みなど）を処理するイベントループにおいて、単純に <code>daemon=True</code> スレッドを使用すると、メインスレッド終了時にプロセスが即座に強制終了（kill）され、書き込み中のデータ破損やキャッシュのロストが発生する危険性があった。
-一方で、<code>daemon=False</code> に変更して <code>atexit</code> で待機を試みるアプローチでは、Pythonの内部仕様（<code>threading._shutdown()</code>）により、タスクがハングした場合にプロセス全体が永遠に終了しなくなるデッドロックの罠が存在した。また、非同期タスクのトラッキング（<code>asyncio.all_tasks</code>）に依存すると、スケジュールの隙間でタスクをロストする Check-then-Act 競合が生じることが判明した。</p>
-<h2 id="decision">Decision</h2>
-<p>真の耐障害性を持つ Graceful Shutdown を実現するため、以下のアーキテクチャを採用する：
-1. <strong>デーモンスレッドの維持</strong>: スレッドは <code>daemon=True</code> で起動し、プロセス終了時の無限ハング（OSレベルのデッドロック）をOSの力で防ぐ。
-2. <strong>明示的なタスク追跡とロック</strong>: <code>_lock</code> と <code>_active_tasks</code> カウンタを用いたステートマシンを導入し、<code>submit</code> 時と <code>atexit</code> 時の競合状態（Race Condition）を完全に排除する。
-3. <strong>Grace Period（猶予期間）の導入</strong>: <code>atexit</code> フック内でメインスレッドをブロックし、タイムアウト付き（デフォルト5秒）で <code>_thread.join()</code> を実行することで、インフライトのIOタスクが完了するための猶予を与える。</p>
-<h2 id="consequences">Consequences</h2>
+<h1 id="background-loop-shutdown-strategy-and-threading-model">Background Loop Shutdown Strategy and Threading Model</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p>バックグラウンドでの非同期 IO タスクを処理するイベントループにおいて、単純に <code>daemon=True</code> スレッドを使用すると、メインスレッド終了時にプロセスが即座に強制終了され、データ破損やキャッシュのロストが発生する危険がありました。一方で、<code>daemon=False</code> にして <code>atexit</code> で待機を試みるアプローチでは、タスクがハングした場合にプロセス全体が永遠に終了しなくなるデッドロックの罠が存在していました。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
 <ul>
-<li><strong>Positive</strong>: ユーザーが明示的な終了処理（<code>spot.close()</code> など）を意識することなく、プロセス終了時に安全にデータがディスクへ永続化される（優れたDeveloper Experienceの維持）。</li>
-<li><strong>Positive</strong>: ネットワークエラー等でIOタスクが無限にスタックした場合でも、タイムアウト後は容赦なくプロセスが終了するため、アプリケーションがハングアップしない。</li>
-<li><strong>Negative</strong>: プロセス終了時に、バックグラウンド処理が終わるまで最大 <code>drain_timeout</code> 秒（デフォルト5秒）のブロックが発生する。</li>
+<li><strong>Data Durability</strong>: プロセス終了時に、インフライト（実行中）の IO タスクが確実に完了し、ディスクへ永続化されること。</li>
+<li><strong>Reliability</strong>: タスクのスケジュールとシャットダウンの間の競合状態 (Race Condition) を排除すること。</li>
+<li><strong>Liveness</strong>: ネットワーク障害等でタスクがスタックしても、一定時間後にプロセスが確実に終了し、ゾンビ化を防ぐこと。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: <code>daemon=False</code> スレッドを使用し、<code>atexit</code> で待機する。デッドロックやハングのリスクが高い。</li>
+<li><strong>Option 2</strong>: <code>daemon=True</code> スレッドを維持しつつ、明示的なタスク追跡と猶予期間（Grace Period）付きの <code>atexit</code> ハンドラを実装する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p>真の耐障害性を持つ Graceful Shutdown を実現するため、以下のアーキテクチャを採用します。</p>
+<ol>
+<li><strong>デーモンスレッドの維持</strong>: スレッドは <code>daemon=True</code> で起動し、プロセス終了時の無限ハングを OS の力で防ぎます。</li>
+<li><strong>明示的なタスク追跡とロック</strong>: ロックとアクティブタスクカウンタを用いたステートマシンを導入し、<code>submit</code> 時と <code>atexit</code> 時の競合状態を完全に排除します。</li>
+<li><strong>Grace Period（猶予期間）の導入</strong>: <code>atexit</code> フック内でメインスレッドをブロックし、タイムアウト付き（デフォルト5秒）で <code>_thread.join()</code> を実行することで、IO タスクが完了するための猶予を与えます。</li>
+</ol>
+<h2 id="consequences">Consequences / 決定</h2>
+<ul>
+<li><strong>Positive</strong>:<ul>
+<li>ユーザーが明示的な終了処理を意識せずとも、プロセス終了時に安全にデータが永続化される。</li>
+<li>タスクが無限にスタックしても、タイムアウト後にプロセスが終了するため、アプリがハングアップしない。</li>
+</ul>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>プロセス終了時に、バックグラウンド処理が終わるまで最大 5 秒のブロックが発生する。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1467,6 +1536,9 @@
 
 
 
+
+  
+  
 
 
 

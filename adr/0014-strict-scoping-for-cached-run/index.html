@@ -17,11 +17,11 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
       
-        <title>14. Strict Scoping for Imperative Execution (Runtime Guard) - beautyspot</title>
+        <title>Strict Scoping for Imperative Execution (Runtime Guard) - beautyspot</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#14-strict-scoping-for-imperative-execution-runtime-guard" class="md-skip">
+        <a href="#strict-scoping-for-imperative-execution-runtime-guard" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              14. Strict Scoping for Imperative Execution (Runtime Guard)
+              Strict Scoping for Imperative Execution (Runtime Guard)
             
           </span>
         </div>
@@ -919,6 +919,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CacheManager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/cachekey/" class="md-nav__link">
         
   
@@ -1394,10 +1422,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
+  <a href="#context-and-problem-statement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context
+        Context and Problem Statement / コンテキスト
       
     </span>
   </a>
@@ -1405,10 +1433,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
+  <a href="#decision-drivers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Decision
+        Decision Drivers / 要求
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered Options / 検討
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-outcome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Outcome / 決定
       
     </span>
   </a>
@@ -1419,38 +1469,10 @@
   <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consequences
+        Consequences / 決定
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Consequences">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#positive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Positive
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#negative" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Negative
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1474,31 +1496,42 @@
   
 
 
-<h1 id="14-strict-scoping-for-imperative-execution-runtime-guard">14. Strict Scoping for Imperative Execution (Runtime Guard)</h1>
-<p>Date: 2026-02-01
-Status: Superseded by <a href="../0032-relax-cached-run-scoping/">ADR-0032</a></p>
-<h2 id="context">Context</h2>
-<p>The <code>spot.cached_run()</code> context manager allows users to temporarily apply caching behavior to functions. 
-However, due to Python's scoping rules for <code>with</code> statements, variables bound within the block (e.g., <code>with ... as task:</code>) remain accessible after the block exits.</p>
-<p>This creates a risk where users might inadvertently reuse a function wrapper that has specific context-bound configurations (like <code>version="v1"</code> or temporary storage settings) outside of that intended context, leading to subtle bugs or resource leaks.</p>
-<h2 id="decision">Decision</h2>
-<p>We will implement a <strong>Runtime Guard</strong> pattern for the <code>ScopedMark</code> context manager.</p>
+<h1 id="strict-scoping-for-imperative-execution-runtime-guard">Strict Scoping for Imperative Execution (Runtime Guard)</h1>
+<h2 id="context-and-problem-statement">Context and Problem Statement / コンテキスト</h2>
+<p><code>spot.cached_run()</code> コンテキストマネージャを使用すると、ユーザーは一時的に関数のキャッシュ挙動を適用できます。しかし、Python の <code>with</code> 文のスコープルールにより、ブロック内でバインドされた変数（例: <code>with ... as task:</code>）はブロック終了後もアクセス可能です。</p>
+<p>これにより、ユーザーが特定のコンテキスト設定（<code>version="v1"</code> や一時的なストレージ設定など）を持つ関数ラッパーを、意図しない場所で再利用してしまうリスクがあります。これは微妙なバグやリソースリークの原因となります。</p>
+<h2 id="decision-drivers">Decision Drivers / 要求</h2>
+<ul>
+<li><strong>Safety</strong>: 意図しないスコープ外での「古い」または「コンテキスト固有の」ラッパーの使用を排除すること。</li>
+<li><strong>Clarity</strong>: キャッシュ挙動が厳密に一時的なものであるというメンタルモデルを強制すること。</li>
+<li><strong>Resource Management</strong>: 短命な <code>spot</code> インスタンスや注入されたインスタンスをより安全に使用できるようにすること。</li>
+</ul>
+<h2 id="considered-options">Considered Options / 検討</h2>
+<ul>
+<li><strong>Option 1</strong>: ガードを実装せず、ユーザーの注意に任せる。</li>
+<li><strong>Option 2</strong>: <strong>Runtime Guard</strong> パターンを導入し、ブロック外での呼び出しを制限する。</li>
+</ul>
+<h2 id="decision-outcome">Decision Outcome / 決定</h2>
+<p>Chosen option: <strong>Option 2</strong>.</p>
+<p><code>ScopedMark</code> コンテキストマネージャに <strong>Runtime Guard</strong> パターンを実装します。</p>
 <ol>
-<li><strong>State Tracking</strong>: The context manager will maintain an active state flag.</li>
-<li><strong>Wrapper Guard</strong>: The functions returned by <code>cached_run</code> will be wrapped in a guard that checks this flag before execution.</li>
-<li><strong>Fail Fast</strong>: If a wrapped function is called outside the <code>with</code> block, it will immediately raise a <code>RuntimeError</code>.</li>
+<li><strong>State Tracking</strong>: コンテキストマネージャはアクティブ状態のフラグを保持する。</li>
+<li><strong>Wrapper Guard</strong>: <code>cached_run</code> から返される関数は、実行前にこのフラグをチェックするガードでラップされる。</li>
+<li><strong>Fail Fast</strong>: ラップされた関数が <code>with</code> ブロックの外で呼び出された場合、即座に <code>RuntimeError</code> を送出する。</li>
 </ol>
-<h2 id="consequences">Consequences</h2>
-<h3 id="positive">Positive</h3>
+<h2 id="consequences">Consequences / 決定</h2>
 <ul>
-<li><strong>Safety</strong>: Eliminates the risk of using "stale" or "context-specific" wrappers outside their intended scope.</li>
-<li><strong>Clarity</strong>: Enforces the mental model that the "caching magic" is strictly temporary.</li>
-<li><strong>Resource Management</strong>: Makes it safer to use <code>spot</code> instances that might be short-lived or injected, as the function references become invalid immediately after use.</li>
+<li><strong>Positive</strong>:<ul>
+<li>意図しないスコープ外での使用によるリスクを排除できる。</li>
+<li>「キャッシュマジック」は厳密に一時的なものであるという確信が持てる。</li>
+<li>関数参照が使用直後に無効になるため、リソース管理が安全になる。</li>
 </ul>
-<h3 id="negative">Negative</h3>
-<ul>
-<li><strong>Runtime Overhead</strong>: Adds a negligible check (boolean flag access) to every function call within the block.</li>
-<li><strong>Complexity</strong>: The <code>ScopedMark</code> implementation becomes slightly more complex due to the additional wrapper layer.</li>
+</li>
+<li><strong>Negative</strong>:<ul>
+<li>ブロック内での関数呼び出しごとに、極小のオーバーヘッド（ブールフラグのチェック）が発生する。</li>
+<li>ラップ処理の追加により、<code>ScopedMark</code> の実装がわずかに複雑になる。</li>
+</ul>
+</li>
 </ul>
 
 
@@ -1506,6 +1539,9 @@ However, due to Python's scoping rules for <code>with</code> statements, variabl
 
 
 
+
+  
+  
 
 
 
