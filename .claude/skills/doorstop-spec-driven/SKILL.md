@@ -25,7 +25,7 @@ description: >
 3. **変更したらimpact_analysisを回す。** 変更の影響を把握してから修正に入る
 4. **バリデーションを最後に必ず実行する。** リンク漏れやカバレッジ低下を放置しない
 5. 仕様変更時は `serve_app.py` を使いダッシュボードを起動し、レビューをユーザーに促す
-6. **関連アイテムの探索には `trace_query.py` を使う。** doorstop YAMLをgrepしない
+6. **関連アイテムの探索には `trace_query.py` を使う。** doorstop YAMLをgrepしない。ファイルパスからの逆引きは `chain --file` を使う
 7. **派生要求は設計層のみで使う。** `derived: true` + 根拠明記。IMPL/TSTでの使用は禁止
 8. **外部ファイル紐付けには `references` を使う。** `ref` ではなく `references` 属性。最大2–3ファイル
 9. **仕様変更のコミットはドキュメント層ごとに分ける。** 詳細は「コミット粒度規約」を参照
@@ -116,6 +116,7 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 |---|---|
 | プロジェクト全体サマリ | `trace_query.py <dir> status` |
 | 特定UIDのチェーン | `trace_query.py <dir> chain <UID>` |
+| ファイルからチェーン逆引き | `trace_query.py <dir> chain --file src/mod.py` |
 | カバレッジ詳細 | `trace_query.py <dir> coverage [--group GROUP]` |
 | suspect一覧 | `trace_query.py <dir> suspects` |
 | リンク漏れ検出 | `trace_query.py <dir> gaps [--document IMPL]` |
@@ -187,6 +188,35 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 | 実装＋IMPL登録 | ソースコード + IMPLのYMLファイル | `impl: IMPL017 lifecycle gc policy` |
 | テスト＋TST登録 | テストコード + TSTのYMLファイル | `test: TST017 lifecycle gc tests` |
 | suspect解消・review | clear/reviewされたYMLファイル | `spec: clear suspects for SPEC012` |
+
+### エージェントのコミット実行手順
+
+各層の作業完了後、**対象ファイルだけを** ステージングしてコミットする。
+`git add .` や `git add -A` は複数層のファイルを混在させるため使わない。
+
+```bash
+# ── REQ 追加後 ──────────────────────────────────────────
+git add docs/reqs/REQ017.yml
+git commit -m "spec: add REQ017 [GROUP]"
+
+# ── SPEC 策定後 ──────────────────────────────────────────
+git add docs/specs/SPEC017.yml
+git commit -m "spec: add SPEC017 for REQ017"
+
+# ── 実装後（ソースコード + IMPL YAML を同一コミット）──────
+git add src/beautyspot/core.py docs/impl/IMPL017.yml
+git commit -m "impl: IMPL017 lifecycle gc policy"
+
+# ── テスト後（テストコード + TST YAML を同一コミット）──────
+git add tests/integration/core/test_gc.py docs/tst/TST017.yml
+git commit -m "test: TST017 lifecycle gc tests"
+
+# ── suspect 解消後 ────────────────────────────────────────
+git add docs/impl/IMPL017.yml docs/tst/TST017.yml
+git commit -m "spec: clear suspects IMPL017 TST017"
+```
+
+ディレクトリパスはプロジェクト構造に合わせること（`doorstop_ops.py tree` で確認）。
 
 ### コミットをまとめてよいケース
 
