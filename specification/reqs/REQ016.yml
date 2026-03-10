@@ -7,9 +7,6 @@ level: 3.0
 links: []
 normative: false
 ref: ''
-reviewed: whjP7OvPgvODtrU-nbyVfegx7vNKJrsph9z144YV8pU=
+reviewed: vSDM8SrfKZNaH-C1JyXWDSnrbapVooaKy7vbIGVMBc8=
 text: |
-  - **Spot**: 本ライブラリにおけるキャッシュ・レート制限のコアエンジンの名称。
-  - **キャッシュヒット**: 保存された結果を再利用し、元の関数を実行しないこと。
-  - **キャッシュミス**: 結果が未保存または無効のため、元の関数を実行すること。
-  - **Thundering Herd**: 複数のクライアントが同時に同じ期限切れキャッシュ（または未キャッシュの重い処理）を要求し、システムに過負荷をかける問題。
+  本プロジェクト（Beautyspot）で使用される主要な用語の定義です。

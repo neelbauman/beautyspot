@@ -114,11 +114,16 @@ let RichEditor = {};
 (async () => {
   const timeout = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
   try {
-    const [coreMod, skMod, tdMod] = await Promise.race([
+    const [coreMod, skMod, tdMod, tblMod, tblRowMod, tblHdrMod, tblCellMod, gfmMod] = await Promise.race([
       Promise.all([
         import('https://esm.sh/@tiptap/core@2'),
         import('https://esm.sh/@tiptap/starter-kit@2'),
         import('https://esm.sh/turndown@7'),
+        import('https://esm.sh/@tiptap/extension-table@2'),
+        import('https://esm.sh/@tiptap/extension-table-row@2'),
+        import('https://esm.sh/@tiptap/extension-table-header@2'),
+        import('https://esm.sh/@tiptap/extension-table-cell@2'),
+        import('https://esm.sh/turndown-plugin-gfm@1.0.2'),
       ]),
       timeout(5000),
     ]);
@@ -127,6 +132,11 @@ let RichEditor = {};
       Extension: coreMod.Extension,
       StarterKit: skMod.StarterKit || skMod.default,
       TurndownService: tdMod.default || tdMod,
+      Table: tblMod.Table || tblMod.default,
+      TableRow: tblRowMod.TableRow || tblRowMod.default,
+      TableHeader: tblHdrMod.TableHeader || tblHdrMod.default,
+      TableCell: tblCellMod.TableCell || tblCellMod.default,
+      gfmTables: gfmMod.tables || (gfmMod.default && gfmMod.default.tables),
     };
     richEditorReady = true;
     console.log('Rich editor loaded (online mode)');
@@ -1069,6 +1079,7 @@ function renderPanelContent(ps, data) {
       <div class="actions" style="margin-top:8px">
         <button class="btn btn-primary" id="psb-${pid}" onclick="panelSave(${pid})">Save</button>
         <button class="btn" onclick="panelCancelEdit(${pid})">Cancel</button>
+        <button class="btn btn-sm" id="ptoggle-${pid}" onclick="panelToggleEditMode(${pid})" style="margin-left:auto; display:none;">Switch to Markdown</button>
       </div>
     </div>
 
@@ -1149,7 +1160,14 @@ function createTiptapEditor(panelId, htmlContent) {
   });
   const editor = new RichEditor.Editor({
     element: document.getElementById('ptip-' + panelId),
-    extensions: [RichEditor.StarterKit, TabHandler],
+    extensions: [
+      RichEditor.StarterKit,
+      TabHandler,
+      RichEditor.Table.configure({ resizable: true }),
+      RichEditor.TableRow,
+      RichEditor.TableHeader,
+      RichEditor.TableCell,
+    ],
     content: htmlContent,
   });
   buildTiptapToolbar(panelId, editor);
@@ -1174,6 +1192,8 @@ function buildTiptapToolbar(panelId, editor) {
     { label: '```', cmd: () => editor.chain().focus().toggleCodeBlock().run(), active: () => editor.isActive('codeBlock'), title: 'Code block' },
     { label: '\u275d', cmd: () => editor.chain().focus().toggleBlockquote().run(), active: () => editor.isActive('blockquote'), title: 'Quote' },
     { label: '\u2014', cmd: () => editor.chain().focus().setHorizontalRule().run(), active: () => false, title: 'Horizontal rule' },
+    'sep',
+    { label: '\u25A4', cmd: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), active: () => editor.isActive('table'), title: 'Insert table' },
   ];
   for (const b of btns) {
     if (b === 'sep') {
@@ -1209,6 +1229,9 @@ function tiptapToMarkdown(editor) {
     emDelimiter: '*',
     strongDelimiter: '**',
   });
+  if (RichEditor.gfmTables) {
+    td.use(RichEditor.gfmTables);
+  }
   td.addRule('strikethrough', {
     filter: ['del', 's'],
     replacement: (content) => '~~' + content + '~~',
@@ -1237,6 +1260,11 @@ function panelStartEdit(panelId) {
     ps.editor = createTiptapEditor(panelId, htmlContent);
     ps.useRich = true;
     ps.editor.commands.focus('end');
+    const toggleBtn = document.getElementById('ptoggle-' + panelId);
+    if (toggleBtn) {
+      toggleBtn.style.display = 'inline-block';
+      toggleBtn.textContent = 'Switch to Markdown';
+    }
   } else {
     const ta = document.getElementById('pta-' + panelId);
     ta.classList.remove('hidden');
@@ -1245,6 +1273,49 @@ function panelStartEdit(panelId) {
     ta.style.height = 'auto';
     ta.style.height = Math.max(150, ta.scrollHeight + 4) + 'px';
     ps.useRich = false;
+  }
+}
+
+async function panelToggleEditMode(panelId) {
+  const ps = activePanels.find(p => p.id === panelId);
+  if (!ps || !richEditorReady) return;
+  const toggleBtn = document.getElementById('ptoggle-' + panelId);
+  const ta = document.getElementById('pta-' + panelId);
+  const richWrap = document.getElementById('prich-' + panelId);
+
+  if (ps.useRich) {
+    const markdown = tiptapToMarkdown(ps.editor);
+    ps.editor.destroy();
+    ps.editor = null;
+    ta.value = markdown;
+    richWrap.classList.add('hidden');
+    ta.classList.remove('hidden');
+    enhanceTextarea(ta);
+    ta.focus();
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(150, ta.scrollHeight + 4) + 'px';
+    ps.useRich = false;
+    if (toggleBtn) toggleBtn.textContent = 'Switch to Rich Text';
+  } else {
+    toggleBtn.textContent = 'Loading...';
+    toggleBtn.disabled = true;
+    try {
+      const markedMod = await import('https://esm.sh/marked@12');
+      const html = markedMod.parse(ta.value);
+      ta.classList.add('hidden');
+      richWrap.classList.remove('hidden');
+      richWrap.innerHTML = '<div class="tiptap-toolbar" id="ptbar-' + panelId + '"></div><div id="ptip-' + panelId + '"></div>';
+      ps.editor = createTiptapEditor(panelId, html);
+      ps.useRich = true;
+      ps.editor.commands.focus('end');
+      if (toggleBtn) toggleBtn.textContent = 'Switch to Markdown';
+    } catch (e) {
+      console.warn('Cannot load marked:', e);
+      alert('Failed to load markdown parser. Cannot switch back to Rich Text.');
+      if (toggleBtn) toggleBtn.textContent = 'Switch to Rich Text';
+    } finally {
+      toggleBtn.disabled = false;
+    }
   }
 }
 

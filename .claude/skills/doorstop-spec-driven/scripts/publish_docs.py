@@ -20,7 +20,7 @@ except ImportError:
     print("ERROR: doorstop is not installed.", file=sys.stderr)
     sys.exit(1)
 
-from scripts.reporting.html_builder import (
+from reporting.html_builder import (
     h,
     get_groups,
     get_references,

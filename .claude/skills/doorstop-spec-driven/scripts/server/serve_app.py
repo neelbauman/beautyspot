@@ -983,7 +983,7 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
 
         if self.path.rstrip("/") == "/api/generate_report":
             self.store.force_reload()
-            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "publish_docs.py")
+            script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "publish_docs.py")
             cmd = [
                 sys.executable,
                 script_path,
