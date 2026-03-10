@@ -63,19 +63,24 @@ def load_profile(profile_name):
         return yaml.safe_load(f)
 
 
-def _configure_attributes(yml_path):
+def _configure_attributes(yml_path, is_req_or_nfr=False):
     """doorstop create で生成された .doorstop.yml に attributes セクションを追加する。
 
-    doorstop add 時に defaults が自動付与されるよう、
     defaults / reviewed / publish を設定する。
+    REQ/NFR ドキュメントでは priority を reviewed に追加し、
+    優先度変更が再レビューをトリガーするようにする。
     """
     with open(yml_path) as f:
         config = yaml.safe_load(f)
 
+    reviewed_attrs = ["groups"]
+    if is_req_or_nfr:
+        reviewed_attrs.append("priority")
+
     config["attributes"] = {
-        "defaults": {"groups": []},
-        "reviewed": ["groups"],
-        "publish": ["groups"],
+        "defaults": {"groups": [], "priority": "medium"},
+        "reviewed": reviewed_attrs,
+        "publish": ["groups", "priority"],
     }
 
     with open(yml_path, "w") as f:
@@ -110,6 +115,11 @@ def main():
         "--no-git-init",
         action="store_true",
         help="gitリポジトリの初期化をスキップする",
+    )
+    parser.add_argument(
+        "--with-nfr",
+        action="store_true",
+        help="非機能要件（NFR）ドキュメントを作成する（standard/full推奨）",
     )
     args = parser.parse_args()
 
@@ -153,8 +163,20 @@ def main():
 
         # .doorstop.yml に attributes セクションを追加
         yml_path = Path(project_dir) / docs_dir / doc["path"] / ".doorstop.yml"
-        _configure_attributes(yml_path)
+        is_req_or_nfr = prefix in ("REQ", "NFR")
+        _configure_attributes(yml_path, is_req_or_nfr=is_req_or_nfr)
         print("    attributes 設定完了")
+
+    # NFR ドキュメント作成（オプション）
+    if args.with_nfr:
+        nfr_path = f"{docs_dir}/nfr"
+        cmd = ["doorstop", "create", "NFR", nfr_path, "-d", digits]
+        cmd += sep_args
+        print("  ドキュメント作成: NFR（非機能要件）")
+        run(cmd, cwd=project_dir)
+        yml_path = Path(project_dir) / nfr_path / ".doorstop.yml"
+        _configure_attributes(yml_path, is_req_or_nfr=True)
+        print("    attributes 設定完了（NFR: parent=null, priority を reviewed に含む）")
 
     # 検証
     print("\n--- ドキュメントツリー ---")
@@ -178,9 +200,18 @@ def main():
         print("  item.set('test_level', 'integration')  # 結合テスト")
         print("  item.set('test_level', 'acceptance')   # 受入テスト")
 
-    print("\n機能グループの設定:")
-    print("  item.set('groups', ['AUTH'])  # AUTH, PAY, USR など")
-    print("  item.save()")
+    print("\n機能グループと優先度の設定:")
+    print("  doorstop_ops.py add -d REQ -t '要件' -g AUTH --priority high")
+    print("  # 優先度: critical / high / medium（デフォルト） / low")
+
+    if args.with_nfr:
+        print("\nNFR ドキュメントが作成されました:")
+        print("  doorstop_ops.py add -d NFR -t '非機能要件' -g PERF --priority high")
+        print("  設計ドキュメント（ARCH/SPEC）はNFRアイテムへリンクして制約を明示できます")
+
+    print("\nトリアージ（優先度確認）:")
+    print("  trace_query.py . backlog               # REQ を優先度順に表示")
+    print("  trace_query.py . backlog --all-docs    # 全ドキュメントを優先度順に表示")
 
 
 def _print_tree(tree_defs):
