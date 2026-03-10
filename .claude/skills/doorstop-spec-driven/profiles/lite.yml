@@ -63,13 +63,31 @@ doorstop_yml_attributes: |
   attributes:
     defaults:
       groups: []
+      priority: medium      # critical / high / medium / low
     reviewed:
       - groups
+      # REQ は priority も reviewed に追加を推奨（優先度変更で再レビューをトリガー）
     publish:
       - groups
+      - priority
 
   # 設定しない属性（Git/CIの責務）:
   #   author, creation_date, status
+
+# 優先度属性（priority）の運用
+priority_policy: |
+  - 値: critical / high / medium（デフォルト） / low
+  - 設定対象: 主に REQ アイテム
+  - コマンド: doorstop_ops.py add -d REQ ... --priority high
+  - バックログ確認: trace_query.py . backlog
+
+# NFRの扱い（liteプロファイル）
+nfr_policy: |
+  liteプロファイルでは専用 NFR ドキュメントは原則作成しない。
+  非機能要件は以下で管理する:
+    A) groups で REQ に混在させる（推奨）: groups: [NFR, PERF]
+    B) init_project.py --with-nfr で NFR ドキュメントを追加作成する
+  規模が大きくなったら standard に移行すること。
 
 # 派生要求（derived）の運用
 derived_policy: |

@@ -90,13 +90,45 @@ doorstop_yml_attributes: |
   attributes:
     defaults:
       groups: []
+      priority: medium      # critical / high / medium / low
     reviewed:
       - groups
+      # REQ / NFR は priority も reviewed に追加を推奨
     publish:
       - groups
+      - priority
 
   # 設定しない属性（Git/CIの責務）:
   #   author, creation_date, status
+
+# 優先度属性（priority）の運用
+priority_policy: |
+  - 値: critical / high / medium（デフォルト） / low
+  - 設定対象: REQ・NFR アイテム
+  - コマンド: doorstop_ops.py add -d REQ ... --priority high
+  - バックログ確認: trace_query.py . backlog
+
+# NFRドキュメント（非機能要件）の運用
+nfr_policy: |
+  fullプロファイルでは NFR ドキュメントを強く推奨する（規制産業では必須）:
+    init_project.py <dir> --profile full --with-nfr
+
+  NFR のトレーサビリティ（V字モデルとの対応）:
+    - NFR は REQ と並列のルートドキュメント（parent: null）
+    - HLD/LLD は NFR アイテムへリンクして非機能制約の実現方針を明示する
+    - TST は NFR アイテムへリンクして非機能テスト（性能・セキュリティ）を対応付ける
+
+  V字モデルでのNFR対応:
+    NFR001 [PERF] ─────────────── TST (test_level=system, groups=[PERF])
+       HLD001 [PERF] ──────── TST (test_level=integration, groups=[PERF])
+
+  NFR の典型的なグループ（規制産業）:
+    - PERF  — 性能要件（応答時間、スループット、リソース使用量）
+    - SEC   — セキュリティ要件（認証、暗号化、監査ログ）
+    - REL   — 信頼性要件（可用性、耐障害性、RTO/RPO）
+    - MNT   — 保守性要件（ログ出力、メトリクス、デプロイ手順）
+    - PRT   — 可搬性要件（OS、クラウド、DB互換性）
+    - SAF   — 安全性要件（フェイルセーフ、ハザード分析 — 医療・航空宇宙）
 
 # 派生要求（derived）の運用
 derived_policy: |
