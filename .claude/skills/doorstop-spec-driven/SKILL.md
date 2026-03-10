@@ -81,11 +81,11 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 2. **分類** — 機能グループを決定（既存 or 新規）
 3. **REQ登録** — `doorstop_ops.py add -d REQ -t "要件文" -g GROUP`
 4. **設計策定** — 設計文書を上位から順に作成し、親へリンク。派生要求は `derived: true`
-5. **実装** — 最下位設計文書に従ってコードを書く
-6. **IMPL登録** — `doorstop_ops.py add -d IMPL --references '[...]' --links SPECXXX`
-7. **テスト** — テストコードを書く
-8. **TST登録** — `doorstop_ops.py add -d TST --references '[...]' --links SPECXXX`
-9. **検証** — `validate_and_report.py --strict`。エラー0件を目指す
+5. **実装・テスト** — 最下位設計文書に従ってコードとテストを書く（編集の順序は問わない）
+6. **IMPL/TST登録** — `doorstop_ops.py add` でそれぞれ登録し、最下位設計にリンク
+7. **レビュー** — `doorstop_ops.py chain-review <UID>` で関連アイテム全体を一括レビュー済みにし、ベースラインを確定する
+8. **検証** — `validate_and_report.py --strict`。エラー0件を目指す
+9. **コミット** — 仕様(設計)、テスト、実装の順番でコミットし、テストファーストの考え方を履歴に残す
 10. **報告** — 成果物ベースで簡潔に報告（Doorstopの内部構造は見せない）
 
 操作コマンドは `doorstop_ops.py` を使う。アイテムの書き方は `references/item_writing_guide.md` を参照。
@@ -95,13 +95,11 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 1. **現状把握** — `trace_query.py chain <UID>` で関係性を把握
 2. **影響分析** — `impact_analysis.py --changed <UID>` で波及範囲を特定
 3. **設計更新** — 上位から順に修正（standard: ARCH → SPEC、full: HLD → LLD）
-4. **実装修正** — コードを修正
-5. **テスト修正** — テストを修正
-6. **IMPL/TST更新** — アイテムを更新し、`doorstop_ops.py clear` でsuspect解消
-7. **検証** — `validate_and_report.py --strict` + `impact_analysis.py --detect-suspects`
+4. **実装・テスト修正** — コードとテストを修正。最終的に整合性が取れていれば、仕様・テスト・実装の**編集順序は問わない**。
+5. **IMPL/TST更新** — アイテムを更新。関連アイテムとの整合性や編集内容を確認した上で、`doorstop_ops.py chain-review <UID>` でアイテムチェーン全体のsuspectを一括解消＆レビュー済みにする
+6. **検証** — `validate_and_report.py --strict` + `impact_analysis.py --detect-suspects`
+7. **コミット** — 仕様(設計)、テスト、実装の順番でコミットし、テストファーストの考え方を履歴に残す。
 8. **報告** — 影響範囲と修正結果を報告。suspect 0件を確認
-
-**順序厳守**: 設計→テスト→実装の順に修正する。テストや実装から修正する場合でも、必ず設計や仕様を追従させること。
 
 ## [C] バグ修正フロー
 
