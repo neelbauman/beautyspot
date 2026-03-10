@@ -75,7 +75,7 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
   └─ 機能削除・要件取り下げ？    → [G] 非活性化（削除）フロー
 ```
 
-## [A] 新規開発フロー
+## 詳細フローとコミット規約
 
 1. **理解** — ユーザーの要望を要件文に変換する。曖昧な場合のみ確認
 2. **分類** — 機能グループを決定（既存 or 新規）

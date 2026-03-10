@@ -18,10 +18,12 @@ from datetime import datetime
 try:
     import doorstop
 except ImportError:
-    print("ERROR: doorstop がインストールされていません。", file=sys.stderr)
-    sys.exit(1)
+    from scripts.core._common import out
+    out({"ok": False, "error": "doorstop がインストールされていません"})
 
-from html_builder import (
+from _common import out
+from ..server.serve_app import serve
+from ..reporting.html_builder import (
     h,
     get_groups,
     get_references,
@@ -33,6 +35,15 @@ from html_builder import (
     build_detail_card,
     assemble_html,
 )
+from local_trace_view import (
+    build_link_index,
+    collect_chains_by_group,
+    trace_full_chain,
+    generate_local_html,
+    get_all_groups,
+    _generate_index,
+)
+
 
 
 # ---------------------------------------------------------------------------
@@ -495,23 +506,6 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
 
 def _generate_local_views(tree, output_dir):
     """局所トレーサビリティビューをグループごとに自動生成する。"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, script_dir)
-    try:
-        from local_trace_view import (
-            build_link_index,
-            collect_chains_by_group,
-            trace_full_chain,
-            generate_local_html,
-            get_all_groups,
-            _generate_index,
-        )
-    except ImportError:
-        print("WARNING: local_trace_view.py が見つかりません。局所ビューの生成をスキップします。")
-        return
-    finally:
-        sys.path.pop(0)
-
     local_dir = os.path.join(output_dir, "local")
     os.makedirs(local_dir, exist_ok=True)
 
@@ -540,12 +534,6 @@ def _generate_local_views(tree, output_dir):
 
 def _serve_report(report_path, tree, port, strict=False):
     """REST API + SPA サーバーを起動する（serve_app に委譲）。"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, script_dir)
-    try:
-        from serve_app import serve
-    finally:
-        sys.path.pop(0)
     serve(tree, os.getcwd(), port=port, strict=strict)
 
 
@@ -570,8 +558,11 @@ def main():
     project_dir = os.path.abspath(args.project_dir)
     os.chdir(project_dir)
 
-    print("ドキュメントツリーを構築中...")
-    tree = doorstop.build()
+    try:
+        tree = doorstop.build()
+    except Exception as e:
+        out({"ok": False, "error": f"ツリー構築失敗: {e}"})
+        return
 
     print("バリデーション実行中...")
     issues = validate_tree(tree, strict=args.strict, project_dir=project_dir)

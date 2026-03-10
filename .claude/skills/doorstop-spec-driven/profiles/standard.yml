@@ -92,9 +92,7 @@ doorstop_yml_attributes: |
 # 派生要求（derived）の運用
 derived_policy: |
   - 使用可能な層: ARCH / SPEC のみ
-  - IMPL/TST での使用は禁止
-  - text に「派生要求の根拠」セクション必須
-  - REQからの直接分解ではなく、技術制約から生じた要求に限定
+  - 運用ルールの詳細は references/doorstop_reference.md を参照
 
 # 外部ファイル紐付け（references）
 references_policy: |

@@ -35,10 +35,10 @@ except ImportError:
     print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
     sys.exit(1)
 
-from _common import (
+from ._common import (
     out, get_groups, find_item as _find_item_safe,
     find_doc_prefix as _find_prefix,
-    item_to_dict, is_normative, build_link_index,
+    item_to_dict, build_link_index,
 )
 
 
@@ -73,6 +73,8 @@ def cmd_add(tree, args):
         item.set("references", refs)
     if args.non_normative:
         item.set("normative", False)
+    if args.derived:
+        item.set("derived", True)
 
     # リンク（追加後に clear でフィンガープリントを保存し、suspect を防ぐ）
     link_uids = args.links or []
@@ -526,12 +528,20 @@ def cmd_chain_review(tree, args):
 def cmd_list(tree, args):
     """アイテム一覧を取得する。"""
     items = []
+    
+    # グループフィルタの解析
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
+        
     for doc in tree:
         if args.document and doc.prefix != args.document:
             continue
         for item in doc:
-            if args.group and args.group not in get_groups(item):
-                continue
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
             items.append(item_to_dict(item, doc.prefix, tree=tree))
 
     out({
@@ -620,6 +630,7 @@ def main():
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
     p_add.add_argument("--non-normative", action="store_true", help="非規範的アイテム（見出し等）として追加")
+    p_add.add_argument("--derived", action="store_true", help="派生要求として追加")
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
 
     # update
@@ -697,6 +708,7 @@ def main():
         tree = doorstop.build()
     except Exception as e:
         out({"ok": False, "error": f"ツリー構築失敗: {e}"})
+        return
 
     cmd_map = {
         "add": cmd_add,
