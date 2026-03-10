@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   キャッシュキー生成アーキテクチャ
 level: 2.2
 links:
-- REQ002: xuAguq0TJX-pZ2I8c1tMm2UvLC6Sr4fF6C7v-UbONtY=
+- REQ002: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
 normative: true
 ref: ''
-reviewed: KaVDwYHhzJKIRy3fSdw7-pDuuvYDUrXilbUQdRNhbWM=
+reviewed: EAHflwTpD2L8qoBkp6tUN_BU2mec0FgcOPYoA9psIF8=
 text: |
   ## コンポーネント構成
 

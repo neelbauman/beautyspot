@@ -36,13 +36,6 @@ def get_groups(item):
         elif isinstance(g, str) and g:
             return [s.strip() for s in g.split(",") if s.strip()]
         
-        # backward compatibility
-        g = item.get("group")
-        if g:
-            if isinstance(g, str):
-                return [s.strip() for s in g.split(",") if s.strip()]
-            return [g]
-        
         return ["(未分類)"]
     except (AttributeError, KeyError):
         return ["(未分類)"]

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   S3Storage 実装
 level: '2.10'
 links:
-- SPEC010: R79YFIXzAjNREaGJUO8qIeJnL7SbFX-z9pbs_TrFkxI=
+- SPEC010: qKU71DbnW8wbfPnwNjLESWCRSLjdlaWJZh1eYmbZ-ug=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: KyM8YkE3V5X-oeKarepjU5skbJPdThjsrighWHOw_Kw=
+reviewed: DmU7iN5XvtcBTaDDOzBh46taChN4QD3OZ4Yfus-oFBU=
 text: |
   ## 実装概要
 

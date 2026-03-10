@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CLI
+groups:
+- CLI
 header: |
   CLI構成
 level: 2.11
 links:
-- REQ011: f4SKYgu3ykwtA7XfsZTa4XY_rzOQiYl76ebgAGTK94Q=
+- REQ011: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
 normative: true
 ref: ''
-reviewed: DJ1Ut608oJxkb-vzQ_xv1DZpXQ7kulCgvLFo4rH4_Os=
+reviewed: P2fRUG3bEDqOHKvkqhQNxGnk_cuLQiKkk2L0nsojykA=
 text: |
   ## コンポーネント構成
 

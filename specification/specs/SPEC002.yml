@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   cached_run コンテキストマネージャ
 level: 2.2
 links:
-- ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
+- ARCH001: njFV9W_NXjx3dMCDMAVXf0g99DYN8tKwPHU5nP1tFhA=
 normative: true
 ref: ''
-reviewed: 32gDL-Cd_agZGXqw_863mIsr-CLKkZhzaVfaBtSOhJo=
+reviewed: Z-CyQZ4Q5F-ZTxxZcCiFZVki6JczHjfMYhAbwVcw3k8=
 text: |
   ## インターフェース
 

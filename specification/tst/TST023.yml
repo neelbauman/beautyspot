@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: HERD
+groups:
+- HERD
 header: |
   Thundering Herd テスト
 level: 2.23
 links:
-- SPEC023: F2Qery4xr687DbpEMWQ0vu23pOnidPy0aVzHAyiZi-8=
+- SPEC023: PhS_f6e1zMc5dfhFHHR-gNKFj6Do8e3HCDoGNcrPdxc=
 normative: true
 ref: ''
-reviewed: oKgM0kBUInrTEWSSw9m2_VJooWgir25yLdpq00iNXiw=
+references:
+- path: tests/integration/core/test_thundering_herd.py
+  type: file
+reviewed: ynAEznKGldx7vxUctqQ1wyvauntliHznTuAJn573jqw=
 text: |
   ## 目的
 

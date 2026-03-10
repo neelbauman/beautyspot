@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: CLI
+groups:
+- CLI
 header: |
   CLI テスト
 level: 2.21
 links:
-- SPEC021: Kq5bqKv-Ni3s3xIA49ZWN9pWR7AjFG5gclfkh4_lP2Q=
+- SPEC021: B5LCZ6KHXCjZ4tt5aHXeSl7qz3bz0-pxetrg_5lZIhE=
 normative: true
 ref: ''
-reviewed: 0TlCsUmIL9KpK7-JzPGmCeLOicaTqUERTakbV2uBC6A=
+references:
+- path: tests/integration/cli/test_cli.py
+  type: file
+reviewed: X50iVTTjFyI5Dgje-US3NiOWI070UHPy-lfUqHWCkBY=
 text: |
   ## 目的
 

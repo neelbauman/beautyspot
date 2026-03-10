@@ -788,7 +788,7 @@ uv run python doorstop_ops.py . tree
 | カバレッジ詳細 | `trace_query.py <dir> coverage [--group GROUP]` |
 | suspect一覧 | `trace_query.py <dir> suspects` |
 | リンク漏れ検出 | `trace_query.py <dir> gaps [--document IMPL]` |
-| CRUD操作 | `doorstop_ops.py <dir> add/update/link/clear/review` |
+| CRUD操作 | `doorstop_ops.py <dir> add/update/reorder/link/clear/review` |
 | 静的HTMLレポート | `validate_and_report.py <dir> --output-dir ./reports --strict` |
 | ダッシュボード | `validate_and_report.py <dir> --serve [--port 8080]` |
 | 影響分析 | `impact_analysis.py <dir> --detect-suspects [--json PATH]` |

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   KeyGenPolicy 実装
 level: 2.6
 links:
-- SPEC006: y-D3NAZNBRKUNvjLjOC52CE4L4pRT7ymvX2IZLfgjyM=
+- SPEC006: pFm7iWgbUueDYy-VjCWEcj_X4UgrplwKA4MdhrCsMxI=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: IFZ9yhzuhLm209IlVuIUrHaIFU3XdyGHVjZGFEEWlws=
+reviewed: 2hD9oBuWnhwENHTEtBzLWjoqO32MNAxoIAoWDVhuhMQ=
 text: |
   ## 実装概要
 

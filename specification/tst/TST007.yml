@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   SQLiteTaskDB テスト
 level: 2.7
 links:
-- SPEC007: ZwdMgNHObk7HXQ-Y-4P9Qu7HS3zOW7gQP7NkEZFxMDg=
+- SPEC007: cD5KgD2byz9KtdsSuplumKdK6-spPYW6QCcrJNRJK7s=
 normative: true
 ref: ''
-reviewed: IHwch2sMDeTo1hzF4veZsmfOzZ1UAlawmTI5u-dRgNw=
+references:
+- path: tests/unit/test_db_robustness.py
+  type: file
+reviewed: V9OwaQkBiz5KdDfvezYO_j1qRa10mRJpJ03CxmgywzM=
 text: |
   ## 目的
 

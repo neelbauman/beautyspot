@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   mark デコレータテスト
 level: 2.1
 links:
-- SPEC001: zR8aZ9kKykfTG1A3ZPR3IUXRMr4X68ffffaOXtu5rao=
+- SPEC001: yPWGGvie-2mLLoysZ3MeQwAQ0Of9c09BHhlN5sKmJUo=
 normative: true
 ref: ''
-reviewed: 1qzx3iE9CtIVNMuj2tEt0xys0m7zsjqRHyLyR_LttsA=
+references:
+- path: tests/integration/core/test_basic.py
+  type: file
+reviewed: NzpmXdIM7nYcguwMxW3YUSFNoB8Mv0xqFFL5437S8O0=
 text: |
   ## 目的
 

@@ -1,12 +1,13 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   バックグラウンドIO
 level: 4.6
 links: []
 normative: true
 ref: ''
-reviewed: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
+reviewed: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 text: |
   キャッシュの保存処理をバックグラウンドで非同期に実行し、関数の応答レイテンシに影響を与えないモードを提供すること。

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: MAINT
+groups:
+- MAINT
 header: |
   MaintenanceService 実装
 level: '2.20'
 links:
-- SPEC020: CDOBSBsS_kAriXTDKUM2LGeIn5tF_XNALSfkc_y4XPk=
+- SPEC020: NTlW5X3cj5UrQb-SH3YhZG10AwptJvDUc3aUW4rIvWQ=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/maintenance.py
   type: file
-reviewed: mrEnvkYJCT1CwmVaFoA-U83B4n40kZUd2C1oJHQKQXw=
+reviewed: yuJPJoRCdq2O8TML3BGfMmaSKayUD23Ap7z0HZjjT0Y=
 text: |
   ## 実装概要
 

@@ -1,12 +1,13 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   関数キャッシュ
 level: 4.1
 links: []
 normative: true
 ref: ''
-reviewed: CfrxtvKuv6dsKGQQZkob55R98VKFzaGfgDcrFVstROc=
+reviewed: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
 text: |
   関数の実行結果をキャッシュし、同一入力に対して再実行せずにキャッシュから結果を返せること。同期関数・非同期関数の両方をサポートすること。

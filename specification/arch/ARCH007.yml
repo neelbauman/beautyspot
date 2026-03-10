@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   ライフサイクル管理構成
 level: 2.7
 links:
-- REQ007: 5yGdzM-hrahCqGxuusF5AajSMS7cGKe-yzlxOglVHzg=
+- REQ007: FAk1im9qkBhtzNEPuqhcaOz9Xmme-nmrkiZc7bGQDNk=
 normative: true
 ref: ''
-reviewed: U5kMZupYKTmL3Vtn6d2VdVpEDF9a53-JbdyqR4HbfLc=
+reviewed: eIhPOEGhlhjtofF95-uf3D7TxCQyoWOwW4LFsYqhq-4=
 text: |
   ## コンポーネント構成
 

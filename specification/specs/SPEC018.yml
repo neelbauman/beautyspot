@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: LIMIT
+groups:
+- LIMIT
 header: |
   TokenBucket (GCRA)
 level: 2.18
 links:
-- ARCH008: 9D3Sy_m0AdgTb6-eM3ZiFUcQUj1EzS_y0ajvNKaYgoA=
+- ARCH008: 3P_GwS0JFM40QovY318yJfHonSHWqQiSUXfnIrPXI7w=
 normative: true
 ref: ''
-reviewed: tGNk3TRN-TJzcYjSVHDsJWIxWZeI0U_HD2KIuo5kkdU=
+reviewed: Rk1IozVD5Sbu6p9PQuXqfsh55lfSlYxKi-gO57G36TQ=
 text: |
   ## インターフェース
 

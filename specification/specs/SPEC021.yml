@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CLI
+groups:
+- CLI
 header: |
   CLIコマンド
 level: 2.21
 links:
-- ARCH011: 1bE4RU99DGa-YRUds2yh9rrEH1qsVO-vhAcp4upZ5vw=
+- ARCH011: MuEszjxI2CEtYDj9vnuASs-Y55-4Zf45GBu_6uBGI-I=
 normative: true
 ref: ''
-reviewed: KdoG2apKEqWU9SjnfpYqC-o1KUXYN9rNjXzxOnRgS8I=
+reviewed: LjwVvBZ6dXMXzvZYpV7lyDkvuesIlWnVeNjEP5KhBUI=
 text: |
   ## インターフェース
 

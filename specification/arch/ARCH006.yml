@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   バックグラウンドIO構成
 level: 2.6
 links:
-- REQ006: X7uzyxArTRCGdv6sqMGy5i10_ryLjzBVr_TkqNlGv_Q=
+- REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: 9uRxgfkZCBbvQCsyGjs0up6CRZoWiWV6YlQsvQ6d6Rk=
+reviewed: _Gax81WV-nwHbXx_ZeV8pNxwoFBJzW6iKi9yJOzkciE=
 text: |
   ## コンポーネント構成
 

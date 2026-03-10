@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: HOOK
+groups:
+- HOOK
 header: |
   HookBase 実装
 level: 2.19
 links:
-- SPEC019: JP3vnsNVnXn5tWC6IKdsSN5yAsMKdG4f48Rlt8L3Bhc=
+- SPEC019: VdxSnFuMf9VXXiuwabp5uqHyenNLFJwqfF8iai4defM=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/hooks.py
   type: file
-reviewed: AtDzal5b8WZVXEr_0q7FG5aGn0KuOq3uAJ2z5VO0pQ8=
+reviewed: q5GInQd4UkppaBtSs8qtL1y_xpDihjGclB5tr7NI3Jg=
 text: |
   ## 実装概要
 

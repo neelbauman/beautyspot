@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   再帰的正規化テスト
 level: 2.5
 links:
-- SPEC005: J_cMDfrfC3POqiiLfbZ_ysdYNODixGQoG7aB3MePYVw=
+- SPEC005: OQzJgXxd3a-9w7kfKBjguRsH_k8rsW4y9GRW20Zia9s=
 normative: true
 ref: ''
-reviewed: L0meZvCREJIelYKN0a15vEwbCp_M3lc4UVUdfTpv3SQ=
+references:
+- path: tests/unit/test_cachekey.py
+  type: file
+reviewed: CIFCqFn2g0qhz6CE0b3nX5IHKBuxJ67ZlKxZ-uWEWkQ=
 text: |
   ## 目的
 

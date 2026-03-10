@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   mark デコレータ
 level: 2.1
 links:
-- ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
+- ARCH001: njFV9W_NXjx3dMCDMAVXf0g99DYN8tKwPHU5nP1tFhA=
 normative: true
 ref: ''
-reviewed: eRm9AxaTSo0SvWtLLo6tbdyqjDs1KL6XRWpIKmSU1-Q=
+reviewed: DC740lK8-NK050YK1416mtcVZfCdMrBuqsoMZhC3s-8=
 text: |
   ## インターフェース
 

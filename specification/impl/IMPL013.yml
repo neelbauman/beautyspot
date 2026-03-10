@@ -1,11 +1,12 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   カスタム型登録実装
 level: 2.13
 links:
-- SPEC013: qawchycz4Lwi7pICc6OxP43WLUHhKWeTdmUa_v0j5vU=
+- SPEC013: tCDiJbP0rONEPJ0pU-_D3TmsXbZio1XmZ4U_63hZRII=
 normative: true
 ref: ''
 references:
@@ -13,7 +14,7 @@ references:
   type: file
 - path: src/beautyspot/core.py
   type: file
-reviewed: d4EYBK7LrTaWhrMpVG2tpl15j8jrwyu3KFTlsbXtwKQ=
+reviewed: S4WO66-SQ-_V9UO2wys29CiDuGx_nLstPyQ0Yn5CuF8=
 text: |
   ## 実装概要
 

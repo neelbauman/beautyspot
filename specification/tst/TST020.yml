@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: MAINT
+groups:
+- MAINT
 header: |
   MaintenanceService テスト
 level: '2.20'
 links:
-- SPEC020: CDOBSBsS_kAriXTDKUM2LGeIn5tF_XNALSfkc_y4XPk=
+- SPEC020: NTlW5X3cj5UrQb-SH3YhZG10AwptJvDUc3aUW4rIvWQ=
 normative: true
 ref: ''
-reviewed: _kGhvbOt7bfQbnjKk9Wiarf8bVLPCzuqqXZPV9jrdN8=
+references:
+- path: tests/unit/test_maintenance.py
+  type: file
+reviewed: OMkpxV0fD--iQVf9SreOvIQt38sX9ldGWXd4enjK-oo=
 text: |
   ## 目的
 

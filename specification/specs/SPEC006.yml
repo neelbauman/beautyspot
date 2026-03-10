@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   KeyGenPolicy 戦略
 level: 2.6
 links:
-- ARCH002: h2OB0u7bf4d0UvEZ0zjry469NFQ4GBrDYCyS-AH1R_4=
+- ARCH002: HVEL9BgCJqagLk2CA_ksXF9TleinSEfxiUcowkxwoJs=
 normative: true
 ref: ''
-reviewed: Bo_wIJ6qbQau0QlO2ynYyRpJXEFrBTx94Iof7bL2a_E=
+reviewed: ekqwcPXDF6SoFg78leXwJRbFBAk5osCGbgN3S_6TMZI=
 text: |
   ## インターフェース
 

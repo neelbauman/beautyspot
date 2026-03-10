@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: HOOK
+groups:
+- HOOK
 header: |
   フック機能構成
 level: 2.9
 links:
-- REQ009: Zi57s_V_uBJ55ZQaCuAwQuJQbnm_KFxPW-yDANS2AO0=
+- REQ009: Pz2A0pug8oCFm4G1UmkLY_oBU2CrulUJDQCx4D6WXyk=
 normative: true
 ref: ''
-reviewed: rwM0gqGS-Cmn5e5-6qi8WW53fEh-W7r8ews1SiMVIBM=
+reviewed: nrhbqQ86X6JfwCo7wnH2wxMqhFFhJSOFmi_i-aJ7MfE=
 text: |
   ## コンポーネント構成
 

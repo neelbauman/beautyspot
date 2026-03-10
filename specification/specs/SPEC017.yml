@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   Retention 仕様
 level: 2.17
 links:
-- ARCH007: dcQKjpQgug6soznIhy_nxk5fos3N6i0VtWTqtBXkgWc=
+- ARCH007: CwMzyqNroQBWBsDCle5fnJuThTmWAJnkFAcL_z2OzCs=
 normative: true
 ref: ''
-reviewed: RLfuPWNdncvAALufmNPIeLOCS6IZ7yQovtm5vFev1Sk=
+reviewed: VOdnIs2L4j1i9jlVfeKM7xi4cpM06PVcbM6pElJKPQI=
 text: |
   ## インターフェース
 

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   cached_run 実装
 level: 2.2
 links:
-- SPEC002: 44DxKXdXE8b9TXRlVsB4uyI2SqrzZxHxhZFhQPQAyqY=
+- SPEC002: zhXSv1MBui7ien0r07Hqoub6YJCAaeTioJ9DFsmJjYE=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: tbxqGH_dn8CB0IIxSL7dEzd60K9Ar380BtecJpnMltE=
+reviewed: CfXgvR_Nsv72OUCaCvSww7Jhy_LncbZmN_1x_GRjzjc=
 text: |
   ## 実装概要
 

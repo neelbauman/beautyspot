@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   LifecyclePolicy
 level: 2.16
 links:
-- ARCH007: dcQKjpQgug6soznIhy_nxk5fos3N6i0VtWTqtBXkgWc=
+- ARCH007: CwMzyqNroQBWBsDCle5fnJuThTmWAJnkFAcL_z2OzCs=
 normative: true
 ref: ''
-reviewed: ZWqm7yqYczn8Ip_KUN2QfXpQvsv5cmysSTRCMqAnwB0=
+reviewed: Y0VgMNW5IUdopqS2TbEzd1LYVcZpHGc5gev0P_7UT48=
 text: |
   ## インターフェース
 

@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   関数キャッシュアーキテクチャ
 level: 2.1
 links:
-- REQ001: CfrxtvKuv6dsKGQQZkob55R98VKFzaGfgDcrFVstROc=
+- REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
 normative: true
 ref: ''
-reviewed: HSF0ahrspy9jK6hObdDxft5SdSxpIlWMULAwwZN_Q5s=
+reviewed: HaAD2nTnUO4VG2zGAGcAyCHsFgKCJDeCS58P730Ph9c=
 text: |
   ## コンポーネント構成
 

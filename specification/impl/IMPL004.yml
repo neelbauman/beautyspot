@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   SHA-256 キャッシュキー実装
 level: 2.4
 links:
-- SPEC004: oIrCcbiiQeaMVr3cg3RgDsBJnq3HUFxvUIh8OUH3kcI=
+- SPEC004: 58AeddH_j7gjCn9-8xTxEKnQm3JF2RLGX5VGYrBJEKM=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: f7_G6GCVIcU4pzrkIZKmLjz-SSBnZ-Kd-5W_0i8aXSU=
+reviewed: 5dVor3YM5CmzfZ5Nr_VOizt9TPkncw_6sMteChRYpSc=
 text: |
   ## 実装概要
 

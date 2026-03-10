@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: HERD
+groups:
+- HERD
 header: |
   Thundering Herd対策構成
 level: 2.13
 links:
-- REQ013: N6PrX1FKmbAcmlmtwhdO9mpiuPePVrz5AA66MJYe1jA=
+- REQ013: tKylQ3MlgP5WxneklHbCBHWMZ7lGffbNKhTuZG9o0Mw=
 normative: true
 ref: ''
-reviewed: v_02X0iAdnBnXa6muV4NH8kDK9lQd9wkPuzep8CQOjY=
+reviewed: 5r18tv59qCBMC4TqQ_KXhz37BL3eTS_r2yWcQfG7SeA=
 text: |
   ## コンポーネント構成
 

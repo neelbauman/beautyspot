@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: HOOK
+groups:
+- HOOK
 header: |
   HookBase / ThreadSafeHookBase
 level: 2.19
 links:
-- ARCH009: ufZsTHVuf5vsCPx5L2CGKFiqI6URsqYpXKFmj6DzOJo=
+- ARCH009: QB3oa3wODbrEiWMPJXf1o-YHfM7CoQRgkyg-ERzIA6U=
 normative: true
 ref: ''
-reviewed: rWZ-YTvizYFPNSTX8IHO9rKm8S0IP5QCB_xlJ8MzOyo=
+reviewed: e-W5wTf8ilWYE7X-LM-5reO_a5TTmzJlwiX18teLx3k=
 text: |
   ## インターフェース
 

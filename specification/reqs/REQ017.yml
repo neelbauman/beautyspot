@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: []
 header: |
   機能要件
 level: 4.0
 links: []
 normative: false
 ref: ''
-reviewed: Li9WaT0KojHLS5nX2MnvTeBPfZrWuZtWf-HXylo9vFo=
+reviewed: qpqTM3iultPt9B5stVZX8ezpxCyhnMFOAPSiM5ilh9Y=
 text: |
   本章ではシステムが提供すべき具体的な機能要件について定義する。

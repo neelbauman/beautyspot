@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   ストレージポリシー実装
 level: 2.11
 links:
-- SPEC011: IqISNTq9V1g4pLP7Bn9g6ogOp0gUt3_2RFse64s4CR8=
+- SPEC011: 7raaz_MvYxmXF_R2AGQQz1EG3y_RvUyTBdtEfBzz2iA=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: OQoC59HRoihyCJvhUR0E-p4UyaI0Z2AxXICrKkPMD1o=
+reviewed: SYEp-BQywFe7uS5se_woHLONgEhfjlIhJIb8Y_kiyfA=
 text: |
   ## 実装概要
 

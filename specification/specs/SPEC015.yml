@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   save_sync / flush / drain
 level: 2.15
 links:
-- ARCH006: 4SIOiTgkfd_ZO7BtBN78ctC1A_wDloHjiBOnyf11_yU=
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 normative: true
 ref: ''
-reviewed: Uax2vBEtjCV-FXijgq1KJL_2MHv6S60MAn-wF1ay7P8=
+reviewed: 0s5kYMU5QTPuIbKAE6o1iWjJlsTG1-UXdDJ0Ib3GkbY=
 text: |
   ## インターフェース
 

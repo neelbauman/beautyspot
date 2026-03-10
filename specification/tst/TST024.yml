@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   BlobStorageBase インターフェース契約テスト
 level: 2.24
 links:
-- SPEC024: EQkOktEyVNr6_5K93xGEbWwGbckgJcpB1IQaHGahApE=
+- SPEC024: H5sx7qxJ-3U4yYBS8b1wL6icRXme7tWI1AitsujCbIg=
 normative: true
 ref: ''
 references:
 - path: tests/integration/storage/test_blob_storage_base.py
   type: file
-reviewed: kTUWT1nBbtyt8Fwvzs67tpQtlrPUdzNE89379b8NGdE=
+reviewed: tsNhBJNHRWZeF_UHwgHIARhdRv58_7l-dzIUl0RYOjo=
 text: |
   ## 目的
 

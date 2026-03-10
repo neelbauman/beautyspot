@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: LIMIT
+groups:
+- LIMIT
 header: |
   レート制限構成
 level: 2.8
 links:
-- REQ008: LpSLzngQTtYFyX5Y_Ke5jjSinbHq2U34SszCwfnZCa8=
+- REQ008: JwW37tcsNK-kOTVFLlc_fNR7sIDjO4ES68i3H_55w20=
 normative: true
 ref: ''
-reviewed: pGUtjDCa8itzI3bO-p4llPUdIhO0-ut1DBGlhXvaW50=
+reviewed: ych96TSLhAq48nUpx85M-zOFn8pFvL5mPzydHNbgOrA=
 text: |
   ## コンポーネント構成
 

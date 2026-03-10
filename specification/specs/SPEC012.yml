@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   MsgpackSerializer
 level: 2.12
 links:
-- ARCH005: S0a7VydYJftkFYF8cO-MvMBW3ZgZET-pPjuZH3aN6yQ=
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 normative: true
 ref: ''
-reviewed: uJuM8xBLC6sGVWWeSO0Rji_bjI5T75Qlp34ZuErWlyg=
+reviewed: qy_cAQSefWiE0b85HLrbQHw3bFkWdTggTaLvSEdpK0M=
 text: |
   ## インターフェース
 

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   LocalStorage 実装
 level: 2.9
 links:
-- SPEC009: YMAcjiSiG3ZMU5zF2_bu9oqIlxOIJT8V0KGRNrVfVXE=
+- SPEC009: GEsLrkKnEbxR9Z3uZlN71ndIP-FE5IZveDM-SC3OW2A=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: wQlbqS6JiKWlgOME40e2EQk4U8rDIyHKZkrcUjrUmmY=
+reviewed: -YJiKLAa3TsdL6jzRz35X3CjlIZC0sPWz46hI43kg-8=
 text: |
   ## 実装概要
 

@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: MAINT
+groups:
+- MAINT
 header: |
   メンテナンス構成
 level: '2.10'
 links:
-- REQ010: 0xDnfgjsHplchyYDlATXR8BTSnA66KQZOCBnGq94JrY=
+- REQ010: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
 normative: true
 ref: ''
-reviewed: 4sMUMAPL3VTwzXHorcqjkgtjKp4NRx7oMtw7z-BxHsw=
+reviewed: xDGVkNef53KbSxrWGOGr9f69k_oBm1G7QlA_EP47hY0=
 text: |
   ## コンポーネント構成
 

@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: LIMIT
+groups:
+- LIMIT
 header: |
   TokenBucket テスト
 level: 2.18
 links:
-- SPEC018: 4rNeYQD9CegD5rCuwlufH87yvll1nCcnjqym1mH4414=
+- SPEC018: 9V3ZL1YmsyAAkEPOT3n03pex9KYUI2udZcsUYYKIYNY=
 normative: true
 ref: ''
-reviewed: JjnQv1Ah1L84FFOz-MVleZCBcJgLFiAVyCz8YSl9Uyw=
+references:
+- path: tests/unit/test_limiter.py
+  type: file
+reviewed: 2qyTcso1fylOxxf0M1eHC6-cmw4T9swgMSx9zwTty2I=
 text: |
   ## 目的
 

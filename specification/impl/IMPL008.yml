@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   DB プロトコル階層実装
 level: 2.8
 links:
-- SPEC008: _DJWcnn0I_H3AGBk3ZBnC1izPe7QJlPBcJRWhxmg0WQ=
+- SPEC008: GoIFy0kOtFEaMhGz7UI-v1rSeljzFi3YV_FUwcBBDbc=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: CGuftkKPHhO6Z0Zb02t5Vdj66e1QOS-tmX8AVMyBeAs=
+reviewed: geujbKiGbms39oTP5xrqwkv33ZN8wH_1rddk0jfbJiE=
 text: |
   ## 実装概要
 

@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: DI
+groups:
+- DI
 header: |
   ファクトリ関数実装
 level: 2.22
 links:
-- SPEC022: QjXRUubB9V_x8GdTmSHirTg9zgFPwDEiQcpQQFZVicI=
+- SPEC022: uTTSZDLc3XfPf_yuIMvsokNwcX6rHAvtFaUBk4Gdztk=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/__init__.py
   type: file
-reviewed: mIrbpsOx2I6DcRh-fBHDsAJn5TlY6v9g7qeu6lUl8x0=
+reviewed: w387DSM6ORahwPnwfNPbQ7dO_OAFFrzHBH9FIeNoWSk=
 text: |
   ## 実装概要
 

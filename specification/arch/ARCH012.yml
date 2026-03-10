@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: DI
+groups:
+- DI
 header: |
   依存注入構成
 level: 2.12
 links:
-- REQ012: 6W0MNBxJZPznZIzPP6XPUdKxQstg4FxSEJOguLc2kr0=
+- REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
 normative: true
 ref: ''
-reviewed: qqOIuy9VYBXpj-T2P0Cds3xZrk3vKwSdAZJTrUNyZOE=
+reviewed: wyd0qYs3glQxcj5FTeBeNWbxswZrwWoZ8-5nZh_5IyU=
 text: |
   ## コンポーネント構成
 

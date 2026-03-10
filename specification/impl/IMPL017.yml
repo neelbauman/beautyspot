@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   Retention 実装
 level: 2.17
 links:
-- SPEC017: s4fZIZPmZUtccclKL21T04JKuHrVxyVduUB5j9OVYfA=
+- SPEC017: fqUVyA-owzYub0Ug6OaSuAEg1ldj7K_h7kqaWmpLoX0=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/lifecycle.py
   type: file
-reviewed: bJOrNRCZjIoMYz-78zu6iZ3TwwnPF-FGRiUMv4YIolU=
+reviewed: EcL-YLedeYZwMR_j4PgwkDF2OIXaWQW1wAMWhV1KhMQ=
 text: |
   ## 実装概要
 

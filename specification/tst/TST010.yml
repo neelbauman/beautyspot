@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   S3Storage テスト
 level: '2.10'
 links:
-- SPEC010: R79YFIXzAjNREaGJUO8qIeJnL7SbFX-z9pbs_TrFkxI=
+- SPEC010: qKU71DbnW8wbfPnwNjLESWCRSLjdlaWJZh1eYmbZ-ug=
 normative: true
 ref: ''
-reviewed: YG3Efnkcu8PMv5f3ldqbvO4wnpqesrRRXCmXMMF9784=
+references:
+- path: tests/integration/storage/test_s3.py
+  type: file
+reviewed: Qje9AZAixftpVk25RL575qudx7-oB68jmdPhbAJrWvk=
 text: |
   ## 目的
 

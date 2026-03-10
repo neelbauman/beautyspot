@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   LifecyclePolicy 実装
 level: 2.16
 links:
-- SPEC016: Ma4HLSHRQ1uNOKeME77e27yPYf5c-6q4ImjREYYZF6Y=
+- SPEC016: pYeLx2dK7QDT3MJlNEPOt2oJ-OaOO1TiNw_YrV9_-Fg=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/lifecycle.py
   type: file
-reviewed: M5AGu-hvwdRj9Cwe2KJM5Bfk4dBlGINYTCYpfO34MdA=
+reviewed: AuzpsCTjPI2crw-p_NHaQ_VoXk9UCDReL_qVV6UlEVw=
 text: |
   ## 実装概要
 

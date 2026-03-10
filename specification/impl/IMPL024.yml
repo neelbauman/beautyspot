@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   BlobStorageBase 抽象インターフェース実装
 level: 2.24
 links:
-- SPEC024: EQkOktEyVNr6_5K93xGEbWwGbckgJcpB1IQaHGahApE=
+- SPEC024: H5sx7qxJ-3U4yYBS8b1wL6icRXme7tWI1AitsujCbIg=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/storage.py
   type: file
-reviewed: ftK2MNiKfhDPx9npJYSMixMxTkjbH9VDXFby3efnIoQ=
+reviewed: 1W2ZnyOx4zaq7zW58kyIzD_YKhwlR5EQN5a7tEsf6I4=
 text: |
   ## 実装概要
 

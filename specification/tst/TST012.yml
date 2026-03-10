@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   MsgpackSerializer テスト
 level: 2.12
 links:
-- SPEC012: mCSC2RI8xMfvbedaWmhyd6de-sNxfFAECi0QmdK3-fE=
+- SPEC012: IlEEyNoh-5i97xTY3u_oOqlcEp8ud-AmBaT-2xG7m78=
 normative: true
 ref: ''
-reviewed: D0wzm_vy7mfThiUYBZTdu10CX_16c8asrDx6jLWTyS0=
+references:
+- path: tests/unit/test_serializer.py
+  type: file
+reviewed: I5ptMCSQHQ99izx8SOs1lgNZVqUedSsg9AljNAvaVh0=
 text: |
   ## 目的
 

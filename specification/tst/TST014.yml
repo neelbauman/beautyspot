@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   BackgroundLoop テスト
 level: 2.14
 links:
-- SPEC014: 8GcZBoTv8aQ9r67acF8Ehq8rz9sMy7LlXp0EgvFByrA=
+- SPEC014: pkInSzq6O5bGmsKnq9Em7kgUyb1295Ahec124gS5Iyg=
 normative: true
 ref: ''
-reviewed: briyOXVBC_Rbk3KOF-UHQwnboz0gONJZsVt6g_z0HlE=
+references:
+- path: tests/integration/core/test_background_loop.py
+  type: file
+reviewed: iPlwAeEE4q0lc4OcueTUbvHvGVHEAt4hZqKdBXtrYgM=
 text: |
   ## 目的
 

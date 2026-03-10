@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   SQLiteTaskDB
 level: 2.7
 links:
-- ARCH003: Y6GPTXrSsRPoTaL579G2PYcbmeQG0zdc6FAC0rTKEYY=
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 normative: true
 ref: ''
-reviewed: 8dSWF8mb_53UFqKshlOmzbxDJCoHVQdHKevXiuvHrdk=
+reviewed: hb2Pha7SG-mwI9N0VbgEL3kD3fgesE0qYYcqUr8MX30=
 text: |
   ## インターフェース
 

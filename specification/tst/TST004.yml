@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   SHA-256 キャッシュキーテスト
 level: 2.4
 links:
-- SPEC004: oIrCcbiiQeaMVr3cg3RgDsBJnq3HUFxvUIh8OUH3kcI=
+- SPEC004: 58AeddH_j7gjCn9-8xTxEKnQm3JF2RLGX5VGYrBJEKM=
 normative: true
 ref: ''
-reviewed: ZE3GEIJGCRrK_AW_Zpx5QarlGofebIphgXFwxPEBDCA=
+references:
+- path: tests/unit/test_cachekey.py
+  type: file
+reviewed: bGcNdbcUu-3JzOoAvW--5Skr0S-nIhQG85q5dr3Wyto=
 text: |
   ## 目的
 

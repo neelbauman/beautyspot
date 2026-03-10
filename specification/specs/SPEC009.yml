@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   LocalStorage
 level: 2.9
 links:
-- ARCH004: UuQC--QCHV754xwdpcb2sZHyyJH9N5TNQaJkd_3rqD4=
+- ARCH004: gR_7wx5EpD_LA3s4JJTJmD1-WOKDjlo563zos3pn-aE=
 normative: true
 ref: ''
-reviewed: rIS0y37ppIW5aNDD6S84bdOq2lYSzDB6wl_5Ec2Ab8E=
+reviewed: qkS6djfOTch4aBtnn67KfkOGczgqXJIXZ5dBabRata4=
 text: |
   ## インターフェース
 

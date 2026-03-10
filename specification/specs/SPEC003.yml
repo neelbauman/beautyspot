@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: CACHE
+groups:
+- CACHE
 header: |
   同期・非同期関数サポート
 level: 2.3
 links:
-- ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
+- ARCH001: njFV9W_NXjx3dMCDMAVXf0g99DYN8tKwPHU5nP1tFhA=
 normative: true
 ref: ''
-reviewed: Q31VXtkLMcJtltLjDYJZvgbP8LT3dakBgWuR5cebPCU=
+reviewed: SITZt0HWY5ZIrlTr1KfRRveRSfGk9rOoj-w3lzsJitk=
 text: |
   ## 概要
 

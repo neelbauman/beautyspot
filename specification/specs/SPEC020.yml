@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: MAINT
+groups:
+- MAINT
 header: |
   MaintenanceService
 level: '2.20'
 links:
-- ARCH010: j1V_BUjca6n8KoJOg7L1YFuXyaAB2j2hT7fJ3gYJgLY=
+- ARCH010: fI3ChnJRbqIhdRSivmb1UxR5M9l1VFI4CmnTPt7dAKY=
 normative: true
 ref: ''
-reviewed: bcwifzyCHbTksUx1JtIPXeR0OmiyZW0nB67C2jsbXUI=
+reviewed: zrBB495_EUfzqum_f0CCrkTolt2EDYaeTsJuRFgeiQ4=
 text: |
   ## インターフェース
 

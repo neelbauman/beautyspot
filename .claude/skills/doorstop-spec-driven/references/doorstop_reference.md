@@ -179,9 +179,11 @@ doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH,PA
 doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH,PAY \
   --references '[{"path":"tests/test_auth.py","type":"file"}]' --links SPEC001
 
-# レベル指定で追加
+# レベル指定で追加（指定したレベルとして末尾などに追加）
 doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH,PAY -l 1.2
-```
+
+# 特定のレベルに挿入し、以降のアイテムを自動で後ろにずらす
+doorstop_ops.py <dir> add -d REQ -t "挿入要件" --insert 1.5
 
 #### アイテム更新（update）
 ```bash
@@ -196,6 +198,14 @@ doorstop_ops.py <dir> update IMPL001 --references '[{"path":"src/new_mod.py","ty
 
 # 規範的/非規範的の切り替え
 doorstop_ops.py <dir> update REQ001 --set-non-normative
+```
+
+#### アイテムの並べ替え（reorder）
+レベル（階層）を変更し、以降のアイテムのレベルを自動で調整します。
+
+```bash
+# REQ004 をレベル 1.5 の位置に移動し、以降のアイテムを自動調整する
+doorstop_ops.py <dir> reorder REQ004 1.5
 ```
 
 #### リンク追加（link）

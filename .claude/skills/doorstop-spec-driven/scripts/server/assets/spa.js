@@ -167,8 +167,8 @@ function statusIcons(reviewed, suspect) {
 }
 
 function statusTags(reviewed, suspect, normative=true) {
-  if (!normative) return '<span class="tag tag-non-normative">Non-normative</span>';
   let s = '';
+  if (!normative) s += '<span class="tag tag-non-normative">Non-normative</span> ';
   if (suspect) s += '<span class="tag tag-suspect">Suspect</span> ';
   if (reviewed) s += '<span class="tag tag-reviewed">Reviewed</span>';
   else s += '<span class="tag tag-unreviewed">Unreviewed</span>';

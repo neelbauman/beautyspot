@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   save_sync / flush / drain テスト
 level: 2.15
 links:
-- SPEC015: IVSIbwoT1vTzPFUom_ziz-bxKIHBeWyLvPd5Cxcd9Rk=
+- SPEC015: B228w_2s4cAN_TaP9dS_3m02jiuVCQOVg5PIkKmkDgs=
 normative: true
 ref: ''
-reviewed: Y1scUPsf13gpTceWTcXza14pMz2QiLUc02ubnVvXJdU=
+references:
+- path: tests/integration/core/test_exit_drain.py
+  type: file
+reviewed: -BCwmAvAywrytzQo7vVfVN6XYRcDJojShNtGrzbkeK4=
 text: |
   ## 目的
 

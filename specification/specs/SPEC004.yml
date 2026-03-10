@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   SHA-256キャッシュキー
 level: 2.4
 links:
-- ARCH002: h2OB0u7bf4d0UvEZ0zjry469NFQ4GBrDYCyS-AH1R_4=
+- ARCH002: HVEL9BgCJqagLk2CA_ksXF9TleinSEfxiUcowkxwoJs=
 normative: true
 ref: ''
-reviewed: AvPajTYK_C-0-MIj2a3XdJwby8nVY-H7qYN0ekQ4tCw=
+reviewed: DKyUBmlA9BopEc2xhx1iqWg0dy2OaZXRuxju4nHr7qU=
 text: |
   ## インターフェース
 

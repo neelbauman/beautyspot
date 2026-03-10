@@ -294,11 +294,6 @@ class DoorstopDataStore:
                 return g if g else ["(未分類)"]
             elif isinstance(g, str) and g:
                 return [s.strip() for s in g.split(",") if s.strip()]
-            g = item.get("group")
-            if g:
-                if isinstance(g, str):
-                    return [s.strip() for s in g.split(",") if s.strip()]
-                return [g]
             return ["(未分類)"]
         except (AttributeError, KeyError):
             return ["(未分類)"]
@@ -414,10 +409,10 @@ class DoorstopDataStore:
         total = 0
         reviewed = 0
         for doc in self.tree:
-            count = sum(1 for item in doc if item.active and self._is_normative(item))
+            count = sum(1 for item in doc if item.active)
             docs[str(doc.prefix)] = count
             total += count
-            reviewed += sum(1 for item in doc if item.active and item.reviewed and self._is_normative(item))
+            reviewed += sum(1 for item in doc if item.active and item.reviewed)
 
         groups = sorted({g for doc in self.tree for item in doc if item.active for g in self._get_groups(item) if g != "(未分類)"})
         validation = self.get_validation()
@@ -536,7 +531,7 @@ class DoorstopDataStore:
         unreviewed = []
         for document in self.tree:
             for item in document:
-                if item.active and self._is_normative(item) and not item.reviewed:
+                if item.active and not item.reviewed:
                     unreviewed.append(str(item.uid))
         if unreviewed:
             issues["info"].append(
@@ -705,11 +700,10 @@ class DoorstopDataStore:
                     continue
                 for g in self._get_groups(item):
                     groups[g]["items"] += 1
-                    if self._is_normative(item):
-                        if item.reviewed:
-                            groups[g]["reviewed"] += 1
-                        if str(item.uid) in self._suspect_uids:
-                            groups[g]["suspect"] += 1
+                    if item.reviewed:
+                        groups[g]["reviewed"] += 1
+                    if str(item.uid) in self._suspect_uids:
+                        groups[g]["suspect"] += 1
         return {g: dict(d) for g, d in sorted(groups.items())}
 
     def get_group_detail(self, group_name):

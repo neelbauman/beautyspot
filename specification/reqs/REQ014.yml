@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: []
 header: |
   序文
 level: 1.0
 links: []
 normative: false
 ref: ''
-reviewed: NhObMfB3cvufvvAncBmpirPWMDoNmwpUlXiS7CMDM-0=
+reviewed: gCto4iruL8uD6YiboULbnWW45OVNp7dIfBmWLUGKz2g=
 text: |
   本ドキュメントは、Python関数キャッシュおよびレート制限ライブラリ『beautyspot』の要件を定義する。

@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   シリアライゼーション構成
 level: 2.5
 links:
-- REQ005: BkvEd9KuNGG34UsYTIEw8eyy5pO6ecDeaQKULGsfZWQ=
+- REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: mx473wore9PiFs4yGHrb4I23O8BENOYHJbRGXGDM0YM=
+reviewed: lI-Av88cz09E6ch_wsYYS2OlooQSSLWVlX3iGPfhH-Q=
 text: |
   ## コンポーネント構成
 

@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: null
 header: |
   構成要素
 level: 2.0
 links: []
 normative: false
 ref: ''
-reviewed: j8xoz1D7EgvuJiGuWnRMxcNflepILv9pYBW80JcVxjY=
+reviewed: wVpJt4D3ZWeP9ho2kAfzEYk0x9lNBTTfdAKk3RUpw1E=
 text: |
   システムを構成する主要コンポーネントとその責務、およびコンポーネント間の相互作用を定義する。

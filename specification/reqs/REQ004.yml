@@ -1,13 +1,14 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   Blobストレージ
 level: 4.4
 links: []
 normative: true
 ref: ''
-reviewed: 6pZDknPXhV8oNkQq71xWqrgxomA9i5t9yG829j-Qmeg=
+reviewed: MAkJGJurzARw41s-hmBMRt7LcMDuyoFDRgaAIUmIabE=
 text: |
   大きなキャッシュデータを外部ストレージ（ローカルファイルシステムやS3等）に保存できること。
 

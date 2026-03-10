@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   再帰的正規化 (canonicalize)
 level: 2.5
 links:
-- SPEC005: J_cMDfrfC3POqiiLfbZ_ysdYNODixGQoG7aB3MePYVw=
+- SPEC005: OQzJgXxd3a-9w7kfKBjguRsH_k8rsW4y9GRW20Zia9s=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cachekey.py
   type: file
-reviewed: g3st-elaqT8aDo8c5Ra1Mbw39vf70FrDXzSNgdq51uY=
+reviewed: HRh1B1R2HpEYcBz2vLInp3Sd-ui0b83h1N_z2xuwHwo=
 text: |
   ## 実装概要
 

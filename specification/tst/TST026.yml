@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: []
 header: |
   詳細仕様
 level: 2.0
 links: []
 normative: false
 ref: ''
-reviewed: null
+reviewed: v6PF1leXDc3DXBb026kLMm6QkeDUzAvE1gO0vOSfBS8=
 text: |
   各機能が仕様通りに動作することを確認するための検証観点およびテストシナリオを定義する。

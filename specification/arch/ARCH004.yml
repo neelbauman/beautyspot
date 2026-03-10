@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   Blobストレージ構成
 level: 2.4
 links:
-- REQ004: 6pZDknPXhV8oNkQq71xWqrgxomA9i5t9yG829j-Qmeg=
+- REQ004: MAkJGJurzARw41s-hmBMRt7LcMDuyoFDRgaAIUmIabE=
 normative: true
 ref: ''
-reviewed: 1BeT_JdEh9CPTkl-Yo7F3bm8EE5d4Hob8IFVKgul3wI=
+reviewed: rkU3uTAxpVsgdsm0HQ8GMM_MLqkLbPCOt2tRCeu5l2g=
 text: |
   ## コンポーネント構成
 

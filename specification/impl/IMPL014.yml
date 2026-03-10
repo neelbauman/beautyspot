@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   BackgroundLoop 実装
 level: 2.14
 links:
-- SPEC014: 8GcZBoTv8aQ9r67acF8Ehq8rz9sMy7LlXp0EgvFByrA=
+- SPEC014: pkInSzq6O5bGmsKnq9Em7kgUyb1295Ahec124gS5Iyg=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: rYWCh7XOqxhUHDZ58_1eAGwp0wMra_r851M7WCh8dos=
+reviewed: PP6v9z-1NutPoVi7uhCBiChQVYPSJq1hUDtDvVjvDG4=
 text: |
   ## 実装概要
 

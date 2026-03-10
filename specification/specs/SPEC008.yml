@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   DB プロトコル階層
 level: 2.8
 links:
-- ARCH003: Y6GPTXrSsRPoTaL579G2PYcbmeQG0zdc6FAC0rTKEYY=
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 normative: true
 ref: ''
-reviewed: V_Hguf8xOz0zHVPRMnTZ-V34P5UWGQ1W-7LnteCBFFg=
+reviewed: FLZ3YI6IidltmBLGLob7qs1hF7hvrofKkE3mFOr7o9U=
 text: |
   ## インターフェース
 

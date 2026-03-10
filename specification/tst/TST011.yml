@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   ストレージポリシーテスト
 level: 2.11
 links:
-- SPEC011: IqISNTq9V1g4pLP7Bn9g6ogOp0gUt3_2RFse64s4CR8=
+- SPEC011: 7raaz_MvYxmXF_R2AGQQz1EG3y_RvUyTBdtEfBzz2iA=
 normative: true
 ref: ''
-reviewed: 5yXi63DvbFgxxj4i6nyLZo0K0qQtJSPHqKoMu8aZbH8=
+references:
+- path: tests/unit/test_storage_policy.py
+  type: file
+reviewed: Oph_0fW-qrMCXYLSTmIp06uQgUeLZZpx5MwNxqv8Enw=
 text: |
   ## 目的
 

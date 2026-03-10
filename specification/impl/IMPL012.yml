@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   MsgpackSerializer 実装
 level: 2.12
 links:
-- SPEC012: mCSC2RI8xMfvbedaWmhyd6de-sNxfFAECi0QmdK3-fE=
+- SPEC012: IlEEyNoh-5i97xTY3u_oOqlcEp8ud-AmBaT-2xG7m78=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/serializer.py
   type: file
-reviewed: TV8ABtGXhcJs7mvf8Dk4zLZJWjL7e15eui3lIYz6oQE=
+reviewed: PFa8843EF17mJu7bnrS5Gvelye_oFvi8MQDk57aIAOE=
 text: |
   ## 実装概要
 

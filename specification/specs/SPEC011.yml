@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   ストレージポリシー
 level: 2.11
 links:
-- ARCH004: UuQC--QCHV754xwdpcb2sZHyyJH9N5TNQaJkd_3rqD4=
+- ARCH004: gR_7wx5EpD_LA3s4JJTJmD1-WOKDjlo563zos3pn-aE=
 normative: true
 ref: ''
-reviewed: a_mHVJ5EfPIs5yyB2iORvBHa_2FZG8sBnydjNdaCXh4=
+reviewed: ThkSRiJ-apEY3KYYZbV3v3M2us2GXLKdMUrievTgUXg=
 text: |
   ## インターフェース
 

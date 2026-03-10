@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: CLI
+groups:
+- CLI
 header: |
   CLI コマンド実装
 level: 2.21
 links:
-- SPEC021: Kq5bqKv-Ni3s3xIA49ZWN9pWR7AjFG5gclfkh4_lP2Q=
+- SPEC021: B5LCZ6KHXCjZ4tt5aHXeSl7qz3bz0-pxetrg_5lZIhE=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cli.py
   type: file
-reviewed: _SnvMi7EZOJMNjtXmzGQ7Bz9XSrMZBTo6o4geTnO0F0=
+reviewed: iCTWn078cQDdQYXzwSDcf300n-fddvgPvUVcrKZD_j8=
 text: |
   ## 実装概要
 

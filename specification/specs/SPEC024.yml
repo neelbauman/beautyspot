@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   Blobストレージ抽象インターフェース
 level: 2.24
 links:
-- ARCH004: UuQC--QCHV754xwdpcb2sZHyyJH9N5TNQaJkd_3rqD4=
+- ARCH004: gR_7wx5EpD_LA3s4JJTJmD1-WOKDjlo563zos3pn-aE=
 normative: true
 ref: ''
-reviewed: Ai9I0d7L7XNGBJqp4Fxd5c5_ofjmhKIz4tbvD42BZfY=
+reviewed: YSF-YC12eAt883kOsRzMQJb95L6s4LNeqHYjDGMDg1I=
 text: |
   ## インターフェース
 

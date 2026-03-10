@@ -1,13 +1,14 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   メタデータDB
 level: 4.3
 links: []
 normative: true
 ref: ''
-reviewed: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
+reviewed: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 text: |
   キャッシュのメタデータ（関数名、入力ID、バージョン、有効期限等）をデータベースに永続化できること。
 

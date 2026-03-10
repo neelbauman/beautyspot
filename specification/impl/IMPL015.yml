@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   save_sync / flush / drain 実装
 level: 2.15
 links:
-- SPEC015: IVSIbwoT1vTzPFUom_ziz-bxKIHBeWyLvPd5Cxcd9Rk=
+- SPEC015: B228w_2s4cAN_TaP9dS_3m02jiuVCQOVg5PIkKmkDgs=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/core.py
   type: file
-reviewed: 1QwNp4TBXy9wXCAAjl9nJCXU7zYwj5-tWKk-_aEnnTQ=
+reviewed: 9wK_h0HR5g62D0ssg4kJQgJVqMBDZjSjwOIYp4t7Yeo=
 text: |
   ## 実装概要
 

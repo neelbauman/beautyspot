@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: STORE
+groups:
+- STORE
 header: |
   LocalStorage テスト
 level: 2.9
 links:
-- SPEC009: YMAcjiSiG3ZMU5zF2_bu9oqIlxOIJT8V0KGRNrVfVXE=
+- SPEC009: GEsLrkKnEbxR9Z3uZlN71ndIP-FE5IZveDM-SC3OW2A=
 normative: true
 ref: ''
-reviewed: RUJ0w0Kuxcdt-YUTGJG6yLZ9nrnEUQKWaKRcqlUmGLQ=
+references:
+- path: tests/integration/storage/test_local.py
+  type: file
+reviewed: K7Msyu5C0otfO474-EW_suuYv-cmwHsoP8Yk8YyCBw0=
 text: |
   ## 目的
 

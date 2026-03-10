@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   メタデータDBアーキテクチャ
 level: 2.3
 links:
-- REQ003: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
+- REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: omY_U68tsPX8RhrA53wevYQeMIxc22i8y4q5tfcNzAk=
+reviewed: 0USmc3X3NTXjCVh6XttWlVRoDndN98veeJi0L6U-w7Y=
 text: |
   ## コンポーネント構成
 

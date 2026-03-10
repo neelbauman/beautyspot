@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   KeyGenPolicy テスト
 level: 2.6
 links:
-- SPEC006: y-D3NAZNBRKUNvjLjOC52CE4L4pRT7ymvX2IZLfgjyM=
+- SPEC006: pFm7iWgbUueDYy-VjCWEcj_X4UgrplwKA4MdhrCsMxI=
 normative: true
 ref: ''
-reviewed: Sy2b9injcV3QCVfd6DOmvTAQxRTWmOYyaIotmspuCjo=
+references:
+- path: tests/unit/test_cachekey.py
+  type: file
+reviewed: 3cSg0ZMGxvY_lJjY6HOpDAvoP80Ld78mLGq46mMHKjg=
 text: |
   ## 目的
 

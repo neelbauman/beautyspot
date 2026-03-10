@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: DI
+groups:
+- DI
 header: |
   ファクトリ関数と Protocol
 level: 2.22
 links:
-- ARCH012: TcD0OrJspSDMSwNoItk23aHjrpIEafd_Cw5r3hiUZiE=
+- ARCH012: hW3or0rWk3VR85KbFZLWVy86eEU4W4vrzC05CwTYy68=
 normative: true
 ref: ''
-reviewed: J4SUbCPlTO1gaUQbF3d-1HPdQHTdmr61xdgnlBzBtog=
+reviewed: K5nrjvTLtLXirHwlQQ-la6fSf5WQ-pZdz-Cp_eyJPng=
 text: |
   ## インターフェース
 

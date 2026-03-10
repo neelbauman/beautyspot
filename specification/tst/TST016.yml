@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: LIFE
+groups:
+- LIFE
 header: |
   LifecyclePolicy テスト
 level: 2.16
 links:
-- SPEC016: Ma4HLSHRQ1uNOKeME77e27yPYf5c-6q4ImjREYYZF6Y=
+- SPEC016: pYeLx2dK7QDT3MJlNEPOt2oJ-OaOO1TiNw_YrV9_-Fg=
 normative: true
 ref: ''
-reviewed: nGdGNwRbpCN_lnodn_-9VWxK-b0VVMu7Ci1Jx3Ybqus=
+references:
+- path: tests/unit/test_lifecycle.py
+  type: file
+reviewed: hyMyfT7FdBkA0cUTKUJ6dS8n7KtCZhvFuVOsC0Ks9p0=
 text: |
   ## 目的
 

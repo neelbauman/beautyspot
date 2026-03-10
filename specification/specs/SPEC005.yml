@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: KEY
+groups:
+- KEY
 header: |
   引数の再帰的正規化
 level: 2.5
 links:
-- ARCH002: h2OB0u7bf4d0UvEZ0zjry469NFQ4GBrDYCyS-AH1R_4=
+- ARCH002: HVEL9BgCJqagLk2CA_ksXF9TleinSEfxiUcowkxwoJs=
 normative: true
 ref: ''
-reviewed: pczGo0z47nWpDKspBsGpJHFUElwfIXQQqoT4vHiO2Qk=
+reviewed: O-Ed-ZYg2nZC0bofNauyQsz8eB-Yi3sfrSvNcy8ks18=
 text: |
   ## インターフェース
 

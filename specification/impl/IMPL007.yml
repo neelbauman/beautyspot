@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   SQLiteTaskDB 実装
 level: 2.7
 links:
-- SPEC007: ZwdMgNHObk7HXQ-Y-4P9Qu7HS3zOW7gQP7NkEZFxMDg=
+- SPEC007: cD5KgD2byz9KtdsSuplumKdK6-spPYW6QCcrJNRJK7s=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: aJASRjYuTefGnJvn5jyrkwVFjtsXOsUN3sBSkaHtxQ8=
+reviewed: L8fX6JwlpJZAD8YMXLBsKN02U3bIfIuZkb1LjvzsJPE=
 text: |
   ## 実装概要
 

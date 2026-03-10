@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: LIMIT
+groups:
+- LIMIT
 header: |
   TokenBucket 実装
 level: 2.18
 links:
-- SPEC018: 4rNeYQD9CegD5rCuwlufH87yvll1nCcnjqym1mH4414=
+- SPEC018: 9V3ZL1YmsyAAkEPOT3n03pex9KYUI2udZcsUYYKIYNY=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/limiter.py
   type: file
-reviewed: 1D-CrQkTO-Yrte-xjzNGyFDluF08Q04uJF07yVNG07k=
+reviewed: kcPjOoVay8X_rzcr4tfKWXfWf4Cj7Q2Nbpf1dh4PKg0=
 text: |
   ## 実装概要
 

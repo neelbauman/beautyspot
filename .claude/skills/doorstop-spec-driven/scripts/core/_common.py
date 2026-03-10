@@ -25,7 +25,7 @@ def out(data):
 # ---------------------------------------------------------------------------
 
 def get_groups(item, default=None):
-    """アイテムの groups 属性を取得する。単一の group 属性にも後方互換で対応する。
+    """アイテムの groups 属性を取得する。
 
     Args:
         default: groups が未設定の場合に返す値。
@@ -37,13 +37,6 @@ def get_groups(item, default=None):
             return g if g else (default if default is not None else [])
         elif isinstance(g, str) and g:
             return [s.strip() for s in g.split(",") if s.strip()]
-        
-        # backward compatibility
-        g = item.get("group")
-        if g:
-            if isinstance(g, str):
-                return [s.strip() for s in g.split(",") if s.strip()]
-            return [g]
         
         return default if default is not None else []
     except (AttributeError, KeyError):

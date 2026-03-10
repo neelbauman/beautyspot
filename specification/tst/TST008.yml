@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: DB
+groups:
+- DB
 header: |
   DB プロトコル階層テスト
 level: 2.8
 links:
-- SPEC008: _DJWcnn0I_H3AGBk3ZBnC1izPe7QJlPBcJRWhxmg0WQ=
+- SPEC008: GoIFy0kOtFEaMhGz7UI-v1rSeljzFi3YV_FUwcBBDbc=
 normative: true
 ref: ''
-reviewed: JBbLcnJt3-cR2TxU42xjhxnyIa9RR32qxNWFlaMh1g8=
+references:
+- path: tests/unit/test_db_writer_queue.py
+  type: file
+reviewed: IkerUYf4ctoVh55fXY0UWmwLtWPiBp3Pn6GIq0jwmF8=
 text: |
   ## 目的
 

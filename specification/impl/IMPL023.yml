@@ -1,17 +1,18 @@
 active: true
 derived: false
-group: HERD
+groups:
+- HERD
 header: |
   Thundering Herd 実装
 level: 2.23
 links:
-- SPEC023: F2Qery4xr687DbpEMWQ0vu23pOnidPy0aVzHAyiZi-8=
+- SPEC023: PhS_f6e1zMc5dfhFHHR-gNKFj6Do8e3HCDoGNcrPdxc=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cache.py
   type: file
-reviewed: ldddLOa4Fm1SvjH23GexiIwUC9iMuc7-vxJTigpMudo=
+reviewed: FGfgFs6oScgkmLWNes8jSKUXYkrzuDU2V7S0nMVSQkw=
 text: |
   ## 実装概要
 

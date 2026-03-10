@@ -21,7 +21,7 @@ except ImportError:
     from scripts.core._common import out
     out({"ok": False, "error": "doorstop がインストールされていません"})
 
-from _common import out
+from ..core._common import out
 from ..server.serve_app import serve
 from ..reporting.html_builder import (
     h,
@@ -35,7 +35,7 @@ from ..reporting.html_builder import (
     build_detail_card,
     assemble_html,
 )
-from local_trace_view import (
+from .local_trace_view import (
     build_link_index,
     collect_chains_by_group,
     trace_full_chain,

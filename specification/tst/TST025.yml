@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: []
 header: |
   序文
 level: 1.0
 links: []
 normative: false
 ref: ''
-reviewed: null
+reviewed: dE-fsN97msGmns9nwRYDpLt26nstg9L-iQMN_Y_xtF8=
 text: |
   本ドキュメントは、『beautyspot』のテスト計画および検証内容を定義する。

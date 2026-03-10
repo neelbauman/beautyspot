@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: null
 header: |
   序文
 level: 1.0
 links: []
 normative: false
 ref: ''
-reviewed: 33JUPlmYMn_xQ6tptcJxzQ7vhOeA6B6hhxxn2v8WT48=
+reviewed: ahsfb8A1Zd4gfhLggcqmZC0_iZ0nEEBKbf-DAHTGJl4=
 text: |
   本ドキュメントは、『beautyspot』のアーキテクチャ設計を定義する。

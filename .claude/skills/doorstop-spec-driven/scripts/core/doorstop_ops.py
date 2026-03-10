@@ -10,6 +10,7 @@ Usage:
 Commands:
     add              アイテムを追加する
     update           アイテムを更新する
+    reorder          アイテムのレベルを変更し、他を自動で再配置する
     link             リンクを追加する
     unlink           リンクを削除する
     clear            suspectを解消する
@@ -35,7 +36,7 @@ except ImportError:
     print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
     sys.exit(1)
 
-from ._common import (
+from _common import (
     out, get_groups, find_item as _find_item_safe,
     find_doc_prefix as _find_prefix,
     item_to_dict, build_link_index,
@@ -57,8 +58,9 @@ def cmd_add(tree, args):
     """アイテムを追加する。"""
     doc = tree.find_document(args.document)
     kwargs = {}
-    if args.level:
-        kwargs["level"] = args.level
+    level_val = args.insert or args.level
+    if level_val:
+        kwargs["level"] = level_val
 
     item = doc.add_item(**kwargs)
     item.text = args.text
@@ -130,6 +132,28 @@ def cmd_update(tree, args):
     out({
         "ok": True,
         "action": "update",
+        "item": item_to_dict(item, prefix),
+    })
+
+
+def cmd_reorder(tree, args):
+    """アイテムのレベルを変更し、他を自動で再配置する。"""
+    item = _find_item(tree, args.uid)
+    prefix = _find_prefix(tree, item)
+    doc = tree.find_document(prefix)
+
+    old_level = str(item.level)
+    item.level = args.level
+    item.save()
+
+    doc.reorder(manual=False, automatic=True, keep=item)
+
+    out({
+        "ok": True,
+        "action": "reorder",
+        "uid": str(item.uid),
+        "old_level": old_level,
+        "new_level": str(item.level),
         "item": item_to_dict(item, prefix),
     })
 
@@ -639,6 +663,7 @@ def main():
     p_add.add_argument("--header", help="ヘッダー")
     p_add.add_argument("-g", "--group", help="機能グループ")
     p_add.add_argument("-l", "--level", help="レベル")
+    p_add.add_argument("--insert", help="指定したレベルに挿入し、以降を自動で後ろにずらす（--level と同じ挙動）")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
     p_add.add_argument("--priority", choices=["critical", "high", "medium", "low"],
@@ -659,6 +684,11 @@ def main():
                        help="優先度の変更")
     p_upd.add_argument("--set-normative", action="store_true", help="規範的アイテムに設定")
     p_upd.add_argument("--set-non-normative", action="store_true", help="非規範的アイテムに設定")
+
+    # reorder
+    p_reorder = sub.add_parser("reorder", help="アイテムのレベルを変更し、他を自動で再配置する")
+    p_reorder.add_argument("uid", help="対象UID")
+    p_reorder.add_argument("level", help="新しいレベル")
 
     # link
     p_link = sub.add_parser("link", help="リンク追加")
@@ -729,6 +759,7 @@ def main():
     cmd_map = {
         "add": cmd_add,
         "update": cmd_update,
+        "reorder": cmd_reorder,
         "link": cmd_link,
         "unlink": cmd_unlink,
         "deactivate": cmd_deactivate,

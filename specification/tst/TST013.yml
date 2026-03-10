@@ -1,14 +1,18 @@
 active: true
 derived: false
-group: SERIAL
+groups:
+- SERIAL
 header: |
   カスタム型登録テスト
 level: 2.13
 links:
-- SPEC013: qawchycz4Lwi7pICc6OxP43WLUHhKWeTdmUa_v0j5vU=
+- SPEC013: tCDiJbP0rONEPJ0pU-_D3TmsXbZio1XmZ4U_63hZRII=
 normative: true
 ref: ''
-reviewed: 1Xv1n07zLdqtfqxBp6H-2RpQ7PqhyO4B0YuywzBMxss=
+references:
+- path: tests/unit/test_type_registry.py
+  type: file
+reviewed: Lo7ssc9sJ30br-XDpTrsfuHHs_KX2-PvGZQI4mQRTNE=
 text: |
   ## 目的
 

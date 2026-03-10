@@ -1,14 +1,15 @@
 active: true
 derived: false
-group: BGIO
+groups:
+- BGIO
 header: |
   BackgroundLoop
 level: 2.14
 links:
-- ARCH006: 4SIOiTgkfd_ZO7BtBN78ctC1A_wDloHjiBOnyf11_yU=
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 normative: true
 ref: ''
-reviewed: 0qdfjUj1LODecG-v77lIlnzS0B5ys5lcKixcWIz9ezc=
+reviewed: YHFWpCPYpOFekTBmw4MuNtBMsowQPVmZaM4R8zyIiiY=
 text: |
   ## インターフェース
 

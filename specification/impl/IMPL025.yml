@@ -1,12 +1,12 @@
 active: true
 derived: false
-group: ''
+groups: []
 header: |
   序文
 level: 1.0
 links: []
 normative: false
 ref: ''
-reviewed: null
+reviewed: nQODsgvgsJ0eZ93E-oUPK9Ds7_fw9e2QXmd4tXMZL0Q=
 text: |
   本ドキュメントは、『beautyspot』の実装記録（ジャーナル）を保持する。
