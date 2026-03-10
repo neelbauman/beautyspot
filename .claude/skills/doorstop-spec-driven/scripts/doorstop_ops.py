@@ -178,6 +178,63 @@ def cmd_review(tree, args):
     })
 
 
+
+def cmd_chain_review(tree, args):
+    """アイテムチェーン全体を一括でreviewし、suspectをclearする。"""
+    from _common import build_link_index
+    children_map, parents_map = build_link_index(tree)
+    
+    visited = set()
+    queue = list(args.uids)
+    
+    while queue:
+        current_uid = queue.pop(0)
+        if current_uid in visited:
+            continue
+        visited.add(current_uid)
+        
+        # Add parents (items that current_uid links to)
+        # Actually parent_map maps child_uid -> list of (parent_item, prefix)
+        # children_map maps parent_uid -> list of (child_item, prefix)
+        for p_item, _ in parents_map.get(current_uid, []):
+            queue.append(str(p_item.uid))
+            
+        # Add children (items that link to current_uid)
+        for c_item, _ in children_map.get(current_uid, []):
+            queue.append(str(c_item.uid))
+            
+    cleared = []
+    reviewed = []
+    for uid in visited:
+        item = _find_item_safe(tree, uid)
+        if not item:
+            continue
+        
+        # Clear suspect links
+        suspect_links = []
+        for link in item.links:
+            parent = _find_item_safe(tree, str(link))
+            if parent:
+                if (link.stamp is not None and link.stamp != "" and link.stamp != parent.stamp()):
+                    suspect_links.append(str(link))
+        if suspect_links:
+            item.clear(suspect_links)
+            for sl in suspect_links:
+                cleared.append({"item": uid, "link": sl})
+                
+        # Review
+        item.review()
+        item.save()
+        reviewed.append(uid)
+        
+    out({
+        "ok": True,
+        "action": "chain-review",
+        "chain_size": len(visited),
+        "cleared": cleared,
+        "reviewed": reviewed
+    })
+
 def cmd_list(tree, args):
     """アイテム一覧を取得する。"""
     items = []
@@ -301,6 +358,10 @@ def main():
     p_review = sub.add_parser("review", help="レビュー済み")
     p_review.add_argument("uids", nargs="+", help="対象UID")
 
+    # chain-review
+    p_chain_review = sub.add_parser("chain-review", help="アイテムチェーン全体を一括でreviewし、suspectをclearする")
+    p_chain_review.add_argument("uids", nargs="+", help="起点となる対象UID")
+
     # list
     p_list = sub.add_parser("list", help="一覧取得")
     p_list.add_argument("-d", "--document", help="ドキュメント絞り込み")
@@ -332,6 +393,7 @@ def main():
         "link": cmd_link,
         "clear": cmd_clear,
         "review": cmd_review,
+        "chain-review": cmd_chain_review,
         "list": cmd_list,
         "groups": cmd_groups,
         "tree": cmd_tree,
