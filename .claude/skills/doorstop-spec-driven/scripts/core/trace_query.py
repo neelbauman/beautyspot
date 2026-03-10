@@ -398,6 +398,73 @@ def _suggest_action(item, prefix):
         return f"{uid} を確認 → doorstop clear {uid}"
 
 
+def cmd_backlog(tree, args):
+    """REQ（および任意のドキュメント）のアイテムを優先度順に一覧表示する。
+
+    priority 属性の値に基づいてソートする:
+        critical > high > medium > low > (未設定 = medium 扱い)
+    """
+    PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+    # グループフィルタ
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
+
+    # ドキュメントフィルタ（デフォルト: REQ のみ）
+    target_docs = [args.document] if args.document else ["REQ"]
+    if args.all_docs:
+        target_docs = None  # 全ドキュメント
+
+    items = []
+    children_idx, _ = build_link_index(tree)
+
+    for doc in tree:
+        if target_docs and doc.prefix not in target_docs:
+            continue
+        for item in doc:
+            if not item.active:
+                continue
+            if not is_normative(item):
+                continue
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
+
+            uid = str(item.uid)
+            priority = item.get("priority") or "medium"
+            coverage_ok = bool(children_idx.get(uid))  # 子アイテムが存在するか
+
+            items.append({
+                "uid": uid,
+                "prefix": doc.prefix,
+                "header": item.header or "",
+                "groups": get_groups(item),
+                "priority": priority,
+                "has_children": coverage_ok,
+                "text": item.text.strip()[:100],
+            })
+
+    # 優先度→UID順にソート
+    items.sort(key=lambda x: (PRIORITY_ORDER.get(x["priority"], 2), x["uid"]))
+
+    # 優先度別集計
+    priority_summary = {}
+    for p in ("critical", "high", "medium", "low"):
+        priority_summary[p] = sum(1 for i in items if i["priority"] == p)
+
+    out({
+        "ok": True,
+        "action": "backlog",
+        "document_filter": target_docs,
+        "group_filter": args.group,
+        "count": len(items),
+        "priority_summary": priority_summary,
+        "items": items,
+    })
+
+
 def cmd_gaps(tree, args):
     """リンク漏れ・ref未設定のアイテムを検出する。"""
     children_idx, _ = build_link_index(tree)
@@ -519,6 +586,14 @@ def main():
     p_gap.add_argument("-d", "--document", help="ドキュメントで絞り込み")
     p_gap.add_argument("-g", "--group", help="グループで絞り込み")
 
+    # backlog
+    p_bl = sub.add_parser("backlog", help="優先度順のバックログ一覧（トリアージ用）")
+    p_bl.add_argument("-d", "--document", default=None,
+                      help="ドキュメントで絞り込み（デフォルト: REQ）")
+    p_bl.add_argument("-g", "--group", help="グループで絞り込み")
+    p_bl.add_argument("--all-docs", action="store_true",
+                      help="REQ以外のドキュメントも含める")
+
     args = parser.parse_args()
 
     project_dir = os.path.abspath(args.project_dir)
@@ -536,6 +611,7 @@ def main():
         "coverage": cmd_coverage,
         "suspects": cmd_suspects,
         "gaps": cmd_gaps,
+        "backlog": cmd_backlog,
     }
 
     cmd_map[args.command](tree, args)

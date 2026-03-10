@@ -71,6 +71,12 @@ def cmd_add(tree, args):
     if args.references:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.priority:
+        valid = ("critical", "high", "medium", "low")
+        if args.priority not in valid:
+            out({"ok": False, "error": f"priority は {valid} のいずれかを指定してください"})
+            return
+        item.set("priority", args.priority)
     if args.non_normative:
         item.set("normative", False)
     if args.derived:
@@ -108,6 +114,12 @@ def cmd_update(tree, args):
     if args.references is not None:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.priority is not None:
+        valid = ("critical", "high", "medium", "low")
+        if args.priority not in valid:
+            out({"ok": False, "error": f"priority は {valid} のいずれかを指定してください"})
+            return
+        item.set("priority", args.priority)
     if args.set_normative:
         item.set("normative", True)
     elif args.set_non_normative:
@@ -629,6 +641,8 @@ def main():
     p_add.add_argument("-l", "--level", help="レベル")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
+    p_add.add_argument("--priority", choices=["critical", "high", "medium", "low"],
+                       help="優先度（REQ/NFR に設定を推奨）")
     p_add.add_argument("--non-normative", action="store_true", help="非規範的アイテム（見出し等）として追加")
     p_add.add_argument("--derived", action="store_true", help="派生要求として追加")
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
@@ -641,6 +655,8 @@ def main():
     p_upd.add_argument("-g", "--group", help="新グループ")
     p_upd.add_argument("-r", "--ref", help="新参照パス")
     p_upd.add_argument("--references", help='外部ファイル紐付け（JSON文字列）')
+    p_upd.add_argument("--priority", choices=["critical", "high", "medium", "low"],
+                       help="優先度の変更")
     p_upd.add_argument("--set-normative", action="store_true", help="規範的アイテムに設定")
     p_upd.add_argument("--set-non-normative", action="store_true", help="非規範的アイテムに設定")
 
