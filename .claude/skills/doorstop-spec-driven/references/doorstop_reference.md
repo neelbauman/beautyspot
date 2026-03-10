@@ -69,24 +69,28 @@ settings:
 attributes:
   defaults:             # doorstop_ops.py add 時に自動付与される初期値
     groups: []
+    priority: medium    # critical / high / medium / low
   reviewed:             # フィンガープリント計算に含めるカスタム属性
-    - group             #   → group を変更すると「未レビュー」状態になる
+    - groups            #   → groups を変更すると「未レビュー」状態になる
+    # REQ/NFR は priority も追加を推奨（優先度変更で再レビューをトリガー）
   publish:              # doorstop publish 時に出力に含めるカスタム属性
-    - group
+    - groups
+    - priority
 ```
 
 ### 各キーの効果
 
-| キー | 効果 |
-|---|---|
-| `defaults` | `doorstop_ops.py add` で新規アイテム作成時に自動付与される |
-| `reviewed` | ここに列挙した属性の値が変更されると、アイテムが「未レビュー」状態に戻る |
-| `publish` | `validate_and_report.py` でドキュメント出力時に表示されるカスタム属性 |
+| キー | 効果 | 例 |
+|---|---|---|
+| `defaults` | `doorstop_ops.py add` で新規アイテム作成時に自動付与される | `groups: []`, `priority: medium` |
+| `reviewed` | ここに列挙した属性の値が変更されると、アイテムが「未レビュー」状態に戻る | `groups`, `priority`（REQ/NFR） |
+| `publish` | `validate_and_report.py` でドキュメント出力時に表示されるカスタム属性 | `groups`, `priority` |
 
 ### 運用原則
 
 **設定すべき属性:**
-- `group` — 機能グループ。仕様の対象スコープを示すメタデータ
+- `groups` — 機能グループ（リスト型）。仕様の対象スコープを示すメタデータ
+- `priority` — 優先度（REQ/NFRのみ）。トリアージ・バックログ管理用
 
 **設定してはいけない属性:**
 - `author`, `creation_date`, `status` — Git（バージョン管理）やチケット管理の責務。
@@ -143,6 +147,22 @@ doorstop_ops.py <dir> update REQ001 --priority critical
 trace_query.py <dir> backlog              # 優先度順一覧
 ```
 
+### test_level（テスト粒度）
+
+TST アイテムのテスト粒度を示す。standard/full プロファイルで使用する。
+lite プロファイルでは不要（TST は全て SPEC に直接リンクする）。
+
+| 値 | V字モデル対応 | リンク先 |
+|---|---|---|
+| `unit` | 単体テスト | SPEC / LLD |
+| `integration` | 結合テスト | ARCH / HLD |
+| `acceptance` | 受入テスト | REQ |
+
+```bash
+doorstop_ops.py <dir> add -d TST -t "..." -g AUTH --test-level unit --links SPEC001
+doorstop_ops.py <dir> update TST001 --test-level integration
+```
+
 アイテムの書き方は `references/item_writing_guide.md` を参照。
 
 ## 操作スクリプトリファレンス
@@ -179,6 +199,9 @@ doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH,PA
 doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH,PAY \
   --references '[{"path":"tests/test_auth.py","type":"file"}]' --links SPEC001
 
+# TST追加（test_level付き — standard/fullプロファイル用）
+doorstop_ops.py <dir> add -d TST -t "結合テスト" -g AUTH --test-level integration --links SPEC001
+
 # レベル指定で追加（指定したレベルとして末尾などに追加）
 doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH,PAY -l 1.2
 
@@ -195,6 +218,9 @@ doorstop_ops.py <dir> update SPEC001 --header "新ヘッダー" -g PAY
 
 # references更新
 doorstop_ops.py <dir> update IMPL001 --references '[{"path":"src/new_mod.py","type":"file"}]'
+
+# test_level更新（standard/fullプロファイル）
+doorstop_ops.py <dir> update TST001 --test-level unit
 
 # 規範的/非規範的の切り替え
 doorstop_ops.py <dir> update REQ001 --set-non-normative
@@ -257,6 +283,19 @@ doorstop_ops.py <dir> clear SPEC001 SPEC002  # 複数UID指定可
 doorstop_ops.py <dir> review SPEC001 IMPL001 TST001  # 複数UID指定可
 ```
 
+#### チェーンレビュー（chain-review）
+
+アイテムを起点に、リンクチェーン全体（上流・下流）を一括で review 済みにし、
+suspect を解消する。変更フローの最終ステップで使用する。
+
+```bash
+# SPEC001 を起点に、関連する IMPL/TST のsuspectを一括解消＆レビュー済みに
+doorstop_ops.py <dir> chain-review SPEC001
+
+# 複数の起点UIDを指定可
+doorstop_ops.py <dir> chain-review SPEC001 SPEC002
+```
+
 #### 一覧・検索
 
 ```bash
@@ -291,8 +330,9 @@ trace_query.py <dir> status
 # 特定UIDの上下リンクチェーンを表示
 trace_query.py <dir> chain SPEC003
 
-# ファイルパスをreferencesから逆引きしてチェーンを表示
+# ファイルパスをreferencesから逆引きしてチェーンを表示（--file フラグ）
 # → 実装/テストファイルを起点にどのSPEC/REQに紐づくか追跡できる
+# フルパス、相対パス、basename のいずれでもマッチする
 trace_query.py <dir> chain --file src/beautyspot/core.py
 trace_query.py <dir> chain --file tests/integration/core/test_mark.py
 trace_query.py <dir> chain --file core.py   # basename のみでも可
@@ -307,6 +347,13 @@ trace_query.py <dir> suspects
 # リンク漏れ検出
 trace_query.py <dir> gaps
 trace_query.py <dir> gaps --document IMPL
+
+# 優先度順バックログ一覧（トリアージ用）
+# デフォルトは REQ のみ。--document でドキュメント指定、--all で全ドキュメント
+trace_query.py <dir> backlog
+trace_query.py <dir> backlog --group AUTH         # グループ絞り込み
+trace_query.py <dir> backlog -d NFR               # NFRのバックログ
+trace_query.py <dir> backlog --all                 # 全ドキュメントのバックログ
 ```
 
 ### impact_analysis.py — 影響分析

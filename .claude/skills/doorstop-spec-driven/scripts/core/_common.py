@@ -183,12 +183,24 @@ def build_link_index(tree, include_inactive=False):
 # Item serialization
 # ---------------------------------------------------------------------------
 
+def get_priority(item):
+    """アイテムの priority 属性を取得する。未設定時は "medium"。"""
+    try:
+        val = item.get("priority")
+        if val and isinstance(val, str) and val in ("critical", "high", "medium", "low"):
+            return val
+        return "medium"
+    except (AttributeError, KeyError):
+        return "medium"
+
+
 def item_summary(item, prefix=None, tree=None):
     """アイテムのコンパクトなdict表現（照会用）。"""
     d = {
         "uid": str(item.uid),
         "prefix": prefix or (find_doc_prefix(tree, item) if tree else "?"),
         "groups": get_groups(item),
+        "priority": get_priority(item),
         "header": item.header.strip() if item.header else "",
         "text": item.text.strip()[:200],
         "references": get_references(item),
@@ -210,6 +222,7 @@ def item_to_dict(item, doc_prefix=None, tree=None):
         "text": item.text.strip(),
         "header": item.header.strip() if item.header else "",
         "groups": get_groups(item),
+        "priority": get_priority(item),
         "level": str(item.level),
         "references": get_references(item),
         "normative": is_normative(item),

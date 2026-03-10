@@ -36,7 +36,7 @@ except ImportError:
     out({"ok": False, "error": "doorstop がインストールされていません"})
     sys.exit(1)
 
-from _common import out, get_groups, find_doc_prefix, is_normative
+from _common import out, get_groups, get_priority
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ def _git_tag(tag_name: str) -> bool:
 def _snapshot_item(item, prefix: str) -> dict:
     """アイテムをスナップショット形式のdictに変換する。"""
     groups = get_groups(item)
-    priority = item.get("priority") or "medium"
+    priority = get_priority(item)
     return {
         "uid": str(item.uid),
         "prefix": prefix,

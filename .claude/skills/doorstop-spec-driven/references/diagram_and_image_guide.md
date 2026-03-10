@@ -396,7 +396,6 @@ level: 1.1
 links:
 - REQ001: <fingerprint>
 normative: true
-ref: ''
 reviewed: null
 text: |
   ## 概要

@@ -36,7 +36,7 @@ except ImportError:
     out({"ok": False, "error": "doorstop がインストールされていません"})
 
 from _common import (
-    out, get_groups, get_references, is_derived, is_normative,
+    out, get_groups, get_priority, get_references, is_derived, is_normative,
     find_item, find_doc_prefix, is_suspect, item_summary,
     build_link_index,
 )
@@ -433,7 +433,7 @@ def cmd_backlog(tree, args):
                     continue
 
             uid = str(item.uid)
-            priority = item.get("priority") or "medium"
+            priority = get_priority(item)
             coverage_ok = bool(children_idx.get(uid))  # 子アイテムが存在するか
 
             items.append({
