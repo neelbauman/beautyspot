@@ -309,7 +309,9 @@ REQ001 [AUTH] ← HLD001 [AUTH] ← LLD001 [AUTH] ← IMPL001 [AUTH]
 4. `references` にソースコードのパスを設定する
 
 Phase 3とPhase 4は並行して進めてよい。
-TDD（テスト駆動開発）を実践する場合は Phase 3 → Phase 4 の順が自然。
+編集の順序としては仕様、実装、テストのいずれから着手しても最終的に整合していれば問題ない。
+ただし、実装をパスさせるためにテストを歪めることがあってはならない。
+**Gitへのコミットは仕様(設計) → テスト → 実装 の順に行うこと**を強く推奨する。これにより、履歴上にテストファーストの思想と整合性の取れた状態を残すことができる。
 
 完了基準: 全最下位設計アイテムが少なくとも1つのIMPLにカバーされていること。
 
@@ -397,10 +399,10 @@ type:
 成果: 全アイテムのreviewed状態がクリア
 ```
 
-Doorstopの `reviewed` 属性を活用する:
-- アイテムの内容が変更されると `reviewed` がリセットされ、suspect（要再確認）状態になる
-- レビュー完了後、`doorstop review <UID>` でクリアする
-- レビュー漏れは警告として報告するが、リリースをブロックしない（緩めの運用）
+Doorstopの `reviewed` 属性とベースライン管理:
+- アイテムの内容が変更されると `reviewed` がリセットされ、下流のリンクがsuspect（要再確認）状態になる
+- 関連アイテムとの整合性や編集内容を確認した上で、`doorstop_ops.py chain-review <UID>` を実行し、アイテムチェーン全体を一括でsuspect解消＆レビュー済みにする（単に義務的にクリアするのではなく、実質的な確認を伴うこと）
+- **ベースラインの確定**: 全てのアイテムが `reviewed` 状態となり、suspectが解消された段階で仕様のベースラインが揃ったと見なし、Gitでタグを打つ（例: `git tag -a v1.0.0-spec` 等）
 
 レビュー対象:
 - 新規・変更されたREQアイテム → 要件レビュー
@@ -482,9 +484,8 @@ uv run python impact_analysis.py . --changed SPEC001 SPEC003
 ```
 1. impact_analysis.py で影響範囲を特定
 2. 影響を受けるIMPL/TSTのreferences先（ソースコード/テストコード）を修正
-3. doorstop clear <UID> でsuspectリンクを解消
-4. doorstop review <UID> でレビュー済みに更新
-5. validate_and_report.py で全体の整合性を再確認
+3. doorstop_ops.py chain-review <UID> で関連アイテムのsuspect解消＆レビュー済みに一括更新
+4. validate_and_report.py で全体の整合性を再確認
 ```
 
 このフェーズはPhase 1〜6のどの段階でも発生しうる。
