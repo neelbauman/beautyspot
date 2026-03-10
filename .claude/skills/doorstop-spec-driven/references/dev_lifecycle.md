@@ -229,15 +229,88 @@ REQ001 [AUTH] ← HLD001 [AUTH] ← LLD001 [AUTH] ← IMPL001 [AUTH]
 
 ```
 入力: ユーザーストーリー、ビジネス要件、ステークホルダー要望
-成果: REQドキュメント
+成果: REQドキュメント（+ NFRドキュメント：standard/full推奨）
 ```
 
 1. 機能グループを定義する（AUTH, PAY, ...）
-2. 各グループごとにREQアイテムを作成する
+2. 各グループごとにREQアイテムを作成し、`priority` を設定する
 3. 要件テキストを検証可能な形式で記述する
 4. REQドキュメント内でレベル構造を整理する
+5. 非機能要件（NFR）がある場合: standard/fullでは NFR ドキュメントに追加する
 
-完了基準: 全REQアイテムにテキストとグループが設定されていること。
+#### NFRドキュメントの利用（standard/fullプロファイル）
+
+NFR（Non-Functional Requirements）は機能要件（REQ）と並列のルートドキュメントとして管理する。
+REQ が「何をするか」を定義するのに対し、NFR は「どの品質水準で実現するか」を定義する。
+
+```bash
+# NFR ドキュメント付きで初期化
+init_project.py <dir> --profile standard --with-nfr
+
+# NFR アイテムの追加
+doorstop_ops.py <dir> add -d NFR -t "全APIの応答時間はp99で200ms以内とする" -g PERF --priority high
+doorstop_ops.py <dir> add -d NFR -t "パスワードはArgon2idで保存すること" -g SEC --priority critical
+```
+
+NFRのトレーサビリティ:
+- 設計文書（ARCH/SPEC/HLD）は NFR アイテムへリンクして非機能制約の実現方針を明示する
+- TST は NFR アイテムへリンクして非機能テスト（性能・セキュリティ）を対応付ける
+- liteプロファイルでは `groups: [NFR, PERF]` 等で REQ に混在させる
+
+NFR の典型グループ: `PERF`（性能）、`SEC`（セキュリティ）、`REL`（信頼性）、
+`MNT`（保守性）、`PRT`（可搬性）、`SAF`（安全性、規制産業）
+
+完了基準: 全REQ/NFRアイテムにテキスト・グループ・priorityが設定されていること。
+
+---
+
+### Phase 1.5: トリアージ（優先付け・スコープ確定）
+
+```
+入力: REQ/NFRドキュメント（全量登録済み）
+成果: 優先度付きバックログ、今回の開発スコープの合意
+```
+
+Phase 1 で洗い出した要件全量に対し、設計着手前に優先度を確定し、
+開発チーム・ユーザーと合意する。一度に全要件を実装する必要はない。
+priorityの高いものから順に設計・実装フェーズへ流すことで、
+価値の高い機能から早期に提供できる。
+
+#### 手順
+
+1. **バックログ確認** — `trace_query.py <dir> backlog` で REQ を優先度順に一覧表示
+2. **未着手 REQ の特定** — カバレッジ0（設計・実装が未作成）の REQ を抽出
+3. **優先度の調整** — ユーザーとの合意に基づき `--priority` を更新
+4. **スコープ確定** — 今回の開発サイクルで対応する REQ を明確にする
+5. **ベースライン作成** — 合意済みスコープのベースラインを記録する
+
+```bash
+# 優先度付きバックログ表示
+trace_query.py <dir> backlog
+trace_query.py <dir> backlog --group AUTH
+trace_query.py <dir> backlog -d NFR      # 非機能要件のバックログ
+
+# 優先度を更新
+doorstop_ops.py <dir> update REQ001 --priority critical
+doorstop_ops.py <dir> update REQ005 --priority low
+
+# 今回対応しない要件は active のまま priority: low で管理（非活性化はしない）
+# スコープ合意後にベースライン作成
+baseline_manager.py <dir> create scope-v1 --tag
+```
+
+#### 優先度の値
+
+| 値 | 意味 | 典型的な使用場面 |
+|---|---|---|
+| `critical` | 今すぐ必要。これがないとリリースできない | セキュリティ、コアとなる機能 |
+| `high` | 今回のリリースに含めたい | 主要機能、ユーザーが期待する機能 |
+| `medium` | できれば今回、次回でも可（デフォルト） | 拡張機能、利便性向上 |
+| `low` | 将来対応。今回はスコープ外 | Nice-to-have、実験的機能 |
+
+完了基準: 全アクティブREQ/NFRに priority が設定され、今回の対象スコープが合意されていること。
+
+---
 
 ### Phase 2: 設計策定
 
@@ -380,16 +453,46 @@ type:
 成果: 全アイテムのreviewed状態がクリア
 ```
 
-Doorstopの `reviewed` 属性とベースライン管理:
+Doorstopの `reviewed` 属性:
 - アイテムの内容が変更されると `reviewed` がリセットされ、下流のリンクがsuspect（要再確認）状態になる
 - 関連アイテムとの整合性や編集内容を確認した上で、`doorstop_ops.py chain-review <UID>` を実行し、アイテムチェーン全体を一括でsuspect解消＆レビュー済みにする（単に義務的にクリアするのではなく、実質的な確認を伴うこと）
-- **ベースラインの確定**: 全てのアイテムが `reviewed` 状態となり、suspectが解消された段階で仕様のベースラインが揃ったと見なし、Gitでタグを打つ（例: `git tag -a v1.0.0-spec` 等）
 
 レビュー対象:
 - 新規・変更されたREQアイテム → 要件レビュー
 - 新規・変更された設計アイテム（ARCH/SPEC/HLD/LLD）→ 設計レビュー
 - 新規・変更されたIMPLアイテム → コードレビュー（通常のPRレビューと統合）
 - 新規・変更されたTSTアイテム → テストレビュー
+
+#### ベースライン管理
+
+全アイテムが `reviewed` 状態となり suspect が解消された段階で、
+仕様のベースラインを記録する。ベースラインは「この時点の合意済み仕様」を示す基準点であり、
+後から何が変わったかを追跡するための参照点になる。
+
+```bash
+# ベースライン作成（Git タグも付ける）
+baseline_manager.py <dir> create v1.0 --tag
+baseline_manager.py <dir> create v1.0 --tag --tag-name v1.0.0-spec
+
+# ベースライン一覧
+baseline_manager.py <dir> list
+
+# バージョン間の差分（v1.0 から v2.0 で何が変わったか）
+baseline_manager.py <dir> diff v1.0 v2.0
+
+# 現在の状態と最後のベースラインの差分（未記録の変更を確認）
+baseline_manager.py <dir> diff v1.0 HEAD
+```
+
+**diff の出力内容:**
+- `added`: 新しく追加されたアイテム
+- `removed`: 非活性化されたアイテム
+- `changed`: フィンガープリント（stamp）が変化したアイテム（テキスト変更等）
+- `unchanged`: 変更なし
+
+**ロールバックについて:**
+仕様変更の取り消しは `git revert` に委ねる。`baseline_manager.py diff` で
+変更範囲を特定してから revert の対象コミットを特定すること。
 
 ### Phase 7: 変更影響分析（Impact Analysis）
 
@@ -601,8 +704,10 @@ uv run python doorstop_ops.py . tree
 ```
 ユーザーの発話
   │
-  ├─ 新機能 → REQ作成 → 設計策定（上位から順に） → 実装 → IMPL登録
-  │           → テスト → TST登録 → 検証 → 報告
+  ├─ 優先付け・整理 → バックログ確認 → 優先度更新 → ベースライン作成
+  │
+  ├─ 新機能 → REQ作成（priority設定）→ 設計策定（上位から順に）→ 実装 → IMPL登録
+  │           → テスト → TST登録 → 検証 → ベースライン更新（リリース時）→ 報告
   │
   ├─ 変更   → 影響分析 → 設計修正（上位から順に） → 実装修正 → IMPL更新
   │           → テスト修正 → TST更新 → clear → 検証 → 報告
@@ -627,18 +732,30 @@ uv run python doorstop_ops.py . tree
 ```
 
 
+## [T] トリアージフロー（優先付け・スコープ確定）
+
+ユーザーが「何を先に作るか決めたい」「バックログを整理したい」等と発話したとき。
+詳細は Phase 1.5 を参照。
+
+1. **バックログ確認** — `trace_query.py <dir> backlog` で REQ を優先度順に一覧
+2. **優先度設定** — `doorstop_ops.py <dir> update REQ001 --priority high`
+3. **未着手の特定** — 設計・実装が未作成の REQ を特定し、ユーザーへ提示
+4. **ベースライン確認** — `baseline_manager.py <dir> list` で現在の基準点を確認
+5. **スコープ合意後のベースライン作成** — `baseline_manager.py <dir> create <name>`
+
 ## [A] 新規開発フロー
 
 1. **理解** — ユーザーの要望を要件文に変換する。曖昧な場合のみ確認
-2. **分類** — 機能グループを決定（既存 or 新規）
-3. **REQ登録** — `doorstop_ops.py add -d REQ -t "要件文" -g GROUP`
-4. **設計策定** — 設計文書を上位から順に作成し、親へリンク。派生要求は `derived: true`
+2. **分類** — 機能グループと優先度を決定（既存グループ or 新規、`--priority` を設定）
+3. **REQ登録** — `doorstop_ops.py add -d REQ -t "要件文" -g GROUP --priority high`
+4. **設計策定** — 設計文書を上位から順に作成し、親へリンク。派生要求は `derived: true`。NFR制約がある場合は設計文書から NFR アイテムへもリンクする
 5. **実装・テスト** — 最下位設計文書に従ってコードとテストを書く（編集の順序は問わない）
 6. **IMPL/TST登録** — `doorstop_ops.py add` でそれぞれ登録し、最下位設計にリンク
-7. **レビュー** — `doorstop_ops.py chain-review <UID>` で関連アイテム全体を一括レビュー済みにし、ベースラインを確定する
+7. **レビュー** — `doorstop_ops.py chain-review <UID>` で関連アイテム全体を一括レビュー済みにする
 8. **検証** — `validate_and_report.py --strict`。エラー0件を目指す
 9. **コミット** — 仕様(設計)、テスト、実装の順番でコミットし、テストファーストの考え方を履歴に残す
-10. **報告** — 成果物ベースで簡潔に報告（Doorstopの内部構造は見せない）
+10. **ベースライン更新** — リリースポイントで `baseline_manager.py create <version> --tag`
+11. **報告** — 成果物ベースで簡潔に報告（Doorstopの内部構造は見せない）
 
 操作コマンドは `doorstop_ops.py` を使う。アイテムの書き方は `references/item_writing_guide.md` を参照。
 
@@ -714,6 +831,7 @@ uv run python doorstop_ops.py . tree
 |---|---|---|
 | `text` | 全アイテム | 内容（必須） |
 | `groups` | 全アイテム | 機能グループ: AUTH, PAY, USR 等（必須） |
+| `priority` | REQ/NFR | 優先度: `critical` / `high` / `medium`（デフォルト） / `low` |
 | `links` | REQ以外 | 親へのリンク（`derived: true` の場合は空でもよい） |
 | `derived` | 設計層のみ | 派生要求フラグ。`text` に根拠セクション必須 |
 | `references` | IMPL/TST | 外部ファイル紐付け（辞書型リスト、最大2–3ファイル） |

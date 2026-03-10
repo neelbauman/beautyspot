@@ -113,68 +113,37 @@ attributes:
 2.1.1 → サブ要件
 ```
 
-## 要件テキストの書き方
+## カスタム属性の使い方
 
-### 良い例
+### groups（機能グループ）
 
-```
-システムはログインに3回連続失敗したアカウントを30分間ロックすること。
-ソフトウェアは全てのAPI応答を200ms以内に返却すること。
-テストはログイン成功時にHTTPステータス200が返ることを検証すること。
-```
+機能グループで横断的に分類する。推奨グループ名:
+- 機能系: `AUTH`, `PAY`, `USR`, `NTF`, `RPT`, `ADM`, `DAT`
+- 非機能系（NFRドキュメント）: `PERF`, `SEC`, `REL`, `MNT`, `PRT`, `SAF`
 
-### 避けるべき表現
-
-```
-✗ システムは適切にエラーハンドリングすること。        → 「適切に」が曖昧
-✗ レスポンスは十分高速であること。                    → 数値基準がない
-✗ ソフトウェアは使いやすいUIを提供すること。          → 主観的で検証不能
-✗ システムはセキュアであること。                      → 具体性に欠ける
-```
-
-### REQ / SPEC / TST の使い分け
-
-| レベル | 焦点 | 例 |
-|--------|------|-----|
-| REQ | 何を実現するか（What） | 「管理者はユーザーアカウントを無効化できること」 |
-| SPEC | どう実現するか（How） | 「APIは /api/users/{id}/deactivate エンドポイントを提供すること」 |
-| TST | どう検証するか（Verify） | 「DELETEリクエスト送信後、該当ユーザーのstatus=inactiveを確認する」 |
-
-### 機能グループ（group カスタム属性）
-
-各アイテムに `groups` 属性を設定して、機能単位で横断的に分類できる。
-
-```yaml
-# YAMLファイル内での表現
-active: true
-groups:
-  - AUTH          # ← カスタム属性
-header: 'ログイン'
-level: 1.1
-links:
-  - REQ001
-text: |
-  ソフトウェアはJWT認証を実装すること。
-```
-
-doorstop_ops.py での設定:
 ```bash
-# 追加時に指定
-doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH,PAY
-
-# 既存アイテムのグループ変更
-doorstop_ops.py <dir> update SPEC001 -g AUTH,PAY
+doorstop_ops.py <dir> add -d REQ -t "..." -g AUTH,PAY
+doorstop_ops.py <dir> update REQ001 -g AUTH,PAY
 ```
 
-推奨グループ名の例:
-- `AUTH` — 認証・認可
-- `PAY` — 決済・課金
-- `USR` — ユーザー管理
-- `NTF` — 通知
-- `RPT` — レポート・分析
-- `ADM` — 管理機能
-- `DAT` — データ管理
-- `SEC` — セキュリティ
+### priority（優先度）
+
+REQ/NFRアイテムの実装優先度。トリアージ・バックログ管理で使用する。
+
+| 値 | 意味 |
+|---|---|
+| `critical` | 今すぐ必要、リリースブロッカー |
+| `high` | 今回のリリースに含める |
+| `medium` | できれば今回、次回でも可（デフォルト） |
+| `low` | 将来対応、今回はスコープ外 |
+
+```bash
+doorstop_ops.py <dir> add -d REQ -t "..." -g AUTH --priority high
+doorstop_ops.py <dir> update REQ001 --priority critical
+trace_query.py <dir> backlog              # 優先度順一覧
+```
+
+アイテムの書き方は `references/item_writing_guide.md` を参照。
 
 ## 操作スクリプトリファレンス
 
@@ -341,6 +310,22 @@ impact_analysis.py <dir> --changed REQ001
 
 # JSON出力
 impact_analysis.py <dir> --detect-suspects --json report.json
+```
+
+### baseline_manager.py — ベースライン管理
+
+```bash
+# ベースラインを作成（任意のタイミングで記録）
+baseline_manager.py <dir> create v1.0
+baseline_manager.py <dir> create v1.0 --tag                    # Git タグも付ける
+baseline_manager.py <dir> create sprint-3 --tag --tag-name v1.3.0-spec
+
+# ベースライン一覧
+baseline_manager.py <dir> list
+
+# バージョン間の差分（stamp変化=テキスト変更、added/removed=アイテム増減）
+baseline_manager.py <dir> diff v1.0 v2.0
+baseline_manager.py <dir> diff v1.0 HEAD  # HEAD = 現在のツリー状態
 ```
 
 ### validate_and_report.py — バリデーション・レポート
