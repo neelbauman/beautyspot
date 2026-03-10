@@ -90,6 +90,13 @@ def temp_db_with_blobs(tmp_path: Path) -> tuple[Path, Path]:
     # Create orphaned blob file (not referenced in DB)
     orphaned_file = blob_dir / "orphaned.bin"
     orphaned_file.write_bytes(b"orphaned data")
+    
+    # Artificially age the files to bypass the 60s grace period for garbage collection
+    import time
+    import os
+    past_time = time.time() - 100
+    os.utime(blob_file, (past_time, past_time))
+    os.utime(orphaned_file, (past_time, past_time))
 
     return db_path, blob_dir
 

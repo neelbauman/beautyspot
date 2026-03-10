@@ -200,7 +200,7 @@ class MaintenanceService:
         logger.info(f"Cleared {count} tasks.")
         return count
 
-    def scan_garbage(self, grace_period: float = 0.0) -> list[str]:
+    def scan_garbage(self, grace_period: float = 60.0) -> list[str]:
         """
         Scan for orphaned blob files that are not referenced in the database.
 

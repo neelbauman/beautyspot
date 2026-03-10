@@ -145,7 +145,7 @@ class _BackgroundLoop:
             return asyncio.run_coroutine_threadsafe(
                 self._task_wrapper(coro), self._loop
             )
-        except Exception:
+        except BaseException:
             # 万が一スケジュールに失敗した場合はカウンタを戻す
             try:
                 coro.close()

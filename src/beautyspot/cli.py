@@ -477,6 +477,11 @@ def clear_cmd(
         None, "--func", "-f", help="Clear only specific function"
     ),
     force: bool = typer.Option(False, "--force", "-y", help="Skip confirmation"),
+    clean_blobs: bool = typer.Option(
+        True,
+        "--clean-blobs/--no-clean-blobs",
+        help="Also remove orphaned blob files after clearing",
+    ),
 ):
     """
     🗑️  Clear cached tasks.
@@ -494,7 +499,19 @@ def clear_cmd(
 
     with get_service(db) as service:
         deleted = service.clear(func)
-    console.print(f"[green]✓ Deleted {deleted} tasks.[/green]")
+        console.print(f"[green]✓ Deleted {deleted} tasks.[/green]")
+
+        if clean_blobs:
+            console.print("\n[dim]Running blob cleanup...[/dim]")
+
+            orphans = service.scan_garbage()
+            if orphans:
+                _, deleted_orphans = service.clean_garbage(orphans)
+                console.print(
+                    f"[green]✓ Deleted {deleted_orphans} orphaned blob files.[/green]"
+                )
+            else:
+                console.print("[green]✓ No orphaned blob files found.[/green]")
 
 
 @app.command("clean")
