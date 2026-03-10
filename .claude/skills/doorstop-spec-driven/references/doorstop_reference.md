@@ -276,7 +276,13 @@ doorstop_ops.py <dir> find "認証"
 trace_query.py <dir> status
 
 # 特定UIDの上下リンクチェーンを表示
-trace_query.py <dir> chain REQ001
+trace_query.py <dir> chain SPEC003
+
+# ファイルパスをreferencesから逆引きしてチェーンを表示
+# → 実装/テストファイルを起点にどのSPEC/REQに紐づくか追跡できる
+trace_query.py <dir> chain --file src/beautyspot/core.py
+trace_query.py <dir> chain --file tests/integration/core/test_mark.py
+trace_query.py <dir> chain --file core.py   # basename のみでも可
 
 # カバレッジ（全体 / グループ別）
 trace_query.py <dir> coverage
