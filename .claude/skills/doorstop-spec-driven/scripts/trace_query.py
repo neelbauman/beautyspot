@@ -11,6 +11,7 @@ Usage:
 Commands:
     status              プロジェクト全体のサマリ（件数・カバレッジ・suspect数）
     chain <UID>         指定UIDの上流→下流チェーン全体を表示
+    chain --file PATH   ファイルパスをreferencesから逆引きし、該当アイテムのチェーンを表示
     coverage            カバレッジ詳細（どのSPECがIMPL/TST未カバーか）
     suspects            全suspect一覧と要対応アクション
     gaps                リンク漏れ・ref未設定のアイテム一覧
@@ -18,6 +19,7 @@ Commands:
 Examples:
     python trace_query.py . status
     python trace_query.py . chain SPEC003
+    python trace_query.py . chain --file src/beautyspot/core.py
     python trace_query.py . coverage --group CACHE
     python trace_query.py . suspects
     python trace_query.py . gaps --document IMPL
@@ -110,30 +112,49 @@ def cmd_status(tree, args):
     })
 
 
-def cmd_chain(tree, args):
-    """指定UIDの上流→下流チェーン全体を表示する。"""
-    root_item = find_item(tree, args.uid)
-    if root_item is None:
-        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+def _find_items_by_file(tree, file_path):
+    """ファイルパスをreferences属性から逆引きし、参照しているアイテムを返す。
 
-    children_idx, parents_idx = build_link_index(tree)
+    マッチ戦略（優先順）:
+      1. 正規化後の完全一致
+      2. file_path が参照パスのサフィックスに一致（例: "core.py" → "src/beautyspot/core.py"）
+      3. 参照パスが file_path のサフィックスに一致（相対パスの表記ゆれ対応）
+    """
+    normalized = file_path.replace("\\", "/").rstrip("/")
+    results = []
+    for doc in tree:
+        for item in doc:
+            for ref in get_references(item):
+                ref_path = ref.get("path", "").replace("\\", "/").rstrip("/")
+                if not ref_path:
+                    continue
+                if (
+                    ref_path == normalized
+                    or ref_path.endswith("/" + normalized)
+                    or normalized.endswith("/" + ref_path)
+                ):
+                    results.append((item, doc.prefix))
+                    break  # 同一アイテムを重複追加しない
+    return results
 
-    # 上流追跡
+
+def _build_single_chain(tree, root_item, children_idx, parents_idx):
+    """単一アイテムのチェーン情報を構築して返す。"""
+    uid = str(root_item.uid)
+    prefix = find_doc_prefix(tree, root_item)
+
     upstream = []
-    _trace_up(str(root_item.uid), parents_idx, upstream, visited=set())
+    _trace_up(uid, parents_idx, upstream, visited=set())
 
-    # 下流追跡
     downstream = []
-    _trace_down(str(root_item.uid), children_idx, downstream, visited=set())
+    _trace_down(uid, children_idx, downstream, visited=set())
 
-    # 完全なチェーン内のUID集合を収集
-    chain_uids = {str(root_item.uid)}
+    chain_uids = {uid}
     for entry in upstream:
         chain_uids.add(entry["uid"])
     for entry in downstream:
         chain_uids.add(entry["uid"])
 
-    # チェーンをREQ→SPEC→IMPL/TSTの階層に整理
     layers = defaultdict(list)
     for doc in tree:
         for item in doc:
@@ -141,15 +162,55 @@ def cmd_chain(tree, args):
             if uid_str in chain_uids:
                 layers[doc.prefix].append(item_summary(item, doc.prefix, tree))
 
-    out({
-        "ok": True,
-        "action": "chain",
-        "root": item_summary(root_item, find_doc_prefix(tree, root_item), tree),
+    return {
+        "root": item_summary(root_item, prefix, tree),
         "upstream": upstream,
         "downstream": downstream,
         "by_layer": dict(layers),
         "chain_size": len(chain_uids),
+    }
+
+
+def cmd_chain(tree, args):
+    """指定UIDまたはファイルパスの上流→下流チェーン全体を表示する。"""
+    children_idx, parents_idx = build_link_index(tree)
+
+    # --file による逆引きモード
+    if getattr(args, "file", None):
+        matched = _find_items_by_file(tree, args.file)
+        if not matched:
+            out({"ok": False, "error": f"ファイル '{args.file}' をreferencesに持つアイテムが見つかりません"})
+
+        chains = []
+        for root_item, _prefix in matched:
+            chain = _build_single_chain(tree, root_item, children_idx, parents_idx)
+            chains.append(chain)
+
+        out({
+            "ok": True,
+            "action": "chain",
+            "mode": "by_file",
+            "file": args.file,
+            "chains": chains,
+            "matched_count": len(chains),
+        })
+
+    # UID指定モード（従来の動作）
+    if not args.uid:
+        out({"ok": False, "error": "UID または --file のどちらかを指定してください"})
+
+    root_item = find_item(tree, args.uid)
+    if root_item is None:
+        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+
+    chain = _build_single_chain(tree, root_item, children_idx, parents_idx)
+    out({
+        "ok": True,
+        "action": "chain",
+        "mode": "by_uid",
+        **chain,
     })
+
 
 
 def _trace_up(uid, parents_idx, result, visited, depth=0):
@@ -418,8 +479,11 @@ def main():
     sub.add_parser("status", help="プロジェクト全体のサマリ")
 
     # chain
-    p_chain = sub.add_parser("chain", help="UIDの上流→下流チェーン")
-    p_chain.add_argument("uid", help="起点となるUID")
+    p_chain = sub.add_parser("chain", help="UIDの上流→下流チェーン（UID指定またはファイル逆引き）")
+    p_chain.add_argument("uid", nargs="?", default=None,
+                         help="起点となるUID（--file と排他）")
+    p_chain.add_argument("--file", metavar="PATH",
+                         help="ファイルパスをreferencesから逆引き。該当するIMPL/TSTアイテムのチェーンを表示")
 
     # coverage
     p_cov = sub.add_parser("coverage", help="カバレッジ詳細")
