@@ -9,14 +9,14 @@ links:
 - ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 normative: true
 ref: ''
-reviewed: FLZ3YI6IidltmBLGLob7qs1hF7hvrofKkE3mFOr7o9U=
+reviewed: K5WRXwO5bWYh4ABR0dKDm-ga8ttACMaUNcqZ0CXn_DU=
 text: |
   ## インターフェース
 
   ```python
   @runtime_checkable
   class TaskDBCore(Protocol):
-      def get(self, input_key: str) -> TaskRecord | None: ...
+      def get(self, cache_key: str, *, include_expired: bool = False) -> TaskRecord | None: ...
       def save(self, record: TaskRecord) -> None: ...
 
   class TaskDBBase(ABC):

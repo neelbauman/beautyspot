@@ -8,21 +8,32 @@ level: 3.1
 links: []
 normative: false
 ref: ''
-reviewed: KOabDqzvynQuFtODPrbD16m0l-pZYk4SvisTEiqGCRM=
+reviewed: 1h45Z4ChzXddtDO2IUbGXxo_xGW6PCAf6h6AhaN-STA=
 text: |
   -   **Beautyspot**: 本キャッシュライブラリの名称。
+
   -   **Spot**: 本ライブラリにおけるキャッシュ・レート制限のコアエンジンの名称。
+
   -   **キャッシュキー (Cache Key)**: 関数の入力引数等から一意に生成される識別子。
+
   -   **キャッシュヒット**: 保存された結果を再利用し、元の関数を実行しないこと。
+
   -   **キャッシュミス**: 結果が未保存または無効のため、元の関数を実行すること。
-  -   **Thundering Herd**: 複数のクライアントが同時に同じ期限切れキャッシュ（または未キャッシュの重い処理）を要求し、システムに過負荷をかける問題。
+
   -   **メタデータDB (Metadata DB)**: キャッシュの有効期限、サイズ、関数名などの付帯情報を保存するデータストア。
+
   -   **Blobストレージ (Blob Storage)**: キャッシュの実際のペイロード（戻り値のシリアライズ結果）を保存するストレージ。
+
   -   **シリアライザ (Serializer)**: 関数の戻り値をストレージに保存可能なバイト列等に変換、および復元するコンポーネント。
+
   -   **バックグラウンドIO (Background IO)**: メインスレッド（またはタスク）の実行をブロックせず、非同期にキャッシュ保存などを行う仕組み。
+
   -   **レート制限 (Rate Limiting)**: 外部API呼び出し等の頻度を制御する仕組み。トークンバケット方式を採用。
+
   -   **Thundering Herd**: キャッシュミス時に、多数の並行リクエストが同時に同一関数を実行しようとして過負荷になる現象。
+
   -   **フック (Hook)**: キャッシュのライフサイクル（ヒット、ミス、保存前後等）に介入できるコールバック機構。
+
   -   **依存注入 (Dependency Injection / DI)**: 各コンポーネント（DB、ストレージ等）を外部から差し替え可能にする設計パターン。
 
 
@@ -30,19 +41,4 @@ text: |
 
   仕様書アイテムに付与される `groups` 属性の意味は以下の通りです。
 
-  | グループ名 | 意味 / 対象領域 |
-  | --- | --- |
-  |`CACHE`| 関数キャッシュの基本機能（同期・非同期のデコレータなど）|
-  | `KEY` |キャッシュキーの生成ロジック（引数のハッシュ化など）|
-  | `DB` | メタデータDB（有効期限、メタ情報の管理）|
-  | `STORE` | Blobストレージ（ペイロードの保存）|
-  | `SERIAL` |シリアライゼーション（データの変換処理） |
-  | `BGIO` | バックグラウンドIO（非同期書き込み処理） |
-  | `LIFE` | ライフサイクル管理（有効期限の判定、無効化ルールなど） |
-  | `LIMIT` | レート制限（トークンバケット方式等） |
-  | `HOOK` | コールバックフックの仕組み |
-  | `MAINT` | メンテナンス（キャッシュの削除、ガベージコレクション） |
-  | `CLI` | コマンドラインインターフェース |
-  | `DI` | 依存注入の仕組みとデフォルトファクトリ |
-  | `HERD` | Thundering Herd対策（直列化、重複実行防止） |
-  | `COMMON` | 共通定義（用語集など、特定の機能に縛られないもの） |
+  <table style="min-width: 50px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p>グループ名</p></th><th colspan="1" rowspan="1"><p>意味 / 対象領域</p></th></tr><tr><td colspan="1" rowspan="1"><p><code>CACHE</code></p></td><td colspan="1" rowspan="1"><p>関数キャッシュの基本機能（同期・非同期のデコレータなど）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>KEY</code></p></td><td colspan="1" rowspan="1"><p>キャッシュキーの生成ロジック（引数のハッシュ化など）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>DB</code></p></td><td colspan="1" rowspan="1"><p>メタデータDB（有効期限、メタ情報の管理）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>STORE</code></p></td><td colspan="1" rowspan="1"><p>Blobストレージ（ペイロードの保存）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>SERIAL</code></p></td><td colspan="1" rowspan="1"><p>シリアライゼーション（データの変換処理）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>BGIO</code></p></td><td colspan="1" rowspan="1"><p>バックグラウンドIO（非同期書き込み処理）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>LIFE</code></p></td><td colspan="1" rowspan="1"><p>ライフサイクル管理（有効期限の判定、無効化ルールなど）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>LIMIT</code></p></td><td colspan="1" rowspan="1"><p>レート制限（トークンバケット方式等）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>HOOK</code></p></td><td colspan="1" rowspan="1"><p>コールバックフックの仕組み</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>MAINT</code></p></td><td colspan="1" rowspan="1"><p>メンテナンス（キャッシュの削除、ガベージコレクション）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>CLI</code></p></td><td colspan="1" rowspan="1"><p>コマンドラインインターフェース</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>DI</code></p></td><td colspan="1" rowspan="1"><p>依存注入の仕組みとデフォルトファクトリ</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>HERD</code></p></td><td colspan="1" rowspan="1"><p>Thundering Herd対策（直列化、重複実行防止）</p></td></tr><tr><td colspan="1" rowspan="1"><p><code>COMMON</code></p></td><td colspan="1" rowspan="1"><p>共通定義（用語集など、特定の機能に縛られないもの）</p></td></tr></tbody></table>

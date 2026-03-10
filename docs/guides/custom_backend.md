@@ -43,7 +43,7 @@ class MemoryTaskDB(TaskDBBase):
         # メモリ上の辞書なのでスキーマ作成は不要
         pass
 
-    def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def get(self, cache_key: str, *, include_expired: bool = False) -> Optional[Dict[str, Any]]:
         return self._storage.get(cache_key)
 
     def save(
