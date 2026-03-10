@@ -59,10 +59,12 @@ def build_link_index(tree):
     parents = defaultdict(list)
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             for link in item.links:
                 uid_str = str(link)
                 parent_item = find_item(tree, uid_str)
-                if parent_item:
+                if parent_item and parent_item.active:
                     children[uid_str].append(item)
                     parents[str(item.uid)].append(parent_item)
     return children, parents
@@ -112,17 +114,19 @@ def collect_chains_by_uid(tree, uids, children_idx, parents_idx):
 
 
 def collect_chains_by_group(tree, group):
-    """指定グループに属する全アイテムのUID集合を返す。"""
+    """指定グループに属する全アイテムのUID集合を返す。active: falseのアイテムは除外。"""
     uids = set()
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             if group in get_groups(item):
                 uids.add(str(item.uid))
     return uids
 
 
 def get_all_groups(tree):
-    return sorted({g for doc in tree for item in doc for g in get_groups(item) if g != "(未分類)"})
+    return sorted({g for doc in tree for item in doc if item.active for g in get_groups(item) if g != "(未分類)"})
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +141,7 @@ def build_local_matrix(tree, related_uids):
     items_by_prefix = defaultdict(list)
     for doc in docs:
         for item in doc:
-            if str(item.uid) in related_uids:
+            if item.active and str(item.uid) in related_uids:
                 items_by_prefix[doc.prefix].append(item)
 
     root_docs = [d for d in docs if not d.parent]
@@ -192,13 +196,13 @@ def compute_local_coverage(tree, related_uids):
             continue
         parent_doc = docs[doc.parent]
 
-        parent_uids = {str(i.uid) for i in parent_doc if str(i.uid) in related_uids}
+        parent_uids = {str(i.uid) for i in parent_doc if i.active and str(i.uid) in related_uids}
         if not parent_uids:
             continue
 
         covered = set()
         for item in doc:
-            if str(item.uid) not in related_uids:
+            if not item.active or str(item.uid) not in related_uids:
                 continue
             for link in item.links:
                 if str(link) in parent_uids:
@@ -242,7 +246,7 @@ def generate_local_html(tree, related_uids, label, output_path, back_link=None):
     local_items = []
     for doc in tree:
         for item in doc:
-            if str(item.uid) in related_uids:
+            if item.active and str(item.uid) in related_uids:
                 local_items.append((item, doc.prefix))
     total = len(local_items)
     reviewed = sum(1 for item, _ in local_items if item.reviewed)
@@ -302,6 +306,8 @@ def generate_local_html(tree, related_uids, label, output_path, back_link=None):
     detail_section = ""
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             uid_str = str(item.uid)
             if uid_str not in related_uids:
                 continue
@@ -378,6 +384,8 @@ def write_local_json(tree, related_uids, label, output_path):
     items = []
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             uid_str = str(item.uid)
             if uid_str not in related_uids:
                 continue

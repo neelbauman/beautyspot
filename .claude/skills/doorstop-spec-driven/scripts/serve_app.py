@@ -243,18 +243,22 @@ class DoorstopDataStore:
         self._parents_idx = defaultdict(list)
         for doc in self.tree:
             for item in doc:
+                if not item.active:
+                    continue
                 for link in item.links:
                     parent = self._find_item(str(link))
-                    if parent:
+                    if parent and parent.active:
                         self._children_idx[str(link)].append(item)
                         self._parents_idx[str(item.uid)].append(parent)
 
         self._suspect_uids = set()
         for doc in self.tree:
             for item in doc:
+                if not item.active:
+                    continue
                 for link in item.links:
                     parent = self._find_item(str(link))
-                    if parent is None:
+                    if parent is None or not parent.active:
                         continue
                     if (
                         link.stamp is not None
@@ -410,12 +414,12 @@ class DoorstopDataStore:
         total = 0
         reviewed = 0
         for doc in self.tree:
-            count = sum(1 for item in doc if self._is_normative(item))
+            count = sum(1 for item in doc if item.active and self._is_normative(item))
             docs[str(doc.prefix)] = count
             total += count
-            reviewed += sum(1 for item in doc if item.reviewed and self._is_normative(item))
+            reviewed += sum(1 for item in doc if item.active and item.reviewed and self._is_normative(item))
 
-        groups = sorted({g for doc in self.tree for item in doc for g in self._get_groups(item) if g != "(未分類)"})
+        groups = sorted({g for doc in self.tree for item in doc if item.active for g in self._get_groups(item) if g != "(未分類)"})
         validation = self.get_validation()
         coverage = self.get_coverage()
 
@@ -439,12 +443,12 @@ class DoorstopDataStore:
 
         for document in self.tree:
             for item in document:
+                if not item.active:
+                    continue
                 if not self._is_normative(item):
                     continue
                 if not item.text.strip():
                     issues["warnings"].append(f"{item.uid}: テキストが空です")
-                if not item.active:
-                    issues["warnings"].append(f"{item.uid}: 非アクティブです")
 
         docs = {doc.prefix: doc for doc in self.tree}
         for document in self.tree:
@@ -457,9 +461,9 @@ class DoorstopDataStore:
                 )
                 continue
 
-            parent_uids = {str(item.uid) for item in parent_doc if self._is_normative(item)}
+            parent_uids = {str(item.uid) for item in parent_doc if item.active and self._is_normative(item)}
             for item in document:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 linked_parents = [
                     str(link) for link in item.links
@@ -477,9 +481,9 @@ class DoorstopDataStore:
                             f"{item.uid}: リンク先 {link_uid} が存在しません"
                         )
 
-            parent_groups = {str(i.uid): self._get_groups(i) for i in parent_doc if self._is_normative(i)}
+            parent_groups = {str(i.uid): self._get_groups(i) for i in parent_doc if i.active and self._is_normative(i)}
             for item in document:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 child_groups = self._get_groups(item)
                 if not child_groups or child_groups == ["(未分類)"]:
@@ -497,14 +501,14 @@ class DoorstopDataStore:
             if self.strict:
                 child_links = defaultdict(set)
                 for item in document:
-                    if not self._is_normative(item):
+                    if not item.active or not self._is_normative(item):
                         continue
                     for link in item.links:
                         link_str = str(link)
                         if link_str.startswith(document.parent):
                             child_links[link_str].add(str(item.uid))
                 for parent_item in parent_doc:
-                    if not self._is_normative(parent_item):
+                    if not parent_item.active or not self._is_normative(parent_item):
                         continue
                     if str(parent_item.uid) not in child_links:
                         issues["warnings"].append(
@@ -517,7 +521,7 @@ class DoorstopDataStore:
             if document.prefix not in ref_docs:
                 continue
             for item in document:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 ref = self._get_ref(item)
                 if not ref:
@@ -532,7 +536,7 @@ class DoorstopDataStore:
         unreviewed = []
         for document in self.tree:
             for item in document:
-                if self._is_normative(item) and not item.reviewed:
+                if item.active and self._is_normative(item) and not item.reviewed:
                     unreviewed.append(str(item.uid))
         if unreviewed:
             issues["info"].append(
@@ -550,11 +554,11 @@ class DoorstopDataStore:
             if not doc.parent or doc.parent not in docs:
                 continue
             parent_doc = docs[doc.parent]
-            parent_uids = {str(item.uid) for item in parent_doc if self._is_normative(item)}
+            parent_uids = {str(item.uid) for item in parent_doc if item.active and self._is_normative(item)}
             covered_uids = set()
 
             for item in doc:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 for link in item.links:
                     link_str = str(link)
@@ -567,11 +571,11 @@ class DoorstopDataStore:
 
             group_cov = defaultdict(lambda: {"total": set(), "covered": set()})
             for pi in parent_doc:
-                if self._is_normative(pi):
+                if pi.active and self._is_normative(pi):
                     for g in self._get_groups(pi):
                         group_cov[g]["total"].add(str(pi.uid))
             for item in doc:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 for link in item.links:
                     link_str = str(link)
@@ -606,7 +610,7 @@ class DoorstopDataStore:
         root_docs = [d for d in docs if not d.parent]
         for root_doc in root_docs:
             for item in root_doc:
-                if not self._is_normative(item):
+                if not item.active or not self._is_normative(item):
                     continue
                 row = {root_doc.prefix: item, "_groups": self._get_groups(item)}
                 matrix.append(row)
@@ -616,7 +620,7 @@ class DoorstopDataStore:
             for child_doc in child_docs:
                 link_map = defaultdict(list)
                 for child_item in child_doc:
-                    if not self._is_normative(child_item):
+                    if not child_item.active or not self._is_normative(child_item):
                         continue
                     for link in child_item.links:
                         link_str = str(link)
@@ -697,6 +701,8 @@ class DoorstopDataStore:
         groups = defaultdict(lambda: {"items": 0, "reviewed": 0, "suspect": 0})
         for doc in self.tree:
             for item in doc:
+                if not item.active:
+                    continue
                 for g in self._get_groups(item):
                     groups[g]["items"] += 1
                     if self._is_normative(item):
@@ -710,6 +716,8 @@ class DoorstopDataStore:
         group_uids = set()
         for doc in self.tree:
             for item in doc:
+                if not item.active:
+                    continue
                 if group_name in self._get_groups(item):
                     group_uids.add(str(item.uid))
 
@@ -739,7 +747,7 @@ class DoorstopDataStore:
 
     def get_item(self, uid):
         item = self._find_item(uid)
-        if item is None:
+        if item is None or not item.active:
             return None
         data = self._item_to_dict(item)
         # Find prev/next and siblings in the same document
@@ -774,6 +782,8 @@ class DoorstopDataStore:
             if prefix and doc.prefix != prefix:
                 continue
             for item in doc:
+                if not item.active:
+                    continue
                 if group and group not in self._get_groups(item):
                     continue
                 items.append(self._item_summary(item, doc.prefix))
@@ -784,6 +794,8 @@ class DoorstopDataStore:
             if doc.prefix == prefix:
                 items = []
                 for item in doc:
+                    if not item.active:
+                        continue
                     items.append(self._item_to_dict(item, doc.prefix))
                 # Sort by level (natural sort)
                 import re
@@ -831,13 +843,13 @@ class DoorstopDataStore:
                 continue
             parent_doc = docs[doc.parent]
 
-            parent_uids = {str(i.uid) for i in parent_doc if str(i.uid) in related_uids and self._is_normative(i)}
+            parent_uids = {str(i.uid) for i in parent_doc if i.active and str(i.uid) in related_uids and self._is_normative(i)}
             if not parent_uids:
                 continue
 
             covered = set()
             for item in doc:
-                if str(item.uid) not in related_uids or not self._is_normative(item):
+                if not item.active or str(item.uid) not in related_uids or not self._is_normative(item):
                     continue
                 for link in item.links:
                     if str(link) in parent_uids:

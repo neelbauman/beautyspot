@@ -71,7 +71,8 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
   ├─ バグ修正？                  → [C] バグ修正フロー
   ├─ 状況確認？                  → [D] レポートフロー
   ├─ リリース前チェック？        → [E] リリースゲート
-  └─ 既存プロジェクトへの初期導入？ → [F] 初期導入フロー
+  ├─ 既存プロジェクトへの初期導入？ → [F] 初期導入フロー
+  └─ 機能削除・要件取り下げ？    → [G] 非活性化（削除）フロー
 ```
 
 ## [A] 新規開発フロー
@@ -120,7 +121,10 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 | カバレッジ詳細 | `trace_query.py <dir> coverage [--group GROUP]` |
 | suspect一覧 | `trace_query.py <dir> suspects` |
 | リンク漏れ検出 | `trace_query.py <dir> gaps [--document IMPL]` |
-| CRUD操作 | `doorstop_ops.py <dir> add/update/link/clear/review` |
+| CRUD操作 | `doorstop_ops.py <dir> add/update/link/unlink/clear/review` |
+| 非活性化（単体） | `doorstop_ops.py <dir> deactivate <UID> [<UID2> ...]` |
+| 非活性化（チェーン） | `doorstop_ops.py <dir> deactivate-chain <UID> [--force]` |
+| 活性化（チェーン） | `doorstop_ops.py <dir> activate-chain <UID>` |
 | 静的HTMLレポート | `validate_and_report.py <dir> --output-dir ./reports --strict` |
 | ダッシュボード | `validate_and_report.py <dir> --serve [--port 8080]` |
 | 影響分析 | `impact_analysis.py <dir> --detect-suspects [--json PATH]` |
@@ -156,6 +160,29 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile lite
 - 一度にすべて網羅しなくてよい。主要機能から段階的に導入する
 - 既存テストがない機能はTSTアイテムのみ作成し、テストは後日追加でもよい
 - ベースライン確立前のsuspectは過渡期ノイズであり、一括clearする
+
+## [G] 非活性化（削除）フロー
+
+要件が不要になった、または機能を削除するとき。
+アイテムは物理削除せず `active: false` にして履歴を保持する。
+
+1. **影響分析** — `trace_query.py chain <UID>` で下流チェーン全体を把握
+2. **判断** — チェーン内の各アイテムを検査し、非活性化すべきか判断:
+   - 他に活性な親リンクを持たないアイテム → 非活性化対象
+   - 他に活性な親リンクを持つアイテム → 存続（リンク張り替えを検討）
+3. **リンク整理** — 不要なリンクを `doorstop_ops.py unlink` で削除。別のアイテムに繋ぎ替える場合は `doorstop_ops.py link` で新リンクを張る
+4. **非活性化実行** — 方法を選択:
+   - **一括**: `doorstop_ops.py deactivate-chain <UID>` — 下流を自動検査し、他に活性な親を持たないアイテムを連鎖的に非活性化
+   - **強制一括**: `doorstop_ops.py deactivate-chain <UID> --force` — 下流を無条件に非活性化
+   - **個別**: `doorstop_ops.py deactivate <UID1> <UID2> ...` — 指定アイテムのみ非活性化
+5. **コード整理** — 非活性化されたIMPL/TSTに紐づくコード・テストを削除またはアーカイブ
+6. **検証** — `validate_and_report.py --strict`。非活性アイテムはバリデーション対象外
+7. **報告** — 非活性化したアイテム一覧と、存続したアイテム（リンク張り替え）を報告
+
+注意事項:
+- 非活性化は可逆。`doorstop_ops.py activate-chain <UID>` で復元できる
+- 非活性アイテムはカバレッジ計算・リンク漏れチェックから除外される
+- 物理削除（YAMLファイルの削除）は行わない。Git履歴で追跡可能にする
 
 ## ドキュメント属性
 

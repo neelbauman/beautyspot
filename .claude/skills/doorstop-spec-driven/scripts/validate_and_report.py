@@ -46,12 +46,12 @@ def validate_tree(tree, strict=False, project_dir="."):
     # 基本チェック
     for document in tree:
         for item in document:
+            if not item.active:
+                continue
             if not is_normative(item):
                 continue
             if not item.text.strip():
                 issues["warnings"].append(f"{item.uid}: テキストが空です")
-            if not item.active:
-                issues["warnings"].append(f"{item.uid}: 非アクティブです")
 
     # 親子リンクの検証
     docs = {doc.prefix: doc for doc in tree}
@@ -65,9 +65,9 @@ def validate_tree(tree, strict=False, project_dir="."):
             )
             continue
 
-        parent_uids = {str(item.uid) for item in parent_doc if is_normative(item)}
+        parent_uids = {str(item.uid) for item in parent_doc if item.active and is_normative(item)}
         for item in document:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             linked_parents = [
                 str(link) for link in item.links
@@ -86,9 +86,9 @@ def validate_tree(tree, strict=False, project_dir="."):
                     )
 
         # クロスグループリンク警告
-        parent_groups = {str(i.uid): get_groups(i) for i in parent_doc if is_normative(i)}
+        parent_groups = {str(i.uid): get_groups(i) for i in parent_doc if i.active and is_normative(i)}
         for item in document:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             child_groups = get_groups(item)
             if not child_groups or child_groups == ["(未分類)"]:
@@ -107,14 +107,14 @@ def validate_tree(tree, strict=False, project_dir="."):
         if strict:
             child_links = defaultdict(set)
             for item in document:
-                if not is_normative(item):
+                if not item.active or not is_normative(item):
                     continue
                 for link in item.links:
                     link_str = str(link)
                     if link_str.startswith(document.parent):
                         child_links[link_str].add(str(item.uid))
             for parent_item in parent_doc:
-                if not is_normative(parent_item):
+                if not parent_item.active or not is_normative(parent_item):
                     continue
                 if str(parent_item.uid) not in child_links:
                     issues["warnings"].append(
@@ -128,7 +128,7 @@ def validate_tree(tree, strict=False, project_dir="."):
         if document.prefix not in ref_docs:
             continue
         for item in document:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             refs = get_references(item)
             for ref_entry in refs:
@@ -146,7 +146,7 @@ def validate_tree(tree, strict=False, project_dir="."):
     design_prefixes = {"ARCH", "SPEC", "HLD", "LLD"}
     for document in tree:
         for item in document:
-            if not is_derived(item):
+            if not item.active or not is_derived(item):
                 continue
             if document.prefix in ("IMPL", "TST"):
                 issues["errors"].append(
@@ -169,7 +169,7 @@ def validate_tree(tree, strict=False, project_dir="."):
     unreviewed = []
     for document in tree:
         for item in document:
-            if is_normative(item) and not item.reviewed:
+            if item.active and is_normative(item) and not item.reviewed:
                 unreviewed.append(str(item.uid))
     if unreviewed:
         issues["info"].append(
@@ -193,7 +193,7 @@ def build_traceability_matrix(tree):
     root_docs = [d for d in docs if not d.parent]
     for root_doc in root_docs:
         for item in root_doc:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             row = {root_doc.prefix: item, "_groups": get_groups(item)}
             matrix.append(row)
@@ -203,7 +203,7 @@ def build_traceability_matrix(tree):
         for child_doc in child_docs:
             link_map = defaultdict(list)
             for child_item in child_doc:
-                if not is_normative(child_item):
+                if not child_item.active or not is_normative(child_item):
                     continue
                 for link in child_item.links:
                     link_str = str(link)
@@ -240,11 +240,11 @@ def compute_coverage(tree):
         if not doc.parent or doc.parent not in docs:
             continue
         parent_doc = docs[doc.parent]
-        parent_uids = {str(item.uid) for item in parent_doc if is_normative(item)}
+        parent_uids = {str(item.uid) for item in parent_doc if item.active and is_normative(item)}
         covered_uids = set()
 
         for item in doc:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             for link in item.links:
                 link_str = str(link)
@@ -258,11 +258,11 @@ def compute_coverage(tree):
         # グループ別
         group_cov = defaultdict(lambda: {"total": set(), "covered": set()})
         for pi in parent_doc:
-            if is_normative(pi):
+            if pi.active and is_normative(pi):
                 for g in get_groups(pi):
                     group_cov[g]["total"].add(str(pi.uid))
         for item in doc:
-            if not is_normative(item):
+            if not item.active or not is_normative(item):
                 continue
             for link in item.links:
                 link_str = str(link)
@@ -310,12 +310,12 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
     with open(f"{os.path.dirname(output_path)}/.gitignore", "w", encoding="utf-8") as f:
         f.write("*")
 
-    all_groups = sorted({g for doc in tree for item in doc for g in get_groups(item) if g != "(未分類)"})
+    all_groups = sorted({g for doc in tree for item in doc if item.active for g in get_groups(item) if g != "(未分類)"})
     suspect_uids = detect_suspect_uids(tree)
 
     # レビュー統計
-    total_items = sum(1 for d in tree for item in d if is_normative(item))
-    reviewed_items = sum(1 for d in tree for item in d if item.reviewed and is_normative(item))
+    total_items = sum(1 for d in tree for item in d if item.active and is_normative(item))
+    reviewed_items = sum(1 for d in tree for item in d if item.active and item.reviewed and is_normative(item))
     suspect_count = len(suspect_uids)
 
     # --- Body sections ---
@@ -403,6 +403,8 @@ def generate_html_report(tree, issues, matrix, prefixes, coverage, output_path):
     item_detail_section = ""
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             groups = get_groups(item)
             safe_group = groups[0].replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "") if groups else "none"
             local_view_href = f"local/trace_{safe_group}.html#detail-{item.uid}"
@@ -591,15 +593,15 @@ def main():
     _generate_local_views(tree, output_dir)
 
     if args.json:
-        total_items = sum(1 for d in tree for item in d if is_normative(item))
+        total_items = sum(1 for d in tree for item in d if item.active and is_normative(item))
         reviewed_items = sum(
             1 for d in tree for item in d
-            if item.reviewed and is_normative(item)
+            if item.active and item.reviewed and is_normative(item)
         )
         summary = {
             "timestamp": datetime.now().isoformat(),
-            "documents": {doc.prefix: len([i for i in doc if is_normative(i)]) for doc in tree},
-            "groups": sorted({get_groups(item) for doc in tree for item in doc}),
+            "documents": {doc.prefix: len([i for i in doc if i.active and is_normative(i)]) for doc in tree},
+            "groups": sorted({get_groups(item) for doc in tree for item in doc if item.active}),
             "review_status": {"total": total_items, "reviewed": reviewed_items},
             "issues": issues,
             "coverage": coverage,
@@ -610,12 +612,12 @@ def main():
         print(f"JSONサマリ: {json_path}")
 
     # コンソールサマリ
-    total_items = sum(1 for d in tree for item in d if is_normative(item))
+    total_items = sum(1 for d in tree for item in d if item.active and is_normative(item))
     reviewed_items = sum(
         1 for d in tree for item in d
-        if item.reviewed and is_normative(item)
+        if item.active and item.reviewed and is_normative(item)
     )
-    groups = sorted({g for doc in tree for item in doc for g in get_groups(item) if g != "(未分類)"})
+    groups = sorted({g for doc in tree for item in doc if item.active for g in get_groups(item) if g != "(未分類)"})
 
     print("\n===== バリデーション結果 =====")
     print(f"ドキュメント: {', '.join(d.prefix for d in tree)}")

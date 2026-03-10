@@ -116,13 +116,15 @@ def find_item(tree, uid_str):
 # ---------------------------------------------------------------------------
 
 def detect_suspect_uids(tree):
-    """suspectリンクを持つアイテムのUIDセットを返す。"""
+    """suspectリンクを持つアイテムのUIDセットを返す。active: falseのアイテムは除外。"""
     suspect = set()
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             for link in item.links:
                 parent = find_item(tree, str(link))
-                if parent is None:
+                if parent is None or not parent.active:
                     continue
                 if (
                     link.stamp is not None
@@ -139,10 +141,12 @@ def detect_suspect_uids(tree):
 # ---------------------------------------------------------------------------
 
 def build_children_map(tree, related_uids=None):
-    """親UID → 子UIDリストの逆引きマップを構築する。"""
+    """親UID → 子UIDリストの逆引きマップを構築する。active: falseのアイテムは除外。"""
     children_map = defaultdict(list)
     for doc in tree:
         for item in doc:
+            if not item.active:
+                continue
             if related_uids and str(item.uid) not in related_uids:
                 continue
             for link in item.links:

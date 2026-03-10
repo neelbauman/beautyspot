@@ -234,6 +234,40 @@ doorstop_ops.py <dir> update REQ001 --set-non-normative
 doorstop_ops.py <dir> link SPEC001 REQ001    # SPEC001 → REQ001 へリンク
 ```
 
+#### リンク削除（unlink）
+```bash
+doorstop_ops.py <dir> unlink SPEC001 REQ001  # SPEC001 → REQ001 のリンクを削除
+```
+
+リンクの張り替え（別の親に繋ぎ直す）:
+```bash
+doorstop_ops.py <dir> unlink SPEC001 REQ001  # 旧リンクを削除
+doorstop_ops.py <dir> link SPEC001 REQ002    # 新リンクを追加
+```
+
+#### 非活性化（deactivate）
+```bash
+# 単体の非活性化
+doorstop_ops.py <dir> deactivate REQ001          # REQ001 を active: false に
+doorstop_ops.py <dir> deactivate REQ001 SPEC001  # 複数UID指定可
+
+# チェーン非活性化（下流を自動検査し連鎖的に非活性化）
+doorstop_ops.py <dir> deactivate-chain REQ001
+# → REQ001 と、他に活性な親を持たない下流アイテムを一括非活性化
+
+# 強制チェーン非活性化（他に活性な親があっても強制）
+doorstop_ops.py <dir> deactivate-chain REQ001 --force
+```
+
+#### 活性化（activate）
+```bash
+# 単体の活性化
+doorstop_ops.py <dir> activate REQ001 SPEC001
+
+# チェーン活性化（下流を連鎖的に活性化）
+doorstop_ops.py <dir> activate-chain REQ001
+```
+
 #### suspect解消（clear）
 ```bash
 doorstop_ops.py <dir> clear SPEC001 SPEC002  # 複数UID指定可

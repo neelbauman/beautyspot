@@ -103,13 +103,23 @@ def is_normative(item):
 # Tree navigation
 # ---------------------------------------------------------------------------
 
-def find_item(tree, uid_str):
-    """UID文字列からアイテムを検索する。見つからなければ None。"""
+def find_item(tree, uid_str, include_inactive=False):
+    """UID文字列からアイテムを検索する。見つからなければ None。
+
+    Args:
+        include_inactive: True にすると active: false のアイテムも返す。
+                          activate / activate-chain 等で必要。
+    """
     for doc in tree:
         try:
             return doc.find_item(uid_str)
         except Exception:
-            continue
+            pass
+    if include_inactive:
+        for doc in tree:
+            for item in doc:
+                if str(item.uid) == uid_str:
+                    return item
     return None
 
 
@@ -121,7 +131,12 @@ def find_doc_prefix(tree, item):
             doc.find_item(uid_str)
             return doc.prefix
         except Exception:
-            continue
+            pass
+    # active: false のアイテムはイテレーションで探す
+    for doc in tree:
+        for it in doc:
+            if str(it.uid) == uid_str:
+                return doc.prefix
     return "?"
 
 
@@ -144,8 +159,11 @@ def is_suspect(item, tree):
 # Link index
 # ---------------------------------------------------------------------------
 
-def build_link_index(tree):
+def build_link_index(tree, include_inactive=False):
     """上流・下流のリンクインデックスを構築する。
+
+    Args:
+        include_inactive: True にすると active: false のアイテムも索引に含める。
 
     Returns:
         children: {parent_uid: [(child_item, child_doc_prefix), ...]}
@@ -155,9 +173,11 @@ def build_link_index(tree):
     parents = defaultdict(list)
     for doc in tree:
         for item in doc:
+            if not include_inactive and not item.active:
+                continue
             for link in item.links:
                 uid_str = str(link)
-                parent_item = find_item(tree, uid_str)
+                parent_item = find_item(tree, uid_str, include_inactive=include_inactive)
                 if parent_item:
                     children[uid_str].append((item, doc.prefix))
                     parents[str(item.uid)].append(
