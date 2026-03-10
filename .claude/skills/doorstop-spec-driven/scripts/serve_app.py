@@ -190,7 +190,7 @@ class DoorstopDataStore:
                 parts = line.split("\t", 1)
                 if len(parts) != 2:
                     continue
-                status, fpath = parts
+                _, fpath = parts
                 fpath = fpath.strip()
                 if fpath not in meta:
                     # First encounter = most recent commit (git log is newest-first)
@@ -953,14 +953,14 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
         elif path in ("", "/", "/index.html"):
             self._serve_html(_load_spa_html())
         elif path == "/api/download_report":
-            report_path = os.path.join(self.store.project_dir, "specification", "reports", "publish", "published_docs.html")
+            report_path = os.path.join(self.store.project_dir, "specification", "reports", "publish", "specification.html")
             if os.path.exists(report_path):
                 with open(report_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 body = content.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Disposition", 'attachment; filename="published_docs.html"')
+                self.send_header("Content-Disposition", 'attachment; filename="specification.html"')
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
