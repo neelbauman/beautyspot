@@ -258,7 +258,7 @@ def print_console(results, tree):
 
     for r in results:
         print(f"\n{'─'*60}")
-        print(f"■ {r['uid']} [{r['group']}] ({r['prefix']})")
+        print(f"■ {r['uid']} [{'/'.join(r.get('groups', ['?']))}] ({r['prefix']})")
         print(f"  {r['text']}")
         if r["ref"]:
             print(f"  ref: {r['ref']}")
@@ -267,7 +267,7 @@ def print_console(results, tree):
             print("\n  [上流 ← なぜ変わった？]")
             for u in r["upstream"]:
                 indent = "    " + "  " * u["depth"]
-                print(f"{indent}← {u['uid']} [{u['group']}] ({u['prefix']})")
+                print(f"{indent}← {u['uid']} [{'/'.join(u.get('groups', ['?']))}] ({u['prefix']})")
                 print(f"{indent}  {u['text']}")
 
         if r["downstream"] or r["suspect_children"]:
@@ -275,7 +275,7 @@ def print_console(results, tree):
             for d in r["downstream"]:
                 indent = "    " + "  " * d["depth"]
                 suspect_mark = " ⚠ suspect" if d["uid"] in {s["uid"] for s in r["suspect_children"]} else ""
-                print(f"{indent}→ {d['uid']} [{d['group']}] ({d['prefix']}){suspect_mark}")
+                print(f"{indent}→ {d['uid']} [{'/'.join(d.get('groups', ['?']))}] ({d['prefix']}){suspect_mark}")
                 print(f"{indent}  {d['text']}")
                 if d.get("ref"):
                     print(f"{indent}  ref: {d['ref']}")
@@ -367,7 +367,7 @@ def write_html(results, output_path):
                 items_html += (
                     f"<div class='trace-item' style='margin-left:{u['depth']*20}px'>"
                     f"← <strong>{h(u['uid'])}</strong> "
-                    f"<span class='group-tag'>{h(u['group'])}</span> "
+                    f"<span class='group-tag'>{h('/'.join(u.get('groups', ['?'])))}</span> "
                     f"<span class='prefix-tag'>{h(u['prefix'])}</span>"
                     f"<br><span class='text-preview'>{h(u['text'])}</span></div>"
                 )
@@ -385,7 +385,7 @@ def write_html(results, output_path):
                 items_html += (
                     f"<div class='trace-item{suspect_cls}' style='margin-left:{d['depth']*20}px'>"
                     f"→ <strong>{h(d['uid'])}</strong> "
-                    f"<span class='group-tag'>{h(d['group'])}</span> "
+                    f"<span class='group-tag'>{h('/'.join(d.get('groups', ['?'])))}</span> "
                     f"<span class='prefix-tag'>{h(d['prefix'])}</span>"
                     f"{suspect_badge}"
                     f"<br><span class='text-preview'>{h(d['text'])}</span>"
@@ -401,11 +401,12 @@ def write_html(results, output_path):
 
         ref_html = f"<br><span class='ref-tag'>{h(r['ref'])}</span>" if r["ref"] else ""
 
+        _r_groups_str = '/'.join(r.get('groups', ['?']))
         impact_cards += f"""
-        <div class="impact-card" data-group="{h(r['group'])}">
+        <div class="impact-card" data-group="{h(_r_groups_str)}">
             <div class="impact-header">
                 <strong>{h(r['uid'])}</strong>
-                <span class="group-tag">{h(r['group'])}</span>
+                <span class="group-tag">{h(_r_groups_str)}</span>
                 <span class="prefix-tag">{h(r['prefix'])}</span>
             </div>
             <div class="impact-body">
