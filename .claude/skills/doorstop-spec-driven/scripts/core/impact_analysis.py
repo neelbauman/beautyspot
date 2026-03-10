@@ -33,11 +33,11 @@ from datetime import datetime
 try:
     import doorstop
 except ImportError:
-    print("ERROR: doorstop がインストールされていません。", file=sys.stderr)
-    sys.exit(1)
+    from _common import out
+    out({"ok": False, "error": "doorstop がインストールされていません"})
 
 from _common import (
-    get_groups, get_ref, find_item as find_item_in_tree,
+    out, get_groups, get_ref, find_item as find_item_in_tree,
     find_doc_prefix as _find_doc_prefix, build_link_index,
     build_doc_file_map,
 )
@@ -533,7 +533,11 @@ def main():
     os.chdir(project_dir)
 
     print("ドキュメントツリーを構築中...")
-    tree = doorstop.build()
+    try:
+        tree = doorstop.build()
+    except Exception as e:
+        out({"ok": False, "error": f"ツリー構築失敗: {e}"})
+        return
 
     # 変更アイテムを収集（複数方式を統合、重複排除）
     changed_map = {}  # uid -> item

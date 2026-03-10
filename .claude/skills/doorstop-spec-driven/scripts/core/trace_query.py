@@ -26,16 +26,14 @@ Examples:
 """
 
 import argparse
-import json
 import os
-import sys
 from collections import defaultdict
 
 try:
     import doorstop
 except ImportError:
-    print(json.dumps({"ok": False, "error": "doorstop がインストールされていません"}))
-    sys.exit(1)
+    from _common import out
+    out({"ok": False, "error": "doorstop がインストールされていません"})
 
 from _common import (
     out, get_groups, get_references, is_derived, is_normative,
@@ -252,6 +250,11 @@ def cmd_coverage(tree, args):
     """カバレッジ詳細。"""
     docs = {doc.prefix: doc for doc in tree}
     result = {}
+    
+    # グループフィルタの解析
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
 
     for doc in tree:
         if not doc.parent or doc.parent not in docs:
@@ -259,8 +262,8 @@ def cmd_coverage(tree, args):
         parent_doc = docs[doc.parent]
 
         # グループフィルタ
-        if args.group:
-            parent_items = [i for i in parent_doc if args.group in get_groups(i) and is_normative(i)]
+        if filter_groups:
+            parent_items = [i for i in parent_doc if any(fg in get_groups(i) for fg in filter_groups) and is_normative(i)]
         else:
             parent_items = [i for i in parent_doc if is_normative(i)]
 
@@ -273,8 +276,8 @@ def cmd_coverage(tree, args):
         uncovered = set(parent_uids)
 
         child_items = [i for i in doc if is_normative(i)]
-        if args.group:
-            child_items = [i for i in child_items if args.group in get_groups(i)]
+        if filter_groups:
+            child_items = [i for i in child_items if any(fg in get_groups(i) for fg in filter_groups)]
             
         for item in child_items:
             for link in item.links:
@@ -320,12 +323,19 @@ def cmd_suspects(tree, args):
     children_idx, _ = build_link_index(tree)
     suspects = []
 
+    # グループフィルタの解析
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
+
     for doc in tree:
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and args.group not in get_groups(item):
-                continue
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
             if not is_suspect(item, tree):
                 continue
 
@@ -395,6 +405,11 @@ def cmd_gaps(tree, args):
     missing_links = []   # 親リンクがあるべきなのに無いアイテム
     missing_refs = []    # ref必須(IMPL/TST)なのに未設定
     orphan_children = [] # 子から参照されていないアイテム
+    
+    # グループフィルタの解析
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
 
     for doc in tree:
         if args.document and doc.prefix != args.document:
@@ -402,8 +417,10 @@ def cmd_gaps(tree, args):
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and args.group not in get_groups(item):
-                continue
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
 
             uid_str = str(item.uid)
 
@@ -439,8 +456,10 @@ def cmd_gaps(tree, args):
         for item in doc:
             if not is_normative(item):
                 continue
-            if args.group and args.group not in get_groups(item):
-                continue
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
             uid_str = str(item.uid)
             if not children_idx.get(uid_str):
                 orphan_children.append({
@@ -509,6 +528,7 @@ def main():
         tree = doorstop.build()
     except Exception as e:
         out({"ok": False, "error": f"ツリー構築失敗: {e}"})
+        return
 
     cmd_map = {
         "status": cmd_status,
