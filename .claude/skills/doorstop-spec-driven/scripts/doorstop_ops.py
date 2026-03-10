@@ -31,7 +31,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    out, get_group, find_item as _find_item_safe,
+    out, get_groups, find_item as _find_item_safe,
     find_doc_prefix as _find_prefix,
     item_to_dict,
 )
@@ -60,12 +60,14 @@ def cmd_add(tree, args):
     if args.header:
         item.header = args.header
     if args.group:
-        item.set("group", args.group)
+        item.set("groups", [g.strip() for g in args.group.split(",") if g.strip()])
     if args.ref:
         item.ref = args.ref
     if args.references:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.non_normative:
+        item.set("normative", False)
 
     # リンク（追加後に clear でフィンガープリントを保存し、suspect を防ぐ）
     link_uids = args.links or []
@@ -93,12 +95,16 @@ def cmd_update(tree, args):
     if args.header is not None:
         item.header = args.header
     if args.group is not None:
-        item.set("group", args.group)
+        item.set("groups", [g.strip() for g in args.group.split(",") if g.strip()])
     if args.ref is not None:
         item.ref = args.ref
     if args.references is not None:
         refs = json.loads(args.references)
         item.set("references", refs)
+    if args.set_normative:
+        item.set("normative", True)
+    elif args.set_non_normative:
+        item.set("normative", False)
 
     item.save()
 
@@ -179,7 +185,7 @@ def cmd_list(tree, args):
         if args.document and doc.prefix != args.document:
             continue
         for item in doc:
-            if args.group and get_group(item) != args.group:
+            if args.group and args.group not in get_groups(item):
                 continue
             items.append(item_to_dict(item, doc.prefix, tree=tree))
 
@@ -196,11 +202,11 @@ def cmd_groups(tree, args):
     groups = {}
     for doc in tree:
         for item in doc:
-            g = get_group(item) or "(未分類)"
-            if g not in groups:
-                groups[g] = {"count": 0, "documents": set()}
-            groups[g]["count"] += 1
-            groups[g]["documents"].add(doc.prefix)
+            for g in get_groups(item):
+                if g not in groups:
+                    groups[g] = {"count": 0, "documents": set()}
+                groups[g]["count"] += 1
+                groups[g]["documents"].add(doc.prefix)
 
     result = {
         g: {"count": d["count"], "documents": sorted(d["documents"])}
@@ -268,6 +274,7 @@ def main():
     p_add.add_argument("-l", "--level", help="レベル")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
+    p_add.add_argument("--non-normative", action="store_true", help="非規範的アイテム（見出し等）として追加")
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
 
     # update
@@ -278,6 +285,8 @@ def main():
     p_upd.add_argument("-g", "--group", help="新グループ")
     p_upd.add_argument("-r", "--ref", help="新参照パス")
     p_upd.add_argument("--references", help='外部ファイル紐付け（JSON文字列）')
+    p_upd.add_argument("--set-normative", action="store_true", help="規範的アイテムに設定")
+    p_upd.add_argument("--set-non-normative", action="store_true", help="非規範的アイテムに設定")
 
     # link
     p_link = sub.add_parser("link", help="リンク追加")

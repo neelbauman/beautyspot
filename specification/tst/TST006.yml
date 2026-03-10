@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   KeyGenPolicy テスト
-level: 1.5
+level: 2.6
 links:
 - SPEC006: y-D3NAZNBRKUNvjLjOC52CE4L4pRT7ymvX2IZLfgjyM=
 normative: true

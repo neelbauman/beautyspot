@@ -73,9 +73,9 @@ def _configure_attributes(yml_path):
         config = yaml.safe_load(f)
 
     config["attributes"] = {
-        "defaults": {"group": ""},
-        "reviewed": ["group"],
-        "publish": ["group"],
+        "defaults": {"groups": []},
+        "reviewed": ["groups"],
+        "publish": ["groups"],
     }
 
     with open(yml_path, "w") as f:
@@ -179,7 +179,7 @@ def main():
         print("  item.set('test_level', 'acceptance')   # 受入テスト")
 
     print("\n機能グループの設定:")
-    print("  item.set('group', 'AUTH')  # AUTH, PAY, USR など")
+    print("  item.set('groups', ['AUTH'])  # AUTH, PAY, USR など")
     print("  item.save()")
 
 

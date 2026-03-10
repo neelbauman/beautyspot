@@ -169,6 +169,7 @@ body { font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .tag-reviewed { background: var(--success-bg); color: var(--success); }
 .tag-unreviewed { background: #f1f3f4; color: var(--text-secondary); }
 .tag-suspect { background: var(--suspect-bg); color: var(--suspect); }
+.tag-non-normative { background: #f1f3f4; color: var(--text-secondary); border: 1px dashed var(--border); }
 
 /* Table */
 table { border-collapse: collapse; width: 100%; background: var(--surface); margin: 12px 0; }

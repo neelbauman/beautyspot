@@ -36,7 +36,7 @@ except ImportError:
 
 from html_builder import (
     h,
-    get_group,
+    get_groups,
     get_ref,
     find_item,
     detect_suspect_uids,
@@ -116,13 +116,13 @@ def collect_chains_by_group(tree, group):
     uids = set()
     for doc in tree:
         for item in doc:
-            if get_group(item) == group:
+            if group in get_groups(item):
                 uids.add(str(item.uid))
     return uids
 
 
 def get_all_groups(tree):
-    return sorted({get_group(item) for doc in tree for item in doc})
+    return sorted({g for doc in tree for item in doc for g in get_groups(item) if g != "(未分類)"})
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +144,7 @@ def build_local_matrix(tree, related_uids):
     matrix = []
     for root_doc in root_docs:
         for item in items_by_prefix.get(root_doc.prefix, []):
-            row = {root_doc.prefix: item, "_group": get_group(item)}
+            row = {root_doc.prefix: item, "_groups": get_groups(item)}
             matrix.append(row)
 
     def expand_children(doc, parent_prefix):
@@ -249,7 +249,7 @@ def generate_local_html(tree, related_uids, label, output_path, back_link=None):
     suspects_in_view = sum(
         1 for item, _ in local_items if str(item.uid) in suspect_uids
     )
-    groups_in_view = sorted({get_group(item) for item, _ in local_items})
+    groups_in_view = sorted({g for item, _ in local_items for g in get_groups(item) if g != "(未分類)"})
     doc_counts = defaultdict(int)
     for item, prefix in local_items:
         doc_counts[prefix] += 1
@@ -284,8 +284,9 @@ def generate_local_html(tree, related_uids, label, output_path, back_link=None):
     header_cells = "<th>グループ</th>" + "".join(f"<th>{h(p)}</th>" for p in prefixes)
     matrix_rows = ""
     for row in matrix:
-        group = h(row.get("_group", "(未分類)"))
-        cells = f'<td><span class="group-tag">{group}</span></td>'
+        groups = row.get("_groups", ["(未分類)"])
+        group_tags = " ".join(f'<span class="group-tag">{h(g)}</span>' for g in groups)
+        cells = f'<td>{group_tags}</td>'
         for prefix in prefixes:
             item = row.get(prefix)
             if item:
@@ -295,7 +296,7 @@ def generate_local_html(tree, related_uids, label, output_path, back_link=None):
                 cells += td
             else:
                 cells += '<td class="empty">\u2014</td>'
-        matrix_rows += f'<tr data-group="{group}">{cells}</tr>'
+        matrix_rows += f'<tr data-groups="{h(" ".join(groups))}">{cells}</tr>'
 
     # Detail cards
     detail_section = ""
@@ -383,7 +384,7 @@ def write_local_json(tree, related_uids, label, output_path):
             items.append({
                 "uid": uid_str,
                 "prefix": doc.prefix,
-                "group": get_group(item),
+                "groups": get_groups(item),
                 "text": item.text.strip(),
                 "ref": get_ref(item),
                 "links": [str(link) for link in item.links],

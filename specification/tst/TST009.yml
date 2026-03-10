@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   LocalStorage テスト
-level: 1.8
+level: 2.9
 links:
 - SPEC009: YMAcjiSiG3ZMU5zF2_bu9oqIlxOIJT8V0KGRNrVfVXE=
 normative: true

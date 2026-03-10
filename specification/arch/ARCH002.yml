@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   キャッシュキー生成アーキテクチャ
-level: 1.1
+level: 2.2
 links:
 - REQ002: xuAguq0TJX-pZ2I8c1tMm2UvLC6Sr4fF6C7v-UbONtY=
 normative: true

@@ -41,7 +41,7 @@ function sortMatrix(colIndex) {
     currentSortDir = 'asc';
   }
   const table = document.getElementById('matrix-table');
-  const rows = Array.from(table.querySelectorAll('tr[data-group]'));
+  const rows = Array.from(table.querySelectorAll('tr[data-groups]'));
   rows.sort((a, b) => {
     const aKey = a.cells[colIndex]?.dataset.sortKey || '';
     const bKey = b.cells[colIndex]?.dataset.sortKey || '';
@@ -72,8 +72,8 @@ function sortDetails() {
       aKey = a.dataset.uid || '';
       bKey = b.dataset.uid || '';
     } else {
-      aKey = a.dataset.group || '';
-      bKey = b.dataset.group || '';
+      aKey = a.dataset.groups || '';
+      bKey = b.dataset.groups || '';
       if (aKey === bKey) {
         aKey = a.dataset.uid || '';
         bKey = b.dataset.uid || '';
@@ -94,9 +94,10 @@ function applyFilters() {
   const idQuery = document.getElementById('id-search').value.trim().toUpperCase();
 
   // Matrix rows
-  document.querySelectorAll('#matrix-table tr[data-group]').forEach(row => {
+  document.querySelectorAll('#matrix-table tr[data-groups]').forEach(row => {
     let show = true;
-    if (activeGroups.size > 0 && !activeGroups.has(row.dataset.group)) show = false;
+    const groups = (row.dataset.groups || '').split(' ').filter(Boolean);
+    if (activeGroups.size > 0 && !groups.some(g => activeGroups.has(g))) show = false;
     if (show && activeStatuses.size > 0) {
       const rowStatuses = (row.dataset.statuses || '').split(' ');
       if (!rowStatuses.some(s => activeStatuses.has(s))) show = false;
@@ -111,7 +112,8 @@ function applyFilters() {
   // Item detail sections
   document.querySelectorAll('.item-detail').forEach(detail => {
     let show = true;
-    if (activeGroups.size > 0 && !activeGroups.has(detail.dataset.group)) show = false;
+    const groups = (detail.dataset.groups || '').split(' ').filter(Boolean);
+    if (activeGroups.size > 0 && !groups.some(g => activeGroups.has(g))) show = false;
     if (show && activeStatuses.size > 0) {
       const detailStatuses = (detail.dataset.statuses || '').split(' ');
       if (!detailStatuses.some(s => activeStatuses.has(s))) show = false;
@@ -126,7 +128,10 @@ function applyFilters() {
   // Coverage rows (group filter only)
   document.querySelectorAll('#coverage-table .coverage-group').forEach(row => {
     if (activeGroups.size === 0) row.classList.remove('hidden');
-    else row.classList.toggle('hidden', !activeGroups.has(row.dataset.group));
+    else {
+      const groups = (row.dataset.groups || '').split(' ').filter(Boolean);
+      row.classList.toggle('hidden', !groups.some(g => activeGroups.has(g)));
+    }
   });
   document.querySelectorAll('#coverage-table .coverage-total').forEach(row => {
     row.classList.remove('hidden');

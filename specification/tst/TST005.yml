@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   再帰的正規化テスト
-level: 1.4
+level: 2.5
 links:
 - SPEC005: J_cMDfrfC3POqiiLfbZ_ysdYNODixGQoG7aB3MePYVw=
 normative: true

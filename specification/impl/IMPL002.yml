@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   cached_run 実装
-level: 1.1
+level: 2.2
 links:
 - SPEC002: 44DxKXdXE8b9TXRlVsB4uyI2SqrzZxHxhZFhQPQAyqY=
 normative: true

@@ -3,7 +3,7 @@ derived: false
 group: LIMIT
 header: |
   TokenBucket (GCRA)
-level: 1.17
+level: 2.18
 links:
 - ARCH008: 9D3Sy_m0AdgTb6-eM3ZiFUcQUj1EzS_y0ajvNKaYgoA=
 normative: true

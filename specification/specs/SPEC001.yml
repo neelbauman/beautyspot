@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   mark デコレータ
-level: 1.0
+level: 2.1
 links:
 - ARCH001: vTlPRhTYNRSn7Hh9lwrEPZTUckiuIVQbr95uWp-qNq4=
 normative: true

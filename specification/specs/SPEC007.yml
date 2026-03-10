@@ -3,7 +3,7 @@ derived: false
 group: DB
 header: |
   SQLiteTaskDB
-level: 1.6
+level: 2.7
 links:
 - ARCH003: Y6GPTXrSsRPoTaL579G2PYcbmeQG0zdc6FAC0rTKEYY=
 normative: true

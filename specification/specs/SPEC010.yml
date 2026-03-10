@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   S3Storage
-level: 1.9
+level: '2.10'
 links:
 - ARCH004: UuQC--QCHV754xwdpcb2sZHyyJH9N5TNQaJkd_3rqD4=
 normative: true

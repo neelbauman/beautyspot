@@ -1,0 +1,12 @@
+active: true
+derived: false
+group: ''
+header: |
+  詳細仕様
+level: 2.0
+links: []
+normative: false
+ref: ''
+reviewed: null
+text: |
+  ソースコードの実装構造、設計判断の根拠、および技術的負債について記録する。

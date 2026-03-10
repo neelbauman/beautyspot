@@ -3,7 +3,7 @@ derived: false
 group: MAINT
 header: |
   メンテナンス
-level: 1.9
+level: '4.10'
 links: []
 normative: true
 ref: ''

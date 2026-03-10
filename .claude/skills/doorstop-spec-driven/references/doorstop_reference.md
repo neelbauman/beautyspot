@@ -11,7 +11,7 @@ header: 'タイトル'     # アイテムのヘッダー（見出し）
 level: 1.1            # ドキュメント内の階層レベル
 links:                # 親ドキュメントアイテムへのリンク
   - SYS001: <hash>    # UID: フィンガープリント
-normative: true       # 規範的（要件として扱う）かどうか
+normative: true       # 規範的（要件として扱う）かどうか。falseにすると見出し・背景説明等になる
 ref: ''               # 外部ファイルへの参照（非推奨 → references を使う）
 references:           # 外部ファイルへの紐付け（v2.0以降推奨）
   - path: src/mod.py  #   ファイルパス（リポジトリルートからの相対）
@@ -30,6 +30,14 @@ text: |               # 要件のテキスト本体
 - **IMPL/TST での使用は禁止**
 - **値変更はフィンガープリントに影響しない**（再レビュー不要）
 - **text に根拠を必ず記述する**（なぜその制約が生じたか）
+
+### 非規範的アイテム（normative 属性）
+
+`normative: false` を設定することで、そのアイテムは「システムが満たすべき機能要件」ではなくなります。
+
+- **用途**: 序文、背景説明、目標、用語の定義、ドキュメントの章や節の見出しとして使用します。
+- **カバレッジ・検証の対象外**: 非規範的アイテムは「親リンク」を持つ必要がなく、リンク漏れチェックやカバレッジ計算から除外されます。
+- **悪手**: 「優先度を下げるため」「今は実装しないから」という理由で本来の要件を `normative: false` にしてはいけません。
 
 ### references 属性（ref の後継）
 
@@ -60,7 +68,7 @@ settings:
 
 attributes:
   defaults:             # doorstop_ops.py add 時に自動付与される初期値
-    group: ''
+    groups: []
   reviewed:             # フィンガープリント計算に含めるカスタム属性
     - group             #   → group を変更すると「未レビュー」状態になる
   publish:              # doorstop publish 時に出力に含めるカスタム属性
@@ -134,12 +142,13 @@ attributes:
 
 ### 機能グループ（group カスタム属性）
 
-各アイテムに `group` 属性を設定して、機能単位で横断的に分類できる。
+各アイテムに `groups` 属性を設定して、機能単位で横断的に分類できる。
 
 ```yaml
 # YAMLファイル内での表現
 active: true
-group: AUTH          # ← カスタム属性
+groups:
+  - AUTH          # ← カスタム属性
 header: 'ログイン'
 level: 1.1
 links:
@@ -151,10 +160,10 @@ text: |
 doorstop_ops.py での設定:
 ```bash
 # 追加時に指定
-doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH
+doorstop_ops.py <dir> add -d SPEC -t "要件テキスト" -g AUTH,PAY
 
 # 既存アイテムのグループ変更
-doorstop_ops.py <dir> update SPEC001 -g AUTH
+doorstop_ops.py <dir> update SPEC001 -g AUTH,PAY
 ```
 
 推奨グループ名の例:
@@ -185,21 +194,24 @@ uv run python <skill-path>/scripts/doorstop_ops.py <project-dir> <command> [opti
 #### アイテム追加（add）
 ```bash
 # REQ追加（テキスト + グループ指定）
-doorstop_ops.py <dir> add -d REQ -t "システムはユーザー認証を提供すること" -g AUTH
+doorstop_ops.py <dir> add -d REQ -t "システムはユーザー認証を提供すること" -g AUTH,PAY
 
 # SPEC追加（ヘッダー + 親リンク付き）
-doorstop_ops.py <dir> add -d SPEC -t "JWTベースの認証を実装する" --header "JWT認証" -g AUTH --links REQ001
+doorstop_ops.py <dir> add -d SPEC -t "JWTベースの認証を実装する" --header "JWT認証" -g AUTH,PAY --links REQ001
+
+# 非規範的アイテム（見出しや背景）の追加
+doorstop_ops.py <dir> add -d REQ -t "本章では認証について定義する。" --header "認証システム" --non-normative -l 1.0
 
 # IMPL追加（references付き）
-doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH \
+doorstop_ops.py <dir> add -d IMPL -t "認証モジュールの実装" -g AUTH,PAY \
   --references '[{"path":"src/auth.py","type":"file"}]' --links SPEC001
 
 # TST追加（references付き）
-doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH \
+doorstop_ops.py <dir> add -d TST -t "認証成功時にHTTP200を返すことを検証する" -g AUTH,PAY \
   --references '[{"path":"tests/test_auth.py","type":"file"}]' --links SPEC001
 
 # レベル指定で追加
-doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH -l 1.2
+doorstop_ops.py <dir> add -d REQ -t "サブ要件" -g AUTH,PAY -l 1.2
 ```
 
 #### アイテム更新（update）
@@ -212,6 +224,9 @@ doorstop_ops.py <dir> update SPEC001 --header "新ヘッダー" -g PAY
 
 # references更新
 doorstop_ops.py <dir> update IMPL001 --references '[{"path":"src/new_mod.py","type":"file"}]'
+
+# 規範的/非規範的の切り替え
+doorstop_ops.py <dir> update REQ001 --set-non-normative
 ```
 
 #### リンク追加（link）
@@ -239,10 +254,10 @@ doorstop_ops.py <dir> list
 doorstop_ops.py <dir> list -d SPEC
 
 # グループ絞り込み
-doorstop_ops.py <dir> list -g AUTH
+doorstop_ops.py <dir> list -g AUTH,PAY
 
 # ドキュメント + グループ絞り込み
-doorstop_ops.py <dir> list -d IMPL -g AUTH
+doorstop_ops.py <dir> list -d IMPL -g AUTH,PAY
 
 # グループ一覧
 doorstop_ops.py <dir> groups
@@ -261,7 +276,13 @@ doorstop_ops.py <dir> find "認証"
 trace_query.py <dir> status
 
 # 特定UIDの上下リンクチェーンを表示
-trace_query.py <dir> chain REQ001
+trace_query.py <dir> chain SPEC003
+
+# ファイルパスをreferencesから逆引きしてチェーンを表示
+# → 実装/テストファイルを起点にどのSPEC/REQに紐づくか追跡できる
+trace_query.py <dir> chain --file src/beautyspot/core.py
+trace_query.py <dir> chain --file tests/integration/core/test_mark.py
+trace_query.py <dir> chain --file core.py   # basename のみでも可
 
 # カバレッジ（全体 / グループ別）
 trace_query.py <dir> coverage

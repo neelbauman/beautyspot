@@ -3,7 +3,7 @@ derived: false
 group: HERD
 header: |
   Thundering Herd Protection
-level: 1.12
+level: 2.23
 links:
 - ARCH013: I7iIHqMCncar9Hi2mQiR_5z-87xQhWp7Z2vX3GvyMTo=
 normative: true

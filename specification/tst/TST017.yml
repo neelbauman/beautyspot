@@ -3,7 +3,7 @@ derived: false
 group: LIFE
 header: |
   Retention テスト
-level: 1.16
+level: 2.17
 links:
 - SPEC017: s4fZIZPmZUtccclKL21T04JKuHrVxyVduUB5j9OVYfA=
 normative: true

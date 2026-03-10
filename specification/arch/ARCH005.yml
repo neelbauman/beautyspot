@@ -3,7 +3,7 @@ derived: false
 group: SERIAL
 header: |
   シリアライゼーション構成
-level: 1.4
+level: 2.5
 links:
 - REQ005: BkvEd9KuNGG34UsYTIEw8eyy5pO6ecDeaQKULGsfZWQ=
 normative: true

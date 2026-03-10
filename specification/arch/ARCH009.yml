@@ -3,7 +3,7 @@ derived: false
 group: HOOK
 header: |
   フック機能構成
-level: 1.8
+level: 2.9
 links:
 - REQ009: Zi57s_V_uBJ55ZQaCuAwQuJQbnm_KFxPW-yDANS2AO0=
 normative: true

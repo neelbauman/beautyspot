@@ -3,7 +3,7 @@ derived: false
 group: DI
 header: |
   ファクトリ関数と Protocol
-level: 1.21
+level: 2.22
 links:
 - ARCH012: TcD0OrJspSDMSwNoItk23aHjrpIEafd_Cw5r3hiUZiE=
 normative: true

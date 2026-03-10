@@ -37,7 +37,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    get_group, get_ref, find_item as find_item_in_tree,
+    get_groups, get_ref, find_item as find_item_in_tree,
     find_doc_prefix as _find_doc_prefix, build_link_index,
     build_doc_file_map,
 )
@@ -150,7 +150,7 @@ def analyze_impact(tree, changed_items):
                         suspect_children.append({
                             "uid": str(child_item.uid),
                             "prefix": child_prefix,
-                            "group": get_group(child_item),
+                            "groups": get_groups(child_item),
                             "text": child_item.text.strip()[:100],
                             "ref": get_ref(child_item),
                         })
@@ -161,7 +161,7 @@ def analyze_impact(tree, changed_items):
         results.append({
             "uid": uid,
             "prefix": doc_prefix,
-            "group": get_group(item),
+            "groups": get_groups(item),
             "text": item.text.strip()[:120],
             "ref": get_ref(item),
             "upstream": upstream,
@@ -182,7 +182,7 @@ def _trace_upstream(uid, parents_idx, result, visited, depth=0):
         entry = {
             "uid": parent_uid,
             "prefix": parent_prefix,
-            "group": get_group(parent_item),
+            "groups": get_groups(parent_item),
             "text": parent_item.text.strip()[:100],
             "depth": depth,
         }
@@ -199,7 +199,7 @@ def _trace_downstream(uid, children_idx, result, visited, depth=0):
         entry = {
             "uid": child_uid,
             "prefix": child_prefix,
-            "group": get_group(child_item),
+            "groups": get_groups(child_item),
             "text": child_item.text.strip()[:100],
             "ref": get_ref(child_item),
             "depth": depth,
@@ -258,7 +258,7 @@ def print_console(results, tree):
 
     for r in results:
         print(f"\n{'─'*60}")
-        print(f"■ {r['uid']} [{r['group']}] ({r['prefix']})")
+        print(f"■ {r['uid']} [{'/'.join(r.get('groups', ['?']))}] ({r['prefix']})")
         print(f"  {r['text']}")
         if r["ref"]:
             print(f"  ref: {r['ref']}")
@@ -267,7 +267,7 @@ def print_console(results, tree):
             print("\n  [上流 ← なぜ変わった？]")
             for u in r["upstream"]:
                 indent = "    " + "  " * u["depth"]
-                print(f"{indent}← {u['uid']} [{u['group']}] ({u['prefix']})")
+                print(f"{indent}← {u['uid']} [{'/'.join(u.get('groups', ['?']))}] ({u['prefix']})")
                 print(f"{indent}  {u['text']}")
 
         if r["downstream"] or r["suspect_children"]:
@@ -275,7 +275,7 @@ def print_console(results, tree):
             for d in r["downstream"]:
                 indent = "    " + "  " * d["depth"]
                 suspect_mark = " ⚠ suspect" if d["uid"] in {s["uid"] for s in r["suspect_children"]} else ""
-                print(f"{indent}→ {d['uid']} [{d['group']}] ({d['prefix']}){suspect_mark}")
+                print(f"{indent}→ {d['uid']} [{'/'.join(d.get('groups', ['?']))}] ({d['prefix']}){suspect_mark}")
                 print(f"{indent}  {d['text']}")
                 if d.get("ref"):
                     print(f"{indent}  ref: {d['ref']}")
@@ -288,11 +288,14 @@ def print_console(results, tree):
     # グループ別サマリ
     group_impact = defaultdict(lambda: {"changed": 0, "suspect": 0, "affected": 0})
     for r in results:
-        group_impact[r["group"]]["changed"] += 1
+        for g in r["groups"]:
+            group_impact[g]["changed"] += 1
         for s in r["suspect_children"]:
-            group_impact[s["group"]]["suspect"] += 1
+            for g in s["groups"]:
+                group_impact[g]["suspect"] += 1
         for d in r["downstream"]:
-            group_impact[d["group"]]["affected"] += 1
+            for g in d["groups"]:
+                group_impact[g]["affected"] += 1
 
     print(f"\n{'─'*60}")
     print("[グループ別影響サマリ]")
@@ -339,11 +342,14 @@ def write_html(results, output_path):
     # グループ別サマリ
     group_impact = defaultdict(lambda: {"changed": 0, "suspect": 0, "affected": 0})
     for r in results:
-        group_impact[r["group"]]["changed"] += 1
+        for g in r["groups"]:
+            group_impact[g]["changed"] += 1
         for s in r["suspect_children"]:
-            group_impact[s["group"]]["suspect"] += 1
+            for g in s["groups"]:
+                group_impact[g]["suspect"] += 1
         for d in r["downstream"]:
-            group_impact[d["group"]]["affected"] += 1
+            for g in d["groups"]:
+                group_impact[g]["affected"] += 1
 
     group_rows = ""
     for g, d in sorted(group_impact.items()):
@@ -361,7 +367,7 @@ def write_html(results, output_path):
                 items_html += (
                     f"<div class='trace-item' style='margin-left:{u['depth']*20}px'>"
                     f"← <strong>{h(u['uid'])}</strong> "
-                    f"<span class='group-tag'>{h(u['group'])}</span> "
+                    f"<span class='group-tag'>{h('/'.join(u.get('groups', ['?'])))}</span> "
                     f"<span class='prefix-tag'>{h(u['prefix'])}</span>"
                     f"<br><span class='text-preview'>{h(u['text'])}</span></div>"
                 )
@@ -379,7 +385,7 @@ def write_html(results, output_path):
                 items_html += (
                     f"<div class='trace-item{suspect_cls}' style='margin-left:{d['depth']*20}px'>"
                     f"→ <strong>{h(d['uid'])}</strong> "
-                    f"<span class='group-tag'>{h(d['group'])}</span> "
+                    f"<span class='group-tag'>{h('/'.join(d.get('groups', ['?'])))}</span> "
                     f"<span class='prefix-tag'>{h(d['prefix'])}</span>"
                     f"{suspect_badge}"
                     f"<br><span class='text-preview'>{h(d['text'])}</span>"
@@ -395,11 +401,12 @@ def write_html(results, output_path):
 
         ref_html = f"<br><span class='ref-tag'>{h(r['ref'])}</span>" if r["ref"] else ""
 
+        _r_groups_str = '/'.join(r.get('groups', ['?']))
         impact_cards += f"""
-        <div class="impact-card" data-group="{h(r['group'])}">
+        <div class="impact-card" data-group="{h(_r_groups_str)}">
             <div class="impact-header">
                 <strong>{h(r['uid'])}</strong>
-                <span class="group-tag">{h(r['group'])}</span>
+                <span class="group-tag">{h(_r_groups_str)}</span>
                 <span class="prefix-tag">{h(r['prefix'])}</span>
             </div>
             <div class="impact-body">

@@ -3,7 +3,7 @@ derived: false
 group: DI
 header: |
   依存注入設計
-level: 1.11
+level: 4.12
 links: []
 normative: true
 ref: ''

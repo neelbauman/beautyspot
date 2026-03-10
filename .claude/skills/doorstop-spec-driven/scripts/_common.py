@@ -24,18 +24,30 @@ def out(data):
 # Item attribute accessors
 # ---------------------------------------------------------------------------
 
-def get_group(item, default=None):
-    """アイテムの group 属性を取得する。
+def get_groups(item, default=None):
+    """アイテムの groups 属性を取得する。単一の group 属性にも後方互換で対応する。
 
     Args:
-        default: group が未設定の場合に返す値。
-                 trace_query 等では None、validate_and_report では "(未分類)" を使う。
+        default: groups が未設定の場合に返す値。
+                 trace_query 等では None、validate_and_report では ["(未分類)"] を使う。
     """
     try:
+        g = item.get("groups")
+        if isinstance(g, list):
+            return g if g else (default if default is not None else [])
+        elif isinstance(g, str) and g:
+            return [s.strip() for s in g.split(",") if s.strip()]
+        
+        # backward compatibility
         g = item.get("group")
-        return g if g else default
+        if g:
+            if isinstance(g, str):
+                return [s.strip() for s in g.split(",") if s.strip()]
+            return [g]
+        
+        return default if default is not None else []
     except (AttributeError, KeyError):
-        return default
+        return default if default is not None else []
 
 
 def get_ref(item):
@@ -74,6 +86,17 @@ def is_derived(item):
         return bool(item.get("derived"))
     except (AttributeError, KeyError):
         return False
+
+
+def is_normative(item):
+    """アイテムが規範的（要件）かどうかを判定する。デフォルトはTrue。"""
+    try:
+        val = item.get("normative")
+        if val is None:
+            return True
+        return str(val).lower() != "false"
+    except (AttributeError, KeyError):
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -152,11 +175,12 @@ def item_summary(item, prefix=None, tree=None):
     d = {
         "uid": str(item.uid),
         "prefix": prefix or (find_doc_prefix(tree, item) if tree else "?"),
-        "group": get_group(item),
+        "groups": get_groups(item),
         "header": item.header.strip() if item.header else "",
         "text": item.text.strip()[:200],
         "references": get_references(item),
         "derived": is_derived(item),
+        "normative": is_normative(item),
         "links": [str(link) for link in item.links],
         "reviewed": bool(item.reviewed),
     }
@@ -172,9 +196,10 @@ def item_to_dict(item, doc_prefix=None, tree=None):
         "prefix": doc_prefix or str(item.uid).rstrip("0123456789"),
         "text": item.text.strip(),
         "header": item.header.strip() if item.header else "",
-        "group": get_group(item),
+        "groups": get_groups(item),
         "level": str(item.level),
         "references": get_references(item),
+        "normative": is_normative(item),
         "links": [str(link) for link in item.links],
         "active": item.active,
         "reviewed": bool(item.reviewed),

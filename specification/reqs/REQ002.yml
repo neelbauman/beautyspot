@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   キャッシュキー生成
-level: 1.1
+level: 4.2
 links: []
 normative: true
 ref: ''

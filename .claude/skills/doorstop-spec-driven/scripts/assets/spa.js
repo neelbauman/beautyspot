@@ -47,18 +47,16 @@ function toast(msg, type) {
 let mermaidReady = false;
 let mermaidAPI = null;
 
-function renderMermaidInPanel(pid) {
-  if (!mermaidReady || !mermaidAPI) return;
-  const ptv = document.getElementById('ptv-' + pid);
-  if (!ptv) return;
+function renderMermaidInElement(containerEl, prefixId) {
+  if (!mermaidReady || !mermaidAPI || !containerEl) return;
   
   // Match standard markdown code blocks as well as explicit div/pre classes
-  const blocks = ptv.querySelectorAll('code.language-mermaid, code.mermaid, pre.mermaid, div.mermaid');
+  const blocks = containerEl.querySelectorAll('code.language-mermaid, code.mermaid, pre.mermaid, div.mermaid');
   blocks.forEach((block, idx) => {
     if (block.dataset.mermaidProcessed) return;
     block.dataset.mermaidProcessed = 'true';
     
-    const id = 'mermaid-' + pid + '-' + idx + '-' + Date.now();
+    const id = 'mermaid-' + prefixId + '-' + idx + '-' + Date.now();
     const graphDef = block.textContent.trim();
     const target = (block.tagName === 'CODE' && block.parentElement && block.parentElement.tagName === 'PRE') ? block.parentElement : block;
     
@@ -75,9 +73,18 @@ function renderMermaidInPanel(pid) {
   });
 }
 
+function renderMermaidInPanel(pid) {
+  const ptv = document.getElementById('ptv-' + pid);
+  renderMermaidInElement(ptv, 'panel-' + pid);
+}
+
 function renderAllMermaid() {
   if (typeof activePanels !== 'undefined') {
     activePanels.forEach(ps => renderMermaidInPanel(ps.id));
+  }
+  const docView = document.querySelector('.document-view');
+  if (docView) {
+    renderMermaidInElement(docView, 'doc');
   }
 }
 
@@ -159,7 +166,8 @@ function statusIcons(reviewed, suspect) {
   return s;
 }
 
-function statusTags(reviewed, suspect) {
+function statusTags(reviewed, suspect, normative=true) {
+  if (!normative) return '<span class="tag tag-non-normative">Non-normative</span>';
   let s = '';
   if (suspect) s += '<span class="tag tag-suspect">Suspect</span> ';
   if (reviewed) s += '<span class="tag tag-reviewed">Reviewed</span>';
@@ -190,7 +198,7 @@ function route() {
 
   // Update sidebar active state
   document.querySelectorAll('#sidebar a').forEach(a => a.classList.remove('active'));
-  const navKey = view === 'group' ? null : view === 'dashboard' ? 'dashboard' : view;
+  const navKey = (view === 'group' || view === 'document') ? null : view === 'dashboard' ? 'dashboard' : view;
   if (navKey) {
     const el = document.querySelector(`[data-nav="${navKey}"]`);
     if (el) el.classList.add('active');
@@ -198,6 +206,10 @@ function route() {
   if (view === 'group') {
     document.querySelectorAll('#group-nav-list a').forEach(a => {
       a.classList.toggle('active', a.dataset.group === decodeURIComponent(param));
+    });
+  } else if (view === 'document') {
+    document.querySelectorAll('#doc-nav-list a').forEach(a => {
+      a.classList.toggle('active', a.dataset.doc === decodeURIComponent(param));
     });
   }
 
@@ -207,6 +219,7 @@ function route() {
     case 'dashboard': renderDashboard(); break;
     case 'matrix': renderMatrix(); break;
     case 'group': renderGroup(decodeURIComponent(param)); break;
+    case 'document': renderDocument(decodeURIComponent(param)); break;
     case 'validation': renderValidation(); break;
     default: renderDashboard();
   }
@@ -238,6 +251,14 @@ async function loadGroupNav() {
   } else {
     statusEl.innerHTML = '<div class="nav-status-row nav-status-link" onclick="location.hash=\'#/matrix\'"><span class="nav-status-dot ok"></span> All clear</div>';
     statusEl.style.display = '';
+  }
+
+  // Document nav
+  const docList = document.getElementById('doc-nav-list');
+  if (docList) {
+    docList.innerHTML = Object.keys(overview.documents).map(prefix => {
+      return `<li><a href="#/document/${encodeURIComponent(prefix)}" data-doc="${h(prefix)}">${h(prefix)} <span class="group-badge">${overview.documents[prefix]}</span></a></li>`;
+    }).join('');
   }
 
   // Group nav with unreviewed/suspect badges
@@ -293,7 +314,10 @@ async function renderDashboard() {
   ).join('');
 
   $main().innerHTML = `
-    <div class="page-title">Dashboard</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="page-title" style="margin-bottom:0;">Dashboard</div>
+      <button id="btn-generate-report" class="btn" style="padding:6px 16px;">Generate HTML Report</button>
+    </div>
     <div class="page-subtitle">Doorstop Traceability Overview</div>
     <div class="cards">
       ${docsHtml}
@@ -323,6 +347,27 @@ async function renderDashboard() {
       <div style="margin-top:4px"><span class="coverage-bar" style="width:80px"><span class="coverage-fill" style="width:${pct}%;background:${coverageColor(pct)}"></span></span> ${pct}%</div>
     </div>`;
   }).join('');
+
+  document.getElementById('btn-generate-report').addEventListener('click', async (e) => {
+    const btn = e.target;
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Generating...';
+    try {
+      const res = await API.post('/api/generate_report', {});
+      if (!res.ok) throw new Error(res.error || 'Unknown error');
+      if (res.report_url) {
+          window.open(res.report_url, '_blank');
+      } else {
+          alert('Report generated successfully.');
+      }
+    } catch (err) {
+      alert('Failed to generate report: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 }
 
 // --- Matrix ---
@@ -361,7 +406,7 @@ function renderMatrixView() {
   if (!matrixData) return;
   const { rows } = matrixData;
 
-  const allGroups = [...new Set(rows.map(r => r.group))].sort();
+  const allGroups = [...new Set(rows.flatMap(r => r.groups))].sort();
   const groupPills = allGroups.map(g =>
     `<span class="pill ${matrixFilters.groups.has(g)?'active':''}" onclick="toggleMatrixGroup('${h(g)}')">${h(g)}</span>`
   ).join('');
@@ -439,7 +484,7 @@ function renderMatrixTable() {
 
   // Filter rows
   let filtered = rows.filter(row => {
-    if (matrixFilters.groups.size > 0 && !matrixFilters.groups.has(row.group)) return false;
+    if (matrixFilters.groups.size > 0 && !row.groups.some(g => matrixFilters.groups.has(g))) return false;
     if (matrixFilters.statuses.size > 0 && !row.statuses.some(s => matrixFilters.statuses.has(s))) return false;
     if (matrixFilters.authors.size > 0) {
       const matchesAuthor = Object.values(row.cells).some(cell =>
@@ -472,8 +517,8 @@ function renderMatrixTable() {
     filtered.sort((a, b) => {
       let aKey, bKey;
       if (col === 0) {
-        aKey = a.group || '';
-        bKey = b.group || '';
+        aKey = a.groups ? a.groups[0] : '';
+        bKey = b.groups ? b.groups[0] : '';
       } else {
         const prefix = prefixes[col - 1];
         aKey = a.cells[prefix]?.uid || '';
@@ -489,7 +534,8 @@ function renderMatrixTable() {
 
   let bodyRows = '';
   for (const row of filtered) {
-    let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
+    const groupTags = (row.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ');
+    let cells = `<td>${groupTags}</td>`;
     for (const prefix of prefixes) {
       const cell = row.cells[prefix];
       if (cell) {
@@ -523,7 +569,7 @@ function renderMatrixTable() {
 function updateMatrixPills() {
   if (!matrixData) return;
   const { rows } = matrixData;
-  const allGroups = [...new Set(rows.map(r => r.group))].sort();
+  const allGroups = [...new Set(rows.flatMap(r => r.groups))].sort();
 
   const groupBar = document.getElementById('matrix-group-bar');
   if (groupBar) {
@@ -654,7 +700,8 @@ async function renderGroup(name) {
   let matHeader = '<th>Group</th>' + mat.prefixes.map(p => `<th>${h(p)}</th>`).join('');
   let matBody = '';
   for (const row of mat.rows) {
-    let cells = `<td><span class="tag tag-group">${h(row.group)}</span></td>`;
+    const groupTags = (row.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ');
+    let cells = `<td>${groupTags}</td>`;
     for (const prefix of mat.prefixes) {
       const cell = row.cells[prefix];
       if (cell) {
@@ -682,7 +729,7 @@ async function renderGroup(name) {
     for (const item of pitems) {
       itemsHtml += `<div style="padding:8px 0;border-bottom:1px solid #f1f3f4;display:flex;align-items:center;gap:8px">
         <span class="cell-uid" onclick="handleCellClick(event,'${item.uid}')" style="min-width:70px">${h(item.uid)}</span>
-        ${statusTags(item.reviewed, item.suspect)}
+        ${statusTags(item.reviewed, item.suspect, item.normative)}
         <span class="text-preview" style="flex:1">${h(item.text_preview)}</span>
         ${item.ref ? '<span class="tag tag-ref">'+h(item.ref)+'</span>' : ''}
       </div>`;
@@ -714,6 +761,74 @@ async function renderGroup(name) {
     <div class="section-title">Items</div>
     ${itemsHtml || '<div class="empty-state">No items</div>'}
   `;
+}
+
+// --- Document View ---
+async function renderDocument(prefix) {
+  $main().innerHTML = '<div class="loading">Loading...</div>';
+  let data;
+  try {
+    data = await API.get('/api/document/' + encodeURIComponent(prefix));
+  } catch {
+    $main().innerHTML = `<div class="empty-state">Document "${h(prefix)}" not found.</div>`;
+    return;
+  }
+
+  const items = data.items;
+  let docHtml = '';
+
+  for (const item of items) {
+    const isHeading = !item.normative && item.level.endsWith('.0');
+    const levelDepth = item.level.split('.').length;
+
+    if (isHeading) {
+      const H = levelDepth === 1 ? 'h1' : (levelDepth === 2 ? 'h2' : 'h3');
+      docHtml += `
+        <div class="doc-heading-block" style="margin-top: 32px; border-bottom: ${levelDepth === 1 ? '2px solid var(--primary)' : '1px solid var(--border)'}; padding-bottom: 8px; margin-bottom: 16px;">
+          <${H} style="margin:0; color: ${levelDepth === 1 ? 'var(--primary)' : 'inherit'}; font-size: ${levelDepth === 1 ? '1.8em' : (levelDepth === 2 ? '1.4em' : '1.2em')}">
+            ${h(item.level)} ${h(item.header || '')} <span style="font-size:0.5em; font-weight:normal; color:var(--text-secondary); float:right; cursor:pointer;" onclick="handleCellClick(event,'${item.uid}')">${h(item.uid)}</span>
+          </${H}>
+          ${item.text_html ? `<div class="item-text" style="margin-top: 12px;">${item.text_html}</div>` : ''}
+        </div>
+      `;
+    } else {
+      const ml = (levelDepth - 1) * 20;
+      docHtml += `
+        <div class="doc-item-block" style="margin-left: ${ml}px; background: #fff; border: 1px solid var(--border); border-left: 3px solid ${item.normative ? 'var(--primary)' : '#ccc'}; border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
+            <div>
+              <strong style="font-size: 1.1em; color: var(--text);">${h(item.level)} ${h(item.header || '')}</strong>
+            </div>
+            <div style="text-align:right">
+              <span class="cell-uid" onclick="handleCellClick(event,'${item.uid}')" style="font-size:0.9em; background:var(--bg); padding:2px 6px; border-radius:4px; border:1px solid var(--border);">${h(item.uid)}</span>
+            </div>
+          </div>
+          <div style="margin-bottom:8px;">
+            ${(item.groups || []).filter(g => g !== '(未分類)').map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
+            ${statusTags(item.reviewed, item.suspect, item.normative)}
+          </div>
+          <div class="item-text">${item.text_html}</div>
+          ${item.references && item.references.length ? `<div style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary);"><strong>Ref:</strong> ${item.references.map(r => h(r.path)).join(', ')}</div>` : ''}
+          ${item.ref ? `<div style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary);"><strong>Ref:</strong> ${h(item.ref)}</div>` : ''}
+        </div>
+      `;
+    }
+  }
+
+  $main().innerHTML = `
+    <div class="page-title">Document: ${h(prefix)}</div>
+    <div class="page-subtitle">Readable Specification View</div>
+    <div class="document-view" style="margin-top: 24px; max-width: 800px;">
+      ${docHtml || '<div class="empty-state">No items</div>'}
+    </div>
+  `;
+
+  setTimeout(() => {
+    const docView = document.querySelector('.document-view');
+    if (docView) {
+      renderMermaidInElement(docView, 'doc');
+    }
+  }, 0);
 }
 
 // --- Validation ---
@@ -933,7 +1048,7 @@ function renderPanelContent(ps, data) {
         ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
         <div style="margin-top:4px">
           <span class="tag tag-prefix">${h(data.prefix)}</span>
-          <span class="tag tag-group">${h(data.group)}</span>
+          ${(data.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
         </div>
         ${(data.author || data.created_at || data.updated_at) ? `<div class="git-meta-inline">
           ${data.author ? `<span class="git-meta-item" title="Author">${h(data.author)}</span>` : ''}
@@ -945,7 +1060,7 @@ function renderPanelContent(ps, data) {
       <button class="panel-close" onclick="closePanel(${pid})">&times;</button>
     </div>
 
-    <div style="margin-bottom:12px">${statusTags(data.reviewed, data.suspect)}</div>
+    <div style="margin-bottom:12px">${statusTags(data.reviewed, data.suspect, data.normative)}</div>
 
     <div id="ptv-${pid}" class="item-text">${data.text_html}</div>
     <div id="pte-${pid}" class="hidden">
@@ -1243,7 +1358,8 @@ async function refreshCurrentView() {
       matrixData = await API.get('/api/matrix');
       renderMatrixView();
       break;
-    case 'group': renderGroup(currentParam); break;
+    case 'group': renderGroup(decodeURIComponent(currentParam)); break;
+    case 'document': renderDocument(decodeURIComponent(currentParam)); break;
     case 'validation': renderValidation(); break;
   }
 }

@@ -3,7 +3,7 @@ derived: false
 group: HOOK
 header: |
   HookBase / ThreadSafeHookBase
-level: 1.18
+level: 2.19
 links:
 - ARCH009: ufZsTHVuf5vsCPx5L2CGKFiqI6URsqYpXKFmj6DzOJo=
 normative: true

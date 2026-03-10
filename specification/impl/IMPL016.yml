@@ -3,7 +3,7 @@ derived: false
 group: LIFE
 header: |
   LifecyclePolicy 実装
-level: 1.15
+level: 2.16
 links:
 - SPEC016: Ma4HLSHRQ1uNOKeME77e27yPYf5c-6q4ImjREYYZF6Y=
 normative: true

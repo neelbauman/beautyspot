@@ -3,7 +3,7 @@ derived: false
 group: LIMIT
 header: |
   TokenBucket テスト
-level: 1.17
+level: 2.18
 links:
 - SPEC018: 4rNeYQD9CegD5rCuwlufH87yvll1nCcnjqym1mH4414=
 normative: true

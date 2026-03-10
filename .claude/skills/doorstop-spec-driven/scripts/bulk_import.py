@@ -67,7 +67,7 @@ def load_items_csv(filepath):
                     s.strip() for s in row["links"].split(";") if s.strip()
                 ]
             if row.get("group"):
-                item["group"] = row["group"].strip()
+                item["groups"] = [s.strip() for s in row["group"].split(",") if s.strip()]
             items.append(item)
     return items
 
@@ -145,9 +145,9 @@ def main():
             item.link(link)
 
         # 機能グループ: 個別指定 > コマンドライン共通指定
-        group = data.get("group") or args.group
-        if group:
-            item.set("group", group)
+        groups_str = data.get("group") or args.group
+        if groups_str:
+            item.set("groups", [s.strip() for s in groups_str.split(",") if s.strip()])
 
         item.save()
         created.append(item)

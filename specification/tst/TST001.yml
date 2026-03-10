@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   mark デコレータテスト
-level: 1.0
+level: 2.1
 links:
 - SPEC001: zR8aZ9kKykfTG1A3ZPR3IUXRMr4X68ffffaOXtu5rao=
 normative: true

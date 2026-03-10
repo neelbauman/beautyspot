@@ -3,7 +3,7 @@ derived: false
 group: CACHE
 header: |
   同期・非同期実行エンジン
-level: 1.2
+level: 2.3
 links:
 - SPEC003: 0rQ2AlNFbeZILNPLxOBIZVTED0ghWJ8vuNER6OUM_Jk=
 normative: true

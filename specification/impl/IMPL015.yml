@@ -3,7 +3,7 @@ derived: false
 group: BGIO
 header: |
   save_sync / flush / drain 実装
-level: 1.14
+level: 2.15
 links:
 - SPEC015: IVSIbwoT1vTzPFUom_ziz-bxKIHBeWyLvPd5Cxcd9Rk=
 normative: true

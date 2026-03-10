@@ -11,6 +11,7 @@ Usage:
 Commands:
     status              プロジェクト全体のサマリ（件数・カバレッジ・suspect数）
     chain <UID>         指定UIDの上流→下流チェーン全体を表示
+    chain --file PATH   ファイルパスをreferencesから逆引きし、該当アイテムのチェーンを表示
     coverage            カバレッジ詳細（どのSPECがIMPL/TST未カバーか）
     suspects            全suspect一覧と要対応アクション
     gaps                リンク漏れ・ref未設定のアイテム一覧
@@ -18,6 +19,7 @@ Commands:
 Examples:
     python trace_query.py . status
     python trace_query.py . chain SPEC003
+    python trace_query.py . chain --file src/beautyspot/core.py
     python trace_query.py . coverage --group CACHE
     python trace_query.py . suspects
     python trace_query.py . gaps --document IMPL
@@ -36,7 +38,7 @@ except ImportError:
     sys.exit(1)
 
 from _common import (
-    out, get_group, get_references, is_derived,
+    out, get_groups, get_references, is_derived, is_normative,
     find_item, find_doc_prefix, is_suspect, item_summary,
     build_link_index,
 )
@@ -57,7 +59,7 @@ def cmd_status(tree, args):
     unreviewed_count = 0
 
     for doc in tree:
-        items = list(doc)
+        items = [i for i in doc if is_normative(i)]
         reviewed = sum(1 for i in items if i.reviewed)
         suspects = sum(1 for i in items if is_suspect(i, tree))
         suspect_count += suspects
@@ -77,9 +79,11 @@ def cmd_status(tree, args):
         if not doc.parent or doc.parent not in docs:
             continue
         parent_doc = docs[doc.parent]
-        parent_uids = {str(i.uid) for i in parent_doc}
+        parent_uids = {str(i.uid) for i in parent_doc if is_normative(i)}
         covered = set()
         for item in doc:
+            if not is_normative(item):
+                continue
             for link in item.links:
                 if str(link) in parent_uids:
                     covered.add(str(link))
@@ -94,7 +98,7 @@ def cmd_status(tree, args):
         }
 
     # グループ
-    groups = sorted({get_group(i) for i, _ in all_items if get_group(i)})
+    groups = sorted({g for i, _ in all_items for g in get_groups(i) if g != "(未分類)"})
 
     out({
         "ok": True,
@@ -108,30 +112,49 @@ def cmd_status(tree, args):
     })
 
 
-def cmd_chain(tree, args):
-    """指定UIDの上流→下流チェーン全体を表示する。"""
-    root_item = find_item(tree, args.uid)
-    if root_item is None:
-        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+def _find_items_by_file(tree, file_path):
+    """ファイルパスをreferences属性から逆引きし、参照しているアイテムを返す。
 
-    children_idx, parents_idx = build_link_index(tree)
+    マッチ戦略（優先順）:
+      1. 正規化後の完全一致
+      2. file_path が参照パスのサフィックスに一致（例: "core.py" → "src/beautyspot/core.py"）
+      3. 参照パスが file_path のサフィックスに一致（相対パスの表記ゆれ対応）
+    """
+    normalized = file_path.replace("\\", "/").rstrip("/")
+    results = []
+    for doc in tree:
+        for item in doc:
+            for ref in get_references(item):
+                ref_path = ref.get("path", "").replace("\\", "/").rstrip("/")
+                if not ref_path:
+                    continue
+                if (
+                    ref_path == normalized
+                    or ref_path.endswith("/" + normalized)
+                    or normalized.endswith("/" + ref_path)
+                ):
+                    results.append((item, doc.prefix))
+                    break  # 同一アイテムを重複追加しない
+    return results
 
-    # 上流追跡
+
+def _build_single_chain(tree, root_item, children_idx, parents_idx):
+    """単一アイテムのチェーン情報を構築して返す。"""
+    uid = str(root_item.uid)
+    prefix = find_doc_prefix(tree, root_item)
+
     upstream = []
-    _trace_up(str(root_item.uid), parents_idx, upstream, visited=set())
+    _trace_up(uid, parents_idx, upstream, visited=set())
 
-    # 下流追跡
     downstream = []
-    _trace_down(str(root_item.uid), children_idx, downstream, visited=set())
+    _trace_down(uid, children_idx, downstream, visited=set())
 
-    # 完全なチェーン内のUID集合を収集
-    chain_uids = {str(root_item.uid)}
+    chain_uids = {uid}
     for entry in upstream:
         chain_uids.add(entry["uid"])
     for entry in downstream:
         chain_uids.add(entry["uid"])
 
-    # チェーンをREQ→SPEC→IMPL/TSTの階層に整理
     layers = defaultdict(list)
     for doc in tree:
         for item in doc:
@@ -139,15 +162,55 @@ def cmd_chain(tree, args):
             if uid_str in chain_uids:
                 layers[doc.prefix].append(item_summary(item, doc.prefix, tree))
 
-    out({
-        "ok": True,
-        "action": "chain",
-        "root": item_summary(root_item, find_doc_prefix(tree, root_item), tree),
+    return {
+        "root": item_summary(root_item, prefix, tree),
         "upstream": upstream,
         "downstream": downstream,
         "by_layer": dict(layers),
         "chain_size": len(chain_uids),
+    }
+
+
+def cmd_chain(tree, args):
+    """指定UIDまたはファイルパスの上流→下流チェーン全体を表示する。"""
+    children_idx, parents_idx = build_link_index(tree)
+
+    # --file による逆引きモード
+    if getattr(args, "file", None):
+        matched = _find_items_by_file(tree, args.file)
+        if not matched:
+            out({"ok": False, "error": f"ファイル '{args.file}' をreferencesに持つアイテムが見つかりません"})
+
+        chains = []
+        for root_item, _prefix in matched:
+            chain = _build_single_chain(tree, root_item, children_idx, parents_idx)
+            chains.append(chain)
+
+        out({
+            "ok": True,
+            "action": "chain",
+            "mode": "by_file",
+            "file": args.file,
+            "chains": chains,
+            "matched_count": len(chains),
+        })
+
+    # UID指定モード（従来の動作）
+    if not args.uid:
+        out({"ok": False, "error": "UID または --file のどちらかを指定してください"})
+
+    root_item = find_item(tree, args.uid)
+    if root_item is None:
+        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+
+    chain = _build_single_chain(tree, root_item, children_idx, parents_idx)
+    out({
+        "ok": True,
+        "action": "chain",
+        "mode": "by_uid",
+        **chain,
     })
+
 
 
 def _trace_up(uid, parents_idx, result, visited, depth=0):
@@ -159,7 +222,7 @@ def _trace_up(uid, parents_idx, result, visited, depth=0):
         result.append({
             "uid": parent_uid,
             "prefix": parent_prefix,
-            "group": get_group(parent_item),
+            "groups": get_groups(parent_item),
             "text": parent_item.text.strip()[:120],
             "derived": is_derived(parent_item),
             "depth": depth,
@@ -176,7 +239,7 @@ def _trace_down(uid, children_idx, result, visited, depth=0):
         result.append({
             "uid": child_uid,
             "prefix": child_prefix,
-            "group": get_group(child_item),
+            "groups": get_groups(child_item),
             "text": child_item.text.strip()[:120],
             "references": get_references(child_item),
             "derived": is_derived(child_item),
@@ -197,9 +260,9 @@ def cmd_coverage(tree, args):
 
         # グループフィルタ
         if args.group:
-            parent_items = [i for i in parent_doc if get_group(i) == args.group]
+            parent_items = [i for i in parent_doc if args.group in get_groups(i) and is_normative(i)]
         else:
-            parent_items = list(parent_doc)
+            parent_items = [i for i in parent_doc if is_normative(i)]
 
         parent_uids = {str(i.uid) for i in parent_items}
         if not parent_uids:
@@ -209,9 +272,10 @@ def cmd_coverage(tree, args):
         covered_map = defaultdict(list)  # parent_uid -> [child_uid, ...]
         uncovered = set(parent_uids)
 
-        child_items = list(doc) if not args.group else [
-            i for i in doc if get_group(i) == args.group
-        ]
+        child_items = [i for i in doc if is_normative(i)]
+        if args.group:
+            child_items = [i for i in child_items if args.group in get_groups(i)]
+            
         for item in child_items:
             for link in item.links:
                 link_str = str(link)
@@ -230,7 +294,7 @@ def cmd_coverage(tree, args):
             if item:
                 uncovered_details.append({
                     "uid": uid,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                 })
 
@@ -258,7 +322,9 @@ def cmd_suspects(tree, args):
 
     for doc in tree:
         for item in doc:
-            if args.group and get_group(item) != args.group:
+            if not is_normative(item):
+                continue
+            if args.group and args.group not in get_groups(item):
                 continue
             if not is_suspect(item, tree):
                 continue
@@ -285,7 +351,7 @@ def cmd_suspects(tree, args):
             suspects.append({
                 "uid": str(item.uid),
                 "prefix": doc.prefix,
-                "group": get_group(item),
+                "groups": get_groups(item),
                 "text": item.text.strip()[:120],
                 "references": get_references(item),
                 "suspect_links": suspect_links,
@@ -334,7 +400,9 @@ def cmd_gaps(tree, args):
         if args.document and doc.prefix != args.document:
             continue
         for item in doc:
-            if args.group and get_group(item) != args.group:
+            if not is_normative(item):
+                continue
+            if args.group and args.group not in get_groups(item):
                 continue
 
             uid_str = str(item.uid)
@@ -344,7 +412,7 @@ def cmd_gaps(tree, args):
                 missing_links.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "expected_parent_doc": doc.parent,
                     "issue": f"{doc.parent} へのリンクがありません",
@@ -355,7 +423,7 @@ def cmd_gaps(tree, args):
                 missing_refs.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "issue": "references（ソース/テストファイルパス）が未設定",
                 })
@@ -369,14 +437,16 @@ def cmd_gaps(tree, args):
         if not child_docs:
             continue
         for item in doc:
-            if args.group and get_group(item) != args.group:
+            if not is_normative(item):
+                continue
+            if args.group and args.group not in get_groups(item):
                 continue
             uid_str = str(item.uid)
             if not children_idx.get(uid_str):
                 orphan_children.append({
                     "uid": uid_str,
                     "prefix": doc.prefix,
-                    "group": get_group(item),
+                    "groups": get_groups(item),
                     "text": item.text.strip()[:120],
                     "issue": f"子ドキュメント（{', '.join(d.prefix for d in child_docs)}）"
                              f"からの参照がありません",
@@ -409,8 +479,11 @@ def main():
     sub.add_parser("status", help="プロジェクト全体のサマリ")
 
     # chain
-    p_chain = sub.add_parser("chain", help="UIDの上流→下流チェーン")
-    p_chain.add_argument("uid", help="起点となるUID")
+    p_chain = sub.add_parser("chain", help="UIDの上流→下流チェーン（UID指定またはファイル逆引き）")
+    p_chain.add_argument("uid", nargs="?", default=None,
+                         help="起点となるUID（--file と排他）")
+    p_chain.add_argument("--file", metavar="PATH",
+                         help="ファイルパスをreferencesから逆引き。該当するIMPL/TSTアイテムのチェーンを表示")
 
     # coverage
     p_cov = sub.add_parser("coverage", help="カバレッジ詳細")

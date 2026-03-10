@@ -32,7 +32,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 try:
     import doorstop
@@ -190,7 +190,7 @@ class DoorstopDataStore:
                 parts = line.split("\t", 1)
                 if len(parts) != 2:
                     continue
-                status, fpath = parts
+                _, fpath = parts
                 fpath = fpath.strip()
                 if fpath not in meta:
                     # First encounter = most recent commit (git log is newest-first)
@@ -274,12 +274,30 @@ class DoorstopDataStore:
                 continue
         return None
 
-    def _get_group(self, item):
+    def _is_normative(self, item):
         try:
-            g = item.get("group")
-            return g if g else "(未分類)"
+            val = item.get("normative")
+            if val is None:
+                return True
+            return str(val).lower() != "false"
         except (AttributeError, KeyError):
-            return "(未分類)"
+            return True
+
+    def _get_groups(self, item):
+        try:
+            g = item.get("groups")
+            if isinstance(g, list):
+                return g if g else ["(未分類)"]
+            elif isinstance(g, str) and g:
+                return [s.strip() for s in g.split(",") if s.strip()]
+            g = item.get("group")
+            if g:
+                if isinstance(g, str):
+                    return [s.strip() for s in g.split(",") if s.strip()]
+                return [g]
+            return ["(未分類)"]
+        except (AttributeError, KeyError):
+            return ["(未分類)"]
 
     def _get_ref(self, item):
         try:
@@ -326,14 +344,16 @@ class DoorstopDataStore:
         return {
             "uid": uid_str,
             "prefix": prefix,
+            "level": str(item.level),
             "header": self._get_header(item),
-            "group": self._get_group(item),
+            "groups": self._get_groups(item),
             "text": item.text,
             "text_html": render_markdown(item.text),
             "text_preview": item.text[:100] + ("..." if len(item.text) > 100 else ""),
             "ref": self._get_ref(item),
             "references": references,
             "derived": derived,
+            "normative": self._is_normative(item),
             "reviewed": bool(item.reviewed),
             "suspect": uid_str in self._suspect_uids,
             "active": bool(item.active),
@@ -368,10 +388,12 @@ class DoorstopDataStore:
         return {
             "uid": uid_str,
             "prefix": prefix,
+            "level": str(item.level),
             "header": self._get_header(item),
-            "group": self._get_group(item),
+            "groups": self._get_groups(item),
             "text_preview": item.text[:80] + ("..." if len(item.text) > 80 else ""),
             "ref": self._get_ref(item),
+            "normative": self._is_normative(item),
             "reviewed": bool(item.reviewed),
             "suspect": uid_str in self._suspect_uids,
             "created_at": git.get("created_at", ""),
@@ -388,12 +410,12 @@ class DoorstopDataStore:
         total = 0
         reviewed = 0
         for doc in self.tree:
-            count = len(list(doc))
+            count = sum(1 for item in doc if self._is_normative(item))
             docs[str(doc.prefix)] = count
             total += count
-            reviewed += sum(1 for item in doc if item.reviewed)
+            reviewed += sum(1 for item in doc if item.reviewed and self._is_normative(item))
 
-        groups = sorted({self._get_group(item) for doc in self.tree for item in doc})
+        groups = sorted({g for doc in self.tree for item in doc for g in self._get_groups(item) if g != "(未分類)"})
         validation = self.get_validation()
         coverage = self.get_coverage()
 
@@ -417,6 +439,8 @@ class DoorstopDataStore:
 
         for document in self.tree:
             for item in document:
+                if not self._is_normative(item):
+                    continue
                 if not item.text.strip():
                     issues["warnings"].append(f"{item.uid}: テキストが空です")
                 if not item.active:
@@ -433,15 +457,17 @@ class DoorstopDataStore:
                 )
                 continue
 
-            parent_uids = {str(item.uid) for item in parent_doc}
+            parent_uids = {str(item.uid) for item in parent_doc if self._is_normative(item)}
             for item in document:
+                if not self._is_normative(item):
+                    continue
                 linked_parents = [
                     str(link) for link in item.links
                     if str(link).startswith(document.parent)
                 ]
                 if not linked_parents:
                     issues["warnings"].append(
-                        f"{item.uid} [{self._get_group(item)}]: "
+                        f"{item.uid} [{self._get_groups(item)}]: "
                         f"親ドキュメント {document.parent} へのリンクがありません"
                     )
                 for link in linked_parents:
@@ -451,32 +477,38 @@ class DoorstopDataStore:
                             f"{item.uid}: リンク先 {link_uid} が存在しません"
                         )
 
-            parent_groups = {str(i.uid): self._get_group(i) for i in parent_doc}
+            parent_groups = {str(i.uid): self._get_groups(i) for i in parent_doc if self._is_normative(i)}
             for item in document:
-                child_group = self._get_group(item)
-                if child_group == "(未分類)":
+                if not self._is_normative(item):
+                    continue
+                child_groups = self._get_groups(item)
+                if not child_groups or child_groups == ["(未分類)"]:
                     continue
                 for link in item.links:
                     link_str = str(link)
                     if link_str in parent_groups:
-                        pg = parent_groups[link_str]
-                        if pg != "(未分類)" and pg != child_group:
+                        pgs = parent_groups[link_str]
+                        if pgs and pgs != ["(未分類)"] and not set(child_groups).intersection(set(pgs)):
                             issues["warnings"].append(
-                                f"{item.uid} [{child_group}] -> {link_str} [{pg}]: "
+                                f"{item.uid} [{', '.join(child_groups)}] -> {link_str} [{', '.join(pgs)}]: "
                                 f"クロスグループリンクです"
                             )
 
             if self.strict:
                 child_links = defaultdict(set)
                 for item in document:
+                    if not self._is_normative(item):
+                        continue
                     for link in item.links:
                         link_str = str(link)
                         if link_str.startswith(document.parent):
                             child_links[link_str].add(str(item.uid))
                 for parent_item in parent_doc:
+                    if not self._is_normative(parent_item):
+                        continue
                     if str(parent_item.uid) not in child_links:
                         issues["warnings"].append(
-                            f"{parent_item.uid} [{self._get_group(parent_item)}]: "
+                            f"{parent_item.uid} [{self._get_groups(parent_item)}]: "
                             f"子ドキュメント {document.prefix} からのリンクがありません"
                         )
 
@@ -485,6 +517,8 @@ class DoorstopDataStore:
             if document.prefix not in ref_docs:
                 continue
             for item in document:
+                if not self._is_normative(item):
+                    continue
                 ref = self._get_ref(item)
                 if not ref:
                     continue
@@ -498,7 +532,7 @@ class DoorstopDataStore:
         unreviewed = []
         for document in self.tree:
             for item in document:
-                if not item.reviewed:
+                if self._is_normative(item) and not item.reviewed:
                     unreviewed.append(str(item.uid))
         if unreviewed:
             issues["info"].append(
@@ -516,10 +550,12 @@ class DoorstopDataStore:
             if not doc.parent or doc.parent not in docs:
                 continue
             parent_doc = docs[doc.parent]
-            parent_uids = {str(item.uid) for item in parent_doc}
+            parent_uids = {str(item.uid) for item in parent_doc if self._is_normative(item)}
             covered_uids = set()
 
             for item in doc:
+                if not self._is_normative(item):
+                    continue
                 for link in item.links:
                     link_str = str(link)
                     if link_str in parent_uids:
@@ -531,13 +567,18 @@ class DoorstopDataStore:
 
             group_cov = defaultdict(lambda: {"total": set(), "covered": set()})
             for pi in parent_doc:
-                group_cov[self._get_group(pi)]["total"].add(str(pi.uid))
+                if self._is_normative(pi):
+                    for g in self._get_groups(pi):
+                        group_cov[g]["total"].add(str(pi.uid))
             for item in doc:
+                if not self._is_normative(item):
+                    continue
                 for link in item.links:
                     link_str = str(link)
                     if link_str in parent_uids:
                         po = parent_doc.find_item(link_str)
-                        group_cov[self._get_group(po)]["covered"].add(link_str)
+                        for g in self._get_groups(po):
+                            group_cov[g]["covered"].add(link_str)
 
             groups = {}
             for g, d in sorted(group_cov.items()):
@@ -565,7 +606,9 @@ class DoorstopDataStore:
         root_docs = [d for d in docs if not d.parent]
         for root_doc in root_docs:
             for item in root_doc:
-                row = {root_doc.prefix: item, "_group": self._get_group(item)}
+                if not self._is_normative(item):
+                    continue
+                row = {root_doc.prefix: item, "_groups": self._get_groups(item)}
                 matrix.append(row)
 
         def expand_children(doc, parent_prefix):
@@ -573,6 +616,8 @@ class DoorstopDataStore:
             for child_doc in child_docs:
                 link_map = defaultdict(list)
                 for child_item in child_doc:
+                    if not self._is_normative(child_item):
+                        continue
                     for link in child_item.links:
                         link_str = str(link)
                         if link_str.startswith(parent_prefix):
@@ -598,8 +643,8 @@ class DoorstopDataStore:
 
         result_rows = []
         for row in matrix:
-            g = row.get("_group", "(未分類)")
-            if group and g != group:
+            gs = row.get("_groups", ["(未分類)"])
+            if group and group not in gs:
                 continue
             cells = {}
             statuses = set()
@@ -640,7 +685,7 @@ class DoorstopDataStore:
                 else:
                     cells[prefix] = None
             result_rows.append({
-                "group": g,
+                "groups": gs,
                 "cells": cells,
                 "uids": uids,
                 "statuses": sorted(statuses),
@@ -652,19 +697,20 @@ class DoorstopDataStore:
         groups = defaultdict(lambda: {"items": 0, "reviewed": 0, "suspect": 0})
         for doc in self.tree:
             for item in doc:
-                g = self._get_group(item)
-                groups[g]["items"] += 1
-                if item.reviewed:
-                    groups[g]["reviewed"] += 1
-                if str(item.uid) in self._suspect_uids:
-                    groups[g]["suspect"] += 1
+                for g in self._get_groups(item):
+                    groups[g]["items"] += 1
+                    if self._is_normative(item):
+                        if item.reviewed:
+                            groups[g]["reviewed"] += 1
+                        if str(item.uid) in self._suspect_uids:
+                            groups[g]["suspect"] += 1
         return {g: dict(d) for g, d in sorted(groups.items())}
 
     def get_group_detail(self, group_name):
         group_uids = set()
         for doc in self.tree:
             for item in doc:
-                if self._get_group(item) == group_name:
+                if group_name in self._get_groups(item):
                     group_uids.add(str(item.uid))
 
         if not group_uids:
@@ -728,10 +774,28 @@ class DoorstopDataStore:
             if prefix and doc.prefix != prefix:
                 continue
             for item in doc:
-                if group and self._get_group(item) != group:
+                if group and group not in self._get_groups(item):
                     continue
                 items.append(self._item_summary(item, doc.prefix))
         return items
+
+    def get_document_detail(self, prefix):
+        for doc in self.tree:
+            if doc.prefix == prefix:
+                items = []
+                for item in doc:
+                    items.append(self._item_to_dict(item, doc.prefix))
+                # Sort by level (natural sort)
+                import re
+                def natural_sort_key(s):
+                    return [int(text) if text.isdigit() else text.lower()
+                            for text in re.split('([0-9]+)', s["level"])]
+                items.sort(key=natural_sort_key)
+                return {
+                    "prefix": prefix,
+                    "items": items
+                }
+        return None
 
     def _trace_chain(self, uid):
         related = set()
@@ -767,13 +831,13 @@ class DoorstopDataStore:
                 continue
             parent_doc = docs[doc.parent]
 
-            parent_uids = {str(i.uid) for i in parent_doc if str(i.uid) in related_uids}
+            parent_uids = {str(i.uid) for i in parent_doc if str(i.uid) in related_uids and self._is_normative(i)}
             if not parent_uids:
                 continue
 
             covered = set()
             for item in doc:
-                if str(item.uid) not in related_uids:
+                if str(item.uid) not in related_uids or not self._is_normative(item):
                     continue
                 for link in item.links:
                     if str(link) in parent_uids:
@@ -855,7 +919,7 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
         elif path == "/api/groups":
             self._json_ok(self.store.get_groups())
         elif path.startswith("/api/group/"):
-            name = path[len("/api/group/"):]
+            name = unquote(path[len("/api/group/"):])
             data = self.store.get_group_detail(name)
             if data:
                 self._json_ok(data)
@@ -872,12 +936,36 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 self._json_ok(data)
             else:
                 self._json_err(404, f"Item '{uid}' not found")
+        elif path == "/api/documents":
+            docs = [doc.prefix for doc in self.store.tree]
+            self._json_ok(docs)
+        elif path.startswith("/api/document/"):
+            prefix = path[len("/api/document/"):]
+            data = self.store.get_document_detail(prefix)
+            if data:
+                self._json_ok(data)
+            else:
+                self._json_err(404, f"Document '{prefix}' not found")
         elif path == "/api/validation":
             self._json_ok(self.store.get_validation())
         elif path == "/api/coverage":
             self._json_ok(self.store.get_coverage())
         elif path in ("", "/", "/index.html"):
             self._serve_html(_load_spa_html())
+        elif path == "/api/download_report":
+            report_path = os.path.join(self.store.project_dir, "specification", "reports", "publish", "specification.html")
+            if os.path.exists(report_path):
+                with open(report_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                body = content.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="specification.html"')
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_error(404, "Report not found. Please generate it first.")
         else:
             self.send_error(404)
 
@@ -885,6 +973,22 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
         if self.path.rstrip("/") == "/api/reload":
             self.store.force_reload()
             self._json_ok({"ok": True, "message": "Tree reloaded"})
+            return
+
+        if self.path.rstrip("/") == "/api/generate_report":
+            self.store.force_reload()
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "publish_docs.py")
+            cmd = [
+                sys.executable,
+                script_path,
+                self.store.project_dir,
+                "--single-file"
+            ]
+            try:
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+                self._json_ok({"ok": True, "message": "Report generated successfully.", "report_url": "/api/download_report"})
+            except subprocess.CalledProcessError as e:
+                self._json_err(500, f"Failed to generate report: {e.stderr}")
             return
 
         m = re.match(r"^/api/items/([\w]+)/(review|clear|edit)$", self.path)
@@ -981,6 +1085,10 @@ _SPA_HTML_TEMPLATE = r"""<!DOCTYPE html>
   <ul>
     <li><a href="#/" data-nav="dashboard">Dashboard</a></li>
     <li><a href="#/matrix" data-nav="matrix">Matrix</a></li>
+    <li><span class="nav-section-title">Documents</span></li>
+  </ul>
+  <ul id="doc-nav-list"></ul>
+  <ul>
     <li><span class="nav-section-title">Groups</span></li>
   </ul>
   <ul id="group-nav-list"></ul>

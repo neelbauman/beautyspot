@@ -3,7 +3,7 @@ derived: false
 group: STORE
 header: |
   S3Storage テスト
-level: 1.9
+level: '2.10'
 links:
 - SPEC010: R79YFIXzAjNREaGJUO8qIeJnL7SbFX-z9pbs_TrFkxI=
 normative: true

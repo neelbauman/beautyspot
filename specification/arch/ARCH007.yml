@@ -3,7 +3,7 @@ derived: false
 group: LIFE
 header: |
   ライフサイクル管理構成
-level: 1.6
+level: 2.7
 links:
 - REQ007: 5yGdzM-hrahCqGxuusF5AajSMS7cGKe-yzlxOglVHzg=
 normative: true

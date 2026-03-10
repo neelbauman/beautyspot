@@ -3,7 +3,7 @@ derived: false
 group: SERIAL
 header: |
   カスタム型登録テスト
-level: 1.12
+level: 2.13
 links:
 - SPEC013: qawchycz4Lwi7pICc6OxP43WLUHhKWeTdmUa_v0j5vU=
 normative: true

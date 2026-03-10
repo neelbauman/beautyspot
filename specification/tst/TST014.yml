@@ -3,7 +3,7 @@ derived: false
 group: BGIO
 header: |
   BackgroundLoop テスト
-level: 1.13
+level: 2.14
 links:
 - SPEC014: 8GcZBoTv8aQ9r67acF8Ehq8rz9sMy7LlXp0EgvFByrA=
 normative: true

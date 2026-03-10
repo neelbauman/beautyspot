@@ -3,7 +3,7 @@ derived: false
 group: MAINT
 header: |
   メンテナンス構成
-level: 1.9
+level: '2.10'
 links:
 - REQ010: 0xDnfgjsHplchyYDlATXR8BTSnA66KQZOCBnGq94JrY=
 normative: true

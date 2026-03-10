@@ -3,7 +3,7 @@ derived: false
 group: LIMIT
 header: |
   レート制限
-level: 1.7
+level: 4.8
 links: []
 normative: true
 ref: ''

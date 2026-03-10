@@ -3,7 +3,7 @@ derived: false
 group: DB
 header: |
   メタデータDBアーキテクチャ
-level: 1.2
+level: 2.3
 links:
 - REQ003: 4VBJmIcgSkmWMZDIp1dVMhI-zf2yhj1gTqWG94lf1rc=
 normative: true

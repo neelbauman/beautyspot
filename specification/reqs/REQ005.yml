@@ -3,7 +3,7 @@ derived: false
 group: SERIAL
 header: |
   シリアライゼーション
-level: 1.4
+level: 4.5
 links: []
 normative: true
 ref: ''

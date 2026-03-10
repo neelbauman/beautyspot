@@ -3,7 +3,7 @@ derived: false
 group: LIMIT
 header: |
   レート制限構成
-level: 1.7
+level: 2.8
 links:
 - REQ008: LpSLzngQTtYFyX5Y_Ke5jjSinbHq2U34SszCwfnZCa8=
 normative: true

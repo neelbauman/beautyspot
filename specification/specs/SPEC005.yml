@@ -3,7 +3,7 @@ derived: false
 group: KEY
 header: |
   引数の再帰的正規化
-level: 1.4
+level: 2.5
 links:
 - ARCH002: h2OB0u7bf4d0UvEZ0zjry469NFQ4GBrDYCyS-AH1R_4=
 normative: true
