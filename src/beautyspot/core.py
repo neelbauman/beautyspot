@@ -737,72 +737,71 @@ class Spot:
                 ),
             )
             return cached
-        herd = self.cache.wait_herd_sync(ctx.cache_key, serializer)
-        if not herd.is_executor:
-            if herd.is_error:
-                raise herd.result
-            self._dispatch_hooks(
-                hooks,
-                "on_cache_hit",
-                self._build_cache_hit_context(
-                    func.__name__,
-                    ctx.input_id,
-                    ctx.cache_key,
-                    args,
-                    ctx.hook_kwargs,
-                    herd.result,
-                    ctx.version,
-                ),
-            )
-            return herd.result
-        try:
-            res = func(*args, **kwargs)
-            self._dispatch_hooks(
-                hooks,
-                "on_cache_miss",
-                CacheMissContext(
-                    func.__name__,
-                    str(ctx.input_id),
-                    ctx.cache_key,
-                    args,
-                    ctx.hook_kwargs,
-                    res,
-                    ctx.version,
-                ),
-            )
-            herd.result_box.append((True, res))
-            
-            # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
-            try:
-                save_kwargs = self._build_save_kwargs(
-                    ctx.cache_key,
-                    func,
-                    ctx.func_identifier,
-                    ctx.input_id,
-                    ctx.version,
-                    res,
-                    ctx.content_type,
-                    ctx.save_blob,
-                    serializer,
-                    retention,
-                )
-                self._persist_result_sync(ctx.save_sync, save_kwargs)
-            except Exception as e:
-                if ctx.save_sync:
-                    raise
-                logger.error(f"Failed to submit background cache save, but execution succeeded: {e}")
-                
-            return res
 
-        except BaseException as e:
-            if not herd.result_box:
-                herd.result_box.append((False, e))
-            raise
-        finally:
-            self.cache.notify_and_cleanup_inflight(
-                ctx.cache_key, herd.event, herd.result_box
-            )
-            self._trigger_auto_eviction()
+        with self.cache.herd_sync(ctx.cache_key, serializer) as herd:
+            if not herd.is_executor:
+                if herd.is_error:
+                    raise herd.result
+                self._dispatch_hooks(
+                    hooks,
+                    "on_cache_hit",
+                    self._build_cache_hit_context(
+                        func.__name__,
+                        ctx.input_id,
+                        ctx.cache_key,
+                        args,
+                        ctx.hook_kwargs,
+                        herd.result,
+                        ctx.version,
+                    ),
+                )
+                return herd.result
+
+            try:
+                res = func(*args, **kwargs)
+                self._dispatch_hooks(
+                    hooks,
+                    "on_cache_miss",
+                    CacheMissContext(
+                        func.__name__,
+                        str(ctx.input_id),
+                        ctx.cache_key,
+                        args,
+                        ctx.hook_kwargs,
+                        res,
+                        ctx.version,
+                    ),
+                )
+                herd.result_box.append((True, res))
+                
+                # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
+                try:
+                    save_kwargs = self._build_save_kwargs(
+                        ctx.cache_key,
+                        func,
+                        ctx.func_identifier,
+                        ctx.input_id,
+                        ctx.version,
+                        res,
+                        ctx.content_type,
+                        ctx.save_blob,
+                        serializer,
+                        retention,
+                    )
+                    self._persist_result_sync(ctx.save_sync, save_kwargs)
+                except Exception as e:
+                    if ctx.save_sync:
+                        raise
+                    logger.error(f"Failed to submit background cache save, but execution succeeded: {e}")
+                    
+                return res
+
+            except BaseException as e:
+                if not herd.result_box:
+                    herd.result_box.append((False, e))
+                raise
+            finally:
+                self._trigger_auto_eviction()
 
     async def _execute_async(
         self,
@@ -860,78 +859,77 @@ class Spot:
                 executor,
             )
             return cached
-        herd = await self.cache.wait_herd_async(
+
+        async with self.cache.herd_async(
             ctx.cache_key, serializer, loop, executor
-        )
-        if not herd.is_executor:
-            if herd.is_error:
-                raise herd.result
-            await self._dispatch_hooks_async(
-                hooks,
-                "on_cache_hit",
-                self._build_cache_hit_context(
-                    func.__name__,
-                    ctx.input_id,
-                    ctx.cache_key,
-                    args,
-                    ctx.hook_kwargs,
-                    herd.result,
-                    ctx.version,
-                ),
-                loop,
-                executor,
-            )
-            return herd.result
-        try:
-            res = await func(*args, **kwargs)
-            await self._dispatch_hooks_async(
-                hooks,
-                "on_cache_miss",
-                CacheMissContext(
-                    func.__name__,
-                    str(ctx.input_id),
-                    ctx.cache_key,
-                    args,
-                    ctx.hook_kwargs,
-                    res,
-                    ctx.version,
-                ),
-                loop,
-                executor,
-            )
-            herd.result_box.append((True, res))
-            
-            # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
-            try:
-                save_kwargs = self._build_save_kwargs(
-                    ctx.cache_key,
-                    func,
-                    ctx.func_identifier,
-                    ctx.input_id,
-                    ctx.version,
-                    res,
-                    ctx.content_type,
-                    ctx.save_blob,
-                    serializer,
-                    retention,
+        ) as herd:
+            if not herd.is_executor:
+                if herd.is_error:
+                    raise herd.result
+                await self._dispatch_hooks_async(
+                    hooks,
+                    "on_cache_hit",
+                    self._build_cache_hit_context(
+                        func.__name__,
+                        ctx.input_id,
+                        ctx.cache_key,
+                        args,
+                        ctx.hook_kwargs,
+                        herd.result,
+                        ctx.version,
+                    ),
+                    loop,
+                    executor,
                 )
-                await self._persist_result_async(ctx.save_sync, save_kwargs)
-            except Exception as e:
-                if ctx.save_sync:
-                    raise
-                logger.error(f"Failed to persist cache asynchronously, but execution succeeded: {e}")
+                return herd.result
 
-            return res
+            try:
+                res = await func(*args, **kwargs)
+                await self._dispatch_hooks_async(
+                    hooks,
+                    "on_cache_miss",
+                    CacheMissContext(
+                        func.__name__,
+                        str(ctx.input_id),
+                        ctx.cache_key,
+                        args,
+                        ctx.hook_kwargs,
+                        res,
+                        ctx.version,
+                    ),
+                    loop,
+                    executor,
+                )
+                herd.result_box.append((True, res))
+                
+                # 実行成功後、同期モード(save_sync=True)の場合はキャッシュ保存エラーを伝播させる
+                try:
+                    save_kwargs = self._build_save_kwargs(
+                        ctx.cache_key,
+                        func,
+                        ctx.func_identifier,
+                        ctx.input_id,
+                        ctx.version,
+                        res,
+                        ctx.content_type,
+                        ctx.save_blob,
+                        serializer,
+                        retention,
+                    )
+                    await self._persist_result_async(ctx.save_sync, save_kwargs)
+                except Exception as e:
+                    if ctx.save_sync:
+                        raise
+                    logger.error(f"Failed to persist cache asynchronously, but execution succeeded: {e}")
 
-        except BaseException as e:
-            if not herd.result_box:
-                herd.result_box.append((False, e))
-            raise
-        finally:
-            self.cache.notify_and_cleanup_inflight(
-                ctx.cache_key, herd.event, herd.result_box
-            )
-            self._trigger_auto_eviction()
+                return res
+
+            except BaseException as e:
+                if not herd.result_box:
+                    herd.result_box.append((False, e))
+                raise
+            finally:
+                self._trigger_auto_eviction()
 
     def _handle_save_error(self, err: BaseException | Exception, save_kwargs: dict) -> None:
         logger.error(

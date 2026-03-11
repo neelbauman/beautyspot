@@ -398,6 +398,57 @@ def test_notify_and_cleanup_inflight_error(cache_manager):
         fut.result()
     loop.close()
 
+
+def test_herd_sync_context_manager_cleanup_on_exception(cache_manager):
+    key = "k_sync_exc"
+    try:
+        with cache_manager.herd_sync(key) as herd:
+            assert herd.is_executor is True
+            assert key in cache_manager._inflight
+            raise ValueError("intentional error")
+    except ValueError:
+        pass
+    
+    # Check that it was cleaned up even though we raised an exception
+    assert key not in cache_manager._inflight
+
+
+@pytest.mark.asyncio
+async def test_herd_async_context_manager_cleanup_on_exception(cache_manager):
+    key = "k_async_exc"
+    loop = asyncio.get_running_loop()
+    try:
+        async with cache_manager.herd_async(key, None, loop, None) as herd:
+            assert herd.is_executor is True
+            assert key in cache_manager._inflight
+            raise ValueError("intentional async error")
+    except ValueError:
+        pass
+    
+    # Check that it was cleaned up
+    assert key not in cache_manager._inflight
+
+
+def test_herd_sync_context_manager_waiter(cache_manager):
+    key = "k_sync_wait"
+    ev = threading.Event()
+    box = []
+    cache_manager._inflight[key] = (ev, [], box)
+    
+    def setter():
+        time.sleep(0.1)
+        box.append((True, "val"))
+        ev.set()
+    
+    threading.Thread(target=setter).start()
+    
+    with cache_manager.herd_sync(key) as herd:
+        assert herd.is_executor is False
+        assert herd.result == "val"
+    
+    # As a waiter, we should NOT have deleted it from _inflight (the executor does that)
+    assert key in cache_manager._inflight
+
 def test_notify_and_cleanup_inflight_non_exception_error(cache_manager):
     ev = threading.Event()
     box = [(False, "string error")]

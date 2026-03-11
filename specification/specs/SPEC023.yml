@@ -6,27 +6,36 @@ header: |
   Thundering Herd Protection
 level: 2.23
 links:
-- ARCH013: 7zKYsJiNUWIE5G_TbmIpRMEMc9zqUML8JCdzM6SjuzM=
+- ARCH013: 7zKYsJiNUWIE5G_TbmIpRMEMc9zqUML8JCdzM6SjuzM=  # pragma: allowlist secret
 normative: true
 ref: ''
-reviewed: 3lepZEoAldvjbWNQYzI1Csdb03dA22T_3rJsFJemVPo=
+reviewed: Cpckhjgx4C7SFoPZ-EybMgaPuImFM5r6QqB5FwXvBQ0=  # pragma: allowlist secret
 text: |
   ## インターフェース
 
   ```python
   class CacheManager:
-      def get_or_create_inflight(
-          self, key: str, is_async: bool
-      ) -> ExecutionState: ...
+      def herd_sync(
+          self, key: str, serializer: Optional[SerializerProtocol] = None
+      ) -> Generator[HerdWaitResult, None, None]: ...
+
+      async def herd_async(
+          self,
+          key: str,
+          serializer: Optional[SerializerProtocol],
+          loop: asyncio.AbstractEventLoop,
+          executor: Any,
+      ) -> AsyncGenerator[HerdWaitResult, None]: ...
   ```
 
   ## 振る舞い
 
   ### 同時実行制御
   1. キャッシュキーをキーとした `_inflight` 辞書をチェックする
-  2. **存在しない場合**: `ExecutionState` を新規作成し、自分が「実行者 (Executor)」となる
-  3. **存在する場合**: 既存の `ExecutionState` を返し、自分は「待機者 (Waiter)」となる
-  4. **完了通知**: 実行者が処理を終えたら、`ExecutionState` の Event (または Future) をセットし、結果を共有する
+  2. **存在しない場合**: `HerdWaitResult` を新規作成し、自分が「実行者 (Executor)」となる
+  3. **存在する場合**: 既存の `HerdWaitResult` を返し、自分は「待機者 (Waiter)」となる
+  4. **完了通知**: 実行者が処理を終えたら、`HerdWaitResult` の Event (または Future) をセットし、結果を共有する
+  5. **自動クリーンアップ**: `with` または `async with` ブロックを抜ける際、実行者は自動的に `notify_and_cleanup_inflight` を呼び出し、インフライト状態を解除する。これにより例外発生時も状態が残留しないことが保証される。
 
   ### 強参照によるインフライト状態の保持
 
@@ -49,15 +58,16 @@ text: |
 
   #### ライフサイクル
 
-  1. **作成**: `wait_herd_sync` / `wait_herd_async` で `_inflight` にキーが存在しない場合、
+  1. **作成**: `herd_sync` / `herd_async` コンテキスト開始時に `_inflight` にキーが存在しない場合、
      `_inflight_lock` を保持した状態で新規タプルを挿入する
   2. **保持**: 実行者が処理を完了するまで、`_inflight` 辞書がタプルへの唯一の管理参照を保持する。
      待機者はロック取得時にタプル要素への参照を取得するが、`_inflight` エントリが正規の所有者である
-  3. **解放**: `notify_and_cleanup_inflight` で以下の順序で解放する:
+  3. **解放**: コンテキスト終了（`__exit__` / `__aexit__`）時に `notify_and_cleanup_inflight` で以下の順序で解放する:
      a. `_inflight_lock` を取得し、エントリの同一性を `event` の identity (`is`) で確認する
      b. 辞書からエントリを削除する（`del _inflight[cache_key]`）
      c. ロックを解放した後、`event.set()` で同期待機者に通知する
      d. `futures` リスト内の各 `asyncio.Future` に結果またはエラーを伝播する
+
 
   #### 不変条件
 

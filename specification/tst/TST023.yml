@@ -6,13 +6,13 @@ header: |
   Thundering Herd テスト
 level: 2.23
 links:
-- SPEC023: PhS_f6e1zMc5dfhFHHR-gNKFj6Do8e3HCDoGNcrPdxc=
+- SPEC023: cDrUOl0zdzfvUk1SVM-rHAWFDqCKU3ySr6YxYxizguo=  # pragma: allowlist secret
 normative: true
 ref: ''
 references:
 - path: tests/integration/core/test_thundering_herd.py
   type: file
-reviewed: ynAEznKGldx7vxUctqQ1wyvauntliHznTuAJn573jqw=
+reviewed: ynAEznKGldx7vxUctqQ1wyvauntliHznTuAJn573jqw=  # pragma: allowlist secret
 text: |
   ## 目的
 

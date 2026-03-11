@@ -5,8 +5,9 @@ import logging
 import threading
 import time
 import asyncio
+import contextlib
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional, NamedTuple
+from typing import Any, Callable, Optional, NamedTuple, Generator, AsyncGenerator
 
 from beautyspot.db import TaskDBMaintenable
 from beautyspot.storage import BlobStorageMaintenable, StoragePolicyProtocol
@@ -224,6 +225,34 @@ class CacheManager:
             )
 
     # --- Thundering Herd Protection ---
+
+    @contextlib.contextmanager
+    def herd_sync(
+        self, cache_key: str, serializer: Optional[SerializerProtocol] = None
+    ) -> Generator[HerdWaitResult, None, None]:
+        """同期パスでの Thundering Herd 保護コンテキストマネージャ。"""
+        herd = self.wait_herd_sync(cache_key, serializer)
+        try:
+            yield herd
+        finally:
+            if herd.is_executor:
+                self.notify_and_cleanup_inflight(cache_key, herd.event, herd.result_box)
+
+    @contextlib.asynccontextmanager
+    async def herd_async(
+        self,
+        cache_key: str,
+        serializer: Optional[SerializerProtocol],
+        loop: asyncio.AbstractEventLoop,
+        executor: Any,
+    ) -> AsyncGenerator[HerdWaitResult, None]:
+        """非同期パスでの Thundering Herd 保護コンテキストマネージャ。"""
+        herd = await self.wait_herd_async(cache_key, serializer, loop, executor)
+        try:
+            yield herd
+        finally:
+            if herd.is_executor:
+                self.notify_and_cleanup_inflight(cache_key, herd.event, herd.result_box)
 
     def wait_herd_sync(
         self, cache_key: str, serializer: Optional[SerializerProtocol] = None

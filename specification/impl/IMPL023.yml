@@ -6,22 +6,30 @@ header: |
   Thundering Herd 実装
 level: 2.23
 links:
-- SPEC023: PhS_f6e1zMc5dfhFHHR-gNKFj6Do8e3HCDoGNcrPdxc=
+- SPEC023: cDrUOl0zdzfvUk1SVM-rHAWFDqCKU3ySr6YxYxizguo=  # pragma: allowlist secret
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cache.py
   type: file
-reviewed: FGfgFs6oScgkmLWNes8jSKUXYkrzuDU2V7S0nMVSQkw=
+reviewed: FGfgFs6oScgkmLWNes8jSKUXYkrzuDU2V7S0nMVSQkw=  # pragma: allowlist secret
 text: |
   ## 実装概要
 
   `CacheManager` クラス内で、Thundering Herd（キャッシュミス時に同一キーへの
   大量アクセスが同時に発生する問題）を防止する直列化機構を実装。
   `_inflight` 辞書で実行中のキーを管理し、最初の1スレッド/タスクだけが関数を実行し、
-  後続の呼び出しは `wait_herd_sync` / `wait_herd_async` でその完了を待機する。
+  後続の呼び出しは `herd_sync` / `herd_async` コンテキスト内でその完了を待機する。
 
   ## 設計判断
+
+  ### コンテキストマネージャによる例外安全性
+
+  実行者 (Executor) が処理中に例外（KeyboardInterrupt や asyncio.CancelledError を含む）で
+  中断された場合でも、`_inflight` 状態が残留して後続タスクを永続的にブロックすることを防ぐため、
+  `herd_sync` / `herd_async` をコンテキストマネージャとして提供する。
+  クリーンアップ処理（`notify_and_cleanup_inflight`）は `finally` ブロック内で
+  自動的に実行される。
 
   ### 同期・非同期の統合的保護
 
