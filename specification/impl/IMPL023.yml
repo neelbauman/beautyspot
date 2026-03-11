@@ -6,13 +6,13 @@ header: |
   Thundering Herd 実装
 level: 2.23
 links:
-- SPEC023: cDrUOl0zdzfvUk1SVM-rHAWFDqCKU3ySr6YxYxizguo=  # pragma: allowlist secret
+- SPEC023: cDrUOl0zdzfvUk1SVM-rHAWFDqCKU3ySr6YxYxizguo=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/cache.py
   type: file
-reviewed: FGfgFs6oScgkmLWNes8jSKUXYkrzuDU2V7S0nMVSQkw=  # pragma: allowlist secret
+reviewed: RrDDUFEYyw4tUqw2YduwyVLLV8GFSfxSydwrRWQeY70=
 text: |
   ## 実装概要
 
