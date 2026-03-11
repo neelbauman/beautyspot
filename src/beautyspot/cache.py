@@ -306,7 +306,18 @@ class CacheManager:
                     return HerdWaitResult(True, None, event, result_box, False)
 
                 wait_event, futs, wait_box = self._inflight[cache_key]
-                if not wait_box:
+                
+                # すでに結果がある場合は即座に返す
+                if wait_box:
+                    success, val = wait_box[0]
+                    return HerdWaitResult(False, val, None, [], not success)
+
+                # 同じループの既存の Future があれば再利用する（肥大化防止）
+                for f in futs:
+                    if f.get_loop() is loop and not f.done():
+                        fut = f
+                        break
+                if fut is None:
                     fut = loop.create_future()
                     futs.append(fut)
 

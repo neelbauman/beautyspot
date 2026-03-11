@@ -347,17 +347,61 @@ async def test_wait_herd_async_future_exception(cache_manager):
     assert res.is_error is True
 
 @pytest.mark.asyncio
-async def test_wait_herd_async_timeout_no_futs(cache_manager):
+async def test_wait_herd_async_future_reuse(cache_manager):
     loop = asyncio.get_running_loop()
+    key = "reuse_key"
     ev = threading.Event()
-    # If wait_box already has items but we call wait_herd_async:
-    box = [(True, "box_val")]
+    box = []
     futs = []
-    cache_manager._inflight["k2"] = (ev, futs, box)
+    cache_manager._inflight[key] = (ev, futs, box)
+
+    # 1回目の呼び出し
+    task1 = asyncio.create_task(cache_manager.wait_herd_async(key, None, loop, None))
+    await asyncio.sleep(0.01) # 実行を進める
+    assert len(futs) == 1
+    f1 = futs[0]
+
+    # 2回目の呼び出し（同じループ）
+    task2 = asyncio.create_task(cache_manager.wait_herd_async(key, None, loop, None))
+    await asyncio.sleep(0.01)
+    assert len(futs) == 1 # 増えていないこと
+    assert futs[0] is f1
+
+    # 完了させる
+    box.append((True, "ok"))
+    cache_manager.notify_and_cleanup_inflight(key, ev, box)
     
-    res = await cache_manager.wait_herd_async("k2", None, loop, None)
-    assert res.is_executor is False
-    assert res.result == "box_val"
+    r1 = await task1
+    r2 = await task2
+    assert r1.result == "ok"
+    assert r2.result == "ok"
+
+
+@pytest.mark.asyncio
+async def test_wait_herd_async_retry_reuse(cache_manager, monkeypatch):
+    # タイムアウトを短く設定
+    monkeypatch.setattr(cache_manager, "HERD_TIMEOUT", 0.05)
+    monkeypatch.setattr(cache_manager, "HERD_POLL", 0.01)
+    
+    loop = asyncio.get_running_loop()
+    key = "retry_key"
+    ev = threading.Event()
+    box = []
+    futs = []
+    cache_manager._inflight[key] = (ev, futs, box)
+
+    # 待機開始（1回目はタイムアウトするように仕向ける）
+    wait_task = asyncio.create_task(cache_manager.wait_herd_async(key, None, loop, None))
+    
+    await asyncio.sleep(0.07) # 1回目のタイムアウト発生
+    
+    # 2回目の待機中に結果を詰める。この時点ではまだ _inflight にエントリがあるはず。
+    box.append((True, "after_retry"))
+    # notify_and_cleanup_inflight を呼ぶとエントリが削除され、Futureに通知される
+    cache_manager.notify_and_cleanup_inflight(key, ev, box)
+    
+    res = await wait_task
+    assert res.result == "after_retry"
 
 # --- Cleanup Inflight ---
 
