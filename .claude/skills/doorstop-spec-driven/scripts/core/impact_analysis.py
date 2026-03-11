@@ -212,7 +212,10 @@ def _generate_actions(changed_item, doc_prefix, downstream, suspects):
     """対応アクションリストを生成する。"""
     actions = []
 
-    # suspectアイテムに対するアクション
+    # 1. 変更アイテム自体のレビュー（SDD原則: まず仕様を確定させる）
+    actions.append(f"{str(changed_item.uid)} を doorstop review {str(changed_item.uid)} でレビュー済みに更新")
+
+    # 2. suspectアイテムに対するアクション（仕様確定後の実装・テスト修正）
     for s in suspects:
         if s["prefix"] == "IMPL":
             actions.append(
@@ -227,15 +230,12 @@ def _generate_actions(changed_item, doc_prefix, downstream, suspects):
                 f"{s['uid']} を確認し、doorstop clear {s['uid']} でsuspect解消"
             )
 
-    # 下流にIMPL/TSTがあるがsuspectでない場合（新規リンクや未レビュー等）
+    # 3. 下流にIMPL/TSTがあるがsuspectでない場合（新規リンクや未レビュー等）
     suspect_uids = {s["uid"] for s in suspects}
     for d in downstream:
         if d["uid"] not in suspect_uids:
             if d["prefix"] in ("IMPL", "TST"):
                 actions.append(f"{d['uid']} の内容が変更と整合しているか確認")
-
-    # 変更アイテム自体のレビュー
-    actions.append(f"{str(changed_item.uid)} を doorstop review {str(changed_item.uid)} でレビュー済みに更新")
 
     return actions
 

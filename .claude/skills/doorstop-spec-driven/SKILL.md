@@ -109,6 +109,7 @@ trace_query.py <dir> backlog -d NFR
 | リンク漏れ検出 | `trace_query.py <dir> gaps [--document IMPL]` |
 | **優先度付きバックログ** | `trace_query.py <dir> backlog [--group GROUP]` |
 | CRUD操作 | `doorstop_ops.py <dir> add/update/link/unlink/clear/review` |
+| 変更の一括承認 | `doorstop_ops.py <dir> chain-review / chain-clear` |
 | 非活性化（単体） | `doorstop_ops.py <dir> deactivate <UID> [<UID2> ...]` |
 | 非活性化（チェーン） | `doorstop_ops.py <dir> deactivate-chain <UID> [--force]` |
 | 活性化（チェーン） | `doorstop_ops.py <dir> activate-chain <UID>` |
@@ -119,6 +120,15 @@ trace_query.py <dir> backlog -d NFR
 | **ベースライン一覧** | `baseline_manager.py <dir> list` |
 | **バージョン間差分** | `baseline_manager.py <dir> diff <v1> <v2>` |
 | **現在との差分** | `baseline_manager.py <dir> diff <v1> HEAD` |
+
+## [B] 変更フロー
+
+1. **現状確認** — `trace_query.py <dir> chain <UID>` で影響範囲を特定
+2. **影響分析** — `impact_analysis.py <dir> --detect-suspects` でアクションを確認
+3. **上流の更新・レビュー** — REQ/SPEC/ARCH を修正し、`doorstop_ops.py chain-review <UID>` で上流を確定
+4. **実装・テストの更新** — コードを修正し、テストをパスさせる
+5. **下流の承認** — `doorstop_ops.py chain-clear <UID>` で下流の suspect を一括解消
+6. **バリデーション** — `validate_and_report.py --strict` で整合性を最終確認
 
 ユーザーへの報告は技術用語を避け、件数・カバレッジ・suspect数を平易に伝える。
 

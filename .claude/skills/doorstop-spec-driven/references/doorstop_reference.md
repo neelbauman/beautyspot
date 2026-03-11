@@ -285,15 +285,26 @@ doorstop_ops.py <dir> review SPEC001 IMPL001 TST001  # 複数UID指定可
 
 #### チェーンレビュー（chain-review）
 
-アイテムを起点に、リンクチェーン全体（上流・下流）を一括で review 済みにし、
-suspect を解消する。変更フローの最終ステップで使用する。
+アイテムを起点に、そのアイテムと全ての**祖先（上流）アイテム**を一括で review 済みにする。
+SDD 原則に基づき、下位の変更を確定させる前に、まず上位の仕様が正しいことを承認するために使用する。
+※下流の suspect 解消（clear）は行わない。
 
 ```bash
-# SPEC001 を起点に、関連する IMPL/TST のsuspectを一括解消＆レビュー済みに
+# SPEC001 と、その親である ARCH/REQ を一括でレビュー済みに
 doorstop_ops.py <dir> chain-review SPEC001
 
 # 複数の起点UIDを指定可
 doorstop_ops.py <dir> chain-review SPEC001 SPEC002
+```
+
+#### チェーンクリア（chain-clear）
+
+アイテムを起点に、そのアイテムと全ての**子孫（下流）アイテム**を探索し、`suspect` リンクがあれば一括で解消（clear）する。
+実装やテストの修正が完了した後、上位仕様の変更を下流が正しく取り込んだことを一括承認するために使用する。
+
+```bash
+# SPEC001 の変更を、下流の IMPL001/TST001 に波及させた後に一括承認する
+doorstop_ops.py <dir> chain-clear SPEC001
 ```
 
 #### 一覧・検索
