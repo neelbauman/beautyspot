@@ -251,6 +251,14 @@ class TaskDBBase(ABC):
             raise ImportError("Pandas is required for this feature.")
 
 
+class WriterTaintedError(RuntimeError):
+    """
+    Indicates that the SQLite writer thread is hung beyond repair.
+    Manual reset or process restart is required.
+    """
+    pass
+
+
 class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
     """
     Default implementation using SQLite.
@@ -268,6 +276,8 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
         self._shutdown_requested = False
         self._writer_ready = threading.Event()
         self._writer_error: Exception | None = None
+        self._writer_tainted = False
+        self._writer_generation = 0
         # ライタースレッドの接続を保持（interrupt() 用）
         self._writer_conn: sqlite3.Connection | None = None
         self._writer_conn_lock = threading.Lock()
@@ -276,12 +286,52 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
         self._read_wrappers = weakref.WeakSet()
         self._read_conns_lock = threading.Lock()
         self._writer_thread = threading.Thread(
-            target=self._writer_loop, daemon=True, name="BeautySpot-SQLiteWriter"
+            target=self._writer_loop,
+            args=(self._writer_generation,),
+            daemon=True,
+            name=f"BeautySpot-SQLiteWriter-{self._writer_generation}",
         )
         self._writer_thread.start()
         self._writer_ready.wait()
         if self._writer_error:
             raise self._writer_error
+
+    def reset(self) -> None:
+        """
+        Forcefully restart the writer thread. Use this if the writer is tainted or hung.
+        """
+        with self._shutdown_lock:
+            if self._shutdown_requested:
+                return
+
+            # 1. 現在の接続に interrupt を試みる（もし生きていれば）
+            with self._writer_conn_lock:
+                if self._writer_conn:
+                    try:
+                        self._writer_conn.interrupt()
+                    except Exception:
+                        pass
+
+            # 2. 世代を上げ、汚染フラグを下げる
+            self._writer_generation += 1
+            self._writer_tainted = False
+            self._writer_ready = threading.Event()
+            self._writer_error = None
+
+            # 3. 新しいスレッドを起動
+            self._writer_thread = threading.Thread(
+                target=self._writer_loop,
+                args=(self._writer_generation,),
+                daemon=True,
+                name=f"BeautySpot-SQLiteWriter-{self._writer_generation}",
+            )
+            self._writer_thread.start()
+            self._writer_ready.wait()
+            if self._writer_error:
+                raise self._writer_error
+            logger.info(
+                f"SQLiteTaskDB writer thread reset to generation {self._writer_generation}"
+            )
 
     @staticmethod
     def _ensure_cache_dir(directory: Path) -> None:
@@ -356,22 +406,32 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                 self._read_wrappers.discard(wrapper)
             self._local.read_conn_wrapper = None
 
-    def _writer_loop(self) -> None:
+    def _writer_loop(self, generation: int) -> None:
         conn: sqlite3.Connection | None = None
         try:
             conn = sqlite3.connect(self.db_path, timeout=self.timeout)
             conn.execute("PRAGMA journal_mode=WAL;")
             with self._writer_conn_lock:
-                self._writer_conn = conn
+                if generation == self._writer_generation:
+                    self._writer_conn = conn
         except Exception as e:
-            self._writer_error = e
-            self._writer_ready.set()
+            if generation == self._writer_generation:
+                self._writer_error = e
+                self._writer_ready.set()
             return
 
         self._writer_ready.set()
         try:
             while True:
-                task = self._write_queue.get()
+                # 世代チェック: 自分が最新でないなら終了
+                if generation != self._writer_generation:
+                    break
+
+                try:
+                    task = self._write_queue.get(timeout=1.0)
+                except queue.Empty:
+                    continue
+
                 if task is _STOP:
                     self._write_queue.task_done()
                     break
@@ -398,9 +458,13 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                     self._write_queue.task_done()
         finally:
             with self._writer_conn_lock:
-                self._writer_conn = None
+                if self._writer_conn is conn:
+                    self._writer_conn = None
             if conn is not None:
-                conn.close()
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def _enqueue_write(self, fn: Callable[[sqlite3.Connection], Any]) -> Any:
         self._writer_ready.wait()
@@ -410,6 +474,11 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
             ) from self._writer_error
 
         with self._shutdown_lock:
+            if self._writer_tainted:
+                raise WriterTaintedError(
+                    "SQLite writer thread is tainted (hung) and cannot process writes. "
+                    "Call reset() or restart the process."
+                )
             if self._shutdown_requested:
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
             if not self._writer_thread.is_alive():
@@ -418,12 +487,16 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
             self._write_queue.put(task)
 
         start = time.monotonic()
-        _warned_running = False
         while not task.event.wait(timeout=0.5):
             if not self._writer_thread.is_alive():
                 raise RuntimeError("SQLite writer thread stopped unexpectedly.")
             if self._shutdown_requested:
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
+
+            # 待機中に汚染された場合
+            if self._writer_tainted:
+                raise WriterTaintedError("Writer thread became tainted during wait.")
+
             elapsed = time.monotonic() - start
             if elapsed > self.timeout:
                 if task.try_cancel():
@@ -433,21 +506,19 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                     )
                 else:
                     # RUNNING（実行中）のタスクは interrupt() を試みる。
-                    # これにより sqlite3.OperationalError: interrupted (or similar) が
-                    # ライタースレッド側で発生し、タスクがエラーで終了する。
                     with self._writer_conn_lock:
                         if self._writer_conn:
                             self._writer_conn.interrupt()
-                    
+
                     # interrupt() 後、ライタースレッドが例外を処理して event を set するのを少し待つ。
-                    # 無限ループにならないよう、ここでは task.event.wait() を短時間行う。
                     if task.event.wait(timeout=1.0):
                         break
                     else:
-                        # interrupt() が効かない、あるいは極端に遅い場合でも
-                        # 可用性を優先して TimeoutError を送出する。
-                        raise TimeoutError(
-                            f"SQLite write timed out after {self.timeout}s and interrupt was attempted."
+                        # interrupt() が効かない場合、Writerスレッドを「汚染」としてマークする。
+                        self._writer_tainted = True
+                        raise WriterTaintedError(
+                            f"SQLite write timed out after {self.timeout}s and interrupt failed. "
+                            "Writer thread is now tainted."
                         )
         if task.error:
             if isinstance(task.error, sqlite3.OperationalError) and "interrupted" in str(task.error).lower():
