@@ -6,51 +6,22 @@ header: |
   SQLiteTaskDB 実装
 level: 2.7
 links:
-- SPEC007: p_lr3oYD8Q1vVH9kPKjUAzgKL81gL1FY5XG2ZN2Tfqo=
+- SPEC007: 0HwpNXmcPue82WV2rmVdY4OyJk_Ez9kXoWX3t6UN6ts=  # pragma: allowlist secret
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: L8fX6JwlpJZAD8YMXLBsKN02U3bIfIuZkb1LjvzsJPE=
+reviewed: d-YowDMPy1gSBNFSfYM7ty-bPaF_TVh9iflIJAskWI0=  # pragma: allowlist secret
 text: |
   ## 実装概要
 
   `SQLiteTaskDB` クラスが中核。Writer Thread + Reader Threads パターンで実装。
-  単一の `_writer_thread`（デーモン）が `_write_queue` から書き込みタスクを取り出して
-  直列処理し、読み取りは `threading.local()` のスレッドローカル接続で並行実行する。
-  WAL モードにより読み取りと書き込みが並行可能。
+  単一の `_writer_thread`（デーモン）が `_write_queue` から書き込みタスクを取り出して直列処理し、読み取りは `threading.local()` のスレッドローカル接続で並行実行する。
+  WAL モードにより読み取りと書き込みの並行性を確保している。
 
-  ## 設計判断
-
-  ### 専用ライタースレッドの採用
-
-  SQLite は単一書き込み接続しかサポートしないため、全書き込みを1つのスレッドに
-  集約する Producer-Consumer パターンを採用。キュー経由でタスクを受け渡し、
-  ライタースレッドがコミット/ロールバックを管理する。
-  マルチスレッドからの並行書き込みによるロック競合を根本的に回避する。
-
-  ### スレッドローカル読み取り接続
-
-  `threading.local()` に `_ReadConnWrapper` を格納し、スレッドごとに
-  読み取り専用接続（`PRAGMA query_only = ON`）を保持する。
-  接続エラー時は自動的に再作成し、リーク防止のため `WeakSet` で全接続を追跡する。
-
-  ### _WriteTask 状態マシン
-
-  書き込みタスクを `PENDING → RUNNING → DONE`（または `CANCELLED`）の
-  状態マシンで管理。タイムアウト時の `try_cancel()` により、
-  キュー内で待機中のタスクを安全にキャンセルできる。
-  既に `RUNNING` 状態のタスクはキャンセルせず完了を待つ。
-
-  ## 実装メモ
-
-  - スキーマの自動マイグレーションは `PRAGMA table_info` で既存カラムを確認し、
-    不足カラム（content_type, version, result_data, func_identifier, expires_at）を追加する
-  - Lazy Expiration: `get()` 時に `expires_at < NOW` を確認し、期限切れなら `None` を返す。
-    物理削除は `beautyspot gc` コマンドに委譲する
-  - `flush()` は空の no-op タスクをキューに投入し、その完了を待つことで
-    先行する全書き込みの完了を保証する
-  - `shutdown()` は全読み取り接続のクローズ → `_STOP` センチネルの投入 →
-    ライタースレッドの join で安全に停止する
-  - `_read_connect()` のダブルチェックパターンで TOCTOU 競合を回避している
+  ## タイムアウトの実装
+  - `_enqueue_write` 内で `task.event.wait(timeout=0.5)` をループさせ、`self.timeout` を超えた場合にフェイルファスト処理を行う。
+  - **PENDING**: `task.try_cancel()` でキュー内キャンセル。
+  - **RUNNING**: `self._writer_conn.interrupt()` を呼び出して実行中の SQLite クエリを強制終了させ、呼び出し元に `TimeoutError` を返す。
+  - interrupt 後、ライタースレッド側の例外処理を待つための猶予時間を設け、可用性と整合性を両立させている。

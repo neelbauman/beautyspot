@@ -268,6 +268,9 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
         self._shutdown_requested = False
         self._writer_ready = threading.Event()
         self._writer_error: Exception | None = None
+        # ライタースレッドの接続を保持（interrupt() 用）
+        self._writer_conn: sqlite3.Connection | None = None
+        self._writer_conn_lock = threading.Lock()
         # 読み取り専用スレッドローカル接続を追跡し、
         # shutdown() 時に一括クローズする。WAL チェックポイントの妨げを防ぐ。
         self._read_wrappers = weakref.WeakSet()
@@ -358,6 +361,8 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
         try:
             conn = sqlite3.connect(self.db_path, timeout=self.timeout)
             conn.execute("PRAGMA journal_mode=WAL;")
+            with self._writer_conn_lock:
+                self._writer_conn = conn
         except Exception as e:
             self._writer_error = e
             self._writer_ready.set()
@@ -380,6 +385,10 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                 try:
                     task.result = task.fn(conn)
                     conn.commit()
+                except sqlite3.OperationalError as e:
+                    # interrupt() によって中断された場合も含めロールバック
+                    conn.rollback()
+                    task.error = e
                 except BaseException as e:
                     conn.rollback()
                     task.error = e
@@ -388,6 +397,8 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                     task.event.set()
                     self._write_queue.task_done()
         finally:
+            with self._writer_conn_lock:
+                self._writer_conn = None
             if conn is not None:
                 conn.close()
 
@@ -420,18 +431,29 @@ class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
                     raise TimeoutError(
                         f"SQLite write did not start within {self.timeout}s and was cancelled."
                     )
-                elif not _warned_running:
-                    # RUNNING（実行中）のタスクはキャンセル不可。
-                    # 旧実装では RUNNING でも TimeoutError を送出していたが、
-                    # DB への書き込みは継続されるため呼び出し元との整合性が取れなかった。
-                    # 修正後は完了まで待ち続け、警告ログのみ出力する。
-                    logger.warning(
-                        f"SQLite write has been running for over {self.timeout}s. "
-                        "The operation cannot be cancelled and will continue until completion."
-                    )
-                    _warned_running = True
-                # RUNNING 状態: 完了まで待ち続ける（TimeoutError は送出しない）
+                else:
+                    # RUNNING（実行中）のタスクは interrupt() を試みる。
+                    # これにより sqlite3.OperationalError: interrupted (or similar) が
+                    # ライタースレッド側で発生し、タスクがエラーで終了する。
+                    with self._writer_conn_lock:
+                        if self._writer_conn:
+                            self._writer_conn.interrupt()
+                    
+                    # interrupt() 後、ライタースレッドが例外を処理して event を set するのを少し待つ。
+                    # 無限ループにならないよう、ここでは task.event.wait() を短時間行う。
+                    if task.event.wait(timeout=1.0):
+                        break
+                    else:
+                        # interrupt() が効かない、あるいは極端に遅い場合でも
+                        # 可用性を優先して TimeoutError を送出する。
+                        raise TimeoutError(
+                            f"SQLite write timed out after {self.timeout}s and interrupt was attempted."
+                        )
         if task.error:
+            if isinstance(task.error, sqlite3.OperationalError) and "interrupted" in str(task.error).lower():
+                raise TimeoutError(
+                    f"SQLite write timed out after {self.timeout}s and was interrupted."
+                ) from task.error
             raise task.error
         return task.result
 

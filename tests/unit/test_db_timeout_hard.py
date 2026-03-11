@@ -6,43 +6,48 @@ import time
 import pytest
 from beautyspot.db import SQLiteTaskDB
 
-def test_db_timeout_running_waits_indefinitely(tmp_path):
+def test_db_timeout_running_interrupts_and_fails_fast(tmp_path):
     """
-    現在の挙動: RUNNING 状態のタスクは timeout を超えても待ち続ける。
+    修正後の挙動: RUNNING 状態のタスクは timeout を超えると interrupt() され、
+    呼び出し元に TimeoutError が返る（フェイルファスト）。
     """
-    # タイムアウトを極端に短く設定 (0.5秒)
+    # タイムアウトを短く設定 (0.5秒)
     db = SQLiteTaskDB(tmp_path / "test.db", timeout=0.5)
     db.init_schema()
 
-    gate = threading.Event()
+    interrupted_event = threading.Event()
     
     def slow_op(conn: sqlite3.Connection):
-        # RUNNING 状態で停止
-        gate.wait(timeout=2.0)
+        try:
+            # RUNNING 状態で停止
+            # gate.wait() は Python レベルの待機なので interrupt() では中断されないが、
+            # SQLite のクエリ実行中であれば中断される。
+            # ここではダミーの重いクエリ（あるいは無限ループに近いもの）を想定。
+            # 実際には conn.execute("...") が interrupted エラーを投げる。
+            conn.execute("WITH RECURSIVE t(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM t LIMIT 10000000) SELECT count(*) FROM t")
+        except (sqlite3.OperationalError, sqlite3.ProgrammingError) as e:
+            if "interrupted" in str(e).lower() or "callback" in str(e).lower():
+                interrupted_event.set()
+            raise
         return "done"
 
-    time.monotonic()
-    
-    # 別スレッドで実行を開始させる (RUNNING 状態にするため)
-    def call_enqueue():
-        try:
-            db._enqueue_write(slow_op)
-        except Exception:
-            # エラーが発生した場合は記録 (修正後にここに来るはず)
-            pass
+    # タイムアウトが発生することを確認
+    start = time.monotonic()
+    with pytest.raises(TimeoutError) as exc:
+        db._enqueue_write(slow_op)
+    elapsed = time.monotonic() - start
 
-    t = threading.Thread(target=call_enqueue)
-    t.start()
+    # タイムアウト(0.5s) + interrupt待ち(最大1.0s) の範囲内で戻ってくること
+    assert 0.5 <= elapsed < 2.0
+    assert "timed out after 0.5s and" in str(exc.value)
+    assert "interrupted" in str(exc.value) or "interrupt was attempted" in str(exc.value)
+
+    # ライタースレッドが生きていることを確認（パニックしていないこと）
+    assert db._writer_thread.is_alive()
     
-    # タイムアウト(0.5s)を十分に過ぎるまで待つ
-    time.sleep(1.0)
-    
-    # まだスレッドが終了していない（＝待ち続けている）ことを確認
-    assert t.is_alive()
-    
-    # 解放して終了させる
-    gate.set()
-    t.join(timeout=1.0)
+    # 次の書き込みができることを確認（リカバリできていること）
+    assert db._enqueue_write(lambda conn: "recovered") == "recovered"
+
     db.shutdown()
 
 def test_db_timeout_pending_cancels(tmp_path):
@@ -66,6 +71,7 @@ def test_db_timeout_pending_cancels(tmp_path):
         db._enqueue_write(lambda conn: "should fail")
     
     elapsed = time.monotonic() - start
+    # PENDING の場合は interrupt 待ちがないので 0.5s 前後
     assert 0.5 <= elapsed < 1.0
     assert "did not start within 0.5s and was cancelled" in str(exc.value)
     

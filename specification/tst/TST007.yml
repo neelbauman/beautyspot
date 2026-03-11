@@ -6,13 +6,16 @@ header: |
   SQLiteTaskDB テスト
 level: 2.7
 links:
-- SPEC007: p_lr3oYD8Q1vVH9kPKjUAzgKL81gL1FY5XG2ZN2Tfqo=
+- REQ019: -fKZXaJcRIvlKc33dQlwqZp5NX4u9a8fhsbFwR9tK0k=  # pragma: allowlist secret
+- SPEC007: 0HwpNXmcPue82WV2rmVdY4OyJk_Ez9kXoWX3t6UN6ts=  # pragma: allowlist secret
 normative: true
 ref: ''
 references:
 - path: tests/unit/test_db_robustness.py
   type: file
-reviewed: V9OwaQkBiz5KdDfvezYO_j1qRa10mRJpJ03CxmgywzM=
+- path: tests/unit/test_db_timeout_hard.py
+  type: file
+reviewed: pPms0Z7ApTujY92rEdYjB5d8TEEzVdgZkf32lw70fcM=  # pragma: allowlist secret
 text: |
   ## 目的
 
