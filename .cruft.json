@@ -1,0 +1,19 @@
+{
+  "template": "https://github.com/neelbauman/dotfiles",
+  "commit": "c302fb3b4068c4a826ea7f8a06168f7e42d52de2",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "full_name": "neelbauman",
+      "email": "exp.noymann@gmail.com",
+      "project_name": "beautyspot",
+      "project_slug": "beautyspot",
+      "python_version": "3.12",
+      "uv_init_type": "--package",
+      "use_git": "y",
+      "_template": "https://github.com/neelbauman/dotfiles",
+      "_commit": "c302fb3b4068c4a826ea7f8a06168f7e42d52de2"
+    }
+  },
+  "directory": "topics/dev/templates/python-uv"
+}
