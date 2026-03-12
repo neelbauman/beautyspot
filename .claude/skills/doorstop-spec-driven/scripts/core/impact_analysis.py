@@ -18,7 +18,7 @@ Usage:
     python impact_analysis.py <project-dir> --detect-suspects
     python impact_analysis.py <project-dir> --from-git --base main
     python impact_analysis.py <project-dir> --changed SPEC001 SPEC002
-    python impact_analysis.py <project-dir> --detect-suspects --json ./reports/impact.json
+    python impact_analysis.py <project-dir> --detect-suspects --json ./specification/reports/impact.json
 """
 
 import argparse

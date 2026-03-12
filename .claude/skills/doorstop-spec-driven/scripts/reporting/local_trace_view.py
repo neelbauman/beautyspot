@@ -11,7 +11,7 @@
   --all                  グループごとに個別HTMLを生成
 
 出力:
-  --output-dir DIR       出力先ディレクトリ（default: ./reports/local）
+  --output-dir DIR       出力先ディレクトリ（default: ./specification/reports/local）
   --json                 JSON形式でも出力
 
 Usage:
@@ -478,8 +478,8 @@ def main():
                        help="グループごとに個別ファイルを生成")
 
     out = parser.add_argument_group("出力")
-    out.add_argument("--output-dir", default="./reports/local",
-                     help="出力先ディレクトリ (default: ./reports/local)")
+    out.add_argument("--output-dir", default="./specification/reports/local",
+                     help="出力先ディレクトリ (default: ./specification/reports/local)")
     out.add_argument("--json", action="store_true", dest="emit_json",
                      help="JSON形式でも出力")
 

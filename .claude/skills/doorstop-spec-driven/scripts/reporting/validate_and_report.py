@@ -5,7 +5,7 @@
 レビュー状態の追跡を行い、HTMLトレーサビリティレポートを出力する。
 
 Usage:
-    python validate_and_report.py <project-dir> [--output-dir ./reports] [--strict] [--json]
+    python validate_and_report.py <project-dir> [--output-dir ./specification/reports] [--strict] [--json]
 """
 
 import argparse

@@ -1,4 +1,6 @@
-.PHONY: help install test lint lint-fix format build clean 
+# ==============================================================================
+# Variables
+# ==============================================================================
 
 # Gitタグからバージョンを取得（タグがない場合は開発版扱い）
 VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
@@ -6,112 +8,127 @@ ifeq ($(VERSION),)
 VERSION := 0.0.0-dev
 endif
 
+# 出力ディレクトリ
+GEN_IMG_DIR := docs/statics/img/generated
+
+# ==============================================================================
+# Main Targets
+# ==============================================================================
+
+.PHONY: help install clean
+
 help:  ## このヘルプを表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 install:  ## 依存関係をインストール
 	uv sync --all-groups
 
-test:  ## テストを実行
-	uv run pytest; echo "=========== START pyright typing test =============="; uv run pyright tests/typing; echo "=========== FINISH pyright typing test ==============";
-
-lint:  ## リントチェック
-	uvx ruff check .
-
-lint-fix:  ## リントチェック (--fixオプションで自動修正）
-	uvx ruff check . --fix
-
-format:  ## コードをフォーマット
-	uvx ruff format .
-
-build: clean test  ## パッケージをビルド（テスト後）
-	# hatch-vcs が自動的にGitタグからバージョンを埋め込みます
-	uv build
-
 clean:  ## 生成ファイルを削除
-	rm -rf dist/ .pytest_cache/ .ruff_cache/
+	rm -rf dist/ .pytest_cache/ .ruff_cache/ .mypy_cache/
 	find . -name '__pycache__' -exec rm -rf {} +
+	rm -rf $(GEN_IMG_DIR)
 
+# ==============================================================================
+# Development & Quality Assurance
+# ==============================================================================
 
-.PHONY: docs-serve docs-deploy
+.PHONY: format lint lint-fix
 
-docs-serve:  ## ドキュメントをローカルで確認
-	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs serve
+format:  ## コードをフォーマット (ruff)
+	uv run ruff format .
 
-docs-deploy:  ## GitHub Pagesにデプロイ
-	uvx --with mkdocs-material --with "mkdocstrings[python]" mkdocs gh-deploy
+lint:  ## リントチェック (ruff)
+	uv run ruff check .
 
-.PHONY: version pypi-publish test-publish release
+lint-fix:  ## リントチェックと自動修正
+	uv run ruff check . --fix
 
-version:  ## 現在のバージョン（Gitタグ）を表示
-	@echo "Current version (from git): $(VERSION)"
+# ==============================================================================
+# Testing
+# ==============================================================================
 
-pypi-publish: build  ## PyPIにローカルから公開（dist/ディレクトリが必要）
-	@echo "Publishing version $(VERSION) to PyPI..."
-	@if [ ! -f .env ]; then \
-		echo "Error: .env not found"; \
-		exit 1; \
-	fi
-	@export $$(cat .env | grep -v '^#' | xargs) && \
-	uv publish --token $$PYPI_TOKEN
-	@echo "✓ Published version $(VERSION) to PyPI"
+.PHONY: test test-unit test-typing
 
-test-publish: build  ## TestPyPIに公開
-	@echo "Publishing version $(VERSION) to TestPyPI..."
-	@if [ ! -f .env ]; then \
-		echo "Error: .env not found"; \
-		exit 1; \
-	fi
-	@export $$(cat .env | grep -v '^#' | xargs) && \
-	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
-	@echo "✓ Published version $(VERSION) to TestPyPI"
-	@$(MAKE) clean
+test: test-unit test-typing ## 全てのテストを実行
 
-release: pypi-publish  ## 完全リリース（PyPI公開→GitHubタグPush）
-	@echo "Pushing tag v$(VERSION) to trigger GitHub Release..."
-	git push origin v$(VERSION)
-	@echo "✓ Release $(VERSION) completed!"
+test-unit: ## ユニットテストを実行 (pytest)
+	uv run pytest
 
-# Makefile (追加案)
+test-typing: ## 型チェックを実行 (pyright)
+	@echo "=========== START pyright typing test =============="
+	uv run pyright tests/typing
+	@echo "=========== FINISH pyright typing test =============="
 
-.PHONY: audit visualize 
+# ==============================================================================
+# Analysis & Reports
+# ==============================================================================
 
-audit:  ## [Console] コードの複雑度と保守性をコンソール出力
+.PHONY: audit visualize report
+
+audit:  ## コードの複雑度と保守性を解析 (radon)
 	@echo "=== Cyclomatic Complexity (Rank C+) ==="
 	-uv run radon cc src -a -n C
 	@echo "\n=== Maintainability Index (Rank B-) ==="
 	-uv run radon mi src -n B
 
-visualize: ## [Image] 依存関係グラフのみ生成
-	@mkdir -p docs/statics/img/generated
-	# 1. pydeps で DOT 形式を出力
+visualize: ## 依存関係グラフと構造解析画像を生成
+	@mkdir -p $(GEN_IMG_DIR)
+	# 1. pydeps で依存関係を可視化
 	-uv run pydeps src/beautyspot \
-		--noshow \
-		--max-bacon=2 \
-		--cluster \
-		--show-dot > docs/statics/img/generated/dependency_graph.dot
+		--noshow --max-bacon=2 --cluster --show-dot > $(GEN_IMG_DIR)/dependency_graph.dot
+	-dot -Tpng $(GEN_IMG_DIR)/dependency_graph.dot -o $(GEN_IMG_DIR)/dependency_graph.png
+	@rm -f $(GEN_IMG_DIR)/dependency_graph.dot beautyspot.svg
 	
-	# 2. 明示的に PNG レンダリング
-	-dot -Tpng docs/statics/img/generated/dependency_graph.dot -o docs/statics/img/generated/dependency_graph.png
-	
-	@ls -lh docs/statics/img/generated/dependency_graph.png
-	@rm docs/statics/img/generated/dependency_graph.dot
-	@rm beautyspot.svg
-	
+	# 2. 構造解析スクリプトの実行
 	-uv run python tools/analyze_structure.py
-	-uv run --with pylint pyreverse -o png -p beautyspot src/beautyspot --output-directory docs/statics/img/generated/
+	
+	# 3. pyreverse によるクラス図生成
+	-uv run --with pylint pyreverse -o png -p beautyspot src/beautyspot --output-directory $(GEN_IMG_DIR)/
+	@ls -lh $(GEN_IMG_DIR)
 
-report: audit visualize## [Report] 全解析を実行し、docs/quality_report.md を生成
+report: audit visualize ## 全解析を実行し、docs/quality_report.md を生成
 	@uv run python tools/generate_report.py
 
+# ==============================================================================
+# Documentation & Specification
+# ==============================================================================
 
-.PHONY: update-claude
+.PHONY: docs-serve docs-deploy specification update-claude
 
-update-claude:  ## CLAUDE.md の自動生成セクションを更新
-	uv run python tools/generate_claude_ref.py
+docs-serve:  ## ドキュメントをローカルでプレビュー
+	uv run mkdocs serve
 
-.PHONY: specification
+docs-deploy:  ## ドキュメントを GitHub Pages にデプロイ
+	uv run mkdocs gh-deploy
 
-specification:
-	-spec-weaver build specification/
-	-uvx --with mkdocs-material zensical serve -f .specification/mkdocs.yml
+specification-serve: ## 仕様書のビルドとプレビュー
+	uv run python .claude/skills/doorstop-spec-driven/scripts/server/serve_app.py . --strict --port 8091 2>&1
+
+# ==============================================================================
+# Release & Publish
+# ==============================================================================
+
+.PHONY: version build pypi-publish test-publish release
+
+version:  ## 現在のバージョン（Gitタグ）を表示
+	@echo "Current version: $(VERSION)"
+
+build: clean test ## パッケージをビルド（クリーンアップとテスト後）
+	uv build
+
+pypi-publish: build  ## PyPIに公開 (要 .env と PYPI_TOKEN)
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@echo "Publishing version $(VERSION) to PyPI..."
+	@export $$(cat .env | grep -v '^#' | xargs) && uv publish --token $$PYPI_TOKEN
+
+test-publish: build  ## TestPyPIに公開
+	@if [ ! -f .env ]; then echo "Error: .env not found"; exit 1; fi
+	@echo "Publishing version $(VERSION) to TestPyPI..."
+	@export $$(cat .env | grep -v '^#' | xargs) && \
+	uv publish --token $$TEST_PYPI_TOKEN --publish-url https://test.pypi.org/legacy/
+	@$(MAKE) clean
+
+release: pypi-publish  ## 完全リリース（PyPI公開とタグのPush）
+	@echo "Pushing tag v$(VERSION) to origin..."
+	git push origin v$(VERSION)
+	@echo "✓ Release $(VERSION) completed!"
