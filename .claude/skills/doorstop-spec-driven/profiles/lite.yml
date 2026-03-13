@@ -1,107 +1,96 @@
-# Profile: lite
-# 小規模開発向け（単体ライブラリ、個人開発、プロトタイプ）
-#
-# SPECが基本設計・詳細設計を兼ねる最小構成。
-# beautyspotのようなフォーカスの明確なライブラリに最適。
-
 name: lite
-description: |
-  小規模開発向けプロファイル。
+description: '小規模開発向けプロファイル。
+
   SPECが基本設計と詳細設計を兼ね、最小限の文書階層で
+
   トレーサビリティを確保する。
 
+  '
 tree:
-  - prefix: REQ
-    path: reqs
-    parent: null
-    role: "要件 (What: 何を実現するか)"
-    description: |
-      ビジネス要件・ユーザーストーリー・機能要件を定義する。
-      技術的な実現方法には言及しない。
+- prefix: REQ
+  path: reqs
+  parent: null
+  role: '要件 (What: 何を実現するか)'
+  description: 'ビジネス要件・ユーザーストーリー・機能要件を定義する。
 
-  - prefix: SPEC
-    path: specs
-    parent: REQ
-    role: "仕様 (How: どう実現するか)"
-    description: |
-      REQを実現するための技術仕様を定義する。
-      基本設計（コンポーネント分割・IF定義）と
-      詳細設計（アルゴリズム・クラス設計）を1つの文書にまとめる。
+    技術的な実現方法には言及しない。
 
-  - prefix: IMPL
-    path: impl
-    parent: SPEC
-    role: "実装 (Build: 何を作ったか)"
-    description: |
-      SPECに対応する実装成果物（ソースコード）を追跡する。
+    '
+- prefix: ADR
+  path: adrs
+  parent: null
+  role: '決定 (Why: なぜそう判断したか)'
+  description: 'あらゆるレベル（要求・要件・仕様・設計・実装）の意思決定を記録する。
 
-  - prefix: TST
-    path: tst
-    parent: SPEC
-    role: "テスト (Verify: どう検証するか)"
-    description: |
-      SPECに対する検証手順・期待結果を定義する。
+    技術選定、トレードオフ、棄却された代替案などを記述する。
 
-# IMPLとTSTのリンク先（どの文書にリンクするか）
+    links は関連する任意のアイテム（REQ/SPEC/IMPL等）を指せる。
+
+    '
+- prefix: SPEC
+  path: specs
+  parent: REQ
+  role: '仕様 (How: どう実現するか)'
+  description: 'REQを実現するための技術仕様を定義する。
+
+    基本設計（コンポーネント分割・IF定義）と
+
+    詳細設計（アルゴリズム・クラス設計）を1つの文書にまとめる。
+
+    '
+- prefix: IMPL
+  path: impl
+  parent: SPEC
+  role: '実装 (Build: 何を作ったか)'
+  description: 'SPECに対応する実装成果物（ソースコード）を追跡する。
+
+    '
+- prefix: TST
+  path: tst
+  parent: SPEC
+  role: 'テスト (Verify: どう検証するか)'
+  description: 'SPECに対する検証手順・期待結果を定義する。
+
+    '
 impl_links_to: SPEC
 tst_links_to: SPEC
-
-# 設計文書の書き方ガイダンス
 guidance:
-  design_depth: |
-    SPECにアーキテクチャ概要とモジュール設計の両方を記述してよい。
-    levelを使って階層化する:
-      - level 1.x: コンポーネント間の設計（IF定義、データフロー）
-      - level 1.1.x: モジュール内の設計（アルゴリズム、クラス設計）
+  design_depth: "SPECにアーキテクチャ概要とモジュール設計の両方を記述してよい。\nlevelを使って階層化する:\n  - level 1.x:\
+    \ コンポーネント間の設計（IF定義、データフロー）\n  - level 1.1.x: モジュール内の設計（アルゴリズム、クラス設計）\n"
   test_levels: false
-  test_level_note: |
-    UT/IT/ATの区別は不要。TSTアイテムはすべてSPECに直接リンクする。
+  test_level_note: 'UT/IT/ATの区別は不要。TSTアイテムはすべてSPECに直接リンクする。
 
-# .doorstop.yml のカスタム属性設定
-doorstop_yml_attributes: |
-  # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
-  attributes:
-    defaults:
-      groups: []
-      priority: medium      # critical / high / medium / low
-    reviewed:
-      - groups
-      # REQ は priority も reviewed に追加を推奨（優先度変更で再レビューをトリガー）
-    publish:
-      - groups
-      - priority
+    '
+doorstop_yml_attributes: "# 各ドキュメントの .doorstop.yml に追加する attributes セクション:\nattributes:\n\
+  \  defaults:\n    groups: []\n    priority: medium      # critical / high / medium\
+  \ / low\n    gherkin: ''            # Gherkin シナリオ（振る舞い定義が必要な文書で使用）\n  reviewed:\n   \
+  \ - groups\n    - gherkin              # gherkin 変更で再レビューをトリガー\n    # REQ は priority\
+  \ も reviewed に追加を推奨（優先度変更で再レビューをトリガー）\n  publish:\n    - groups\n    - priority\n\
+  \    - gherkin\n\n# 設定しない属性（Git/CIの責務）:\n#   author, creation_date, status\n"
+priority_policy: '- 値: critical / high / medium（デフォルト） / low
 
-  # 設定しない属性（Git/CIの責務）:
-  #   author, creation_date, status
-
-# 優先度属性（priority）の運用
-priority_policy: |
-  - 値: critical / high / medium（デフォルト） / low
   - 設定対象: 主に REQ アイテム
+
   - コマンド: doorstop_ops.py add -d REQ ... --priority high
+
   - バックログ確認: trace_query.py . backlog
 
-# NFRの扱い（liteプロファイル）
-nfr_policy: |
-  liteプロファイルでは専用 NFR ドキュメントは原則作成しない。
-  非機能要件は以下で管理する:
-    A) groups で REQ に混在させる（推奨）: groups: [NFR, PERF]
-    B) init_project.py --with-nfr で NFR ドキュメントを追加作成する
-  規模が大きくなったら standard に移行すること。
+  '
+nfr_policy: "liteプロファイルでは専用 NFR ドキュメントは原則作成しない。\n非機能要件は以下で管理する:\n  A) groups で REQ\
+  \ に混在させる（推奨）: groups: [NFR, PERF]\n  B) init_project.py --with-nfr で NFR ドキュメントを追加作成する\n\
+  規模が大きくなったら standard に移行すること。\n"
+derived_policy: '- 使用可能な層: SPEC のみ
 
-# 派生要求（derived）の運用
-derived_policy: |
-  - 使用可能な層: SPEC のみ
   - 運用ルールの詳細は references/doorstop_reference.md を参照
 
-# 外部ファイル紐付け（references）
-references_policy: |
-  - ref は使わず references に統一する
+  '
+references_policy: '- ref は使わず references に統一する
+
   - IMPL: ドメインロジックの実装ファイルのみ（最大2–3ファイル）
+
   - TST: 直接のテストファイルのみ
+
   - conftest.py, __init__.py, 共通ユーティリティは含めない
 
-# トレーサビリティの流れ
-traceability: |
-  REQ ← SPEC ← IMPL
-                TST
+  '
+traceability: "REQ ← SPEC ← IMPL\n              TST\n"

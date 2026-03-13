@@ -45,3 +45,9 @@ text: |
   ## エッジケース
 
   - **コンテキスト終了**: `with spot:` 終了時に自動的に `flush` が呼ばれ、プロセス終了前のデータ保存を確実にする。
+gherkin: |
+  Feature: save_sync and flush operations
+    Scenario: Managing background save tasks
+      Given a background save operation in progress
+      When flush is called or the Spot context exits
+      Then it waits until all pending in-flight tasks are completed or a timeout occurs

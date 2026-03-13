@@ -1020,7 +1020,11 @@ function createPanelElement(panelId) {
   el.className = 'item-panel';
   el.dataset.panelId = panelId;
   el.innerHTML = `
-    <div class="item-panel-content" id="pc-${panelId}"><div class="loading">Loading...</div></div>
+    <div id="ph-${panelId}" style="flex-shrink: 0; padding: 20px 20px 0 20px; background: var(--surface); z-index: 10;"></div>
+    <div class="item-panel-content" id="pc-${panelId}" style="flex: 1; overflow-y: auto; padding: 0 20px 20px 20px;">
+      <div class="loading">Loading...</div>
+    </div>
+    <div id="pf-${panelId}" style="flex-shrink: 0; background: var(--surface); z-index: 10;"></div>
     <div class="panel-nav" id="pn-${panelId}"></div>
   `;
   return el;
@@ -1091,6 +1095,10 @@ async function navigateInPanel(panelId, targetUid) {
   if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
   const contentEl = document.getElementById('pc-' + panelId);
   contentEl.innerHTML = '<div class="loading">Loading...</div>';
+  const headerEl = document.getElementById('ph-' + panelId);
+  if (headerEl) headerEl.innerHTML = '';
+  const footerEl = document.getElementById('pf-' + panelId);
+  if (footerEl) footerEl.innerHTML = '';
   try {
     const data = await API.get('/api/items/' + targetUid);
     renderPanelContent(ps, data);
@@ -1156,27 +1164,33 @@ function renderPanelContent(ps, data) {
   const childrenHtml = chipHtml(data.children);
   const siblingsHtml = chipHtml(data.siblings || []);
 
-  contentEl.innerHTML = `
-    <div class="panel-header">
-      <div>
-        <strong style="font-size:1.15em">${h(data.uid)}</strong>
-        ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
-        <div style="margin-top:4px">
-          <span class="tag tag-prefix">${h(data.prefix)}</span>
-          ${(data.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
+  const headerEl = document.getElementById('ph-' + pid);
+  const footerEl = document.getElementById('pf-' + pid);
+
+  if (headerEl) {
+    headerEl.innerHTML = `
+      <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+        <div>
+          <strong style="font-size:1.15em">${h(data.uid)}</strong>
+          ${data.header ? `<span class="panel-header-title">${h(data.header)}</span>` : ''}
+          <div style="margin-top:4px">
+            <span class="tag tag-prefix">${h(data.prefix)}</span>
+            ${(data.groups || []).map(g => `<span class="tag tag-group">${h(g)}</span>`).join(' ')}
+          </div>
+          ${(data.author || data.created_at || data.updated_at) ? `<div class="git-meta-inline">
+            ${data.author ? `<span class="git-meta-item" title="Author">${h(data.author)}</span>` : ''}
+            ${data.created_at ? `<span class="git-meta-item" title="Created">${h(data.created_at)}${data.created_commit ? ' <span class="git-commit-hash" title="Created: ' + h(data.created_commit) + '">' + h(data.created_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
+            ${data.updated_at && data.updated_at !== data.created_at ? `<span class="git-meta-item" title="Updated">${h(data.updated_at)}${data.updated_commit ? ' <span class="git-commit-hash" title="Updated: ' + h(data.updated_commit) + '">' + h(data.updated_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
+            ${data.updated_at && data.updated_at === data.created_at && data.updated_commit && data.updated_commit !== data.created_commit ? `<span class="git-meta-item" title="Updated commit"><span class="git-commit-hash" title="Updated: ${h(data.updated_commit)}">${h(data.updated_commit.slice(0,7))}</span></span>` : ''}
+          </div>` : ''}
         </div>
-        ${(data.author || data.created_at || data.updated_at) ? `<div class="git-meta-inline">
-          ${data.author ? `<span class="git-meta-item" title="Author">${h(data.author)}</span>` : ''}
-          ${data.created_at ? `<span class="git-meta-item" title="Created">${h(data.created_at)}${data.created_commit ? ' <span class="git-commit-hash" title="Created: ' + h(data.created_commit) + '">' + h(data.created_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
-          ${data.updated_at && data.updated_at !== data.created_at ? `<span class="git-meta-item" title="Updated">${h(data.updated_at)}${data.updated_commit ? ' <span class="git-commit-hash" title="Updated: ' + h(data.updated_commit) + '">' + h(data.updated_commit.slice(0,7)) + '</span>' : ''}</span>` : ''}
-          ${data.updated_at && data.updated_at === data.created_at && data.updated_commit && data.updated_commit !== data.created_commit ? `<span class="git-meta-item" title="Updated commit"><span class="git-commit-hash" title="Updated: ${h(data.updated_commit)}">${h(data.updated_commit.slice(0,7))}</span></span>` : ''}
-        </div>` : ''}
+        <button class="panel-close" onclick="closePanel(${pid})" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary); line-height: 1;">&times;</button>
       </div>
-      <button class="panel-close" onclick="closePanel(${pid})">&times;</button>
-    </div>
+      <div style="margin-bottom:12px">${statusTags(data.reviewed, data.suspect, data.normative)}</div>
+    `;
+  }
 
-    <div style="margin-bottom:12px">${statusTags(data.reviewed, data.suspect, data.normative)}</div>
-
+  contentEl.innerHTML = `
     <div id="ptv-${pid}" class="item-text">${data.text_html}</div>
     <div id="pte-${pid}" class="hidden">
       <div class="edit-fields" style="margin-bottom: 12px; display: grid; gap: 8px;">
@@ -1200,17 +1214,23 @@ function renderPanelContent(ps, data) {
     ${data.ref ? '<div class="meta-row"><span class="meta-label">ref:</span> <span class="tag tag-ref">' + h(data.ref) + '</span></div>' : ''}
     ${data.references && data.references.length ? '<div class="meta-row"><span class="meta-label">references:</span> <span class="tag tag-ref">' + data.references.map(r => h(r.path || '') + (r.type && r.type !== 'file' ? ' (' + h(r.type) + ')' : '')).join(', ') + '</span></div>' : ''}
     ${data.derived ? '<div class="meta-row"><span class="meta-label">derived:</span> <span class="tag" style="background:#e8f0fe;color:#1a73e8">true</span></div>' : ''}
-
-    <div class="meta-row"><span class="meta-label">Parents:</span> <div class="link-list">${parentsHtml}</div></div>
-    <div class="meta-row"><span class="meta-label">Children:</span> <div class="link-list">${childrenHtml}</div></div>
-    <div class="meta-row"><span class="meta-label">Siblings:</span> <div class="link-list">${siblingsHtml}</div></div>
-
-    <div class="actions" id="pa-${pid}">
-      <button class="btn btn-edit" onclick="panelStartEdit(${pid})">Edit</button>
-      <button class="btn btn-success" id="prb-${pid}" onclick="panelReview(${pid})" ${data.reviewed ? 'disabled' : ''}>Review</button>
-      <button class="btn btn-warning" id="pcb-${pid}" onclick="panelClear(${pid})" ${data.suspect ? '' : 'disabled'}>Clear Suspect</button>
-    </div>
   `;
+
+  if (footerEl) {
+    footerEl.innerHTML = `
+      <div style="padding: 16px 20px; border-top: 1px solid var(--border);">
+        <div class="meta-row"><span class="meta-label">Parents:</span> <div class="link-list">${parentsHtml}</div></div>
+        <div class="meta-row"><span class="meta-label">Children:</span> <div class="link-list">${childrenHtml}</div></div>
+        <div class="meta-row"><span class="meta-label">Siblings:</span> <div class="link-list">${siblingsHtml}</div></div>
+
+        <div class="actions" id="pa-${pid}" style="margin-top: 12px;">
+          <button class="btn btn-edit" onclick="panelStartEdit(${pid})">Edit</button>
+          <button class="btn btn-success" id="prb-${pid}" onclick="panelReview(${pid})" ${data.reviewed ? 'disabled' : ''}>Review</button>
+          <button class="btn btn-warning" id="pcb-${pid}" onclick="panelClear(${pid})" ${data.suspect ? '' : 'disabled'}>Clear Suspect</button>
+        </div>
+      </div>
+    `;
+  }
 
   document.getElementById('pn-' + pid).innerHTML = `
     <button ${data.prev_uid ? `onclick="handlePanelNav(event,${pid},'${data.prev_uid}')"` : 'disabled'}>&larr; Prev${data.prev_uid ? ' (' + h(data.prev_uid) + ')' : ''}</button>

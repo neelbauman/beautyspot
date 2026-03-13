@@ -45,3 +45,9 @@ text: |
 
   - **大規模ストレージ**: Blobの列挙はジェネレータで行い、メモリ使用量を抑制する。
   - **名前空間**: `clear(func_name)` は前方一致ではなく、完全一致（または glob）で判定する。
+gherkin: |
+  Feature: MaintenanceService
+    Scenario: Cleaning up expired tasks and orphaned blobs
+      Given a MaintenanceService instance
+      When clean_garbage is executed
+      Then it removes expired cache entries from the database and deletes orphaned blob files

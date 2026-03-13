@@ -40,3 +40,9 @@ text: |
   ## エッジケース
 
   - **フックの順序**: `hooks=[h1, h2]` と指定した場合、`h1` -> `h2` の順で実行される。
+gherkin: |
+  Feature: Cache Hooks
+    Scenario: Triggering custom logic during cache lifecycle events
+      Given a cache operation (hit, miss, or pre-execute)
+      When the corresponding hook method is triggered
+      Then the registered hooks execute sequentially and thread-safely

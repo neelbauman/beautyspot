@@ -1,0 +1,16 @@
+settings:
+  digits: '3'
+  itemformat: yaml
+  parent: REQ
+  prefix: ADR
+  sep: ''
+attributes:
+  defaults:
+    groups: []
+    status: accepted
+  reviewed:
+  - groups
+  - status
+  publish:
+  - groups
+  - status

@@ -1,0 +1,78 @@
+active: true
+derived: false
+groups:
+- MAINT
+header: |
+  テスト戦略の拡張：高レベル統合テストの導入
+level: 1.17
+links:
+- REQ010: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
+normative: true
+ref: ''
+reviewed: G4-16rlSxqZQ62Cuy5-SjAG8kLk9IYM9HsKsvh0JrcY=
+status: accepted
+text: |
+  # テスト戦略の拡張：高レベル統合テストの導入
+
+  ## コンテキストと課題
+
+  現在、`beautyspot` のテストスイート（`tests/`）は、主にユニットテストや特定の機能（シリアライザー、リミッターなど）に焦点を当てたテストで構成されている。これらは個々のコンポーネントの正確性を保証する上では有効だが、以下の課題がある：
+
+  1.  **連携の検証不足**: 複数のタスクが依存関係を持つパイプライン（Load -> Process -> Train）において、バージョニングやキャッシュの伝播が正しく行われるかどうかの検証が不十分である。
+  2.  **実環境との乖離**: 多くの場合、`CliRunner` やモックオブジェクトを使用しているため、実際のファイルシステムや SQLite データベースに対する副作用（ファイルの生成、削除、ロック競合など）を検証できていない。
+  3.  **ユーザー体験の保証**: CLI コマンド（`stats`, `clean` など）と Python API による実行結果の整合性を、ユーザーの一連の操作フローとして検証する仕組みがない。
+
+  「個々の部品は正しいが、組み合わせると意図した通りに動かない」という統合レベルのバグを防ぐため、テスト戦略を見直す必要がある。
+
+  ## 判断基準
+
+  * **Reliability**: ユーザーが実際に構築するような複雑なパイプラインにおいても、キャッシュや依存関係解決が正しく動作することを保証したい。
+  * **Refactoring Safety**: 内部実装（例: DBスキーマや保存ロジック）を変更した際に、ユーザーから見た挙動が変わっていないことを高いレベルで検知したい。
+  * **Documentation**: テストコード自体を「ユーザーがどのようにライブラリを使うべきか」を示す実行可能なドキュメント（Executable Documentation）として機能させたい。
+
+  ## 検討した選択肢
+
+  * **Option 1**: 現状維持（ユニットテストの拡充）。
+      * *Pros*: 実行が高速。
+      * *Cons*: コンポーネント間の連携ミスや、実IOに伴う問題を見逃すリスクが高い。
+  * **Option 2**: 手動QA手順書の作成。
+      * *Pros*: 実装コストが低い。
+      * *Cons*: 再現性が低く、CIで自動化できないため、リリースのボトルネックになる。
+  * **Option 3**: `tests/integration/` ディレクトリを新設し、E2E（End-to-End）シナリオテストを導入する。
+      * *Pros*: 実際のユーザー利用に近い形で品質を保証できる。
+      * *Cons*: IOを伴うため実行時間が長くなる。セットアップがやや複雑になる。
+
+  ## 決定事項
+
+  採用した選択肢: **Option 3**.
+
+  テストピラミッドの上層として、以下の戦略でインテグレーションテストを導入する：
+
+  1.  **ディレクトリ構成**:
+      `tests/integration/` を新設し、ユニットテストとは明確に分離する。
+  2.  **テスト範囲 (Scope)**:
+      * **Pipeline E2E**: データのロードから学習までの一連のタスクフローを定義し、初回の実行、キャッシュヒット、バージョニングによる部分再計算（依存関係の解決）を検証する。
+      * **CLI Integration**: Python コードで生成された DB ファイルに対し、`beautyspot` CLI コマンド（`stats`, `list` 等）を実行し、出力が正しいことを検証する。
+  3.  **技術的制約**:
+      * モックの使用は最小限に留め、原則として**実ファイル（SQLite DB, Blobファイル）**を使用する（`tmp_path` フィクスチャを活用）。
+      * `beautyspot.Spot` クラスを実際にインスタンス化し、ユーザーコードと同じインターフェース経由で操作を行う。
+
+  ### Example Scenario / 想定シナリオ
+
+  ```python
+  def test_ml_pipeline_lifecycle(spot_env):
+      # 1. Pipeline Definition (Load -> Process -> Train)
+      # 2. Initial Run (Assert all executed)
+      # 3. Cache Hit Run (Assert none executed)
+      # 4. Version Upgrade of Middle Task (Assert downstream re-executed)
+      # 5. CLI "stats" command check (Assert DB integrity)
+  ```
+
+  ## 影響・結果
+
+  * **ポジティブ**:
+      * リリース前の信頼性が大幅に向上する。特に「キャッシュが効きすぎて更新されない」「意図せず再計算される」といった複雑なバグを検知しやすくなる。
+      * CLI と Python API の互換性が常に保証される。
+  * **ネガティブ**:
+      * テスト実行時間が増加する（ファイルIOを含むため）。
+      * テストコードのメンテナンスコストが若干増加する。

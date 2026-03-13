@@ -1,0 +1,61 @@
+active: true
+derived: false
+groups:
+- SERIAL
+header: |
+  遅延バインディングを伴うデコレータベースの型登録
+level: 1.13
+links:
+- REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
+normative: true
+ref: ''
+reviewed: WC98NTQkhoo74PwSj_Lia1MUrION4PI-67fxwYkLyI0=
+status: accepted
+text: |
+  # 遅延バインディングを伴うデコレータベースの型登録
+
+  ## コンテキストと課題
+
+  これまでの `spot.register_type()` は命令的であり、クラス定義と登録ロジックが分離してしまうため、凝集度が低いという課題がありました。
+  また、Pydantic モデルのようなクラスメソッド（例: `cls.model_validate_json`）をデコーダとして登録したい場合、デコレータ評価時にはまだクラスが未定義（NameError）であるため、綺麗に記述できないという技術的な制約がありました。
+
+  ## 判断基準
+
+  * **Developer Experience (DX):** クラス定義の直上にシリアライズ設定を記述したい（Co-location）。
+  * **Support for Modern Libraries:** Pydantic など、クラスメソッドをファクトリとして使用するパターンを容易にサポートしたい。
+  * **Safety:** 循環参照や未定義エラーを回避しつつ、型安全に登録を行いたい。
+
+  ## 検討した選択肢
+
+  * **Option 1**: 命令的な `register_type()` メソッドのみを提供する。
+  * **Option 2**: デコレータベースの `register` メソッドを追加し、`decoder_factory` による遅延バインディングを導入する。
+
+  ## 決定事項
+
+  採用した選択肢: **Option 2**.
+
+  `Spot` クラスに `register` デコレータメソッドを追加し、**`decoder_factory` による遅延バインディング** を導入します。
+
+  ### Technical Details / 技術詳細
+
+  ```python
+  @spot.register(
+      code=10,
+      encoder=lambda obj: ...,
+      decoder_factory=lambda cls: cls.deserialize  # Class is passed here after definition
+  )
+  class MyModel:
+      ...
+  ```
+
+  1. `register` デコレータは、対象クラスの定義完了後（デコレート時）に実行される。
+  2. `decoder_factory` が指定されている場合、生成された `cls` オブジェクトを引数としてファクトリを実行し、実際の `decoder` 関数を取得する。
+  3. 取得した `decoder` を用いて、既存の `register_type` バックエンドに登録する。
+
+  ## 影響・結果
+
+  * **ポジティブ**:
+      * ユーザーはクラス定義と登録を1箇所にまとめられる。
+      * 自己参照を含むクラス（自分自身を返すクラスメソッドなど）の登録が容易になる。
+  * **ネガティブ**:
+      * `decoder` と `decoder_factory` という2つの引数が増え、APIが少し複雑になる（ドキュメントでの補完が必要）。

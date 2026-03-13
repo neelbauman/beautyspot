@@ -12,6 +12,9 @@ Commands:
     status              プロジェクト全体のサマリ（件数・カバレッジ・suspect数）
     chain <UID>         指定UIDの上流→下流チェーン全体を表示
     chain --file PATH   ファイルパスをreferencesから逆引きし、該当アイテムのチェーンを表示
+    context <UID>       行動に必要な全文脈情報を一括取得（target/upstream/downstream/files/health）
+    related-files <UID> 関連ファイルパスをドキュメント層別に取得
+    search <PATTERN>    属性フィルタ付き高機能検索（正規表現対応）
     coverage            カバレッジ詳細（どのSPECがIMPL/TST未カバーか）
     suspects            全suspect一覧と要対応アクション
     gaps                リンク漏れ・ref未設定のアイテム一覧
@@ -20,6 +23,9 @@ Examples:
     python trace_query.py . status
     python trace_query.py . chain SPEC003
     python trace_query.py . chain --file src/beautyspot/core.py
+    python trace_query.py . context SPEC003
+    python trace_query.py . related-files SPEC003
+    python trace_query.py . search "タイムアウト" --group auth --suspect
     python trace_query.py . coverage --group CACHE
     python trace_query.py . suspects
     python trace_query.py . gaps --document IMPL
@@ -27,6 +33,7 @@ Examples:
 
 import argparse
 import os
+import re
 from collections import defaultdict
 
 try:
@@ -211,21 +218,320 @@ def cmd_chain(tree, args):
 
 
 
-def _trace_up(uid, parents_idx, result, visited, depth=0):
+def cmd_context(tree, args):
+    """指定UIDの全文脈情報を一括取得する。
+
+    エージェントが「何を読み、何を変え、何をテストすべきか」を
+    1回のコマンドで判断できるよう、以下を集約して返す:
+      - target: 対象アイテムの詳細
+      - upstream: 上流アイテム（要件の根拠）
+      - downstream: 下流アイテム（実装・テスト）
+      - related_files: 関連ファイルパス（source / test / upstream に分類）
+      - health: suspect / unreviewed / missing_children の状態
+    """
+    children_idx, parents_idx = build_link_index(tree)
+
+    root_item = find_item(tree, args.uid)
+    if root_item is None:
+        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+
+    uid = str(root_item.uid)
+    prefix = find_doc_prefix(tree, root_item)
+
+    # upstream（参照元の references も含める）
+    upstream = []
+    _trace_up(uid, parents_idx, upstream, visited=set(), rich=True)
+
+    # downstream（references を含む）
+    downstream = []
+    _trace_down(uid, children_idx, downstream, visited=set())
+
+    # related_files: downstream の references をドキュメント種別で分類
+    source_files = []
+    test_files = []
+    upstream_files = []
+
+    # 対象アイテム自身の references
+    for ref in get_references(root_item):
+        path = ref.get("path", "")
+        if path:
+            source_files.append(path)
+
+    # downstream の references を分類
+    for entry in downstream:
+        for ref in entry.get("references", []):
+            path = ref.get("path", "")
+            if not path:
+                continue
+            if entry["prefix"] in ("TST",):
+                if path not in test_files:
+                    test_files.append(path)
+            elif entry["prefix"] in ("IMPL",):
+                if path not in source_files:
+                    source_files.append(path)
+            else:
+                if path not in source_files:
+                    source_files.append(path)
+
+    # upstream の references
+    for entry in upstream:
+        for ref in entry.get("references", []):
+            path = ref.get("path", "")
+            if path and path not in upstream_files:
+                upstream_files.append(path)
+
+    # health: 下流のsuspect・未レビュー・子リンク不足を検出
+    suspect_items = []
+    unreviewed_items = []
+    for entry in downstream:
+        item = find_item(tree, entry["uid"])
+        if item is None:
+            continue
+        if is_suspect(item, tree):
+            suspect_items.append(entry["uid"])
+        if not item.reviewed:
+            unreviewed_items.append(entry["uid"])
+
+    # 対象自身のsuspect・レビュー状態
+    if is_suspect(root_item, tree):
+        suspect_items.insert(0, uid)
+    if not root_item.reviewed:
+        unreviewed_items.insert(0, uid)
+
+    # 子リンクの欠落（子ドキュメントが存在するのにリンクがない）
+    has_children = bool(children_idx.get(uid))
+    child_docs = [d for d in tree if d.parent == prefix]
+    missing_children = bool(child_docs) and not has_children
+
+    # gherkin 属性
+    gherkin = None
+    if hasattr(root_item, "get"):
+        g = root_item.get("gherkin")
+        if g:
+            gherkin = g.strip() if isinstance(g, str) else g
+
+    out({
+        "ok": True,
+        "action": "context",
+        "target": {
+            **item_summary(root_item, prefix, tree),
+            "gherkin": gherkin,
+        },
+        "upstream": upstream,
+        "downstream": downstream,
+        "related_files": {
+            "source": source_files,
+            "test": test_files,
+            "upstream": upstream_files,
+        },
+        "health": {
+            "suspects": suspect_items,
+            "unreviewed": unreviewed_items,
+            "missing_children": missing_children,
+            "suspect_count": len(suspect_items),
+            "unreviewed_count": len(unreviewed_items),
+        },
+    })
+
+
+def cmd_related_files(tree, args):
+    """指定UIDに関連する全ファイルパスをドキュメント層別に返す。
+
+    context より軽量。「このUIDに関連するコード・テストファイルを
+    全部読みたい」というケースに特化した出力。
+    """
+    children_idx, parents_idx = build_link_index(tree)
+
+    # --file による逆引きモード
+    if getattr(args, "file", None):
+        matched = _find_items_by_file(tree, args.file)
+        if not matched:
+            out({"ok": False, "error": f"ファイル '{args.file}' をreferencesに持つアイテムが見つかりません"})
+
+        all_files = defaultdict(list)
+        matched_uids = []
+        for root_item, _prefix in matched:
+            matched_uids.append(str(root_item.uid))
+            _collect_files_for_item(
+                tree, root_item, children_idx, parents_idx, all_files
+            )
+
+        out({
+            "ok": True,
+            "action": "related-files",
+            "mode": "by_file",
+            "file": args.file,
+            "matched_uids": matched_uids,
+            "files": dict(all_files),
+        })
+
+    # UID指定モード
+    root_item = find_item(tree, args.uid)
+    if root_item is None:
+        out({"ok": False, "error": f"UID '{args.uid}' が見つかりません"})
+
+    files = defaultdict(list)
+    _collect_files_for_item(tree, root_item, children_idx, parents_idx, files)
+
+    out({
+        "ok": True,
+        "action": "related-files",
+        "mode": "by_uid",
+        "uid": args.uid,
+        "files": dict(files),
+    })
+
+
+def _collect_files_for_item(tree, root_item, children_idx, parents_idx, files):
+    """アイテムの上流・下流を辿り、references のファイルパスを層別に収集する。"""
+    uid = str(root_item.uid)
+    prefix = find_doc_prefix(tree, root_item)
+
+    # 自身の references
+    for ref in get_references(root_item):
+        path = ref.get("path", "")
+        if path and path not in files[prefix]:
+            files[prefix].append(path)
+
+    # downstream
+    downstream = []
+    _trace_down(uid, children_idx, downstream, visited=set())
+    for entry in downstream:
+        for ref in entry.get("references", []):
+            path = ref.get("path", "")
+            if path and path not in files[entry["prefix"]]:
+                files[entry["prefix"]].append(path)
+
+    # upstream
+    upstream = []
+    _trace_up(uid, parents_idx, upstream, visited=set(), rich=True)
+    for entry in upstream:
+        for ref in entry.get("references", []):
+            path = ref.get("path", "")
+            if path and path not in files[entry["prefix"]]:
+                files[entry["prefix"]].append(path)
+
+
+def cmd_search(tree, args):
+    """属性フィルタ付き高機能検索。
+
+    テキスト検索（正規表現対応）に加え、ドキュメント・グループ・
+    suspect・unreviewed・gherkin有無・優先度・derived で絞り込める。
+    """
+    children_idx, _ = build_link_index(tree)
+
+    # 正規表現パターンのコンパイル
+    pattern = None
+    if args.pattern:
+        try:
+            pattern = re.compile(args.pattern, re.IGNORECASE)
+        except re.error as e:
+            out({"ok": False, "error": f"正規表現エラー: {e}"})
+
+    # フィルタ条件の解析
+    filter_groups = []
+    if args.group:
+        filter_groups = [g.strip() for g in args.group.split(",") if g.strip()]
+
+    filter_priorities = []
+    if args.priority:
+        filter_priorities = [p.strip() for p in args.priority.split(",") if p.strip()]
+
+    filter_docs = []
+    if args.document:
+        filter_docs = [d.strip() for d in args.document.split(",") if d.strip()]
+
+    results = []
+    for doc in tree:
+        # ドキュメントフィルタ
+        if filter_docs and doc.prefix not in filter_docs:
+            continue
+
+        for item in doc:
+            if not item.active:
+                continue
+            if not is_normative(item):
+                continue
+
+            # グループフィルタ
+            if filter_groups:
+                item_groups = get_groups(item)
+                if not any(fg in item_groups for fg in filter_groups):
+                    continue
+
+            # 優先度フィルタ
+            if filter_priorities:
+                if get_priority(item) not in filter_priorities:
+                    continue
+
+            # suspect フィルタ
+            if args.suspect and not is_suspect(item, tree):
+                continue
+
+            # unreviewed フィルタ
+            if args.unreviewed and item.reviewed:
+                continue
+
+            # derived フィルタ
+            if args.derived and not is_derived(item):
+                continue
+
+            # gherkin フィルタ
+            if args.has_gherkin:
+                gherkin = item.get("gherkin") if hasattr(item, "get") else None
+                if not gherkin:
+                    continue
+
+            # テキストパターンフィルタ（text + header を対象）
+            if pattern:
+                text = (item.text or "") + " " + (item.header or "")
+                # gherkin も検索対象に含める
+                if hasattr(item, "get"):
+                    g = item.get("gherkin")
+                    if g and isinstance(g, str):
+                        text += " " + g
+                if not pattern.search(text):
+                    continue
+
+            results.append(item_summary(item, doc.prefix, tree))
+
+    out({
+        "ok": True,
+        "action": "search",
+        "pattern": args.pattern,
+        "filters": {
+            "document": filter_docs or None,
+            "group": filter_groups or None,
+            "priority": filter_priorities or None,
+            "suspect": args.suspect,
+            "unreviewed": args.unreviewed,
+            "has_gherkin": args.has_gherkin,
+            "derived": args.derived,
+        },
+        "count": len(results),
+        "items": results,
+    })
+
+
+def _trace_up(uid, parents_idx, result, visited, depth=0, rich=False):
+    """上流を辿る。rich=True の場合は references も含め text を 200 文字まで取得する。"""
     if uid in visited or depth > 10:
         return
     visited.add(uid)
     for parent_item, parent_prefix in parents_idx.get(uid, []):
         parent_uid = str(parent_item.uid)
-        result.append({
+        entry = {
             "uid": parent_uid,
             "prefix": parent_prefix,
             "groups": get_groups(parent_item),
-            "text": parent_item.text.strip()[:120],
+            "text": parent_item.text.strip()[:200 if rich else 120],
             "derived": is_derived(parent_item),
             "depth": depth,
-        })
-        _trace_up(parent_uid, parents_idx, result, visited, depth + 1)
+        }
+        if rich:
+            entry["references"] = get_references(parent_item)
+        result.append(entry)
+        _trace_up(parent_uid, parents_idx, result, visited, depth + 1, rich=rich)
 
 
 def _trace_down(uid, children_idx, result, visited, depth=0):
@@ -571,6 +877,39 @@ def main():
     p_chain.add_argument("--file", metavar="PATH",
                          help="ファイルパスをreferencesから逆引き。該当するIMPL/TSTアイテムのチェーンを表示")
 
+    # context
+    p_ctx = sub.add_parser("context",
+                           help="指定UIDの全文脈情報を一括取得（target/upstream/downstream/files/health）")
+    p_ctx.add_argument("uid", help="対象UID")
+
+    # related-files
+    p_rf = sub.add_parser("related-files",
+                          help="関連ファイルパスをドキュメント層別に取得")
+    p_rf.add_argument("uid", nargs="?", default=None,
+                      help="対象UID（--file と排他）")
+    p_rf.add_argument("--file", metavar="PATH",
+                      help="ファイルパスをreferencesから逆引き")
+
+    # search
+    p_search = sub.add_parser("search",
+                              help="属性フィルタ付き高機能検索（正規表現対応）")
+    p_search.add_argument("pattern", nargs="?", default=None,
+                          help="検索パターン（正規表現、省略時は全件）")
+    p_search.add_argument("-d", "--document",
+                          help="ドキュメントで絞り込み（カンマ区切りで複数可）")
+    p_search.add_argument("-g", "--group",
+                          help="グループで絞り込み（カンマ区切りで複数可）")
+    p_search.add_argument("--priority",
+                          help="優先度で絞り込み（カンマ区切り: critical,high,medium,low）")
+    p_search.add_argument("--suspect", action="store_true",
+                          help="suspectアイテムのみ")
+    p_search.add_argument("--unreviewed", action="store_true",
+                          help="未レビューアイテムのみ")
+    p_search.add_argument("--has-gherkin", action="store_true",
+                          help="gherkin属性を持つアイテムのみ")
+    p_search.add_argument("--derived", action="store_true",
+                          help="派生要求のみ")
+
     # coverage
     p_cov = sub.add_parser("coverage", help="カバレッジ詳細")
     p_cov.add_argument("-g", "--group", help="グループで絞り込み")
@@ -608,6 +947,9 @@ def main():
     cmd_map = {
         "status": cmd_status,
         "chain": cmd_chain,
+        "context": cmd_context,
+        "related-files": cmd_related_files,
+        "search": cmd_search,
         "coverage": cmd_coverage,
         "suspects": cmd_suspects,
         "gaps": cmd_gaps,

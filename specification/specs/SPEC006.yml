@@ -48,3 +48,9 @@ text: |
 
   - **シグネチャ不一致**: 引数が関数のシグネチャと合わない場合は `TypeError` を送出する（実行前バリデーション）
   - **デフォルト値の変更**: 関数のデフォルト値が変わると、同じ引数でもハッシュ値が変わる（意図的な挙動）
+gherkin: |
+  Feature: KeyGenPolicy strategy
+    Scenario: Applying custom strategies to specific arguments
+      Given a function with a bound KeyGenPolicy
+      When the function is called with arguments
+      Then it applies the configured strategies (e.g., IGNORE, FILE_CONTENT) to generate the cache key

@@ -1,0 +1,65 @@
+active: true
+derived: false
+groups:
+- DI
+header: |
+  デフォルトの依存性注入のためのファクトリ関数
+level: 1.25
+links:
+- REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
+normative: true
+ref: ''
+reviewed: pbW0_BfXToqqTidx4JQ7STzz2TqyaWYm6GmomdAPL_I=
+status: accepted
+text: |
+  # デフォルトの依存性注入のためのファクトリ関数
+
+  ## コンテキストと課題
+
+  v2.0 以降、`beautyspot` は依存性注入 (DI) アーキテクチャを採用しました。`Spot` クラス（`core.py`）の初期化には、`TaskDB`, `Serializer`, `Storage` の各インスタンスを明示的に渡す必要があります。
+
+  これはテスト容易性と柔軟性の観点では優れていますが、単に「すぐに使い始めたい」だけのユーザーにとっては、初期化が非常に冗長になってしまうという課題がありました。
+
+  ```python
+  # 一般的なスクリプトには冗長すぎる
+  db = SQLiteTaskDB(...)
+  storage = LocalStorage(...)
+  serializer = MsgpackSerializer()
+  spot = Spot(name="app", db=db, storage=storage, serializer=serializer)
+  ```
+
+  ## 判断基準
+
+  * **Developer Experience (DX)**: ライトユーザーが最小限の設定（名前のみなど）で即座に開始できること。
+  * **Clean Architecture**: `core.py` の `Spot` クラスを具象クラス（SQLite 等）の詳細から保護し、ピュアな状態に保つこと。
+  * **Flexibility**: 高度なユーザーが引き続き任意のコンポーネントを注入できる余地を残すこと。
+
+  ## 検討した選択肢
+
+  * **Option 1**: ユーザーに常に全ての DI コンポーネントを手動で提供させる。
+  * **Option 2**: `Spot.__init__` の引数にデフォルト値（具象クラス）を設定する。
+  * **Option 3**: `__init__.py` でファクトリ関数 `Spot` を提供し、そこでデフォルトの組み立てを行う。
+
+  ## 決定事項
+
+  採用した選択肢: **Option 3**.
+
+  `beautyspot/__init__.py` において、具象クラスのインスタンス化を伴う**ファクトリ関数 `Spot`** を公開します。
+
+  ```python
+  # beautyspot/__init__.py
+  def Spot(name: str, db=None, ...):
+      resolved_db = db or SQLiteTaskDB(...)
+      # ... 他の解決ロジック ...
+      return _Spot(name, db=resolved_db, ...)
+  ```
+
+  これにより、ライブラリのトップレベルからインポートされる `Spot` は関数となり、内部で `core.py` の `_Spot` クラスを組み立てて返します。
+
+  ## 影響・結果
+
+  * **ポジティブ**:
+      * **"Opinionated Defaults, Flexible Internals"**: 初心者は1行で初期化でき、上級者はカスタムコンポーネントを注入できる。
+      * コアとなる `_Spot` クラスが、`SQLiteTaskDB` などの具象実装をインポートする必要がなくなる（関心の分離）。
+  * **ネガティブ**:
+      * 公開シンボル `Spot` がクラスではなく関数になるため、`Spot` を直接継承することが難しくなる。継承が必要な場合は `core` から `_Spot` をインポートする必要があるが、本ライブラリでは継承よりもコンポジションを推奨するため、許容範囲とする。

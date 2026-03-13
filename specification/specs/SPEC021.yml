@@ -43,3 +43,9 @@ text: |
   ## エッジケース
 
   - **非対話環境**: CI等での実行を考慮し、色の無効化や確認プロンプトのスキップ（`--force`）に対応する。
+gherkin: |
+  Feature: CLI Commands
+    Scenario: Managing the cache via command line
+      Given the beautyspot CLI
+      When a command like gc, stats, or list is executed
+      Then it performs the requested operation and displays formatted results in the terminal

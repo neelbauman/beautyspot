@@ -87,6 +87,8 @@ def cmd_add(tree, args):
         item.set("normative", False)
     if args.derived:
         item.set("derived", True)
+    if args.gherkin:
+        item.set("gherkin", args.gherkin)
 
     # リンク（追加後に clear でフィンガープリントを保存し、suspect を防ぐ）
     link_uids = args.links or []
@@ -132,6 +134,8 @@ def cmd_update(tree, args):
         item.set("normative", True)
     elif args.set_non_normative:
         item.set("normative", False)
+    if args.gherkin is not None:
+        item.set("gherkin", args.gherkin)
 
     item.save()
 
@@ -705,6 +709,7 @@ def main():
                        help="テスト粒度（TST に設定。standard/full プロファイル用）")
     p_add.add_argument("--non-normative", action="store_true", help="非規範的アイテム（見出し等）として追加")
     p_add.add_argument("--derived", action="store_true", help="派生要求として追加")
+    p_add.add_argument("--gherkin", help="Gherkin シナリオ（Given/When/Then 形式の振る舞い記述）")
     p_add.add_argument("--links", nargs="*", help="リンク先UID")
 
     # update
@@ -719,6 +724,7 @@ def main():
                        help="優先度の変更")
     p_upd.add_argument("--test-level", choices=["unit", "integration", "acceptance"],
                        help="テスト粒度の変更（TST 用）")
+    p_upd.add_argument("--gherkin", help="Gherkin シナリオ（Given/When/Then 形式の振る舞い記述）")
     p_upd.add_argument("--set-normative", action="store_true", help="規範的アイテムに設定")
     p_upd.add_argument("--set-non-normative", action="store_true", help="非規範的アイテムに設定")
 

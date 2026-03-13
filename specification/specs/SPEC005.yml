@@ -46,3 +46,9 @@ text: |
   ## エッジケース
 
   - **異なる型の比較**: `_safe_sort_key` により、Python 3 で比較不可能な型同士（例: `int` と `str`）が辞書のキーに含まれていても安定したソート順を保証する
+gherkin: |
+  Feature: Recursive argument canonicalization
+    Scenario: Normalizing various Python types for stable hashing
+      Given an object of any supported type
+      When canonicalize is called on the object
+      Then it recursively converts the object into a stable, sortable primitive representation

@@ -1,139 +1,119 @@
-# Profile: standard
-# 中規模開発向け（複数サブシステム、チーム開発）
-#
-# ARCH（基本設計）を追加し、SPECを詳細設計として位置づける。
-# 設計レビューを段階的に行いたいチームに最適。
-
 name: standard
-description: |
-  中規模開発向けプロファイル。
+description: '中規模開発向けプロファイル。
+
   ARCH（基本設計）層を追加し、コンポーネント分割やIF定義と
+
   モジュール内の詳細設計を明確に分離する。
 
+  '
 tree:
-  - prefix: REQ
-    path: reqs
-    parent: null
-    role: "要件 (What: 何を実現するか)"
-    description: |
-      ビジネス要件・ユーザーストーリー・機能要件を定義する。
-      技術的な実現方法には言及しない。
+- prefix: REQ
+  path: reqs
+  parent: null
+  role: '要件 (What: 何を実現するか)'
+  description: 'ビジネス要件・ユーザーストーリー・機能要件を定義する。
 
-  - prefix: ARCH
-    path: arch
-    parent: REQ
-    role: "基本設計 (Architecture: どう構成するか)"
-    description: |
-      システム全体のアーキテクチャを定義する。
-      コンポーネント分割、コンポーネント間インターフェース、
-      データフロー、技術選定、非機能要件の方針を記述する。
-      「何を作るか」ではなく「どう構成するか」に焦点を当てる。
+    技術的な実現方法には言及しない。
 
-  - prefix: SPEC
-    path: specs
-    parent: ARCH
-    role: "詳細設計 (Detail: どう実装するか)"
-    description: |
-      ARCHで定義されたコンポーネントの内部設計を定義する。
-      API仕様、アルゴリズム、クラス設計、データ構造、
-      エラーハンドリング、エッジケースを記述する。
+    '
+- prefix: ADR
+  path: adrs
+  parent: null
+  role: '決定 (Why: なぜそう判断したか)'
+  description: 'あらゆるレベル（要求・要件・仕様・設計・実装）の意思決定を記録する。
 
-  - prefix: IMPL
-    path: impl
-    parent: SPEC
-    role: "実装 (Build: 何を作ったか)"
-    description: |
-      SPECに対応する実装成果物（ソースコード）を追跡する。
+    技術選定、トレードオフ、棄却された代替案などを記述する。
 
-  - prefix: TST
-    path: tst
-    parent: SPEC
-    role: "テスト (Verify: どう検証するか)"
-    description: |
-      SPECに対する検証手順・期待結果を定義する。
-      test_level属性でテストの粒度を区別する。
+    links は関連する任意のアイテム（REQ/ARCH/SPEC/IMPL等）を指せる。
 
-# IMPLとTSTのリンク先
+    '
+- prefix: ARCH
+  path: arch
+  parent: REQ
+  role: '基本設計 (Architecture: どう構成するか)'
+  description: 'システム全体のアーキテクチャを定義する。
+
+    コンポーネント分割、コンポーネント間インターフェース、
+
+    データフロー、技術選定、非機能要件の方針を記述する。
+
+    「何を作るか」ではなく「どう構成するか」に焦点を当てる。
+
+    '
+- prefix: SPEC
+  path: specs
+  parent: ARCH
+  role: '詳細設計 (Detail: どう実装するか)'
+  description: 'ARCHで定義されたコンポーネントの内部設計を定義する。
+
+    API仕様、アルゴリズム、クラス設計、データ構造、
+
+    エラーハンドリング、エッジケースを記述する。
+
+    '
+- prefix: IMPL
+  path: impl
+  parent: SPEC
+  role: '実装 (Build: 何を作ったか)'
+  description: 'SPECに対応する実装成果物（ソースコード）を追跡する。
+
+    '
+- prefix: TST
+  path: tst
+  parent: SPEC
+  role: 'テスト (Verify: どう検証するか)'
+  description: 'SPECに対する検証手順・期待結果を定義する。
+
+    test_level属性でテストの粒度を区別する。
+
+    '
 impl_links_to: SPEC
 tst_links_to: SPEC
-
-# 設計文書の書き方ガイダンス
 guidance:
-  design_depth: |
-    ARCHとSPECの書き分け基準:
-      - ARCH: コンポーネント間の関係、外部IF、データフロー、技術選定理由
-        例: 「認証サブシステムはJWTベースのトークン認証を採用する」
-        例: 「ストレージ層はBlobStorageBaseインターフェースで抽象化する」
-      - SPEC: コンポーネント内部の設計、APIシグネチャ、アルゴリズム詳細
-        例: 「JWTトークンのペイロードにはuser_id, exp, iatを含む」
-        例: 「BlobStorage.save()はキーの衝突時にOverwriteErrorを送出する」
+  design_depth: "ARCHとSPECの書き分け基準:\n  - ARCH: コンポーネント間の関係、外部IF、データフロー、技術選定理由\n   \
+    \ 例: 「認証サブシステムはJWTベースのトークン認証を採用する」\n    例: 「ストレージ層はBlobStorageBaseインターフェースで抽象化する」\n\
+    \  - SPEC: コンポーネント内部の設計、APIシグネチャ、アルゴリズム詳細\n    例: 「JWTトークンのペイロードにはuser_id, exp,\
+    \ iatを含む」\n    例: 「BlobStorage.save()はキーの衝突時にOverwriteErrorを送出する」\n"
   test_levels: true
-  test_level_note: |
-    TSTアイテムにtest_level属性を設定してテスト粒度を区別する:
-      - unit: モジュール単体のテスト（SPEC/詳細設計に対応）
-      - integration: コンポーネント間結合テスト（ARCH/基本設計に対応）
-      - acceptance: ユーザーシナリオテスト（REQ/要件に対応）
-    TSTのリンク先は原則SPECだが、integrationテストはARCHにもリンク可。
+  test_level_note: "TSTアイテムにtest_level属性を設定してテスト粒度を区別する:\n  - unit: モジュール単体のテスト（SPEC/詳細設計に対応）\n\
+    \  - integration: コンポーネント間結合テスト（ARCH/基本設計に対応）\n  - acceptance: ユーザーシナリオテスト（REQ/要件に対応）\n\
+    TSTのリンク先は原則SPECだが、integrationテストはARCHにもリンク可。\n"
+doorstop_yml_attributes: "# 各ドキュメントの .doorstop.yml に追加する attributes セクション:\nattributes:\n\
+  \  defaults:\n    groups: []\n    priority: medium      # critical / high / medium\
+  \ / low\n    gherkin: ''            # Gherkin シナリオ（SPEC/ARCH で使用）\n  reviewed:\n\
+  \    - groups\n    - gherkin              # gherkin 変更で再レビューをトリガー\n    # REQ / NFR\
+  \ は priority も reviewed に追加を推奨\n      # ADR は status を reviewed に追加を推奨\n  publish:\n\
+  \    - groups\n    - priority\n    - gherkin\n\n# 設定しない属性（Git/CIの責務）:\n#   author,\
+  \ creation_date, status\n"
+priority_policy: '- 値: critical / high / medium（デフォルト） / low
 
-# .doorstop.yml のカスタム属性設定
-doorstop_yml_attributes: |
-  # 各ドキュメントの .doorstop.yml に追加する attributes セクション:
-  attributes:
-    defaults:
-      groups: []
-      priority: medium      # critical / high / medium / low
-    reviewed:
-      - groups
-      # REQ / NFR は priority も reviewed に追加を推奨
-    publish:
-      - groups
-      - priority
-
-  # 設定しない属性（Git/CIの責務）:
-  #   author, creation_date, status
-
-# 優先度属性（priority）の運用
-priority_policy: |
-  - 値: critical / high / medium（デフォルト） / low
   - 設定対象: REQ・NFR アイテム
+
   - コマンド: doorstop_ops.py add -d REQ ... --priority high
+
   - バックログ確認: trace_query.py . backlog
 
-# NFRドキュメント（非機能要件）の運用
-nfr_policy: |
-  standardプロファイルでは NFR ドキュメントを推奨する:
-    init_project.py <dir> --profile standard --with-nfr
+  '
+nfr_policy: "standardプロファイルでは NFR ドキュメントを推奨する:\n  init_project.py <dir> --profile\
+  \ standard --with-nfr\n\nNFR のトレーサビリティ:\n  - NFR は REQ と並列のルートドキュメント（parent: null）\n\
+  \  - ARCH/SPEC は NFR アイテムへリンクして非機能制約を明示できる\n  - TST は NFR アイテムへリンクして非機能テスト（性能・セキュリティ）を対応付ける\n\
+  \nNFR の典型的なグループ:\n  - PERF  — 性能要件（応答時間、スループット、リソース使用量）\n  - SEC   — セキュリティ要件（認証、暗号化、監査ログ）\n\
+  \  - REL   — 信頼性要件（可用性、耐障害性、RTO/RPO）\n  - MNT   — 保守性要件（ログ出力、メトリクス、デプロイ手順）\n  -\
+  \ PRT   — 可搬性要件（OS、クラウド、DB互換性）\n"
+derived_policy: '- 使用可能な層: ARCH / SPEC のみ
 
-  NFR のトレーサビリティ:
-    - NFR は REQ と並列のルートドキュメント（parent: null）
-    - ARCH/SPEC は NFR アイテムへリンクして非機能制約を明示できる
-    - TST は NFR アイテムへリンクして非機能テスト（性能・セキュリティ）を対応付ける
-
-  NFR の典型的なグループ:
-    - PERF  — 性能要件（応答時間、スループット、リソース使用量）
-    - SEC   — セキュリティ要件（認証、暗号化、監査ログ）
-    - REL   — 信頼性要件（可用性、耐障害性、RTO/RPO）
-    - MNT   — 保守性要件（ログ出力、メトリクス、デプロイ手順）
-    - PRT   — 可搬性要件（OS、クラウド、DB互換性）
-
-# 派生要求（derived）の運用
-derived_policy: |
-  - 使用可能な層: ARCH / SPEC のみ
   - 運用ルールの詳細は references/doorstop_reference.md を参照
 
-# 外部ファイル紐付け（references）
-references_policy: |
-  - ref は使わず references に統一する
+  '
+references_policy: '- ref は使わず references に統一する
+
   - IMPL: ドメインロジックの実装ファイルのみ（最大2–3ファイル）
+
   - TST: 直接のテストファイルのみ
+
   - conftest.py, __init__.py, 共通ユーティリティは含めない
 
-# トレーサビリティの流れ
-traceability: |
-  REQ ← ARCH ← SPEC ← IMPL
-                       TST
-
-  V字対応:
-    REQ ↔ acceptance test (TST test_level=acceptance)
-    ARCH ↔ integration test (TST test_level=integration)
-    SPEC ↔ unit test (TST test_level=unit)
+  '
+traceability: "REQ ← ARCH ← SPEC ← IMPL\n                     TST\n\nV字対応:\n  REQ\
+  \ ↔ acceptance test (TST test_level=acceptance)\n  ARCH ↔ integration test (TST\
+  \ test_level=integration)\n  SPEC ↔ unit test (TST test_level=unit)\n"

@@ -53,3 +53,9 @@ text: |
 
   - 非同期関数やジェネレータ関数を渡した場合の挙動は、基底となる `mark` デコレータの制約に完全に依存する。
   - 適用されるキャッシュキーは元の関数に基づくため、同名・同シグネチャの別関数が混同されないように `KeyGen` のスコープ規則に従う。
+gherkin: |
+  Feature: cached_run context manager
+    Scenario: Temporarily caching functions within a block
+      Given a Spot instance and one or more target functions
+      When the functions are passed to the cached_run context manager
+      Then temporary cached wrappers are yielded for use within the block

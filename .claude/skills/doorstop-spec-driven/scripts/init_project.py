@@ -63,24 +63,35 @@ def load_profile(profile_name):
         return yaml.safe_load(f)
 
 
-def _configure_attributes(yml_path, is_req_or_nfr=False):
+def _configure_attributes(yml_path, is_req_or_nfr=False, is_adr=False):
     """doorstop create で生成された .doorstop.yml に attributes セクションを追加する。
 
     defaults / reviewed / publish を設定する。
     REQ/NFR ドキュメントでは priority を reviewed に追加し、
     優先度変更が再レビューをトリガーするようにする。
+    ADR ドキュメントでは status を追加する。
     """
     with open(yml_path) as f:
         config = yaml.safe_load(f)
 
     reviewed_attrs = ["groups"]
+    publish_attrs = ["groups"]
+    defaults = {"groups": []}
+
     if is_req_or_nfr:
         reviewed_attrs.append("priority")
+        publish_attrs.append("priority")
+        defaults["priority"] = "medium"
+
+    if is_adr:
+        reviewed_attrs.append("status")
+        publish_attrs.append("status")
+        defaults["status"] = "accepted"
 
     config["attributes"] = {
-        "defaults": {"groups": [], "priority": "medium"},
+        "defaults": defaults,
         "reviewed": reviewed_attrs,
-        "publish": ["groups", "priority"],
+        "publish": publish_attrs,
     }
 
     with open(yml_path, "w") as f:
@@ -164,7 +175,8 @@ def main():
         # .doorstop.yml に attributes セクションを追加
         yml_path = Path(project_dir) / docs_dir / doc["path"] / ".doorstop.yml"
         is_req_or_nfr = prefix in ("REQ", "NFR")
-        _configure_attributes(yml_path, is_req_or_nfr=is_req_or_nfr)
+        is_adr = prefix == "ADR"
+        _configure_attributes(yml_path, is_req_or_nfr=is_req_or_nfr, is_adr=is_adr)
         print("    attributes 設定完了")
 
     # NFR ドキュメント作成（オプション）

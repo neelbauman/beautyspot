@@ -50,3 +50,9 @@ text: |
   ## エッジケース
 
   - **継承**: 基底クラスを登録すると、サブクラスも自動的にそのエンコーダを使用する（オーバーライド可能）
+gherkin: |
+  Feature: Custom type registration
+    Scenario: Registering custom encoders and decoders
+      Given a custom Python type
+      When register or register_type is called with a code and conversion functions
+      Then the type can be safely serialized and deserialized by the MsgpackSerializer

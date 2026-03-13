@@ -44,3 +44,9 @@ text: |
   ## エッジケース
 
   - **FOREVER**: 特別な定数 `Retention.FOREVER` (無限大の秒数) を提供し、ポリシーに関わらず永続化を指示できる。
+gherkin: |
+  Feature: Retention specification
+    Scenario: Parsing retention strings into seconds
+      Given a retention string like "7d" or "12h"
+      When parse_retention is called
+      Then it returns the correct total number of seconds

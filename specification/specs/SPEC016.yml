@@ -52,3 +52,9 @@ text: |
   ## エッジケース
 
   -   **重複パターン**: 先に登録されたルールが優先される。
+gherkin: |
+  Feature: LifecyclePolicy
+    Scenario: Resolving retention periods by function name
+      Given a LifecyclePolicy with defined glob patterns
+      When a function name is resolved
+      Then it returns the retention period of the first matching rule, or the default if none match

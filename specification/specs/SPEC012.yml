@@ -46,3 +46,9 @@ text: |
 
   - **動的型**: 名前が同じでも ID が異なる動的生成型は、LRUキャッシュによりメモリリークを防ぎつつ効率的に処理される
   - **スレッド安全性**: `registry_generation` カウンタを使用して、スレッドローカルキャッシュの整合性を維持
+gherkin: |
+  Feature: MsgpackSerializer
+    Scenario: Serializing and deserializing custom types
+      Given an object and a MsgpackSerializer instance
+      When the object is dumped and then loaded
+      Then the object is correctly serialized using MessagePack and successfully restored to its original type

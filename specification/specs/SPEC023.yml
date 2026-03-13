@@ -98,3 +98,9 @@ text: |
   ## エッジケース
 
   - **非同期混在**: 同一キーに対して同期実行と非同期実行が混在する場合も、スレッドセーフなロックにより一つの実行に絞り込まれる。
+gherkin: |
+  Feature: Thundering Herd Protection
+    Scenario: Preventing multiple simultaneous executions for the same cache key
+      Given multiple concurrent requests for the same missing cache key
+      When they enter the herd_sync or herd_async context
+      Then only the first request executes the function while others wait for its result

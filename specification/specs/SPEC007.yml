@@ -54,3 +54,9 @@ text: |
 
   - **破損DB**: DBファイルが壊れている場合は、初期化時に検知しエラーとする。
   - **インメモリDB**: `:memory:` 指定時は、プロセスの生存期間中のみキャッシュが保持される。
+gherkin: |
+  Feature: SQLiteTaskDB
+    Scenario: Managing cache tasks in a SQLite database
+      Given a SQLiteTaskDB instance with a configured timeout
+      When a background thread writes to the database and readers query concurrently
+      Then data is safely stored without locking errors and queries execute concurrently

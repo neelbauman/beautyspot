@@ -37,7 +37,8 @@ except ImportError:
     out({"ok": False, "error": "doorstop がインストールされていません"})
 
 from _common import (
-    out, get_groups, get_ref, find_item as find_item_in_tree,
+    out, get_groups, get_ref, get_references,
+    find_item as find_item_in_tree,
     find_doc_prefix as _find_doc_prefix, build_link_index,
     build_doc_file_map,
 )
@@ -119,7 +120,7 @@ def detect_from_git(tree, project_dir, base_ref=None):
 # Analysis: 影響範囲の分析
 # ---------------------------------------------------------------------------
 
-def analyze_impact(tree, changed_items):
+def analyze_impact(tree, changed_items, project_dir="."):
     """変更されたアイテムの影響範囲を分析する。"""
     children_idx, parents_idx = build_link_index(tree)
 
@@ -155,8 +156,11 @@ def analyze_impact(tree, changed_items):
                             "ref": get_ref(child_item),
                         })
 
-        # アクション生成
+        # アクション生成（人間向け + 機械向け）
         actions = _generate_actions(item, doc_prefix, downstream, suspect_children)
+        action_plan = _generate_action_plan(
+            item, doc_prefix, downstream, suspect_children, project_dir
+        )
 
         results.append({
             "uid": uid,
@@ -164,10 +168,12 @@ def analyze_impact(tree, changed_items):
             "groups": get_groups(item),
             "text": item.text.strip()[:120],
             "ref": get_ref(item),
+            "references": get_references(item),
             "upstream": upstream,
             "downstream": downstream,
             "suspect_children": suspect_children,
             "actions": actions,
+            "action_plan": action_plan,
         })
 
     return results
@@ -202,6 +208,7 @@ def _trace_downstream(uid, children_idx, result, visited, depth=0):
             "groups": get_groups(child_item),
             "text": child_item.text.strip()[:100],
             "ref": get_ref(child_item),
+            "references": get_references(child_item),
             "depth": depth,
         }
         result.append(entry)
@@ -238,6 +245,132 @@ def _generate_actions(changed_item, doc_prefix, downstream, suspects):
                 actions.append(f"{d['uid']} の内容が変更と整合しているか確認")
 
     return actions
+
+
+def _generate_action_plan(changed_item, doc_prefix, downstream, suspects, project_dir):
+    """エージェントが直接実行できる構造化アクションプランを生成する。
+
+    返却値:
+        {
+            "review_commands": [...],   # レビュー系コマンド
+            "clear_commands": [...],    # suspect解消コマンド
+            "files_to_check": [...],    # 確認すべきファイルパス
+            "validation": "..."         # 最終検証コマンド
+        }
+    """
+    # script_dir = os.path.dirname(os.path.abspath(__file__))
+    # ops = os.path.join(script_dir, "doorstop_ops.py")
+    # validate = os.path.join(os.path.dirname(script_dir), "reporting", "validate_and_report.py")
+
+    uid = str(changed_item.uid)
+    review_commands = []
+    clear_commands = []
+    files_to_check = set()
+
+    # 1. 変更アイテム自体のレビュー
+    review_commands.append(f"doorstop_ops.py {project_dir} review {uid}")
+
+    # 2. 変更アイテムの references
+    for ref in get_references(changed_item):
+        path = ref.get("path", "")
+        if path:
+            files_to_check.add(path)
+
+    # 3. suspect アイテムの解消
+    suspect_uids = []
+    for s in suspects:
+        suspect_uids.append(s["uid"])
+        # suspect の references を確認対象に追加
+        for ref in s.get("references", []):
+            path = ref.get("path", "")
+            if path:
+                files_to_check.add(path)
+        # ref フォールバック
+        if s.get("ref"):
+            files_to_check.add(s["ref"])
+
+    if suspect_uids:
+        clear_commands.append(
+            f"doorstop_ops.py {project_dir} chain-clear {uid}"
+        )
+        review_commands.append(
+            f"doorstop_ops.py {project_dir} chain-review {uid}"
+        )
+
+    # 4. 下流の非suspect IMPL/TST のファイルも確認対象に
+    suspect_uid_set = set(suspect_uids)
+    for d in downstream:
+        if d["uid"] not in suspect_uid_set and d["prefix"] in ("IMPL", "TST"):
+            for ref in d.get("references", []):
+                path = ref.get("path", "")
+                if path:
+                    files_to_check.add(path)
+            if d.get("ref"):
+                files_to_check.add(d["ref"])
+
+    return {
+        "review_commands": review_commands,
+        "clear_commands": clear_commands,
+        "files_to_check": sorted(files_to_check),
+        "validation": f"validate_and_report.py {project_dir} --strict",
+    }
+
+
+def _auto_execute(results, project_dir):
+    """action_plan の review/clear コマンドを自動実行する。"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ops_script = os.path.join(script_dir, "doorstop_ops.py")
+
+    executed = []
+    errors = []
+
+    for r in results:
+        ap = r.get("action_plan", {})
+        # uid = r["uid"]
+
+        # clear を先に実行（suspect 解消）
+        for cmd_str in ap.get("clear_commands", []):
+            parts = cmd_str.split()
+            # "doorstop_ops.py <dir> chain-clear <UID>" の形式
+            if len(parts) >= 4:
+                subcmd = parts[2]  # chain-clear
+                target_uids = parts[3:]
+                real_cmd = [
+                    sys.executable, ops_script, project_dir, subcmd
+                ] + target_uids
+                try:
+                    _ = subprocess.run(
+                        real_cmd, capture_output=True, text=True, check=True
+                    )
+                    executed.append(cmd_str)
+                    print(f"  ✓ {cmd_str}")
+                except subprocess.CalledProcessError as e:
+                    errors.append({"command": cmd_str, "error": e.stderr.strip()})
+                    print(f"  ✗ {cmd_str}: {e.stderr.strip()}")
+
+        # review を実行
+        for cmd_str in ap.get("review_commands", []):
+            parts = cmd_str.split()
+            if len(parts) >= 4:
+                subcmd = parts[2]
+                target_uids = parts[3:]
+                real_cmd = [
+                    sys.executable, ops_script, project_dir, subcmd
+                ] + target_uids
+                try:
+                    _ = subprocess.run(
+                        real_cmd, capture_output=True, text=True, check=True
+                    )
+                    executed.append(cmd_str)
+                    print(f"  ✓ {cmd_str}")
+                except subprocess.CalledProcessError as e:
+                    errors.append({"command": cmd_str, "error": e.stderr.strip()})
+                    print(f"  ✗ {cmd_str}: {e.stderr.strip()}")
+
+    print(f"\n自動実行完了: {len(executed)}件成功, {len(errors)}件失敗")
+    if errors:
+        for e in errors:
+            print(f"  失敗: {e['command']} — {e['error']}")
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +444,16 @@ def print_console(results, tree):
 
 def write_json(results, output_path):
     """JSON形式で影響分析結果を出力する。"""
+    # action_plan のサマリを集約
+    all_files = set()
+    all_review = []
+    all_clear = []
+    for r in results:
+        ap = r.get("action_plan", {})
+        all_files.update(ap.get("files_to_check", []))
+        all_review.extend(ap.get("review_commands", []))
+        all_clear.extend(ap.get("clear_commands", []))
+
     report = {
         "timestamp": datetime.now().isoformat(),
         "summary": {
@@ -318,6 +461,12 @@ def write_json(results, output_path):
             "total_suspects": sum(len(r["suspect_children"]) for r in results),
             "total_downstream": sum(len(r["downstream"]) for r in results),
             "total_actions": sum(len(r["actions"]) for r in results),
+        },
+        "action_plan_summary": {
+            "review_commands": all_review,
+            "clear_commands": all_clear,
+            "files_to_check": sorted(all_files),
+            "validation": results[0]["action_plan"]["validation"] if results else None,
         },
         "impacts": results,
     }
@@ -522,6 +671,11 @@ def main():
     output.add_argument("--html", metavar="PATH", dest="html_path",
                         help="HTML形式で出力するファイルパス")
 
+    # 自動実行
+    auto = parser.add_argument_group("自動実行")
+    auto.add_argument("--auto-execute", action="store_true",
+                      help="推奨アクション（review/clear）を自動実行する")
+
     args = parser.parse_args()
 
     # 検出方式が1つも指定されていない場合
@@ -567,7 +721,7 @@ def main():
 
     # 影響分析
     print("影響範囲を分析中...")
-    results = analyze_impact(tree, changed_items)
+    results = analyze_impact(tree, changed_items, project_dir)
 
     # 出力
     print_console(results, tree)
@@ -581,6 +735,10 @@ def main():
         html_path = os.path.join(project_dir, args.html_path)
         os.makedirs(os.path.dirname(html_path), exist_ok=True)
         write_html(results, html_path)
+
+    # 自動実行: review/clear コマンドを実行
+    if args.auto_execute:
+        _auto_execute(results, project_dir)
 
 
 if __name__ == "__main__":

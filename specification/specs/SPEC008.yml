@@ -45,3 +45,9 @@ text: |
   ## エッジケース
 
   - **複合実装**: 複数のプロトコルを一つのクラスで実装する場合、`TaskDBMaintenable` 構成プロトコルとして扱う。
+gherkin: |
+  Feature: DB Protocol Hierarchy
+    Scenario: Defining cache database operations via protocols
+      Given a custom database implementation
+      When it is evaluated against TaskDBCore or Maintenance protocols
+      Then it must satisfy the required methods for core operations or maintenance tasks

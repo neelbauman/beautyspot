@@ -230,6 +230,9 @@ def item_to_dict(item, doc_prefix=None, tree=None):
         "active": item.active,
         "reviewed": bool(item.reviewed),
     }
+    gherkin = item.get("gherkin") if hasattr(item, "get") else None
+    if gherkin:
+        d["gherkin"] = gherkin.strip() if isinstance(gherkin, str) else gherkin
     if tree is not None:
         d["suspect"] = is_suspect(item, tree)
     return d

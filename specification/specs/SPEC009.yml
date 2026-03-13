@@ -46,3 +46,9 @@ text: |
 
   - **ディスクフル**: 書き込み中に容量不足になった場合、一時ファイルを削除して `OSError` を送出
   - **Windowsパス**: パス区切り文字として `/` と `\` の両方を検証対象とする
+gherkin: |
+  Feature: LocalStorage
+    Scenario: Saving blobs to local disk atomically
+      Given a LocalStorage instance configured with a base directory
+      When binary data is saved
+      Then it is written to a temporary file and atomically renamed to prevent partial writes

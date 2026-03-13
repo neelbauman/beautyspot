@@ -39,3 +39,9 @@ text: |
   ## エッジケース
 
   - デコレーション後に手動で関数の性質（コルーチンかどうか）を変更するような動的な書き換えには対応しない（デコレーション時の静的な判定結果に依存する）。
+gherkin: |
+  Feature: Sync and Async function support
+    Scenario: Automatic detection and routing of sync/async functions
+      Given a synchronous or asynchronous function
+      When the @spot.mark decorator is applied
+      Then it correctly wraps and executes the function in the corresponding execution flow

@@ -1,0 +1,59 @@
+active: true
+derived: false
+groups:
+- STORE
+header: |
+  宣言的ストレージポリシー
+level: 1.29
+links:
+- REQ004: MAkJGJurzARw41s-hmBMRt7LcMDuyoFDRgaAIUmIabE=
+normative: true
+ref: ''
+reviewed: Q8nL2Se_NS5pQ4HFXijTeuZIloGfnL4dggPcYZ2L68U=
+status: accepted
+text: |
+  # 宣言的ストレージポリシー
+
+  ## コンテキストと課題
+
+  これまでの `beautyspot` では、関数の実行結果を Blob ストレージ（ファイル）に保存するか、DB のレコードに直接埋め込むかは、ユーザーが `save_blob=True` フラグで明示的に指定する必要がありました。
+  また、データサイズが大きい場合に警告を出す機能はありましたが、自動的に対処する機能はありませんでした。これにより、ユーザーはデータのサイズを予測してフラグを管理するという負担を強いられていました。
+
+  ## 判断基準
+
+  * **Automation**: データサイズに応じて最適な保存先（DB または Blob）を自動的に選択し、ユーザーの負担を軽減すること。
+  * **Declarative Configuration**: 「1MB以上はファイルに保存する」といったルールを宣言的に記述できるようにすること。
+  * **Separation of Concerns**: キャッシュキー生成（Identity）と保存方式（Persistence）の責務を明確に分離すること。
+
+  ## 検討した選択肢
+
+  * **Option 1**: 引き続きユーザーによる手動の `save_blob` フラグ管理に任せる。
+  * **Option 2**: 宣言的な `StoragePolicy` プロトコルを導入し、データ内容に基づいて自動的に保存方式を決定する仕組みを構築する。
+
+  ## 決定事項
+
+  採用した選択肢: **Option 2**.
+
+  ストレージ保存方式の決定ロジックを抽象化した `StoragePolicy` プロトコルを導入します。
+
+  1. **StoragePolicy Interface**:
+      * `should_save_as_blob(data: bytes) -> bool` を持つプロトコルを定義します。
+      * 配置場所は `src/beautyspot/storage.py` とし、ストレージ関連の責務を凝集させます。
+
+  2. **Standard Implementations**:
+      * `ThresholdStoragePolicy`: 指定したバイト数を超えた場合に Blob 保存を選択する（推奨デフォルト）。
+      * `WarningOnlyPolicy`: 従来動作互換。Blob 化はせず、閾値超えでログ警告のみ行う。
+
+  3. **Precedence (優先順位)**:
+      * 優先度1: 関数ごとの明示的指定 (`@mark(save_blob=...)`)。
+      * 優先度2: ポリシーによる自動判定。
+
+  ## 影響・結果
+
+  * **ポジティブ**:
+      * ユーザーは個々の関数のデータサイズを気にせず、全体的なルールを定義するだけで最適化が可能になる。
+      * DB の肥大化を自動的に防げる。
+      * 責務の分離により、モジュールの保守性が向上する。
+  * **ネガティブ**:
+      * シリアライズ後のデータサイズを見てから判定するため、メモリ上に全データを一時的に展開する必要がある。
+      * `Spot` クラスのコンストラクタ引数が増え、旧引数（`blob_warning_threshold` 等）との互換性管理が必要になる。

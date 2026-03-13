@@ -50,3 +50,9 @@ text: |
   ## エッジケース
 
   - **バイナリ互換**: `ReadableBuffer` を受け入れることで、`memoryview` 等を使用したゼロコピー書き込みを可能にする。
+gherkin: |
+  Feature: Blob Storage Base Interface
+    Scenario: Ensuring consistent API across blob storage backends
+      Given a concrete implementation of BlobStorageBase
+      When methods like save, load, and delete are called
+      Then they behave according to the abstract protocol and properly manage binary data
