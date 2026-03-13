@@ -35,13 +35,13 @@ clean:  ## 生成ファイルを削除
 .PHONY: format lint lint-fix
 
 format:  ## コードをフォーマット (ruff)
-	uv run ruff format .
+	uvx ruff format .
 
 lint:  ## リントチェック (ruff)
-	uv run ruff check .
+	uvx ruff check .
 
 lint-fix:  ## リントチェックと自動修正
-	uv run ruff check . --fix
+	uvx ruff check . --fix
 
 # ==============================================================================
 # Testing
