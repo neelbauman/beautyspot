@@ -774,8 +774,57 @@ async function renderGroup(name) {
 }
 
 // --- Document View ---
+let docEditMode = false;
+
+async function docReorder(uid, action, prefix) {
+  try {
+    const res = await API.post('/api/items/' + encodeURIComponent(uid) + '/reorder', { action });
+    if (res.ok) {
+      renderDocument(prefix);
+    } else {
+      alert("Error: " + res.error);
+    }
+  } catch (e) {
+    alert("Reorder failed.");
+  }
+}
+
+async function docInsert(uid, prefix) {
+  try {
+    const res = await API.post('/api/items/' + encodeURIComponent(uid) + '/insert', {});
+    if (res.ok) {
+      renderDocument(prefix);
+    } else {
+      alert("Error: " + res.error);
+    }
+  } catch (e) {
+    alert("Insert failed.");
+  }
+}
+
+async function docDelete(uid, prefix) {
+  if (!confirm(`本当にアイテム ${uid} を削除しますか？\n（親アイテムの場合、子アイテムの整合性に影響する可能性があります）`)) return;
+  try {
+    const res = await API.post('/api/items/' + encodeURIComponent(uid) + '/delete', {});
+    if (res.ok) {
+      renderDocument(prefix);
+    } else {
+      alert("Error: " + res.error);
+    }
+  } catch (e) {
+    alert("Delete failed.");
+  }
+}
+
+function toggleDocEditMode(prefix) {
+  docEditMode = !docEditMode;
+  renderDocument(prefix);
+}
+
 async function renderDocument(prefix) {
-  $main().innerHTML = '<div class="loading">Loading...</div>';
+  if (!document.getElementById('doc-view-container')) {
+    $main().innerHTML = '<div class="loading">Loading...</div>';
+  }
   let data;
   try {
     data = await API.get('/api/document/' + encodeURIComponent(prefix));
@@ -786,15 +835,38 @@ async function renderDocument(prefix) {
 
   const items = data.items;
   let docHtml = '';
+  let mapHtml = '';
 
   for (const item of items) {
     const isHeading = !item.normative && item.level.endsWith('.0');
     const levelDepth = item.level.split('.').length;
+    
+    // Map entry
+    const mapIndent = (levelDepth - 1) * 12;
+    mapHtml += `
+      <div class="doc-map-item" style="padding-left: ${mapIndent}px; display:flex; align-items:center; justify-content:space-between; margin-bottom: 4px; font-size: 0.9em;">
+        <a href="javascript:void(0)" onclick="document.getElementById('doc-item-${item.uid}')?.scrollIntoView({behavior:'smooth'}); return false;" style="text-decoration:none; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;" title="${h(item.header || item.uid)}">
+          <span style="color:var(--text-secondary); margin-right:4px;">${h(item.level)}</span>
+          ${h(item.header || item.uid)}
+        </a>
+        ${docEditMode ? `
+        <div class="doc-map-actions" style="display:flex; gap:2px; margin-left:8px;">
+          <button onclick="docReorder('${item.uid}', 'up', '${prefix}')" title="Up">↑</button>
+          <button onclick="docReorder('${item.uid}', 'down', '${prefix}')" title="Down">↓</button>
+          <button onclick="docReorder('${item.uid}', 'outdent', '${prefix}')" title="Outdent">←</button>
+          <button onclick="docReorder('${item.uid}', 'indent', '${prefix}')" title="Indent">→</button>
+          <button onclick="docInsert('${item.uid}', '${prefix}')" title="Insert after">+</button>
+          <button onclick="docDelete('${item.uid}', '${prefix}')" title="Delete" style="color:#dc3545; border-color:#f5c6cb; background:#fff;">−</button>
+        </div>
+        ` : ''}
+      </div>
+    `;
 
+    // Doc entry
     if (isHeading) {
       const H = levelDepth === 1 ? 'h1' : (levelDepth === 2 ? 'h2' : 'h3');
       docHtml += `
-        <div class="doc-heading-block" style="margin-top: 32px; border-bottom: ${levelDepth === 1 ? '2px solid var(--primary)' : '1px solid var(--border)'}; padding-bottom: 8px; margin-bottom: 16px;">
+        <div id="doc-item-${item.uid}" class="doc-heading-block" style="margin-top: 32px; border-bottom: ${levelDepth === 1 ? '2px solid var(--primary)' : '1px solid var(--border)'}; padding-bottom: 8px; margin-bottom: 16px; scroll-margin-top: 60px;">
           <${H} style="margin:0; color: ${levelDepth === 1 ? 'var(--primary)' : 'inherit'}; font-size: ${levelDepth === 1 ? '1.8em' : (levelDepth === 2 ? '1.4em' : '1.2em')}">
             ${h(item.level)} ${h(item.header || '')} <span style="font-size:0.5em; font-weight:normal; color:var(--text-secondary); float:right; cursor:pointer;" onclick="handleCellClick(event,'${item.uid}')">${h(item.uid)}</span>
           </${H}>
@@ -804,7 +876,7 @@ async function renderDocument(prefix) {
     } else {
       const ml = (levelDepth - 1) * 20;
       docHtml += `
-        <div class="doc-item-block" style="margin-left: ${ml}px; background: #fff; border: 1px solid var(--border); border-left: 3px solid ${item.normative ? 'var(--primary)' : '#ccc'}; border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div id="doc-item-${item.uid}" class="doc-item-block" style="margin-left: ${ml}px; background: #fff; border: 1px solid var(--border); border-left: 3px solid ${item.normative ? 'var(--primary)' : '#ccc'}; border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); scroll-margin-top: 60px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
             <div>
               <strong style="font-size: 1.1em; color: var(--text);">${h(item.level)} ${h(item.header || '')}</strong>
@@ -827,9 +899,21 @@ async function renderDocument(prefix) {
 
   $main().innerHTML = `
     <div class="page-title">Document: ${h(prefix)}</div>
-    <div class="page-subtitle">Readable Specification View</div>
-    <div class="document-view" style="margin-top: 24px; max-width: 800px;">
-      ${docHtml || '<div class="empty-state">No items</div>'}
+    <div class="page-subtitle" style="margin-bottom: 24px;">Readable Specification View</div>
+
+    <div id="doc-view-container" style="display:flex; gap: 24px; align-items: flex-start;">
+      <div class="document-view" style="flex:1; min-width:0; max-width: 800px;">
+        ${docHtml || '<div class="empty-state">No items</div>'}
+      </div>
+      <div class="document-map-sidebar" style="width: 380px; flex-shrink: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 16px; position: sticky; top: 24px; max-height: calc(100vh - 100px); overflow-y: auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:1em; color:var(--text-secondary);">Document Map</h3>
+          <button onclick="toggleDocEditMode('${prefix}')" class="btn ${docEditMode ? 'btn-danger' : 'btn-primary'}" style="padding: 4px 8px; font-size: 0.85em;">
+            ${docEditMode ? 'Finish Editing' : 'Edit'}
+          </button>
+        </div>
+        ${mapHtml}
+      </div>
     </div>
   `;
 
@@ -1074,6 +1158,15 @@ function renderPanelContent(ps, data) {
 
     <div id="ptv-${pid}" class="item-text">${data.text_html}</div>
     <div id="pte-${pid}" class="hidden">
+      <div class="edit-fields" style="margin-bottom: 12px; display: grid; gap: 8px;">
+        <div><label style="font-size:0.85em;color:var(--text-secondary)">Groups (comma-separated):</label> <input type="text" id="p-groups-${pid}" value="${h(data.groups ? data.groups.filter(g => g !== '(未分類)').join(', ') : '')}" style="width:100%; padding:4px; border:1px solid var(--border); border-radius:4px;"></div>
+        <div><label style="font-size:0.85em;color:var(--text-secondary)">Ref:</label> <input type="text" id="p-ref-${pid}" value="${h(data.ref || '')}" style="width:100%; padding:4px; border:1px solid var(--border); border-radius:4px;"></div>
+        <div><label style="font-size:0.85em;color:var(--text-secondary)">References (JSON array, e.g. [{"path":"src/main.py","type":"file"}]):</label> <input type="text" id="p-references-${pid}" value="${h(data.references && data.references.length ? JSON.stringify(data.references) : '')}" style="width:100%; padding:4px; border:1px solid var(--border); border-radius:4px;"></div>
+        <div style="display:flex; gap: 16px;">
+          <label style="font-size:0.85em;color:var(--text-secondary)"><input type="checkbox" id="p-normative-${pid}" ${data.normative !== false ? 'checked' : ''}> Normative</label>
+          <label style="font-size:0.85em;color:var(--text-secondary)"><input type="checkbox" id="p-derived-${pid}" ${data.derived ? 'checked' : ''}> Derived</label>
+        </div>
+      </div>
       <textarea id="pta-${pid}" class="editor-area">${h(data.text)}</textarea>
       <div id="prich-${pid}" class="tiptap-wrap hidden"></div>
       <div class="actions" style="margin-top:8px">
@@ -1339,10 +1432,35 @@ async function panelSave(panelId) {
   } else {
     text = document.getElementById('pta-' + panelId).value;
   }
+
+  const groupsStr = document.getElementById('p-groups-' + panelId)?.value || '';
+  const groups = groupsStr.split(',').map(g => g.trim()).filter(Boolean);
+  const ref = document.getElementById('p-ref-' + panelId)?.value || '';
+  const referencesStr = document.getElementById('p-references-' + panelId)?.value || '';
+  let references = [];
+  try {
+    if (referencesStr.trim()) {
+      references = JSON.parse(referencesStr);
+      if (!Array.isArray(references)) throw new Error('References must be an array');
+    }
+  } catch (e) {
+    alert("Invalid JSON in references field. It must be an array of objects.");
+    return;
+  }
+  const normative = document.getElementById('p-normative-' + panelId)?.checked;
+  const derived = document.getElementById('p-derived-' + panelId)?.checked;
+
   const btn = document.getElementById('psb-' + panelId);
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    const res = await API.post('/api/items/' + ps.uid + '/edit', { text });
+    const res = await API.post('/api/items/' + ps.uid + '/edit', { 
+      text,
+      groups,
+      ref,
+      references,
+      normative,
+      derived
+    });
     if (res.ok) {
       if (ps.editor) { ps.editor.destroy(); ps.editor = null; }
       ps.editMode = false;

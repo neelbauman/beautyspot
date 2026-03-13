@@ -893,14 +893,148 @@ class DoorstopDataStore:
         self._rebuild_indexes()
         return self.get_item(uid), None
 
-    def edit_item(self, uid, text):
+    def edit_item(self, uid, data):
         item = self._find_item(uid)
         if item is None:
             return None, f"Item {uid} not found"
-        item.text = text
+        
+        if "text" in data:
+            item.text = data["text"]
+            
+        if "groups" in data:
+            groups = data["groups"]
+            if isinstance(groups, str):
+                groups = [g.strip() for g in groups.split(",") if g.strip()]
+            item.set("groups", groups)
+            
+        if "ref" in data:
+            item.set("ref", data["ref"])
+            
+        if "references" in data:
+            item.set("references", data["references"])
+            
+        if "normative" in data:
+            item.set("normative", bool(data["normative"]))
+            
+        if "derived" in data:
+            item.set("derived", bool(data["derived"]))
+            
         item.save()
         self._rebuild_indexes()
         return self.get_item(uid), None
+
+    def reorder_item(self, uid, action):
+        item = self._find_item(uid)
+        if item is None:
+            return None, f"Item {uid} not found"
+        
+        doc = None
+        for d in self.tree:
+            try:
+                if d.find_item(uid):
+                    doc = d
+                    break
+            except Exception:
+                pass
+        
+        if not doc:
+            return None, f"Document for {uid} not found"
+
+        import re
+        def natural_sort_key(s):
+            return [int(text) if text.isdigit() else text.lower() for text in re.split('([0-9]+)', str(s.level))]
+        
+        items = [i for i in doc if i.active]
+        items.sort(key=natural_sort_key)
+
+        target_idx = -1
+        for idx, i in enumerate(items):
+            if str(i.uid) == uid:
+                target_idx = idx
+                break
+        
+        if target_idx == -1:
+            return None, "Item index not found"
+
+        target = items[target_idx]
+
+        if action == "up" and target_idx > 0:
+            prev = items[target_idx - 1]
+            t_level = target.level
+            target.level = prev.level
+            prev.level = t_level
+            target.save()
+            prev.save()
+        elif action == "down" and target_idx < len(items) - 1:
+            next_i = items[target_idx + 1]
+            t_level = target.level
+            target.level = next_i.level
+            next_i.level = t_level
+            target.save()
+            next_i.save()
+        elif action == "indent":
+            target.level = str(target.level) + ".1"
+            target.save()
+        elif action == "outdent":
+            parts = str(target.level).split(".")
+            if len(parts) > 1:
+                parent_level = ".".join(parts[:-1])
+                target.level = parent_level[:-1] + str(int(parent_level[-1]) + 1) if parent_level[-1].isdigit() else parent_level
+                target.save()
+
+        doc.reorder()
+        self._rebuild_indexes()
+        return self.get_item(uid), None
+
+    def insert_item(self, after_uid):
+        item = self._find_item(after_uid)
+        if item is None:
+            return None, f"Item {after_uid} not found"
+        
+        doc = None
+        for d in self.tree:
+            try:
+                if d.find_item(after_uid):
+                    doc = d
+                    break
+            except Exception:
+                pass
+        
+        if not doc:
+            return None, f"Document for {after_uid} not found"
+
+        new_item = doc.add_item()
+        # Set level to be just after the target
+        new_item.level = str(item.level) + ".1"  # temporary, reorder will fix it
+        new_item.header = "New Item"
+        new_item.text = "TBD"
+        new_item.save()
+        
+        doc.reorder()
+        self._rebuild_indexes()
+        return self.get_item(str(new_item.uid)), None
+
+    def delete_item(self, uid):
+        item = self._find_item(uid)
+        if item is None:
+            return None, f"Item {uid} not found"
+        
+        doc = None
+        for d in self.tree:
+            try:
+                if d.find_item(uid):
+                    doc = d
+                    break
+            except Exception:
+                pass
+        
+        if not doc:
+            return None, f"Document for {uid} not found"
+
+        item.delete()
+        doc.reorder()
+        self._rebuild_indexes()
+        return {"uid": uid, "deleted": True}, None
 
 
 # ===================================================================
@@ -997,7 +1131,7 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 self._json_err(500, f"Failed to generate report: {e.stderr}")
             return
 
-        m = re.match(r"^/api/items/([\w]+)/(review|clear|edit)$", self.path)
+        m = re.match(r"^/api/items/([\w]+)/(review|clear|edit|reorder|insert|delete)$", self.path)
         if not m:
             self._json_err(404, "Not found")
             return
@@ -1015,7 +1149,19 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 if text is None:
                     self._json_err(400, "text is required")
                     return
-                result, err = self.store.edit_item(uid, text)
+                result, err = self.store.edit_item(uid, body)
+            elif action == "reorder":
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length)) if length else {}
+                reorder_action = body.get("action")
+                if reorder_action not in ["up", "down", "indent", "outdent"]:
+                    self._json_err(400, "Valid action is required")
+                    return
+                result, err = self.store.reorder_item(uid, reorder_action)
+            elif action == "insert":
+                result, err = self.store.insert_item(uid)
+            elif action == "delete":
+                result, err = self.store.delete_item(uid)
             else:
                 self._json_err(400, f"Unknown action: {action}")
                 return
