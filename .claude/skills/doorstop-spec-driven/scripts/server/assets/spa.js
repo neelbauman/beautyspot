@@ -107,6 +107,26 @@ function renderAllMermaid() {
 })();
 
 // ===================================================================
+// D3.js — CDN loader for tree graph view
+// ===================================================================
+let d3Ready = false;
+let d3 = null;
+(async () => {
+  const timeout = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+  try {
+    const mod = await Promise.race([
+      import('https://cdn.jsdelivr.net/npm/d3@7/+esm'),
+      timeout(8000),
+    ]);
+    d3 = mod;
+    d3Ready = true;
+    console.log('D3.js loaded (online mode)');
+  } catch (e) {
+    console.warn('D3.js unavailable (offline mode):', e.message);
+  }
+})();
+
+// ===================================================================
 // Rich Editor (TipTap) — CDN loader with offline fallback
 // ===================================================================
 let richEditorReady = false;
@@ -230,6 +250,7 @@ function route() {
     case 'matrix': renderMatrix(); break;
     case 'group': renderGroup(decodeURIComponent(param)); break;
     case 'document': renderDocument(decodeURIComponent(param)); break;
+    case 'tree': renderTreeGraph(decodeURIComponent(param)); break;
     case 'validation': renderValidation(); break;
     default: renderDashboard();
   }
@@ -1534,6 +1555,582 @@ async function refreshOtherPanels(excludeId) {
 }
 
 // ===================================================================
+// Tree Graph View — Interactive traceability graph
+// ===================================================================
+
+const TREE_COLORS = {
+  REQ: '#4a90d9', ARCH: '#8b5cf6', SPEC: '#10b981',
+  IMPL: '#f59e0b', TST: '#ef4444', DEFAULT: '#6b7280',
+};
+
+function prefixColor(prefix) {
+  return TREE_COLORS[prefix] || TREE_COLORS.DEFAULT;
+}
+
+let treeState = {
+  selectedNode: null,
+  hops: 2,
+  graphData: null,
+  mode: 'ego',   // 'ego' | 'full'
+  groupFilter: '',
+  dragLine: null,
+  dragSource: null,
+};
+
+async function renderTreeGraph(param) {
+  const main = document.getElementById('main');
+
+  if (!d3Ready) {
+    main.innerHTML = `<div class="tree-landing">
+      <h2>Tree Graph</h2>
+      <p>D3.js の読み込みに失敗しました。オンライン環境で再試行してください。</p>
+    </div>`;
+    return;
+  }
+
+  // Landing page: group/item selection
+  if (!param && !treeState.selectedNode) {
+    const [overview, graphData] = await Promise.all([
+      API.get('/api/overview'),
+      API.get('/api/graph'),
+    ]);
+    treeState.graphData = graphData;
+
+    const groups = overview.groups || [];
+    const nodesByPrefix = {};
+    graphData.nodes.forEach(n => {
+      if (!nodesByPrefix[n.prefix]) nodesByPrefix[n.prefix] = [];
+      nodesByPrefix[n.prefix].push(n);
+    });
+
+    main.innerHTML = `<div class="tree-landing">
+      <h2>Tree Graph</h2>
+      <p>ノードを選択してエゴセントリックビューを表示します。</p>
+      <div class="tree-search-row">
+        <input type="text" id="tree-uid-search" placeholder="UID またはヘッダーで検索..." class="tree-search-input">
+        <label class="tree-hops-label">ホップ数:
+          <input type="range" id="tree-hops-slider" min="1" max="4" value="${treeState.hops}" class="tree-hops-slider">
+          <span id="tree-hops-val">${treeState.hops}</span>
+        </label>
+      </div>
+      <div id="tree-search-results" class="tree-search-results"></div>
+      <div class="tree-quick-filters">
+        <h3>グループで絞り込み</h3>
+        <div class="tree-group-pills">
+          ${groups.map(g => `<button class="tree-pill" data-group="${h(g)}">${h(g)}</button>`).join('')}
+        </div>
+        <h3>ドキュメント全体</h3>
+        <div class="tree-group-pills">
+          ${graphData.layers.map(p => `<button class="tree-pill tree-pill-doc" data-prefix="${h(p)}" style="border-color:${prefixColor(p)}">${h(p)} (${(nodesByPrefix[p]||[]).length})</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // Search interaction
+    const searchInput = document.getElementById('tree-uid-search');
+    const searchResults = document.getElementById('tree-search-results');
+    searchInput.addEventListener('input', (e) => {
+      if (e.isComposing) return;
+      filterTreeSearch(searchInput.value, graphData.nodes, searchResults);
+    });
+    searchInput.addEventListener('compositionend', () => {
+      filterTreeSearch(searchInput.value, graphData.nodes, searchResults);
+    });
+
+    // Hops slider
+    document.getElementById('tree-hops-slider').addEventListener('input', (e) => {
+      treeState.hops = parseInt(e.target.value);
+      document.getElementById('tree-hops-val').textContent = treeState.hops;
+    });
+
+    // Group pills
+    main.querySelectorAll('.tree-pill[data-group]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const filtered = graphData.nodes.filter(n => n.groups.includes(group));
+        renderTreeSVG(main, { nodes: filtered, edges: graphData.edges.filter(e => filtered.some(n => n.uid === e.child) && filtered.some(n => n.uid === e.parent)), layers: graphData.layers }, null);
+      });
+    });
+
+    // Prefix pills
+    main.querySelectorAll('.tree-pill-doc[data-prefix]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prefix = btn.dataset.prefix;
+        // Show nodes from this prefix + their direct parents/children
+        const prefixNodes = new Set(graphData.nodes.filter(n => n.prefix === prefix).map(n => n.uid));
+        const relatedUids = new Set(prefixNodes);
+        graphData.edges.forEach(e => {
+          if (prefixNodes.has(e.child)) relatedUids.add(e.parent);
+          if (prefixNodes.has(e.parent)) relatedUids.add(e.child);
+        });
+        const nodes = graphData.nodes.filter(n => relatedUids.has(n.uid));
+        const edges = graphData.edges.filter(e => relatedUids.has(e.child) && relatedUids.has(e.parent));
+        renderTreeSVG(main, { nodes, edges, layers: graphData.layers }, null);
+      });
+    });
+
+    setTimeout(() => searchInput.focus(), 100);
+    return;
+  }
+
+  // Ego-centric view for a specific node
+  const uid = param || treeState.selectedNode;
+  if (uid) {
+    treeState.selectedNode = uid;
+    try {
+      const data = await API.get(`/api/graph/ego/${uid}?hops=${treeState.hops}`);
+      renderTreeSVG(main, data, uid);
+    } catch {
+      main.innerHTML = `<p>アイテム ${h(uid)} が見つかりません。</p>`;
+    }
+  }
+}
+
+function filterTreeSearch(query, nodes, container) {
+  if (!query || query.length < 1) {
+    container.innerHTML = '';
+    return;
+  }
+  const q = query.toLowerCase();
+  const matches = nodes.filter(n =>
+    n.uid.toLowerCase().includes(q) || (n.header && n.header.toLowerCase().includes(q))
+  ).slice(0, 20);
+
+  container.innerHTML = matches.map(n => `
+    <div class="tree-search-item" data-uid="${h(n.uid)}">
+      <span class="tree-tag" style="background:${prefixColor(n.prefix)}">${h(n.prefix)}</span>
+      <strong>${h(n.uid)}</strong>
+      <span class="tree-search-header">${h(n.header || '')}</span>
+      ${n.suspect ? '<span class="tree-tag tree-tag-suspect">suspect</span>' : ''}
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.tree-search-item').forEach(el => {
+    el.addEventListener('click', () => {
+      treeState.selectedNode = el.dataset.uid;
+      location.hash = '#/tree/' + el.dataset.uid;
+    });
+  });
+}
+
+function renderTreeSVG(main, data, centerUid) {
+  const { nodes, edges, layers } = data;
+  if (nodes.length === 0) {
+    main.innerHTML = '<p>表示するノードがありません。</p>';
+    return;
+  }
+
+  // Build a back-button + controls header
+  const hopsHtml = centerUid ? `
+    <label class="tree-hops-label">ホップ数:
+      <input type="range" id="tree-hops-slider2" min="1" max="4" value="${treeState.hops}" class="tree-hops-slider">
+      <span id="tree-hops-val2">${treeState.hops}</span>
+    </label>` : '';
+
+  main.innerHTML = `
+    <div class="tree-toolbar">
+      <button class="tree-back-btn" onclick="treeState.selectedNode=null;location.hash='#/tree'">&#8592; 一覧に戻る</button>
+      ${centerUid ? `<span class="tree-center-label">中心: <strong>${h(centerUid)}</strong></span>` : ''}
+      ${hopsHtml}
+      <button class="tree-btn" id="tree-zoom-reset">ズームリセット</button>
+    </div>
+    <div id="tree-svg-container" class="tree-svg-container"></div>
+    <div id="tree-detail-panel" class="tree-detail-panel" style="display:none;"></div>
+    <div id="tree-context-menu" class="tree-context-menu" style="display:none;"></div>
+  `;
+
+  // Hops slider interaction
+  const slider2 = document.getElementById('tree-hops-slider2');
+  if (slider2) {
+    slider2.addEventListener('change', (e) => {
+      treeState.hops = parseInt(e.target.value);
+      document.getElementById('tree-hops-val2').textContent = treeState.hops;
+      if (treeState.selectedNode) {
+        location.hash = '#/tree/' + treeState.selectedNode;
+      }
+    });
+  }
+
+  const container = document.getElementById('tree-svg-container');
+  const rect = container.getBoundingClientRect();
+  const width = rect.width || 900;
+  const height = Math.max(500, window.innerHeight - 200);
+
+  // Layout: assign x by layer, y by index within layer
+  const nodeMap = new Map(nodes.map(n => [n.uid, { ...n }]));
+  const layerNodes = {};
+  nodes.forEach(n => {
+    if (!layerNodes[n.prefix]) layerNodes[n.prefix] = [];
+    layerNodes[n.prefix].push(n.uid);
+  });
+
+  // Order layers by the document hierarchy
+  const orderedLayers = layers.filter(l => layerNodes[l]);
+  const layerCount = orderedLayers.length || 1;
+  const colWidth = width / (layerCount + 1);
+
+  const positions = {};
+  orderedLayers.forEach((layer, li) => {
+    const uids = layerNodes[layer] || [];
+    const rowHeight = Math.max(60, (height - 80) / (uids.length + 1));
+    uids.forEach((uid, ri) => {
+      positions[uid] = {
+        x: colWidth * (li + 1),
+        y: rowHeight * (ri + 1),
+      };
+    });
+  });
+
+  // D3 rendering
+  const svg = d3.select(container).append('svg')
+    .attr('width', width)
+    .attr('height', height)
+    .attr('class', 'tree-svg');
+
+  const g = svg.append('g').attr('class', 'tree-root');
+
+  // Zoom
+  const zoom = d3.zoom()
+    .scaleExtent([0.2, 3])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+  svg.call(zoom);
+
+  document.getElementById('tree-zoom-reset').addEventListener('click', () => {
+    svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+  });
+
+  // Layer labels
+  orderedLayers.forEach((layer, li) => {
+    g.append('text')
+      .attr('x', colWidth * (li + 1))
+      .attr('y', 24)
+      .attr('text-anchor', 'middle')
+      .attr('class', 'tree-layer-label')
+      .attr('fill', prefixColor(layer))
+      .text(layer);
+  });
+
+  // Edges (draw first so they're behind nodes)
+  const edgeGroup = g.append('g').attr('class', 'tree-edges');
+
+  edges.forEach(e => {
+    const p1 = positions[e.parent];
+    const p2 = positions[e.child];
+    if (!p1 || !p2) return;
+
+    const path = edgeGroup.append('path')
+      .attr('d', `M${p1.x + 60},${p1.y} C${(p1.x + p2.x) / 2 + 30},${p1.y} ${(p1.x + p2.x) / 2 - 30},${p2.y} ${p2.x - 60},${p2.y}`)
+      .attr('class', 'tree-edge' + (e.suspect ? ' tree-edge-suspect' : ''))
+      .attr('data-parent', e.parent)
+      .attr('data-child', e.child)
+      .attr('marker-end', 'url(#arrowhead)');
+
+    // Right-click to unlink
+    path.on('contextmenu', (event) => {
+      event.preventDefault();
+      showTreeContextMenu(event, e.child, e.parent);
+    });
+
+    // Hover highlight
+    path.on('mouseenter', () => path.classed('tree-edge-hover', true))
+      .on('mouseleave', () => path.classed('tree-edge-hover', false));
+  });
+
+  // Arrow marker
+  svg.append('defs').append('marker')
+    .attr('id', 'arrowhead')
+    .attr('viewBox', '0 0 10 6')
+    .attr('refX', 10).attr('refY', 3)
+    .attr('markerWidth', 8).attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path').attr('d', 'M0,0 L10,3 L0,6 Z').attr('fill', '#999');
+
+  // Drag-line marker (for creating links)
+  svg.select('defs').append('marker')
+    .attr('id', 'arrowhead-drag')
+    .attr('viewBox', '0 0 10 6')
+    .attr('refX', 10).attr('refY', 3)
+    .attr('markerWidth', 8).attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path').attr('d', 'M0,0 L10,3 L0,6 Z').attr('fill', '#4a90d9');
+
+  // Nodes
+  const nodeGroup = g.append('g').attr('class', 'tree-nodes');
+
+  nodes.forEach(n => {
+    const pos = positions[n.uid];
+    if (!pos) return;
+
+    const ng = nodeGroup.append('g')
+      .attr('transform', `translate(${pos.x - 55}, ${pos.y - 18})`)
+      .attr('class', 'tree-node-group')
+      .attr('data-uid', n.uid);
+
+    // Node rectangle
+    ng.append('rect')
+      .attr('width', 110)
+      .attr('height', 36)
+      .attr('rx', 6)
+      .attr('class', 'tree-node' +
+        (n.uid === centerUid ? ' tree-node-center' : '') +
+        (!n.normative ? ' tree-node-dim' : ''))
+      .attr('fill', n.reviewed ? '#fff' : '#f3f4f6')
+      .attr('stroke', prefixColor(n.prefix))
+      .attr('stroke-width', n.uid === centerUid ? 3 : 1.5);
+
+    // UID text
+    ng.append('text')
+      .attr('x', 55).attr('y', 15)
+      .attr('text-anchor', 'middle')
+      .attr('class', 'tree-node-uid')
+      .text(n.uid);
+
+    // Header text (truncated)
+    const headerTxt = n.header ? (n.header.length > 12 ? n.header.slice(0, 11) + '...' : n.header) : '';
+    ng.append('text')
+      .attr('x', 55).attr('y', 29)
+      .attr('text-anchor', 'middle')
+      .attr('class', 'tree-node-header')
+      .text(headerTxt);
+
+    // Status icon
+    if (n.suspect) {
+      ng.append('text').attr('x', 98).attr('y', 13).attr('class', 'tree-status-icon').text('\u26a0');
+    } else if (n.reviewed) {
+      ng.append('text').attr('x', 98).attr('y', 13).attr('class', 'tree-status-icon tree-status-ok').text('\u2713');
+    }
+
+    // Connector circle (right side, for dragging to create links)
+    ng.append('circle')
+      .attr('cx', 110).attr('cy', 18)
+      .attr('r', 5)
+      .attr('class', 'tree-connector')
+      .attr('fill', prefixColor(n.prefix));
+
+    // Click → select + show detail
+    ng.on('click', (event) => {
+      event.stopPropagation();
+      selectTreeNode(n.uid, data);
+    });
+
+    // Double-click → navigate to item detail
+    ng.on('dblclick', (event) => {
+      event.stopPropagation();
+      location.hash = '#/item/' + n.uid;
+    });
+
+    // Drag from connector → create link
+    const connector = ng.select('.tree-connector');
+    connector.call(d3.drag()
+      .on('start', function(event) {
+        event.sourceEvent.stopPropagation();
+        treeState.dragSource = n.uid;
+        treeState.dragLine = g.append('line')
+          .attr('class', 'tree-drag-line')
+          .attr('x1', pos.x + 55).attr('y1', pos.y)
+          .attr('x2', pos.x + 55).attr('y2', pos.y)
+          .attr('marker-end', 'url(#arrowhead-drag)');
+      })
+      .on('drag', function(event) {
+        if (treeState.dragLine) {
+          const t = d3.zoomTransform(svg.node());
+          const mx = (event.sourceEvent.offsetX - t.x) / t.k;
+          const my = (event.sourceEvent.offsetY - t.y) / t.k;
+          treeState.dragLine.attr('x2', mx).attr('y2', my);
+        }
+      })
+      .on('end', function(event) {
+        if (treeState.dragLine) {
+          treeState.dragLine.remove();
+          treeState.dragLine = null;
+        }
+        // Find drop target
+        const t = d3.zoomTransform(svg.node());
+        const mx = (event.sourceEvent.offsetX - t.x) / t.k;
+        const my = (event.sourceEvent.offsetY - t.y) / t.k;
+        let targetUid = null;
+        nodes.forEach(tn => {
+          const tp = positions[tn.uid];
+          if (!tp) return;
+          if (mx >= tp.x - 55 && mx <= tp.x + 55 && my >= tp.y - 18 && my <= tp.y + 18) {
+            targetUid = tn.uid;
+          }
+        });
+        if (targetUid && targetUid !== treeState.dragSource) {
+          createTreeLink(treeState.dragSource, targetUid);
+        }
+        treeState.dragSource = null;
+      })
+    );
+  });
+
+  // Click empty space to deselect
+  svg.on('click', () => {
+    document.getElementById('tree-detail-panel').style.display = 'none';
+    hideTreeContextMenu();
+  });
+
+  // Auto-fit: zoom to fit all nodes
+  if (nodes.length > 0) {
+    const xs = nodes.map(n => positions[n.uid]?.x).filter(Boolean);
+    const ys = nodes.map(n => positions[n.uid]?.y).filter(Boolean);
+    const minX = Math.min(...xs) - 80;
+    const maxX = Math.max(...xs) + 80;
+    const minY = Math.min(...ys) - 40;
+    const maxY = Math.max(...ys) + 40;
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    const scale = Math.min(width / bw, height / bh, 1.5) * 0.9;
+    const tx = (width - bw * scale) / 2 - minX * scale;
+    const ty = (height - bh * scale) / 2 - minY * scale;
+    svg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+  }
+}
+
+function selectTreeNode(uid, graphData) {
+  hideTreeContextMenu();
+  const panel = document.getElementById('tree-detail-panel');
+  const node = graphData.nodes.find(n => n.uid === uid);
+  if (!node) return;
+
+  // Find parents and children from edges
+  const parents = graphData.edges.filter(e => e.child === uid).map(e => {
+    const pn = graphData.nodes.find(n => n.uid === e.parent);
+    return { uid: e.parent, suspect: e.suspect, header: pn ? pn.header : '' };
+  });
+  const children = graphData.edges.filter(e => e.parent === uid).map(e => {
+    const cn = graphData.nodes.find(n => n.uid === e.child);
+    return { uid: e.child, suspect: e.suspect, header: cn ? cn.header : '' };
+  });
+
+  // Build list of all items NOT currently linked for add-link dropdown
+  const allParentUids = new Set(parents.map(p => p.uid));
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="tree-detail-header">
+      <span class="tree-tag" style="background:${prefixColor(node.prefix)}">${h(node.prefix)}</span>
+      <strong>${h(uid)}</strong> ${h(node.header || '')}
+      ${node.suspect ? '<span class="tree-tag tree-tag-suspect">suspect</span>' : ''}
+      ${node.reviewed ? '<span class="tree-tag tree-tag-reviewed">reviewed</span>' : ''}
+      <div class="tree-detail-actions">
+        <button class="tree-btn tree-btn-sm" onclick="treeState.selectedNode='${uid}';location.hash='#/tree/${uid}'">中心に設定</button>
+        <button class="tree-btn tree-btn-sm" onclick="location.hash='#/item/${uid}'">詳細を開く</button>
+      </div>
+    </div>
+    <div class="tree-detail-links">
+      <div class="tree-detail-col">
+        <h4>親リンク (${parents.length})</h4>
+        ${parents.length === 0 ? '<span class="tree-dim">なし</span>' :
+          parents.map(p => `
+            <div class="tree-link-item">
+              <span class="tree-link-uid" onclick="treeState.selectedNode='${p.uid}';location.hash='#/tree/${p.uid}'">${h(p.uid)}</span>
+              <span class="tree-dim">${h(p.header)}</span>
+              ${p.suspect ? '<span class="tree-tag tree-tag-suspect">suspect</span>' : ''}
+              <button class="tree-unlink-btn" title="リンク削除" onclick="removeTreeLink('${uid}','${p.uid}')">&times;</button>
+            </div>
+          `).join('')}
+        <div class="tree-add-link-row">
+          <input type="text" id="tree-add-parent-input" placeholder="親UID を入力..." class="tree-add-input">
+          <button class="tree-btn tree-btn-sm" onclick="addTreeLinkFromInput('${uid}')">+ リンク追加</button>
+        </div>
+      </div>
+      <div class="tree-detail-col">
+        <h4>子リンク (${children.length})</h4>
+        ${children.length === 0 ? '<span class="tree-dim">なし</span>' :
+          children.map(c => `
+            <div class="tree-link-item">
+              <span class="tree-link-uid" onclick="treeState.selectedNode='${c.uid}';location.hash='#/tree/${c.uid}'">${h(c.uid)}</span>
+              <span class="tree-dim">${h(c.header)}</span>
+              ${c.suspect ? '<span class="tree-tag tree-tag-suspect">suspect</span>' : ''}
+              <button class="tree-unlink-btn" title="リンク削除" onclick="removeTreeLink('${c.uid}','${uid}')">&times;</button>
+            </div>
+          `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function showTreeContextMenu(event, childUid, parentUid) {
+  hideTreeContextMenu();
+  const menu = document.getElementById('tree-context-menu');
+  menu.style.display = 'block';
+  menu.style.left = event.pageX + 'px';
+  menu.style.top = event.pageY + 'px';
+  menu.innerHTML = `
+    <div class="tree-ctx-item" onclick="removeTreeLink('${childUid}','${parentUid}')">
+      リンク削除: ${h(childUid)} &rarr; ${h(parentUid)}
+    </div>
+    <div class="tree-ctx-item" onclick="treeState.selectedNode='${childUid}';location.hash='#/tree/${childUid}'">
+      ${h(childUid)} を中心に表示
+    </div>
+    <div class="tree-ctx-item" onclick="treeState.selectedNode='${parentUid}';location.hash='#/tree/${parentUid}'">
+      ${h(parentUid)} を中心に表示
+    </div>
+  `;
+
+  // Close on click outside
+  setTimeout(() => document.addEventListener('click', hideTreeContextMenu, { once: true }), 0);
+}
+
+function hideTreeContextMenu() {
+  const menu = document.getElementById('tree-context-menu');
+  if (menu) menu.style.display = 'none';
+}
+
+async function createTreeLink(sourceUid, targetUid) {
+  // sourceUid = child (drag from), targetUid = parent (drop to)
+  // Confirm direction with user
+  const childUid = sourceUid;
+  const parentUid = targetUid;
+  if (!confirm(`リンクを作成しますか?\n${childUid} → ${parentUid} (子→親)`)) return;
+  try {
+    const res = await API.post(`/api/items/${childUid}/link`, { parent: parentUid });
+    if (res.ok) {
+      toast('リンクを作成しました', 'success');
+      // Re-render
+      if (treeState.selectedNode) {
+        location.hash = '#/tree/' + treeState.selectedNode;
+        renderTreeGraph(treeState.selectedNode);
+      } else {
+        renderTreeGraph('');
+      }
+    } else {
+      toast(res.error || 'エラーが発生しました', 'error');
+    }
+  } catch (e) {
+    toast('リンク作成に失敗しました: ' + e.message, 'error');
+  }
+}
+
+async function removeTreeLink(childUid, parentUid) {
+  hideTreeContextMenu();
+  if (!confirm(`リンクを削除しますか?\n${childUid} → ${parentUid}`)) return;
+  try {
+    const res = await API.post(`/api/items/${childUid}/unlink`, { parent: parentUid });
+    if (res.ok) {
+      toast('リンクを削除しました', 'success');
+      if (treeState.selectedNode) {
+        renderTreeGraph(treeState.selectedNode);
+      } else {
+        renderTreeGraph('');
+      }
+    } else {
+      toast(res.error || 'エラーが発生しました', 'error');
+    }
+  } catch (e) {
+    toast('リンク削除に失敗しました: ' + e.message, 'error');
+  }
+}
+
+async function addTreeLinkFromInput(childUid) {
+  const input = document.getElementById('tree-add-parent-input');
+  const parentUid = input.value.trim();
+  if (!parentUid) return;
+  await createTreeLink(childUid, parentUid);
+}
+
+// ===================================================================
 // Refresh current view after mutation
 // ===================================================================
 async function refreshCurrentView() {
@@ -1549,6 +2146,7 @@ async function refreshCurrentView() {
       break;
     case 'group': renderGroup(decodeURIComponent(currentParam)); break;
     case 'document': renderDocument(decodeURIComponent(currentParam)); break;
+    case 'tree': renderTreeGraph(decodeURIComponent(currentParam)); break;
     case 'validation': renderValidation(); break;
   }
 }

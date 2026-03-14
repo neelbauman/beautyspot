@@ -863,8 +863,129 @@ class DoorstopDataStore:
         return coverage
 
     # ---------------------------------------------------------------
+    # Graph data (for tree graph view)
+    # ---------------------------------------------------------------
+
+    def get_graph_data(self):
+        """全アイテムとリンクをグラフデータ（nodes + edges）で返す。"""
+        nodes = []
+        edges = []
+        layer_order = []
+
+        for doc in self.tree:
+            prefix = str(doc.prefix)
+            if prefix not in layer_order:
+                layer_order.append(prefix)
+            for item in doc:
+                if not item.active:
+                    continue
+                uid_str = str(item.uid)
+                nodes.append({
+                    "uid": uid_str,
+                    "prefix": prefix,
+                    "header": self._get_header(item),
+                    "groups": self._get_groups(item),
+                    "reviewed": bool(item.reviewed),
+                    "suspect": uid_str in self._suspect_uids,
+                    "normative": self._is_normative(item),
+                })
+                for link in item.links:
+                    parent_uid = str(link)
+                    parent = self._find_item(parent_uid)
+                    if parent and parent.active:
+                        is_suspect = (
+                            link.stamp is not None
+                            and link.stamp != ""
+                            and link.stamp != parent.stamp()
+                        )
+                        edges.append({
+                            "child": uid_str,
+                            "parent": parent_uid,
+                            "suspect": is_suspect,
+                        })
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "layers": layer_order,
+        }
+
+    def get_graph_ego(self, uid, hops=2):
+        """指定ノードの近傍のみをサブグラフとして返す。"""
+        center = self._find_item(uid)
+        if center is None:
+            return None
+
+        visited = set()
+        queue = [(uid, 0)]
+        visited.add(uid)
+
+        while queue:
+            current_uid, depth = queue.pop(0)
+            if depth >= hops:
+                continue
+            # 親方向
+            for parent in self._parents_idx.get(current_uid, []):
+                puid = str(parent.uid)
+                if puid not in visited:
+                    visited.add(puid)
+                    queue.append((puid, depth + 1))
+            # 子方向
+            for child in self._children_idx.get(current_uid, []):
+                cuid = str(child.uid)
+                if cuid not in visited:
+                    visited.add(cuid)
+                    queue.append((cuid, depth + 1))
+
+        # visitedに含まれるノードとエッジだけ抽出
+        full = self.get_graph_data()
+        nodes = [n for n in full["nodes"] if n["uid"] in visited]
+        edges = [e for e in full["edges"]
+                 if e["child"] in visited and e["parent"] in visited]
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "layers": full["layers"],
+            "center": uid,
+        }
+
+    # ---------------------------------------------------------------
     # Mutation operations
     # ---------------------------------------------------------------
+
+    def link_item(self, child_uid, parent_uid):
+        """子アイテムに親リンクを追加する。"""
+        child = self._find_item(child_uid)
+        if child is None:
+            return None, f"Item {child_uid} not found"
+        parent = self._find_item(parent_uid)
+        if parent is None:
+            return None, f"Parent item {parent_uid} not found"
+
+        # 既にリンクがあるか確認
+        existing = [str(link) for link in child.links]
+        if parent_uid in existing:
+            return None, f"{child_uid} は既に {parent_uid} へのリンクを持っています"
+
+        child.link(parent_uid)
+        child.save()
+        self._rebuild_indexes()
+        return self.get_item(child_uid), None
+
+    def unlink_item(self, child_uid, parent_uid):
+        """子アイテムから親リンクを削除する。"""
+        child = self._find_item(child_uid)
+        if child is None:
+            return None, f"Item {child_uid} not found"
+
+        existing = [str(link) for link in child.links]
+        if parent_uid not in existing:
+            return None, f"{child_uid} は {parent_uid} へのリンクを持っていません"
+
+        child.unlink(parent_uid)
+        child.save()
+        self._rebuild_indexes()
+        return self.get_item(child_uid), None
 
     def review_item(self, uid):
         item = self._find_item(uid)
@@ -1086,6 +1207,16 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 self._json_ok(data)
             else:
                 self._json_err(404, f"Document '{prefix}' not found")
+        elif path == "/api/graph":
+            self._json_ok(self.store.get_graph_data())
+        elif path.startswith("/api/graph/ego/"):
+            uid = path[len("/api/graph/ego/"):]
+            hops = int(params.get("hops", [2])[0])
+            data = self.store.get_graph_ego(uid, hops=hops)
+            if data:
+                self._json_ok(data)
+            else:
+                self._json_err(404, f"Item '{uid}' not found")
         elif path == "/api/validation":
             self._json_ok(self.store.get_validation())
         elif path == "/api/coverage":
@@ -1131,7 +1262,7 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 self._json_err(500, f"Failed to generate report: {e.stderr}")
             return
 
-        m = re.match(r"^/api/items/([\w]+)/(review|clear|edit|reorder|insert|delete)$", self.path)
+        m = re.match(r"^/api/items/([\w]+)/(review|clear|edit|reorder|insert|delete|link|unlink)$", self.path)
         if not m:
             self._json_err(404, "Not found")
             return
@@ -1162,6 +1293,22 @@ class ReportAPIHandler(BaseHTTPRequestHandler):
                 result, err = self.store.insert_item(uid)
             elif action == "delete":
                 result, err = self.store.delete_item(uid)
+            elif action == "link":
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length)) if length else {}
+                parent_uid = body.get("parent")
+                if not parent_uid:
+                    self._json_err(400, "parent is required")
+                    return
+                result, err = self.store.link_item(uid, parent_uid)
+            elif action == "unlink":
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length)) if length else {}
+                parent_uid = body.get("parent")
+                if not parent_uid:
+                    self._json_err(400, "parent is required")
+                    return
+                result, err = self.store.unlink_item(uid, parent_uid)
             else:
                 self._json_err(400, f"Unknown action: {action}")
                 return
@@ -1237,6 +1384,7 @@ _SPA_HTML_TEMPLATE = r"""<!DOCTYPE html>
   <ul>
     <li><a href="#/" data-nav="dashboard">Dashboard</a></li>
     <li><a href="#/matrix" data-nav="matrix">Matrix</a></li>
+    <li><a href="#/tree" data-nav="tree">Tree Graph</a></li>
     <li><span class="nav-section-title">Documents</span></li>
   </ul>
   <ul id="doc-nav-list"></ul>
