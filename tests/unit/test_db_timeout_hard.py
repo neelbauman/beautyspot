@@ -13,7 +13,6 @@ def test_db_timeout_running_interrupts_and_fails_fast(tmp_path):
     """
     # タイムアウトを短く設定 (0.5秒)
     db = SQLiteTaskDB(tmp_path / "test.db", timeout=0.5)
-    db.init_schema()
 
     interrupted_event = threading.Event()
     
@@ -55,8 +54,7 @@ def test_db_timeout_pending_cancels(tmp_path):
     既存の挙動: PENDING 状態（未着手）のタスクは timeout でキャンセルされる。
     """
     db = SQLiteTaskDB(tmp_path / "test.db", timeout=0.5)
-    db.init_schema()
-    
+
     # 1つ目の重いタスクで Writer Thread を占有
     gate = threading.Event()
     def slow_op(conn):

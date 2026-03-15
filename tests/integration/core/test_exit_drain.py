@@ -24,7 +24,6 @@ def test_zombie_thread_completes_tasks():
 
     # モック用の依存オブジェクト
     mock_db = MagicMock()
-    mock_db.init_schema = MagicMock()
     mock_serializer = MagicMock()
     mock_storage = MagicMock()
     mock_policy = MagicMock()

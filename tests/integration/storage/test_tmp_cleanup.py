@@ -50,7 +50,6 @@ def test_maintenance_clean_garbage_includes_tmp_files(tmp_path: Path):
     blob_dir = tmp_path / "blobs"
 
     db = SQLiteTaskDB(db_path)
-    db.init_schema()
     storage = LocalStorage(blob_dir)
     serializer = MsgpackSerializer()
 

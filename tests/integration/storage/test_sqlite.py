@@ -10,7 +10,6 @@ def db(tmp_path):
     # これにより、接続を切ってもデータが維持される
     db_path = tmp_path / "test_tasks.db"
     task_db = SQLiteTaskDB(str(db_path))
-    task_db.init_schema()
     return task_db
 
 

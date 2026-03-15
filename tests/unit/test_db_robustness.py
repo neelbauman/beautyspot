@@ -8,7 +8,6 @@ def test_sqlite_read_connection_recovery(tmp_path):
     """BUG-3: 壊れた読み取り接続からの回復テスト"""
     db_path = tmp_path / "test.db"
     db = SQLiteTaskDB(db_path)
-    db.init_schema()
 
     # 正常な読み取り
     with db._read_connect() as conn:
@@ -41,7 +40,6 @@ def test_sqlite_read_connection_leak_prevention(tmp_path):
     """BUG-4: スレッド終了時に接続がリークしないことの検証"""
     db_path = tmp_path / "test.db"
     db = SQLiteTaskDB(db_path)
-    db.init_schema()
 
     def worker():
         with db._read_connect() as conn:
@@ -74,8 +72,7 @@ def test_sqlite_expiration_handling(tmp_path):
     
     db_path = tmp_path / "test_exp.db"
     db = SQLiteTaskDB(db_path)
-    db.init_schema()
-    
+
     past_time = datetime.now(timezone.utc) - timedelta(days=1)
     
     db.save(

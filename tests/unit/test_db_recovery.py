@@ -6,7 +6,6 @@ from beautyspot.db import SQLiteTaskDB, WriterTaintedError
 def test_db_tainted_and_reset(tmp_path):
     # タイムアウトを極端に短く設定 (0.1s)
     db = SQLiteTaskDB(tmp_path / "test.db", timeout=0.1)
-    db.init_schema()
 
     # interrupt() が効かないように Python レベルでブロックするタスク
     gate = threading.Event()

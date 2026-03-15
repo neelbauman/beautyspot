@@ -94,7 +94,6 @@ async def test_save_failure_raises_async_even_with_callback(tmp_path):
 
 def test_sqlite_shutdown_waits_for_queue(tmp_path):
     db = SQLiteTaskDB(tmp_path / "test.db")
-    db.init_schema()
 
     gate = threading.Event()
     write_done = threading.Event()
@@ -168,7 +167,6 @@ def test_db_flush_waits_for_pending_writes(tmp_path):
     flush() が、キューに積まれた重いタスクの完了を正しく待機することを検証する。
     """
     db = SQLiteTaskDB(tmp_path / "test.db")
-    db.init_schema()
 
     # 意図的に時間がかかる書き込みタスクを投入
     def _slow_op(conn):
@@ -195,7 +193,6 @@ def test_db_flush_timeout(tmp_path):
     flush() がタイムアウト時に False を返し、ブロックを解除することを検証する。
     """
     db = SQLiteTaskDB(tmp_path / "test.db")
-    db.init_schema()
 
     def _very_slow_op(conn):
         time.sleep(2.0)
