@@ -129,6 +129,7 @@ class _BackgroundLoop:
     def submit(self, coro: Coroutine) -> Optional[Future[Any]]:
         """スレッドセーフにタスクを投入する"""
         with self._lock:
+            # 実行時シャットダウンフラグをチェックすることで、タスクの異常タイミングでの追加を防止する
             if self._is_shutting_down:
                 logger.debug("Background loop is shutting down. Task rejected.")
                 try:
@@ -142,8 +143,10 @@ class _BackgroundLoop:
             self._active_tasks += 1
 
         try:
+            # マルチスレッドのループで、タスクのスレッドセーフな実行をスケジュールする
             return asyncio.run_coroutine_threadsafe(
-                self._task_wrapper(coro), self._loop
+                self._task_wrapper(coro),
+                self._loop,
             )
         except BaseException:
             # 万が一スケジュールに失敗した場合はカウンタを戻す
@@ -173,6 +176,8 @@ class _BackgroundLoop:
             # 既にシャットダウン中であれば二重実行を避ける
             if self._is_shutting_down:
                 return
+
+            # まずシャットダウンフラグを立てつつ、ループを止めたり、残タスクをjoinするのがメイン処理
             self._is_shutting_down = True
 
             # 現在アクティブなタスクがゼロなら、即座にループ停止をスケジュール

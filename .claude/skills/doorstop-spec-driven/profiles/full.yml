@@ -83,7 +83,7 @@ guidance:
     \    → REQアイテムにリンク\nテストレベルごとにリンク先の文書が異なることに注意。\n"
 doorstop_yml_attributes: "# 各ドキュメントの .doorstop.yml に追加する attributes セクション:\nattributes:\n\
   \  defaults:\n    groups: []\n    priority: medium      # critical / high / medium\
-  \ / low\n    gherkin: ''            # Gherkin シナリオ（HLD/LLD で使用）\n  reviewed:\n \
+  \ / low / none / done\n    gherkin: ''            # Gherkin シナリオ（HLD/LLD で使用）\n  reviewed:\n \
   \   - groups\n    - gherkin              # gherkin 変更で再レビューをトリガー\n    # REQ / NFR\
   \ は priority も reviewed に追加を推奨\n      # ADR は status を reviewed に追加を推奨\n  publish:\n\
   \    - groups\n    - priority\n    - gherkin\n\n# 設定しない属性（Git/CIの責務）:\n#   author,\

@@ -214,7 +214,7 @@ def main():
 
     print("\n機能グループと優先度の設定:")
     print("  doorstop_ops.py add -d REQ -t '要件' -g AUTH --priority high")
-    print("  # 優先度: critical / high / medium（デフォルト） / low")
+    print("  # 優先度: critical / high / medium（デフォルト） / low / none / done")
 
     if args.with_nfr:
         print("\nNFR ドキュメントが作成されました:")
