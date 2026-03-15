@@ -82,12 +82,6 @@ class MaintenanceService:
                 b_path = legacy if legacy.exists() else candidate
 
         db = SQLiteTaskDB(path)
-        try:
-            db.init_schema()
-        except Exception as e:
-            logger.warning(
-                f"Failed to initialize schema for {path}: {e}. Proceeding with existing schema."
-            )
 
         service = cls(
             db=db,

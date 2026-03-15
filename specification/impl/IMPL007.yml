@@ -6,19 +6,25 @@ header: |
   SQLiteTaskDB 実装
 level: 2.7
 links:
-- SPEC007: 0HwpNXmcPue82WV2rmVdY4OyJk_Ez9kXoWX3t6UN6ts=
+- SPEC007: es0Bc6_dvcMkrozDne3CygshVPyufN13SRNdqOivILc=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: d-YowDMPy1gSBNFSfYM7ty-bPaF_TVh9iflIJAskWI0=
+reviewed: 8rTnO-cLKMDE9aQsjVb8COsvFc3IEVye--JUl4soags=
 text: |
   ## 実装概要
 
   `SQLiteTaskDB` クラスが中核。Writer Thread + Reader Threads パターンで実装。
   単一の `_writer_thread`（デーモン）が `_write_queue` から書き込みタスクを取り出して直列処理し、読み取りは `threading.local()` のスレッドローカル接続で並行実行する。
   WAL モードにより読み取りと書き込みの並行性を確保している。
+
+  ## スキーマ初期化（RAII）
+
+  `__init__` の末尾で `init_schema()` を呼び出し、構築後のインスタンスは即座に使用可能な状態とする。
+  呼び出し元（`core.Spot` やファクトリ）が明示的に `init_schema()` を呼ぶ必要はない。
+  `init_schema()` は冪等であり、複数回呼び出しても安全である。
 
   ## タイムアウトの実装
   - `_enqueue_write` 内で `task.event.wait(timeout=0.5)` をループさせ、`self.timeout` を超えた場合にフェイルファスト処理を行う。

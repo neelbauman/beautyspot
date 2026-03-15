@@ -296,6 +296,8 @@ class SQLiteTaskDB(TaskDBMaintenable, Flushable, Shutdownable):
         if self._writer_error:
             raise self._writer_error
 
+        self.init_schema()
+
     def reset(self) -> None:
         """
         Forcefully restart the writer thread. Use this if the writer is tainted or hung.
@@ -367,9 +369,13 @@ class SQLiteTaskDB(TaskDBMaintenable, Flushable, Shutdownable):
             # 全ラッパーをクローズした場合にここに到達する。
             if self._shutdown_requested:
                 raise RuntimeError("SQLiteTaskDB is shutting down.")
+
             conn = sqlite3.connect(
-                self.db_path, timeout=self.timeout, check_same_thread=False
+                self.db_path,
+                timeout=self.timeout,
+                check_same_thread=False,
             )
+
             try:
                 conn.execute("PRAGMA query_only = ON;")
             except Exception:

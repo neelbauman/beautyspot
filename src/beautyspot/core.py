@@ -252,9 +252,6 @@ class Spot:
         self._save_sync = save_sync
         self.on_background_error = on_background_error
 
-        # --- DBの初期化 ---
-        self.cache.db.init_schema()
-
         # --- バックグラウンド IO 管理 ---
         self._bg_loop: _BackgroundLoop | None = None
         self._executor: Executor | None = None
