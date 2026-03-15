@@ -259,7 +259,7 @@ class WriterTaintedError(RuntimeError):
     pass
 
 
-class SQLiteTaskDB(TaskDBCore, Flushable, Shutdownable, Maintenable):
+class SQLiteTaskDB(TaskDBMaintenable, Flushable, Shutdownable):
     """
     Default implementation using SQLite.
     """

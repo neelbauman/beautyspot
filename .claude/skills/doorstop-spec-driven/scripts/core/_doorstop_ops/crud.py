@@ -33,7 +33,7 @@ def cmd_add(tree, args):
         refs = json.loads(args.references)
         item.set("references", refs)
     if args.priority:
-        valid = ("critical", "high", "medium", "low")
+        valid = ("critical", "high", "medium", "low", "none", "done")
         if args.priority not in valid:
             out({"ok": False, "error": f"priority は {valid} のいずれかを指定してください"})
             return
@@ -80,7 +80,7 @@ def cmd_update(tree, args):
         refs = json.loads(args.references)
         item.set("references", refs)
     if args.priority is not None:
-        valid = ("critical", "high", "medium", "low")
+        valid = ("critical", "high", "medium", "low", "none", "done")
         if args.priority not in valid:
             out({"ok": False, "error": f"priority は {valid} のいずれかを指定してください"})
             return

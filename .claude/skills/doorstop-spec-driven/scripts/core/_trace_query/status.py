@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from _common import (
     out, get_groups, get_references, is_normative, is_suspect,
-    find_item, build_link_index,
+    find_item, build_link_index, truncate_text,
 )
 
 
@@ -129,7 +129,7 @@ def cmd_coverage(tree, args):
                 uncovered_details.append({
                     "uid": uid,
                     "groups": get_groups(item),
-                    "text": item.text.strip()[:120],
+                    "text": truncate_text(item.text.strip(), 120),
                 })
 
         key = f"{doc.prefix} -> {doc.parent}"
@@ -181,7 +181,7 @@ def cmd_gaps(tree, args):
                     "uid": uid_str,
                     "prefix": doc.prefix,
                     "groups": get_groups(item),
-                    "text": item.text.strip()[:120],
+                    "text": truncate_text(item.text.strip(), 120),
                     "expected_parent_doc": doc.parent,
                     "issue": f"{doc.parent} へのリンクがありません",
                 })
@@ -192,7 +192,7 @@ def cmd_gaps(tree, args):
                     "uid": uid_str,
                     "prefix": doc.prefix,
                     "groups": get_groups(item),
-                    "text": item.text.strip()[:120],
+                    "text": truncate_text(item.text.strip(), 120),
                     "issue": "references（ソース/テストファイルパス）が未設定",
                 })
 
@@ -217,7 +217,7 @@ def cmd_gaps(tree, args):
                     "uid": uid_str,
                     "prefix": doc.prefix,
                     "groups": get_groups(item),
-                    "text": item.text.strip()[:120],
+                    "text": truncate_text(item.text.strip(), 120),
                     "issue": f"子ドキュメント（{', '.join(d.prefix for d in child_docs)}）"
                              f"からの参照がありません",
                 })

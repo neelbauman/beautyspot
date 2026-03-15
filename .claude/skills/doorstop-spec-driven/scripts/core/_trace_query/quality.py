@@ -7,7 +7,7 @@
 
 from _common import (
     out, get_groups, get_priority, get_references, is_normative,
-    is_suspect, find_item, find_doc_prefix, build_link_index,
+    is_suspect, find_item, find_doc_prefix, build_link_index, truncate_text,
 )
 
 
@@ -67,7 +67,7 @@ def cmd_suspects(tree, args):
                     suspect_links.append({
                         "parent_uid": str(link),
                         "parent_prefix": find_doc_prefix(tree, parent),
-                        "parent_text": parent.text.strip()[:100],
+                        "parent_text": truncate_text(parent.text.strip(), 100),
                     })
 
             action = _suggest_action(item, doc.prefix)
@@ -76,7 +76,7 @@ def cmd_suspects(tree, args):
                 "uid": str(item.uid),
                 "prefix": doc.prefix,
                 "groups": get_groups(item),
-                "text": item.text.strip()[:120],
+                "text": truncate_text(item.text.strip(), 120),
                 "references": get_references(item),
                 "suspect_links": suspect_links,
                 "action": action,
@@ -97,7 +97,7 @@ def cmd_backlog(tree, args):
     priority 属性の値に基づいてソートする:
         critical > high > medium > low > (未設定 = medium 扱い)
     """
-    PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "none": 4, "done": 5}
 
     # グループフィルタ
     filter_groups = []
@@ -136,7 +136,7 @@ def cmd_backlog(tree, args):
                 "groups": get_groups(item),
                 "priority": priority,
                 "has_children": coverage_ok,
-                "text": item.text.strip()[:100],
+                "text": truncate_text(item.text.strip(), 100),
             })
 
     # 優先度→UID順にソート
@@ -144,7 +144,7 @@ def cmd_backlog(tree, args):
 
     # 優先度別集計
     priority_summary = {}
-    for p in ("critical", "high", "medium", "low"):
+    for p in ("critical", "high", "medium", "low", "none", "done"):
         priority_summary[p] = sum(1 for i in items if i["priority"] == p)
 
     out({

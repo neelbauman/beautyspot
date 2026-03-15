@@ -33,7 +33,7 @@ except ImportError:
     out({"ok": False, "error": "doorstop がインストールされていません"})
 
 from _common import (
-    out, get_groups, get_ref, get_references,
+    out, get_groups, get_ref, get_references, truncate_text,
     find_item as find_item_in_tree,
     find_doc_prefix as _find_doc_prefix, build_link_index,
     build_doc_file_map,
@@ -149,7 +149,7 @@ def analyze_impact(tree, changed_items, project_dir="."):
                             "uid": str(child_item.uid),
                             "prefix": child_prefix,
                             "groups": get_groups(child_item),
-                            "text": child_item.text.strip()[:100],
+                            "text": truncate_text(child_item.text.strip(), 100),
                             "ref": get_ref(child_item),
                         })
 
@@ -163,7 +163,7 @@ def analyze_impact(tree, changed_items, project_dir="."):
             "uid": uid,
             "prefix": doc_prefix,
             "groups": get_groups(item),
-            "text": item.text.strip()[:120],
+            "text": truncate_text(item.text.strip(), 120),
             "ref": get_ref(item),
             "references": get_references(item),
             "upstream": upstream,
@@ -186,7 +186,7 @@ def _trace_upstream(uid, parents_idx, result, visited, depth=0):
             "uid": parent_uid,
             "prefix": parent_prefix,
             "groups": get_groups(parent_item),
-            "text": parent_item.text.strip()[:100],
+            "text": truncate_text(parent_item.text.strip(), 100),
             "depth": depth,
         }
         result.append(entry)
@@ -203,7 +203,7 @@ def _trace_downstream(uid, children_idx, result, visited, depth=0):
             "uid": child_uid,
             "prefix": child_prefix,
             "groups": get_groups(child_item),
-            "text": child_item.text.strip()[:100],
+            "text": truncate_text(child_item.text.strip(), 100),
             "ref": get_ref(child_item),
             "references": get_references(child_item),
             "depth": depth,

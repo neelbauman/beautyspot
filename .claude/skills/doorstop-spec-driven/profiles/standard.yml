@@ -80,12 +80,16 @@ guidance:
     TSTのリンク先は原則SPECだが、integrationテストはARCHにもリンク可。\n"
 doorstop_yml_attributes: "# 各ドキュメントの .doorstop.yml に追加する attributes セクション:\nattributes:\n\
   \  defaults:\n    groups: []\n    priority: medium      # critical / high / medium\
-  \ / low\n    gherkin: ''            # Gherkin シナリオ（SPEC/ARCH で使用）\n  reviewed:\n\
+  \ / low / none / done\n    gherkin: ''            # Gherkin シナリオ（SPEC/ARCH で使用）\n  reviewed:\n\
   \    - groups\n    - gherkin              # gherkin 変更で再レビューをトリガー\n    # REQ / NFR\
   \ は priority も reviewed に追加を推奨\n      # ADR は status を reviewed に追加を推奨\n  publish:\n\
   \    - groups\n    - priority\n    - gherkin\n\n# 設定しない属性（Git/CIの責務）:\n#   author,\
   \ creation_date, status\n"
-priority_policy: '- 値: critical / high / medium（デフォルト） / low
+priority_policy: '- 値: critical / high / medium（デフォルト） / low / none / done
+
+  - none: 未トリアージ（まだ優先度が決まっていない）
+
+  - done: 対応完了（バックログ上の管理用）
 
   - 設定対象: REQ・NFR アイテム
 

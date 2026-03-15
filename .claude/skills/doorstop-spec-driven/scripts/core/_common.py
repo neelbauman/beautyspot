@@ -20,6 +20,13 @@ def out(data):
     sys.exit(0 if data.get("ok", True) else 1)
 
 
+def truncate_text(text: str, limit: int) -> str:
+    """テキストを limit 文字でtruncateし、超えた場合は ...[TRUNCATED] を付加する。"""
+    if len(text) > limit:
+        return text[:limit] + "...[TRUNCATED]"
+    return text
+
+
 # ---------------------------------------------------------------------------
 # Item attribute accessors
 # ---------------------------------------------------------------------------
@@ -197,7 +204,7 @@ def get_priority(item):
     """アイテムの priority 属性を取得する。未設定時は "medium"。"""
     try:
         val = item.get("priority")
-        if val and isinstance(val, str) and val in ("critical", "high", "medium", "low"):
+        if val and isinstance(val, str) and val in ("critical", "high", "medium", "low", "none", "done"):
             return val
         return "medium"
     except (AttributeError, KeyError):
@@ -212,7 +219,7 @@ def item_summary(item, prefix=None, tree=None):
         "groups": get_groups(item),
         "priority": get_priority(item),
         "header": item.header.strip() if item.header else "",
-        "text": item.text.strip()[:200],
+        "text": truncate_text(item.text.strip(), 200),
         "references": get_references(item),
         "derived": is_derived(item),
         "normative": is_normative(item),

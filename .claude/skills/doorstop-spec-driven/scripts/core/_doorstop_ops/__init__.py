@@ -45,7 +45,7 @@ def main():
     p_add.add_argument("--insert", help="指定したレベルに挿入し、以降を自動で後ろにずらす（--level と同じ挙動）")
     p_add.add_argument("-r", "--ref", help="参照ファイルパス")
     p_add.add_argument("--references", help='外部ファイル紐付け（JSON文字列。例: \'[{"path":"src/mod.py","type":"file"}]\'）')
-    p_add.add_argument("--priority", choices=["critical", "high", "medium", "low"],
+    p_add.add_argument("--priority", choices=["critical", "high", "medium", "low", "none", "done"],
                        help="優先度（REQ/NFR に設定を推奨）")
     p_add.add_argument("--test-level", choices=["unit", "integration", "acceptance"],
                        help="テスト粒度（TST に設定。standard/full プロファイル用）")
@@ -62,7 +62,7 @@ def main():
     p_upd.add_argument("-g", "--group", help="新グループ")
     p_upd.add_argument("-r", "--ref", help="新参照パス")
     p_upd.add_argument("--references", help='外部ファイル紐付け（JSON文字列）')
-    p_upd.add_argument("--priority", choices=["critical", "high", "medium", "low"],
+    p_upd.add_argument("--priority", choices=["critical", "high", "medium", "low", "none", "done"],
                        help="優先度の変更")
     p_upd.add_argument("--test-level", choices=["unit", "integration", "acceptance"],
                        help="テスト粒度の変更（TST 用）")

@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from _common import (
     out, get_groups, get_references, is_derived, is_suspect,
-    find_item, find_doc_prefix, item_summary, build_link_index,
+    find_item, find_doc_prefix, item_summary, build_link_index, truncate_text,
 )
 
 
@@ -50,7 +50,7 @@ def _trace_up(uid, parents_idx, result, visited, depth=0, rich=False):
             "uid": parent_uid,
             "prefix": parent_prefix,
             "groups": get_groups(parent_item),
-            "text": parent_item.text.strip()[:200 if rich else 120],
+            "text": truncate_text(parent_item.text.strip(), 200 if rich else 120),
             "derived": is_derived(parent_item),
             "depth": depth,
         }
@@ -70,7 +70,7 @@ def _trace_down(uid, children_idx, result, visited, depth=0):
             "uid": child_uid,
             "prefix": child_prefix,
             "groups": get_groups(child_item),
-            "text": child_item.text.strip()[:120],
+            "text": truncate_text(child_item.text.strip(), 120),
             "references": get_references(child_item),
             "derived": is_derived(child_item),
             "depth": depth,

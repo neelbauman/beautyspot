@@ -262,7 +262,7 @@ class Spot:
         self._active_futures: set = set()
         self._futures_lock = threading.Lock()
 
-        self._maintenance_service: MaintenanceService | None = None
+        self.maintenance_service: MaintenanceService | None = None
         self._maintenance_lock = threading.Lock()
         self._eviction_guard_lock = threading.Lock()
         self._eviction_running = False
@@ -288,16 +288,16 @@ class Spot:
 
     @property
     def maintenance(self) -> MaintenanceService:
-        svc = self._maintenance_service
+        svc = self.maintenance_service
         if svc is None:
             with self._maintenance_lock:
-                if self._maintenance_service is None:
-                    self._maintenance_service = MaintenanceService(
+                if self.maintenance_service is None:
+                    self.maintenance_service = MaintenanceService(
                         db=self.cache.db,
                         storage=self.cache.storage,
                         serializer=self.cache.serializer,
                     )
-                svc = self._maintenance_service
+                svc = self.maintenance_service
         assert svc is not None
         return svc
 
