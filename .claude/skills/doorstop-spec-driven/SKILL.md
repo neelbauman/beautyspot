@@ -31,7 +31,7 @@ description: >
 9. **外部ファイル紐付けには `references` を使う。** `ref` ではなく `references` 属性。最大2–3ファイル
 10. **仕様変更のコミットはドキュメント層ごとに分ける。** 詳細は `references/concepts/commit_convention.md` を参照
 11. **新ドメイン概念には用語辞書を更新する。** `glossary.py add` で用語を追加し、`glossary.py check` で表記ゆれを検出する。詳細は `references/concepts/glossary.md` を参照
-12. **設計判断は ADR に記録する。** 技術選定やアーキテクチャ変更時。詳細は `references/concepts/adr.md` を参照
+12. **設計判断は ADR に記録する。** 技術選定やアーキテクチャ変更時、およびユーザーとの議論で方針が確定したとき。詳細は `references/concepts/adr.md` および `references/flows/decision_record.md` を参照
 
 ## エージェントの振る舞い規約
 
@@ -77,6 +77,7 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile stand
 | リリース前チェック | [E] リリースゲート | リリース前の必須チェックリスト（0 errors・100% coverage） | `references/flows/release_gate.md` |
 | 既存プロジェクトへの初期導入 | [F] 初期導入 | 既存コードへの逆引き仕様化（コード→ドキュメント） | `references/flows/initial_adoption.md` |
 | 機能削除・要件取り下げ | [G] 非活性化 | active: false によるソフトデリートと連鎖処理 | `references/flows/deactivation.md` |
+| 議論の結果を記録・ADR作成 | [H] 意思決定記録 | 議論・検討で確定した判断を ADR に記録 | `references/flows/decision_record.md` |
 
 ## リファレンス
 

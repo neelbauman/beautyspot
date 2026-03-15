@@ -97,6 +97,12 @@ doorstop_ops.py link ARCH001 ADR001
    `doorstop_ops.py update ADR001 --status superseded`
 2. 必要に応じて新しい ADR を作成し、新しい決定の理由を記録する。
 
+### [H] 意思決定記録フロー
+
+ユーザーとの議論・検討・レビューの結果として意思決定が確定したとき、
+判断の背景・代替案・トレードオフを ADR に記録する。
+詳細な手順は `flows/decision_record.md` を参照。
+
 ## ADR アイテムの記述テンプレート
 
 アイテムの書き方や詳細なフォーマットについては、`references/item_writing_guide.md` の「ADR（決定）」セクションを参照すること。
