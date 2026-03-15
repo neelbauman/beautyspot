@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: S3Storage
+    Scenario: Storing large blobs in Amazon S3
+      Given an S3Storage instance configured with a valid URI
+      When data is saved to the storage
+      Then it is uploaded to S3, using multipart upload for data exceeding 5GB
 groups:
 - STORE
 header: |
@@ -45,9 +51,7 @@ text: |
 
   - **リージョン不一致**: S3クライアントの設定とバケットのリージョンが異なる場合の動作は Boto3 のデフォルト設定に依存
   - **削除の冪等性**: S3 は存在しないオブジェクトの削除要求に対してエラーを返さないため、常に成功として扱う
-gherkin: |
-  Feature: S3Storage
-    Scenario: Storing large blobs in Amazon S3
-      Given an S3Storage instance configured with a valid URI
-      When data is saved to the storage
-      Then it is uploaded to S3, using multipart upload for data exceeding 5GB
+
+  ## 設計判断
+
+  クラウドネイティブな環境において、キャッシュデータをS3等のオブジェクトストレージに分散保存し、複数インスタンス間で安全に共有できるようにするため。

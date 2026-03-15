@@ -6,10 +6,11 @@ header: |
   MsgpackとSHA-256を用いた正規化された入力シリアライズ
 level: '1.10'
 links:
+- ARCH002: HVEL9BgCJqagLk2CA_ksXF9TleinSEfxiUcowkxwoJs=
 - REQ002: LuiuyHI3t27ErRSx-upTrb8CGSV2FON2EQaK-wBU7As=
 normative: true
 ref: ''
-reviewed: _clJ7sVATL0Kux2Z8j_1-JEfJ1hER14wT1OflSflWG0=
+reviewed: 7yvUsswpmEACq1vcs7BtX0fFHwHdVna3vzfRZRgc3wQ=
 status: accepted
 text: |
   # MsgpackとSHA-256を用いた正規化された入力シリアライズ

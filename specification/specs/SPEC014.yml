@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: BackgroundLoop
+    Scenario: Executing asynchronous tasks in a background thread
+      Given a BackgroundLoop instance
+      When a coroutine is submitted
+      Then it runs in an asyncio event loop within a dedicated daemon thread without blocking the caller
 groups:
 - BGIO
 header: |
@@ -41,9 +47,7 @@ text: |
   ## エッジケース
 
   - **多重起動**: すでにスレッドが実行中の場合は、既存のスレッドを再利用する
-gherkin: |
-  Feature: BackgroundLoop
-    Scenario: Executing asynchronous tasks in a background thread
-      Given a BackgroundLoop instance
-      When a coroutine is submitted
-      Then it runs in an asyncio event loop within a dedicated daemon thread without blocking the caller
+
+  ## 設計判断
+
+  関数のメイン処理をブロックすることなく、背後で安全にキャッシュデータを永続化するため。専用のイベントループにより、I/O待ちによるパフォーマンス低下を防ぐ。

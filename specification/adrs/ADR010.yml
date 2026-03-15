@@ -6,10 +6,11 @@ header: |
   ネイティブBLOBサポートを伴う全体的なMsgpackの採用
 level: 1.9
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: 3ZwOBHo8B8TWtUg__gF18K2OF3tXBm_PKYUwYKcd-zI=
+reviewed: FLyyRnmyk9Wl_4AaO_1T9jnD0LScnV50Rs0xP29ohsY=
 status: accepted
 text: |
   # ネイティブBLOBサポートを伴う全体的なMsgpackの採用

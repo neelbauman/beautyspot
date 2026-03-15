@@ -6,10 +6,11 @@ header: |
   遅延バインディングを伴うデコレータベースの型登録
 level: 1.13
 links:
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 - REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: WC98NTQkhoo74PwSj_Lia1MUrION4PI-67fxwYkLyI0=
+reviewed: ivoEm8x7DH-hdAvVtvOwVLW3TktBEOmdL-d7xlnhhVE=
 status: accepted
 text: |
   # 遅延バインディングを伴うデコレータベースの型登録

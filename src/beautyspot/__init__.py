@@ -16,7 +16,7 @@ from beautyspot.types import (
 )
 from beautyspot.cachekey import KeyGen
 from beautyspot.lifecycle import LifecyclePolicy, Rule, Retention
-from beautyspot.limiter import TokenBucket, LimiterProtocol
+from beautyspot.limiter import Gcra, LimiterProtocol
 from beautyspot.content_types import ContentType
 from beautyspot.db import TaskDBBase, TaskDBCore, TaskDBMaintenable, SQLiteTaskDB
 from beautyspot.exceptions import (
@@ -77,7 +77,7 @@ def Spot(
     resolved_db = db or SQLiteTaskDB(_default_workspace / f"{name}.db")
     resolved_ser = serializer or MsgpackSerializer()
     resolved_stg = storage_backend or LocalStorage(_default_workspace / "blobs" / name)
-    resolved_limiter = limiter or TokenBucket(tokens_per_minute=tpm)
+    resolved_limiter = limiter or Gcra(tokens_per_minute=tpm)
 
     # 2. Storage Policy の解決
     resolved_policy: StoragePolicyProtocol
@@ -152,7 +152,7 @@ __all__ = [
     "SQLiteTaskDB",
     "LocalStorage",
     "MsgpackSerializer",
-    "TokenBucket",
+    "Gcra",
     "ThresholdStoragePolicy",
     "WarningOnlyPolicy",
     "AlwaysBlobPolicy",

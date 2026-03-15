@@ -6,10 +6,11 @@ header: |
   ライターキューによるSQLite書き込みの直列化
 level: 1.42
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: owZ1AKOIid3c69pwyscNtnO5lJ2pmzePt6wXRRgSq2c=
+reviewed: _3PMviN7t7WV5w6LCT8sV7dA6mKqPz3ugIeoCmgqJlw=
 status: accepted
 text: |
   # ライターキューによるSQLite書き込みの直列化

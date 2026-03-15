@@ -6,10 +6,11 @@ header: |
   バックグラウンドループのシャットダウン戦略とスレッディングモデル
 level: 1.39
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: 2ngDhH47gi2MLa20B3LuahiLdGIqsUAfmE5eqMWJwzw=
+reviewed: eplUJMcMKXAAC7BRcfGHzu2UhCKdnrAjD0b0hreblo0=
 status: accepted
 text: |
   # バックグラウンドループのシャットダウン戦略とスレッディングモデル

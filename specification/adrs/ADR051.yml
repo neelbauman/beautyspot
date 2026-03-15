@@ -6,10 +6,11 @@ header: |
   スレッドセーフなSQLite接続のクローズとロック管理
 level: '1.50'
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ019: -fKZXaJcRIvlKc33dQlwqZp5NX4u9a8fhsbFwR9tK0k=
 normative: true
 ref: ''
-reviewed: 1teqTMQL8n_RqW6BNdYSHFbzGxNiMYJI-TQReeM77A4=
+reviewed: Sln7IvpB2ND2rJNLL_tmycUt_Crpnhsy6LG5cRxuB2s=
 status: accepted
 text: |
   # スレッドセーフなSQLite接続のクローズとロック管理

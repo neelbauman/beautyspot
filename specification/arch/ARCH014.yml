@@ -10,3 +10,7 @@ ref: ''
 reviewed: ahsfb8A1Zd4gfhLggcqmZC0_iZ0nEEBKbf-DAHTGJl4=
 text: |
   本ドキュメントは、『beautyspot』のアーキテクチャ設計を定義する。
+
+  ## 設計根拠
+
+  システムの全体構造やコンポーネント間の関係性を明示し、開発者がシステムの全容と設計思想を迅速に理解できるようにするため。

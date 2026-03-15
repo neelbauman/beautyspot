@@ -66,11 +66,21 @@ def get_references(item):
 
 
 def get_references_display(item):
-    """references を表示用文字列にする。"""
+    """references を表示用文字列にする。type が "file" 以外の場合は種別を付記する。"""
     refs = get_references(item)
     if not refs:
         return ""
-    return ", ".join(r.get("path", "") for r in refs if r.get("path"))
+    parts = []
+    for r in refs:
+        path = r.get("path", "")
+        if not path:
+            continue
+        rtype = r.get("type", "")
+        if rtype and rtype != "file":
+            parts.append(f"{path} ({rtype})")
+        else:
+            parts.append(path)
+    return ", ".join(parts)
 
 
 def is_derived(item):

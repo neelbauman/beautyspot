@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: Sync and Async function support
+    Scenario: Automatic detection and routing of sync/async functions
+      Given a synchronous or asynchronous function
+      When the @spot.mark decorator is applied
+      Then it correctly wraps and executes the function in the corresponding execution flow
 groups:
 - CACHE
 header: |
@@ -39,9 +45,7 @@ text: |
   ## エッジケース
 
   - デコレーション後に手動で関数の性質（コルーチンかどうか）を変更するような動的な書き換えには対応しない（デコレーション時の静的な判定結果に依存する）。
-gherkin: |
-  Feature: Sync and Async function support
-    Scenario: Automatic detection and routing of sync/async functions
-      Given a synchronous or asynchronous function
-      When the @spot.mark decorator is applied
-      Then it correctly wraps and executes the function in the corresponding execution flow
+
+  ## 設計判断
+
+  現代のPython開発では同期（I/Oバウンドでない処理）と非同期（asyncio）が混在するため。利用者が関数の種類を意識することなく同一のAPIでキャッシュを利用できる透過的なインターフェースを提供するため。

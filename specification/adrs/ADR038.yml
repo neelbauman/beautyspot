@@ -6,10 +6,11 @@ header: |
   ストレージメンテナンスのための確率的自動エビクション
 level: 1.37
 links:
+- ARCH007: CwMzyqNroQBWBsDCle5fnJuThTmWAJnkFAcL_z2OzCs=
 - REQ007: FAk1im9qkBhtzNEPuqhcaOz9Xmme-nmrkiZc7bGQDNk=
 normative: true
 ref: ''
-reviewed: L3iu6CN4ocMb6zKMAV412vuO_tR5TpISslfra8D6DDM=
+reviewed: nl5wmpi7EVZvY_nW0uvTSm3tFs94xQUPy5duolRDMy0=
 status: accepted
 text: |
   # ストレージメンテナンスのための確率的自動エビクション

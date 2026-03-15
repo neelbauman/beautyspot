@@ -6,10 +6,11 @@ header: |
   SQLite ライタースレッドの死活監視におけるポーリング間隔の維持
 level: 1.47
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: 38Fjta4X6bXrkP9c_Q-NVGSGB3Z-nEKqq60UAgoE29I=
+reviewed: mzKhZ9KHAALbiuP8ngGo_j84sJaoUYS3YkkDGgRncsI=
 status: accepted
 text: |
   # SQLite ライタースレッドの死活監視におけるポーリング間隔の維持

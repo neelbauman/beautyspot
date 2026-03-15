@@ -6,10 +6,11 @@ header: |
   タスクごとのシリアライザの上書き
 level: 1.18
 links:
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 - REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: jHCwHtAaNhd28FsxE4bYHdo3W84WIeafDT0hcBI8Elw=
+reviewed: MdfaNr6xgwiXct00WQDVw-RTvQ760LhpIQgyVWpUkDE=
 status: accepted
 text: |
   # タスクごとのシリアライザの上書き

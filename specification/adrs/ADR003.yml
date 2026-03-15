@@ -6,10 +6,11 @@ header: |
   堅牢なレートリミッターの実装
 level: 1.2
 links:
+- ARCH008: 3P_GwS0JFM40QovY318yJfHonSHWqQiSUXfnIrPXI7w=
 - REQ008: JwW37tcsNK-kOTVFLlc_fNR7sIDjO4ES68i3H_55w20=
 normative: true
 ref: ''
-reviewed: 7PGXnjMnzWtZYrxoBMICnuXZdoswNY9uWOTaEj-Rdwg=
+reviewed: psl6Di_xvBHcqLyM-efXOrFus2IGYJ0WHSaFLebgQK0=
 status: proposed
 text: |
   # スムーズなレートリミッター（GCRA）

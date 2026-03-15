@@ -6,10 +6,11 @@ header: |
   命令型実行、スマートなデフォルト、およびワークスペース管理
 level: 1.11
 links:
+- ARCH001: njFV9W_NXjx3dMCDMAVXf0g99DYN8tKwPHU5nP1tFhA=
 - REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
 normative: true
 ref: ''
-reviewed: jr18Q8uyLuKrio2abIBqgJ3V7z2lieNA4r9ctDW6ekQ=
+reviewed: VNFCORxm5RACuIlxdAj2k7n1SbRWDtTFuqTc89n6s5k=
 status: accepted
 text: |
   # 命令型実行、スマートなデフォルト、およびワークスペース管理

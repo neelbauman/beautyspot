@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: SHA-256 cache key generation
+    Scenario: Generating a unique hash for function arguments
+      Given normalized positional and keyword arguments
+      When the default KeyGen strategy is applied
+      Then it serializes the arguments and returns a SHA-256 hash string
 groups:
 - KEY
 header: |
@@ -49,9 +55,7 @@ text: |
 
   - **空の引数**: 引数なしの場合も `[(), {}]` の構造として一定のハッシュ値を生成する
   - **非決定的な repr**: フォールバック時の `str()` はオブジェクトによっては実行ごとに変わる可能性があるため、明示的な正規化が推奨される
-gherkin: |
-  Feature: SHA-256 cache key generation
-    Scenario: Generating a unique hash for function arguments
-      Given normalized positional and keyword arguments
-      When the default KeyGen strategy is applied
-      Then it serializes the arguments and returns a SHA-256 hash string
+
+  ## 設計判断
+
+  生成されたキャッシュキーが環境や実行ごとにブレることなく、常に一意であることを保証するため。ハッシュ衝突のリスクが極めて低く、暗号学的に安全で広く利用されるSHA-256を採用した。

@@ -6,10 +6,11 @@ header: |
   ワークスペース初期化のストレージバックエンドへの委譲
 level: 1.45
 links:
+- ARCH004: gR_7wx5EpD_LA3s4JJTJmD1-WOKDjlo563zos3pn-aE=
 - REQ004: MAkJGJurzARw41s-hmBMRt7LcMDuyoFDRgaAIUmIabE=
 normative: true
 ref: ''
-reviewed: J5VNsUy_MEpn1tvjKsrSUG5V-W4HQBLif9_CO4tzM2s=
+reviewed: KHqBLQqzZO_VRtlf3GPHkcdYgL6co5ZCMGUE23fGZQA=
 status: proposed
 text: |
   # ワークスペース初期化のストレージバックエンドへの委譲

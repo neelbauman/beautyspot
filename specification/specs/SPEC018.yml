@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: TokenBucket (GCRA) rate limiting
+    Scenario: Enforcing rate limits on requests
+      Given a TokenBucket limiter configured with tokens per minute
+      When consume is called repeatedly
+      Then it allows bursts up to the max limit and throttles or rejects subsequent requests based on TAT
 groups:
 - LIMIT
 header: |
@@ -44,9 +50,7 @@ text: |
 
   - **高コストリクエスト**: `max_burst` を超えるコストを持つ単一リクエストは、常に拒否される。
   - **アイドル時間**: 長時間リクエストがない場合も、`TAT` は現在時刻より過去に一定以上離れないよう補正される（過度なバーストの防止）。
-gherkin: |
-  Feature: TokenBucket (GCRA) rate limiting
-    Scenario: Enforcing rate limits on requests
-      Given a TokenBucket limiter configured with tokens per minute
-      When consume is called repeatedly
-      Then it allows bursts up to the max limit and throttles or rejects subsequent requests based on TAT
+
+  ## 設計判断
+
+  外部APIのレート制限（例: 1分間に100リクエスト）を正確に守るため。GCRA（Generic Cell Rate Algorithm）により、バーストを許容しつつ、滑らかで厳密な流量制御を実現する。

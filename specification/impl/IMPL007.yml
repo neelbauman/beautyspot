@@ -6,13 +6,13 @@ header: |
   SQLiteTaskDB 実装
 level: 2.7
 links:
-- SPEC007: 0HwpNXmcPue82WV2rmVdY4OyJk_Ez9kXoWX3t6UN6ts=  # pragma: allowlist secret
+- SPEC007: 0HwpNXmcPue82WV2rmVdY4OyJk_Ez9kXoWX3t6UN6ts=
 normative: true
 ref: ''
 references:
 - path: src/beautyspot/db.py
   type: file
-reviewed: d-YowDMPy1gSBNFSfYM7ty-bPaF_TVh9iflIJAskWI0=  # pragma: allowlist secret
+reviewed: d-YowDMPy1gSBNFSfYM7ty-bPaF_TVh9iflIJAskWI0=
 text: |
   ## 実装概要
 
@@ -25,3 +25,7 @@ text: |
   - **PENDING**: `task.try_cancel()` でキュー内キャンセル。
   - **RUNNING**: `self._writer_conn.interrupt()` を呼び出して実行中の SQLite クエリを強制終了させ、呼び出し元に `TimeoutError` を返す。
   - interrupt 後、ライタースレッド側の例外処理を待つための猶予時間を設け、可用性と整合性を両立させている。
+
+  ## 設計判断
+
+  SQLite特有のデータベースロック（Database Is Locked）を回避するため。単一のWriter Threadで書き込みを直列化し、WALモードとスレッドローカルなReaderを組み合わせることで、高い並行読み取り性能と安全な書き込みを両立する実装とした。

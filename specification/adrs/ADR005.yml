@@ -6,10 +6,11 @@ header: |
   エグゼキュータのライフサイクル管理
 level: 1.4
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: Sy1YmbXOa_Cv3kVHwWdgbU8OnP90Ok8a6c-uJxztbZs=
+reviewed: kTu1cgh1SdlegLoBwLvfSXF1mrqO5GdpLm-nR8o_BC4=
 status: proposed
 text: |
   # インスタンスの所有権と弱参照によるエグゼキュータのライフサイクル管理

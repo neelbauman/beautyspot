@@ -6,10 +6,11 @@ header: |
   Strict Scoping for Imperative Execution (Runtime Guard)
 level: 1.14
 links:
+- ARCH001: njFV9W_NXjx3dMCDMAVXf0g99DYN8tKwPHU5nP1tFhA=
 - REQ001: 06OUEtR_P_Ao75pk04k0_gee2X4JLNEDpL76-c2iGgQ=
 normative: true
 ref: ''
-reviewed: 9i4S46xEzlFAsOn-4R1hsxUSGeRTNHtW0JXUJssqJLI=
+reviewed: 6wv9V1n4Inw8zxrYf11igH7uzetDO9c7Rm1Lu_cV7E8=
 status: accepted
 text: |
   # 命令型実行のための厳密なスコープ管理（ランタイムガード）

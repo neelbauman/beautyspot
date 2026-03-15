@@ -6,10 +6,11 @@ header: |
   GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略
 level: 1.36
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: T-XEpDWHmuj82klpVz_yegu7FsmY1LO4dXqacpdcF8s=
+reviewed: 8z80mQCIVu1u_9ntQmwFjfmd2Ur0hwg_wvy6MxliJ8s=
 status: accepted
 text: |
   # GC時のデータロスト防止とバックグラウンドループのシャットダウン戦略

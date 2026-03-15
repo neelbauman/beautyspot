@@ -6,10 +6,11 @@ header: |
   ガベージコレクション時のバックグラウンドループシャットダウン戦略
 level: 1.46
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: WyjiySLmTrDHH50AB6ENzudV2BgITLy0Pcbdm98L9uw=
+reviewed: CIarSgn9_1r7-SEajNRQSdEXD0UPKTKg0P3A47xtQMs=
 status: proposed
 text: |
   # ガベージコレクション時のバックグラウンドループシャットダウン戦略

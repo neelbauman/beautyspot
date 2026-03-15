@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: Factory function and dependency injection
+    Scenario: Initializing a Spot instance
+      Given configuration parameters like name and storage_path
+      When the Spot factory function is called
+      Then it automatically resolves paths, initializes dependencies, and returns a usable Spot instance
 groups:
 - DI
 header: |
@@ -46,9 +52,7 @@ text: |
   ## エッジケース
 
   - **グローバルシングルトン**: 同じ `name` で複数回呼び出した場合も、原則として新しいインスタンスを返すが、DBファイルへの接続は共有される（SQLiteのWALモードを活用）。
-gherkin: |
-  Feature: Factory function and dependency injection
-    Scenario: Initializing a Spot instance
-      Given configuration parameters like name and storage_path
-      When the Spot factory function is called
-      Then it automatically resolves paths, initializes dependencies, and returns a usable Spot instance
+
+  ## 設計判断
+
+  Spotクラスの初期化において、DIコンテナとして機能するファクトリを提供し、ユーザーが複雑なコンポーネント構成を意識することなく、シンプルにライブラリを利用開始できるようにするため。

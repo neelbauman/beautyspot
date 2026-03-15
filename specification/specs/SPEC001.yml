@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: mark decorator
+    Scenario: Applying the decorator to a function caches its result
+      Given a target function to be cached
+      When the function is decorated with @spot.mark
+      Then subsequent calls with the same arguments return the cached result instead of executing the function
 groups:
 - CACHE
 header: |
@@ -67,9 +73,7 @@ text: |
 
   - ラップされた関数の `__name__`, `__doc__` は `functools.wraps` によって保持される
   - `@mark` (括弧なし) と `@mark()` (括弧あり) の両方の記法をサポートする
-gherkin: |
-  Feature: mark decorator
-    Scenario: Applying the decorator to a function caches its result
-      Given a target function to be cached
-      When the function is decorated with @spot.mark
-      Then subsequent calls with the same arguments return the cached result instead of executing the function
+
+  ## 設計判断
+
+  ユーザーが既存の関数に最小限の変更（デコレータの追加のみ）で強力なキャッシュやレート制限機能を適用できるようにするため。関数のメタデータ保持や同期・非同期の透過的な切り替えにより、開発者体験を最大化する。

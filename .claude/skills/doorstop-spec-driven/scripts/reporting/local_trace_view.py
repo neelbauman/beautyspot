@@ -34,7 +34,7 @@ except ImportError:
     print("ERROR: doorstop がインストールされていません。", file=sys.stderr)
     sys.exit(1)
 
-from scripts.reporting.html_builder import (
+from .html_builder import (
     h,
     get_groups,
     get_ref,

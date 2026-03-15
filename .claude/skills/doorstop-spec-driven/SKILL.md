@@ -82,7 +82,7 @@ uv run python <skill-path>/scripts/init_project.py <project-dir> --profile stand
 
 | ドキュメント | 内容 |
 |---|---|
-| `references/doorstop_reference.md` | Doorstop操作・属性・スクリプトリファレンス |
+| `references/doorstop_reference.md` | doorstop_ops.pyによるDoorstop操作・属性・スクリプトリファレンス |
 | `references/item_writing_guide.md` | アイテム記述テンプレート（REQ/SPEC/IMPL/TST） |
 | `references/diagram_and_image_guide.md` | 図表・画像・数式の挿入ガイド |
 | `references/scaling_strategy.md` | プロジェクト規模別の導入・運用ガイド |

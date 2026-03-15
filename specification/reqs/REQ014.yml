@@ -10,3 +10,7 @@ ref: ''
 reviewed: gCto4iruL8uD6YiboULbnWW45OVNp7dIfBmWLUGKz2g=
 text: |
   本ドキュメントは、Python関数キャッシュおよびレート制限ライブラリ『beautyspot』の要件を定義する。
+
+  ## 背景・動機
+
+  プロジェクト全体の要求事項を体系化し、設計と実装の指針となる要求の全容と境界（スコープ）を明確にするため。

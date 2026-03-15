@@ -6,10 +6,11 @@ header: |
   シリアライザのサブクラス解決向け境界付きLRUキャッシュ
 level: 1.38
 links:
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 - REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: Z2VHLLjb-llWXXBtWlG2lZpCTUVCLYOO2ZwRpLurARk=
+reviewed: h6FLMZjQ6pJhO1wJhsYX2hgJk7hsXjDO76KyIVG9b3Q=
 status: accepted
 text: |
   # シリアライザのサブクラス解決向け境界付きLRUキャッシュ

@@ -6,10 +6,11 @@ header: |
   メンテナンス操作のためのサービスレイヤー
 level: 1.22
 links:
+- ARCH010: fI3ChnJRbqIhdRSivmb1UxR5M9l1VFI4CmnTPt7dAKY=
 - REQ010: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
 normative: true
 ref: ''
-reviewed: wf17WAwS1n7W9Iyl6gUKlWtzlX1dfEfk3o093QknTWY=
+reviewed: rpj6uA0KDqeWoyNJpJ6odiVUJnb7Hl9r7DjNLCy9N-8=
 status: accepted
 text: |
   # メンテナンス操作のためのサービスレイヤー

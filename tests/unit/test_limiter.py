@@ -4,21 +4,21 @@ import pytest
 import time
 import threading
 from unittest.mock import patch
-from beautyspot.limiter import TokenBucket
+from beautyspot.limiter import Gcra
 
 
 def test_init_validation():
     """不正なTPM値の検出"""
     with pytest.raises(ValueError):
-        TokenBucket(0)
+        Gcra(0)
     with pytest.raises(ValueError):
-        TokenBucket(-100)
+        Gcra(-100)
 
 
 def test_max_cost_validation():
     """TPMを超えるコストのリクエストは即死させる"""
     # TPM=60 -> 最大コストも60
-    bucket = TokenBucket(60)
+    bucket = Gcra(60)
     with pytest.raises(ValueError):
         bucket._consume_reservation(61)
 
@@ -34,7 +34,7 @@ def test_gcra_actual_waiting():
         mock_time.return_value = 0.0
 
         # Patch内でインスタンス化 (self.tat = 0.0 になる)
-        bucket = TokenBucket(60)
+        bucket = Gcra(60)
 
         # 1. コスト3 (3秒分) のリクエスト
         # 待機なしで通るが、TAT（理論到達時刻）は 0.0 -> 3.0 に進む
@@ -63,7 +63,7 @@ def test_gcra_idle_reset_mocked():
     with patch("time.monotonic") as mock_time, patch("time.sleep") as mock_sleep:
         # T=0
         mock_time.return_value = 0.0
-        bucket = TokenBucket(60)  # 1 req / sec
+        bucket = Gcra(60)  # 1 req / sec
 
         bucket.consume(1)  # TAT -> 1.0
 
@@ -87,7 +87,7 @@ def test_gcra_idle_reset_mocked():
 
 def test_thread_safety():
     """マルチスレッドで同時に叩いても整合性が壊れないか"""
-    bucket = TokenBucket(60000)
+    bucket = Gcra(60000)
 
     def worker():
         for _ in range(100):
@@ -113,7 +113,7 @@ def test_cost_proportionality():
     """
     with patch("time.monotonic") as mock_time, patch("time.sleep") as mock_sleep:
         mock_time.return_value = 0.0
-        bucket = TokenBucket(60)
+        bucket = Gcra(60)
 
         # --- Case A: Heavy Task (Cost=10) ---
         # 実行: 即時実行されるが、TATは +10.0秒 進むはず
@@ -145,7 +145,7 @@ def test_fractional_cost():
     """
     with patch("time.monotonic") as mock_time, patch("time.sleep") as mock_sleep:
         mock_time.return_value = 0.0
-        bucket = TokenBucket(600)
+        bucket = Gcra(600)
 
         # Cost=5 -> 0.5秒分の負債
         bucket.consume(5)

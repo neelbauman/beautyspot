@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: Cache Hooks
+    Scenario: Triggering custom logic during cache lifecycle events
+      Given a cache operation (hit, miss, or pre-execute)
+      When the corresponding hook method is triggered
+      Then the registered hooks execute sequentially and thread-safely
 groups:
 - HOOK
 header: |
@@ -40,9 +46,7 @@ text: |
   ## エッジケース
 
   - **フックの順序**: `hooks=[h1, h2]` と指定した場合、`h1` -> `h2` の順で実行される。
-gherkin: |
-  Feature: Cache Hooks
-    Scenario: Triggering custom logic during cache lifecycle events
-      Given a cache operation (hit, miss, or pre-execute)
-      When the corresponding hook method is triggered
-      Then the registered hooks execute sequentially and thread-safely
+
+  ## 設計判断
+
+  キャッシュヒット時のログ出力や、LLMのトークン消費量の集計など、メインのビジネスロジックに手を加えずにカスタム処理を介入させるための、安全な拡張ポイント（フック）を提供するため。

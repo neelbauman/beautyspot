@@ -6,10 +6,11 @@ header: |
   実践的なCLIリファクタリングポリシー
 level: 1.26
 links:
+- ARCH011: MuEszjxI2CEtYDj9vnuASs-Y55-4Zf45GBu_6uBGI-I=
 - REQ011: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
 normative: true
 ref: ''
-reviewed: PmWvovKvPehs28-QTA55Rw_oxNp008v0MP5KjSqMj2w=
+reviewed: DISmVYRt65pfinXjY8Wp0kL-EDccW9gAtA6QWiDEa48=
 status: accepted
 text: |
   # 実践的なCLIリファクタリングポリシー

@@ -6,10 +6,11 @@ header: |
   デフォルトの依存性注入のためのファクトリ関数
 level: 1.25
 links:
+- ARCH012: hW3or0rWk3VR85KbFZLWVy86eEU4W4vrzC05CwTYy68=
 - REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
 normative: true
 ref: ''
-reviewed: pbW0_BfXToqqTidx4JQ7STzz2TqyaWYm6GmomdAPL_I=
+reviewed: 9iFqoRjgZQYApjfNmouPbRHrEaUTew-RbOI3ZSmCrnY=
 status: accepted
 text: |
   # デフォルトの依存性注入のためのファクトリ関数

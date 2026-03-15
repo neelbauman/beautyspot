@@ -6,10 +6,11 @@ header: |
   データベースの依存性の注入と抽象化
 level: 1.8
 links:
+- ARCH012: hW3or0rWk3VR85KbFZLWVy86eEU4W4vrzC05CwTYy68=
 - REQ012: P4XTpsGbx526S9Pqi4KlGuEXCnwq--i4Y_CD7cK5BQA=
 normative: true
 ref: ''
-reviewed: q0aOfQYH5uPElMsn9r_iWV1qbCvVDsA_e_8BBsoMJT8=
+reviewed: 7KXIyWRUtkBWYVg1_DodEaDpW9NqOc1Gt4dGhQeaDiE=
 status: accepted
 text: |
   # データベースの依存性の注入と抽象化

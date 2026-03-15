@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: Storage Policy
+    Scenario: Deciding whether to save data in DB or Blob storage
+      Given a configured StoragePolicyProtocol (e.g., ThresholdStoragePolicy)
+      When data is evaluated for saving
+      Then the policy returns True if the data should be saved as a blob based on size or rules
 groups:
 - STORE
 header: |
@@ -40,9 +46,7 @@ text: |
 
   - **ゼロバイト**: 空のデータに対する挙動は各ポリシーの閾値設定に依存する（通常はDB保存）。
   - **閾値ちょうどのサイズ**: `len(data) > threshold` のため、閾値と等しい場合はDB保存となる。
-gherkin: |
-  Feature: Storage Policy
-    Scenario: Deciding whether to save data in DB or Blob storage
-      Given a configured StoragePolicyProtocol (e.g., ThresholdStoragePolicy)
-      When data is evaluated for saving
-      Then the policy returns True if the data should be saved as a blob based on size or rules
+
+  ## 設計判断
+
+  パフォーマンスとストレージ容量のトレードオフを最適化するため。小さなデータはDBに直接保存してI/Oを減らし、大きなデータはBlobストレージにオフロードする閾値判定の仕組みを定義した。

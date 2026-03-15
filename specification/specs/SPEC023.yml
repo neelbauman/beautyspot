@@ -1,15 +1,21 @@
 active: true
 derived: false
+gherkin: |
+  Feature: Thundering Herd Protection
+    Scenario: Preventing multiple simultaneous executions for the same cache key
+      Given multiple concurrent requests for the same missing cache key
+      When they enter the herd_sync or herd_async context
+      Then only the first request executes the function while others wait for its result
 groups:
 - HERD
 header: |
   Thundering Herd Protection
 level: 2.23
 links:
-- ARCH013: 7zKYsJiNUWIE5G_TbmIpRMEMc9zqUML8JCdzM6SjuzM=  # pragma: allowlist secret
+- ARCH013: 7zKYsJiNUWIE5G_TbmIpRMEMc9zqUML8JCdzM6SjuzM=
 normative: true
 ref: ''
-reviewed: Cpckhjgx4C7SFoPZ-EybMgaPuImFM5r6QqB5FwXvBQ0=  # pragma: allowlist secret
+reviewed: Cpckhjgx4C7SFoPZ-EybMgaPuImFM5r6QqB5FwXvBQ0=
 text: |
   ## インターフェース
 
@@ -98,9 +104,7 @@ text: |
   ## エッジケース
 
   - **非同期混在**: 同一キーに対して同期実行と非同期実行が混在する場合も、スレッドセーフなロックにより一つの実行に絞り込まれる。
-gherkin: |
-  Feature: Thundering Herd Protection
-    Scenario: Preventing multiple simultaneous executions for the same cache key
-      Given multiple concurrent requests for the same missing cache key
-      When they enter the herd_sync or herd_async context
-      Then only the first request executes the function while others wait for its result
+
+  ## 設計判断
+
+  キャッシュミスの際に、複数のスレッド/プロセスが同時に重い関数を実行してしまうのを防ぎ、最初の1つの実行結果を他の要求にも共有させることで、システムの過負荷を回避するため。

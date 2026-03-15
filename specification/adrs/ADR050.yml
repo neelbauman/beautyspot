@@ -6,10 +6,11 @@ header: |
   データベースのライフサイクル管理の呼び出し元への委譲
 level: 1.49
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: pGNn1HsRuuSbgrxdWv_2yUoWBe8y3hfWyI5-zacHo3Q=
+reviewed: KS0MeruQg68RA9XDjpAAR9AkWvpDZr0F7v2I-_zAPlE=
 status: accepted
 text: |
   # データベースのライフサイクル管理の呼び出し元への委譲

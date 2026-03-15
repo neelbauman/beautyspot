@@ -1,5 +1,11 @@
 active: true
 derived: false
+gherkin: |
+  Feature: save_sync and flush operations
+    Scenario: Managing background save tasks
+      Given a background save operation in progress
+      When flush is called or the Spot context exits
+      Then it waits until all pending in-flight tasks are completed or a timeout occurs
 groups:
 - BGIO
 header: |
@@ -45,9 +51,7 @@ text: |
   ## エッジケース
 
   - **コンテキスト終了**: `with spot:` 終了時に自動的に `flush` が呼ばれ、プロセス終了前のデータ保存を確実にする。
-gherkin: |
-  Feature: save_sync and flush operations
-    Scenario: Managing background save tasks
-      Given a background save operation in progress
-      When flush is called or the Spot context exits
-      Then it waits until all pending in-flight tasks are completed or a timeout occurs
+
+  ## 設計判断
+
+  スクリプトの終了時や、確実にキャッシュを永続化してから次の処理に進みたいケース（バッチ処理等）において、バックグラウンドの非同期保存タスクの完了を待機し、データロストを防ぐ制御手段を提供するため。

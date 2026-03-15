@@ -6,10 +6,11 @@ header: |
   LocalStorageにおける絶対パスサポートの廃止
 level: 1.43
 links:
+- ARCH004: gR_7wx5EpD_LA3s4JJTJmD1-WOKDjlo563zos3pn-aE=
 - REQ004: MAkJGJurzARw41s-hmBMRt7LcMDuyoFDRgaAIUmIabE=
 normative: true
 ref: ''
-reviewed: dcByj09M2ERhWlTbNJoo1Yh_iuev7TtH8CbUgmUREGY=
+reviewed: KGkVqhgX_YxLR-64uCBwbdin12hs6iKuKDiWZ_mKiKs=
 status: accepted
 text: |
   # LocalStorageにおける絶対パスサポートの廃止

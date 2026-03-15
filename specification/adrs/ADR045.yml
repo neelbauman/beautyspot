@@ -6,10 +6,11 @@ header: |
   明示的なDBキューフラッシュの導入
 level: 1.44
 links:
+- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
 - REQ003: LqZhQpXoQqgtPpH_Y5OeHhk5km5jT5y5F4tO2Snt64g=
 normative: true
 ref: ''
-reviewed: xVn37yxMiCz-iZgmv5FyQexIOT_mM674aN2LNZxbWo0=
+reviewed: fGlD6KApfyrPussRoOnmb81OrgUtbvulrL-9AQe6i9M=
 status: accepted
 text: |
   # 明示的なDBキューフラッシュの導入

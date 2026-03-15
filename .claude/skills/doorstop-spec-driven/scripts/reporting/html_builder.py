@@ -23,85 +23,21 @@ except ImportError:
 # Alias
 h = _html.escape
 
+from ..core._common import (  # noqa: E402
+    get_references_display,
+    is_derived,
+    find_item,
+    get_groups as _get_groups,
+)
+
 
 # ---------------------------------------------------------------------------
 # Item attribute helpers
 # ---------------------------------------------------------------------------
 
 def get_groups(item):
-    try:
-        g = item.get("groups")
-        if isinstance(g, list):
-            return g if g else ["(未分類)"]
-        elif isinstance(g, str) and g:
-            return [s.strip() for s in g.split(",") if s.strip()]
-        
-        return ["(未分類)"]
-    except (AttributeError, KeyError):
-        return ["(未分類)"]
-
-
-def get_ref(item):
-    try:
-        return item.ref or ""
-    except (AttributeError, KeyError):
-        return ""
-
-
-def get_references(item):
-    """references 属性（辞書型リスト）を取得する。なければ ref からフォールバック。"""
-    try:
-        refs = item.get("references")
-        if refs and isinstance(refs, list):
-            return refs
-    except (AttributeError, KeyError):
-        pass
-    ref = get_ref(item)
-    if ref:
-        return [{"path": ref, "type": "file"}]
-    return []
-
-
-def get_references_display(item):
-    """references を表示用文字列にする。"""
-    refs = get_references(item)
-    if not refs:
-        return ""
-    parts = []
-    for r in refs:
-        path = r.get("path", "")
-        rtype = r.get("type", "")
-        if rtype and rtype != "file":
-            parts.append(f"{path} ({rtype})")
-        else:
-            parts.append(path)
-    return ", ".join(parts)
-
-
-def is_derived(item):
-    try:
-        return bool(item.get("derived"))
-    except (AttributeError, KeyError):
-        return False
-
-
-def is_normative(item):
-    try:
-        val = item.get("normative")
-        if val is None:
-            return True
-        return str(val).lower() != "false"
-    except (AttributeError, KeyError):
-        return True
-
-
-def find_item(tree, uid_str):
-    for doc in tree:
-        try:
-            return doc.find_item(uid_str)
-        except Exception:
-            continue
-    return None
+    """グループ属性を取得する。未設定時は ["(未分類)"] を返す。"""
+    return _get_groups(item, default=["(未分類)"])
 
 
 # ---------------------------------------------------------------------------

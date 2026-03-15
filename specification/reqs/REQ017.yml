@@ -10,3 +10,7 @@ ref: ''
 reviewed: qpqTM3iultPt9B5stVZX8ezpxCyhnMFOAPSiM5ilh9Y=
 text: |
   本章ではシステムが提供すべき具体的な機能要件について定義する。
+
+  ## 背景・動機
+
+  システムが満たすべき具体的な振る舞いや機能を明確にし、設計やテストの入力とするため。

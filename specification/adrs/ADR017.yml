@@ -6,10 +6,11 @@ header: |
   ネストされたMsgpackプロトコル
 level: 1.16
 links:
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 - REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: rD5Jq7SW92TI-8OOqcf5h_jpk5Yf6X-AZent-_G8j6g=
+reviewed: 9bG8zxWeR3gfwK_UN6x3woRH3McmnpjxNWrI3cFafV4=
 status: accepted
 text: |
   title: Nested Msgpack Protocol via Serializer Wrapping

@@ -6,10 +6,11 @@ header: |
   このADRのタイトル
 level: 1.0
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: oCzw19foVdQLxjnk8lZfP1wV3we5qd9h3-sSYOg81KE=
+reviewed: 7l8CntO_oLcUgyi6X_sD-C9pntnae5JAdBe1rMigdE4=
 status: accepted
 text: |
   # インスタンスの所有権と弱参照によるエグゼキュータのライフサイクル管理

@@ -6,10 +6,11 @@ header: |
   再帰的なストレージクリーンアップとゾンビプロジェクトの回収
 level: 1.28
 links:
+- ARCH010: fI3ChnJRbqIhdRSivmb1UxR5M9l1VFI4CmnTPt7dAKY=
 - REQ010: Zx8DGaEjJ3NxeBVjpah5jdit-c1h1rfI-n6DmY7_zG0=
 normative: true
 ref: ''
-reviewed: tKlTyxNtyJ3G-_v5wHIP3WjdfQY2E-DPTWj_pcQFTSE=
+reviewed: oVOlkZ3CcijquciUEobtwl1HVVC9uvpoK4WJmCk_imA=
 status: accepted
 text: |
   # 再帰的なストレージクリーンアップとゾンビプロジェクトの回収

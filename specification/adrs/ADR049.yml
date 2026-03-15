@@ -6,10 +6,11 @@ header: |
   実行中タスクの強参照セットによる追跡
 level: 1.48
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: SH62hlEDSp0f9-YPttF8LlLQoUfaWvb-0CBfMCjgv5M=
+reviewed: jPMSTPLQFiDj1oLJEOMPrVO52kbaRlPJevFQkGKaUmQ=
 status: accepted
 text: |
   # 実行中タスクの強参照セットによる追跡

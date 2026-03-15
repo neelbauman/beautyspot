@@ -6,10 +6,11 @@ header: |
   シリアライザ向けスレッドセーフなLRUキャッシュ
 level: 1.41
 links:
+- ARCH005: f7IpeWL9LR7SQ3LP4FNILP4SUho1yMVkYhHP8_dKm8Y=
 - REQ005: iMDbh51FT-Eu8XByvRDwGCzvXD7iYGh6c5AwH9v0RxA=
 normative: true
 ref: ''
-reviewed: emUoP1eM9NWfDsajwiduhgLqqwrObmLwW5NPInyR53s=
+reviewed: WKDn6yUjeO-MjeyyutpeSBJAEU7U28fGIAn-W_ydnJU=
 status: accepted
 text: |
   # シリアライザ向けスレッドセーフなLRUキャッシュ

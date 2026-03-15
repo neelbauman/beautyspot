@@ -13,7 +13,7 @@ class LimiterProtocol(Protocol):
     async def consume_async(self, cost: int) -> None: ...
 
 
-class TokenBucket(LimiterProtocol):
+class Gcra(LimiterProtocol):
     """
     A smooth rate limiter based on the GCRA (Generic Cell Rate Algorithm).
 

@@ -6,10 +6,11 @@ header: |
   非同期保存処理におけるエラー可視化とコンテキストの導入
 level: 1.32
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: ExAfxa62LmoKWNi5yYCEmvVWBwWGOcADuu0U_P_wIzc=
+reviewed: Qwvd3qLK3Si75OdPF4bwy4Z2YveAfTy3p-oFemm9qBs=
 status: accepted
 text: |
   # 非同期保存処理におけるエラー可視化とコンテキストの導入

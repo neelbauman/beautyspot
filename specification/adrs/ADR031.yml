@@ -6,10 +6,11 @@ header: |
   リミッターの依存性の注入
 level: '1.30'
 links:
+- ARCH008: 3P_GwS0JFM40QovY318yJfHonSHWqQiSUXfnIrPXI7w=
 - REQ008: JwW37tcsNK-kOTVFLlc_fNR7sIDjO4ES68i3H_55w20=
 normative: true
 ref: ''
-reviewed: WVVT-KzEvxh72qn8FkBvGmD3Yr2CXXnV-xAYIJlkrx4=
+reviewed: c5nVE1r5AdJABGXIf_hB_b9b5wcUe25giFU5oA2HnBo=
 status: accepted
 text: |
   # リミッターの依存性の注入

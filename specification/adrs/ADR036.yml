@@ -6,10 +6,11 @@ header: |
   バックグラウンドループのライフサイクル管理とGC時のデータロスト対策
 level: 1.35
 links:
+- ARCH006: NQNGQUULw16h1cxj2M5I4pgAr3bNlRze6AMKu_rdo0s=
 - REQ006: 3PN_I3D9BWCwGe4h19vSOVkDSeWNY3sM_fbWg0rwOfk=
 normative: true
 ref: ''
-reviewed: kxgm5y-AbUwOiQJTCsw_EUFO9JLrXHxm3nylbUv9f4g=
+reviewed: LnkwPCvWt6CLTYQ-5b-yhwWLadWSQmO-P00_eAce16M=
 status: accepted
 text: |
   # バックグラウンドループのライフサイクル管理とGC時のデータロスト対策

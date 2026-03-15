@@ -6,10 +6,11 @@ header: |
   CLIのスコープ定義と明示的なストレージリンク
 level: 1.27
 links:
+- ARCH011: MuEszjxI2CEtYDj9vnuASs-Y55-4Zf45GBu_6uBGI-I=
 - REQ011: OVqOTj0C8wPg2sT3ZDzQbWyXOFCZ4tvRuEyYZRp0O7E=
 normative: true
 ref: ''
-reviewed: ltVargzPw_-Fzo9jxscyvlC_1z5lHTISfCkzEsXlduI=
+reviewed: UgZ1gKPtCHImg4xjvTjXrhqmtcicbuk6VVcKQP-IGT8=
 status: accepted
 text: |
   # CLIのスコープ定義と明示的なストレージリンク
