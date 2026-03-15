@@ -1,0 +1,46 @@
+active: true
+derived: false
+groups:
+- DB
+header: |
+  SQLiteTaskDB のスキーマ初期化を RAII パターンに移行
+level: 1.53
+links:
+- IMPL007: cqTLhNYDuRM2goBu4PG-UX672EaJdjB6Nvo4aPmq2MU=
+- SPEC007: es0Bc6_dvcMkrozDne3CygshVPyufN13SRNdqOivILc=
+normative: true
+ref: ''
+reviewed: 1niPYZtgHvNxr02CISYc3RNhhtciIQ8q7L2tjflZfx4=
+status: accepted
+text: |
+  ## コンテキスト（背景）
+
+  `core.Spot.__init__` が `self.cache.db.init_schema()` を呼び出しており、以下の問題があった：
+
+  1. **Law of Demeter 違反**: `Spot` が `cache` を経由して `db` の内部メソッドを呼び出す2段階アクセス
+  2. **二重管理**: `maintenance.py` の `from_path()` でも防御的に `db.init_schema()` を呼び出しており、呼び忘れ対策コードが増殖していた
+  3. **構築後に未完成なオブジェクト**: `SQLiteTaskDB` のインスタンスは `init_schema()` を誰かが呼ぶまで使用不可能な状態だった
+
+  外部から受けたリファクタリング提案（ファクトリへの移動、Lazy初期化、オプション引数等）を検討した結果、根本原因は `SQLiteTaskDB` が構築後にすぐ使えない設計にあると判断した。
+
+  ## 決定
+
+  `SQLiteTaskDB.__init__` の末尾で `self.init_schema()` を呼び出し、RAII パターンに従いコンストラクタ完了時点でインスタンスが即座に使用可能な状態とする。
+
+  これに伴い、以下の明示的な `init_schema()` 呼び出しを削除した：
+  - `core.Spot.__init__` の `self.cache.db.init_schema()`
+  - `maintenance.py` の `db.init_schema()` + try/except による graceful degradation
+
+  `init_schema()` メソッド自体はプロトコル (`TaskDBCore`) に残し、冪等性を保証する。カスタム DB 実装が独自のタイミングで呼び出すことは引き続き可能。
+
+  ## 結果（トレードオフ）
+
+  - **メリット**: コンストラクタ完了 = 使用可能という明快な契約。呼び出し元が `init_schema()` を忘れる可能性を排除。`core.Spot` からの Law of Demeter 違反を解消
+  - **デメリット**: `maintenance.py` にあったマイグレーション失敗時の graceful degradation（warning を出して既存スキーマで続行）が不可能になる。ただし検証の結果、このパターンで意味のある回復ができるケースはほぼ存在しない（テーブル不在時は全操作が失敗、ALTER TABLE 失敗時は深刻なエラー）
+
+  ## 棄却された代替案
+
+  - **ファクトリ (`bs.Spot()`) に移動**: 既存ファクトリに1行追加するだけで済むが、`core.Spot` を直接インスタンス化する経路でスキーマ未初期化になる退行リスクがある。根本原因（DB が構築後に未完成）を解決しない
+  - **CacheManager.__init__ に移動**: Law of Demeter 違反は解消するが、IO in `__init__` の問題を1層上に移しただけ。`SQLiteTaskDB.__init__` がすでに重い（スレッド起動、ディレクトリ作成）ため、DB 自身が初期化を完了する方が一貫性がある
+  - **Lazy 初期化 (ensure_schema)**: 全 DB アクセスパスにチェックが入り複雑化する。ROI が低い
+  - **オプション引数 (`init_schema: bool = True`)**: 暫定策としては有効だが、`init_schema=False` が増殖するリスクがあり根本解決にならない

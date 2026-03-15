@@ -10,7 +10,7 @@ links: []
 normative: true
 priority: high
 ref: ''
-reviewed: -fKZXaJcRIvlKc33dQlwqZp5NX4u9a8fhsbFwR9tK0k=
+reviewed: yjIpn6rpCQQ_Nic644LgFdNGSLw92Pz1v_3uVAE1L0o=
 text: |
   データベース操作が指定されたタイムアウト時間内に完了しない場合、呼び出し元を無期限にブロックせずにエラーを返し、システムの可用性を維持すること。特にSQLiteの書き込みスレッドがスタックした場合でも、フェイルファストによって制御を戻せること。
 

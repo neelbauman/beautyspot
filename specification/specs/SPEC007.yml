@@ -12,10 +12,10 @@ header: |
   SQLiteTaskDB
 level: 2.7
 links:
-- ARCH003: hztRUPwAahIBkVhPgOSP_qIfRnh6FSkrUlxLmmzOQg8=
+- ARCH003: 2KJqTKqCFN5mQa7-RMJPnJyDRcoDbYEP3VEEldkVXMY=
 normative: true
 ref: ''
-reviewed: sJMHQsYaheuLAovC4gF8A1B8uCMnle_VZXvspVZkWwg=
+reviewed: 88A_UWCTo2UywsFiVDo9S2kXZa3mKn9tE9phw-M4tCY=
 text: |
   ## インターフェース
 
@@ -35,7 +35,9 @@ text: |
   - 読み取りはスレッドローカルな接続を使用し、`PRAGMA query_only = ON` 状態で並行して実行される。
 
   ### スキーマ管理
-  - 起動時に `tasks` テーブルの存在を確認し、必要に応じて自動的に `ALTER TABLE` によるカラム追加（マイグレーション）を行う。
+  - コンストラクタ (`__init__`) でスキーマ初期化を完了し、構築後のインスタンスは即座に使用可能な状態とする（RAII）。
+  - `init_schema()` は冪等であり、複数回呼び出しても安全である。
+  - `tasks` テーブルの存在を確認し、必要に応じて自動的に `ALTER TABLE` によるカラム追加（マイグレーション）を行う。
 
   ### タイムアウトとフェイルファスト
   - 全ての書き込み操作は `timeout` 秒以内に完了する必要がある。
