@@ -23,12 +23,29 @@ except ImportError:
 # Alias
 h = _html.escape
 
-from ..core._common import (  # noqa: E402
-    get_references_display,
-    is_derived,
-    find_item,
-    get_groups as _get_groups,
-)
+try:  # noqa: E402
+    from ..core._common import (
+        get_ref as get_ref,
+        get_references as get_references,
+        get_references_display,
+        is_derived,
+        is_normative as is_normative,
+        find_item,
+        get_groups as _get_groups,
+    )
+except ImportError:
+    # publish_docs.py 等からスタンドアロン実行時、reporting がトップレベル
+    # パッケージとなるため相対インポートが失敗する。scripts/ が sys.path 上に
+    # ある前提で絶対インポートにフォールバックする。
+    from core._common import (  # type: ignore[no-redef]
+        get_ref as get_ref,
+        get_references as get_references,
+        get_references_display,
+        is_derived,
+        is_normative as is_normative,
+        find_item,
+        get_groups as _get_groups,
+    )
 
 
 # ---------------------------------------------------------------------------

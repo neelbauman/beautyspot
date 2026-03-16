@@ -20,14 +20,14 @@ except ImportError:
     print("ERROR: doorstop is not installed.", file=sys.stderr)
     sys.exit(1)
 
-from reporting.html_builder import (
+from reporting import (
     h,
     get_groups,
     get_references,
     is_normative,
     render_markdown,
     find_item,
-    build_children_map
+    build_children_map,
 )
 
 def natural_sort_key(s):
