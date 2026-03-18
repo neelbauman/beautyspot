@@ -107,6 +107,9 @@ beautyspot prune .beautyspot/my_app.db --days 30 --func package_a.tasks.preproce
 `beautyspot` は、`ThreadPoolExecutor` などを用いた並列タスク実行をネイティブにサポートしています。
 複数のスレッドから同じフックインスタンスを共有してメトリクス（進捗、トークン数など）を収集する場合、**`ThreadSafeHookBase`** を使用することで、競合状態（Race Condition）を防ぎつつ安全に集計を行えます。
 
+!!! note "内部ロック機構 (`threading.RLock`)"
+    `ThreadSafeHookBase` は内部で再入可能ロック (`RLock`) を使用しています。これにより、フック内で `super().on_cache_hit(context)` などを呼び出してもデッドロックが発生せず、安全に派生クラスを実装できます。
+
 ### Thread-Safe な集計パターン
 
 以下の例では、5つのスレッドで並列にタスクを実行し、共通のカウンタを安全に更新しています。

@@ -55,7 +55,7 @@ $ beautyspot gc --dry-run
 
 **推奨:** `cron` 等で定期実行することで、宣言した保持期間（Retention）に従ってディスク容量が自動的に管理されます。
 
-### 2. 古いタスクの手動削除 (`prune`)
+### 2. 古いタスクの手動削除 (`prune` / `clear`)
 
 `prune` は、ポリシーに関係なく、**「古いデータを一括で消したい」** 場合に使用します。ディスク容量が逼迫した場合の緊急対応などに適しています。
 
@@ -66,7 +66,20 @@ $ beautyspot prune .beautyspot/project.db --days 30
 
 ```
 
-* **動作:** 指定された日数より古いレコードを削除し、関連するBlobファイルも削除します。
+* **動作:** 指定された日数より古いレコードを削除します。
+* **孤立ファイルの削除**: デフォルトで `--clean-blobs` が有効になっており、関連するBlobファイルも削除されます。削除したくない場合は `--no-clean-blobs` を指定します。
+
+また、日数に関係なく**キャッシュ全体（または特定関数のみ）をすべてクリア**したい場合は `clear` コマンドを使用します。
+
+```bash
+# キャッシュ全体をクリア
+$ beautyspot clear .beautyspot/project.db
+
+# 特定関数のキャッシュのみクリア
+$ beautyspot clear .beautyspot/project.db --func my_function
+
+```
+（こちらもデフォルトで `--clean-blobs` が有効です。）
 
 !!! note "関数名フィルタについて"
     `--func` などの関数名フィルタは、**完全修飾名（`module.qualname`）を優先**してマッチします。
