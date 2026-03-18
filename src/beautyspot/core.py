@@ -662,8 +662,7 @@ class Spot:
                 self._submit_background_save(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_save_error is None:
-                    raise
+                raise
 
     async def _persist_result_async(self, save_sync: bool, save_kwargs: dict) -> None:
         if save_sync:
@@ -689,8 +688,7 @@ class Spot:
                 self._submit_background_save(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_save_error is None:
-                    raise
+                raise
 
     def _execute_sync(
         self,
