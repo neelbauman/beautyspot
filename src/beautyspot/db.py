@@ -265,9 +265,17 @@ class SQLiteTaskDB(TaskDBMaintenable, Flushable, Shutdownable):
     """
 
     def __init__(self, db_path: str | Path | None = None, timeout: float = 30.0):
-        self.db_path = (
-            Path(db_path).resolve() if db_path else Path(f".beautyspot/{hash(self)}.db")
-        )
+        if db_path is not None:
+            self.db_path = Path(db_path).resolve()
+        else:
+            # hash(self) は PYTHONHASHSEED に依存し実行ごとに変わるため、
+            # 決定的なデフォルトパスを使用する。
+            self.db_path = Path(".beautyspot/default.db").resolve()
+            logger.warning(
+                "db_path not specified; defaulting to '%s'. "
+                "Use bs.Spot(name=...) for automatic path management.",
+                self.db_path,
+            )
         self._ensure_cache_dir(self.db_path.parent)
         self.timeout = timeout
         self._local = threading.local()

@@ -82,11 +82,11 @@ class _BackgroundLoop:
     明示的なタスク追跡とスレッドロックにより、シャットダウン時の競合状態を完全に排除します。
 
     Args:
-        drain_timeout (float, optional): シャットダウン時のタスク完了待機タイムアウト（秒）。デフォルトは5.0。
+        flush_timeout (float, optional): シャットダウン時のタスク完了待機タイムアウト（秒）。デフォルトは5.0。
     """
 
-    def __init__(self, drain_timeout: float = 5.0):
-        self._drain_timeout = drain_timeout
+    def __init__(self, flush_timeout: float = 5.0):
+        self._flush_timeout = flush_timeout
 
         # メインスレッドで loop オブジェクトを生成
         self._loop = asyncio.new_event_loop()
@@ -187,11 +187,11 @@ class _BackgroundLoop:
         if save_sync:
             # アクティブなタスクが残っている場合は、最後の _task_wrapper が stop() を呼ぶ
             # タイムアウト付きでスレッドの終了（＝ループの停止）を待つ
-            self._thread.join(timeout=self._drain_timeout)
+            self._thread.join(timeout=self._flush_timeout)
 
             if self._thread.is_alive():
                 logger.warning(
-                    f"BeautySpot background loop did not finish within {self._drain_timeout}s. "
+                    f"BeautySpot background loop did not finish within {self._flush_timeout}s. "
                     "Pending IO tasks have been abruptly terminated."
                 )
 
@@ -214,10 +214,10 @@ class Spot:
         cache (CacheManager): キャッシュマネージャーのインスタンス。
         limiter (LimiterProtocol): レートリミッターのインスタンス。
         save_sync (bool, optional): キャッシュ保存のデフォルト同期動作。デフォルトはTrue。
-        eviction_rate (float, optional): キャッシュの自動破棄を実行する確率（0.0〜1.0）。デフォルトは0.0。
-        drain_timeout (float, optional): バックグラウンドタスク完了待機のタイムアウト（秒）。デフォルトは5.0。
-        drain_poll_interval (float, optional): バックグラウンドタスク待機時のポーリング間隔（秒）。デフォルトは0.5。
-        on_background_error (Optional[Callable[[Exception, SaveErrorContext], None]], optional): バックグラウンド保存時のエラーハンドラ。
+        gc_probability (float, optional): キャッシュの自動GCを実行する確率（0.0〜1.0）。デフォルトは0.0。
+        flush_timeout (float, optional): バックグラウンドタスク完了待機のタイムアウト（秒）。デフォルトは5.0。
+        flush_poll_interval (float, optional): バックグラウンドタスク待機時のポーリング間隔（秒）。デフォルトは0.5。
+        on_save_error (Optional[Callable[[Exception, SaveErrorContext], None]], optional): キャッシュ保存時のエラーハンドラ（同期・非同期問わず発火）。
     """
 
     def __init__(
@@ -226,23 +226,24 @@ class Spot:
         cache: CacheManager,
         limiter: LimiterProtocol,
         save_sync: bool = True,
-        eviction_rate: float = 0.0,
-        drain_timeout: float = 5.0,
-        drain_poll_interval: float = 0.5,
-        on_background_error: Optional[
+        gc_probability: float = 0.0,
+        flush_timeout: float = 5.0,
+        flush_poll_interval: float = 0.5,
+        on_save_error: Optional[
             Callable[[Exception | BaseException, SaveErrorContext], None]
         ] = None,
+        _owns_db: bool = False,
     ) -> None:
         self.name = name
-        if not (0.0 <= eviction_rate <= 1.0):
-            raise ValueError("eviction_rate must be between 0.0 and 1.0")
-        self.eviction_rate = eviction_rate
-        if drain_timeout <= 0:
-            raise ValueError("drain_timeout must be positive")
-        if drain_poll_interval <= 0:
-            raise ValueError("drain_poll_interval must be positive")
-        self._drain_timeout = drain_timeout
-        self._drain_poll_interval = drain_poll_interval
+        if not (0.0 <= gc_probability <= 1.0):
+            raise ValueError("gc_probability must be between 0.0 and 1.0")
+        self.gc_probability = gc_probability
+        if flush_timeout <= 0:
+            raise ValueError("flush_timeout must be positive")
+        if flush_poll_interval <= 0:
+            raise ValueError("flush_poll_interval must be positive")
+        self._flush_timeout = flush_timeout
+        self._flush_poll_interval = flush_poll_interval
 
         # --- コンポーネントの保持 ---
         self.cache = cache
@@ -250,7 +251,7 @@ class Spot:
 
         # --- オプション設定の適用 ---
         self._save_sync = save_sync
-        self.on_background_error = on_background_error
+        self.on_save_error = on_save_error
 
         # --- バックグラウンド IO 管理 ---
         self._bg_loop: _BackgroundLoop | None = None
@@ -259,7 +260,8 @@ class Spot:
 
         self._bg_init_lock = threading.Lock()
         self._shutdown_called = False
-        self._owns_db = False
+
+        self._owns_db = _owns_db
 
         self._active_futures: set = set()
         self._futures_lock = threading.Lock()
@@ -274,7 +276,7 @@ class Spot:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._drain_futures()
+        self.flush()
 
     def _track_future(self, future: Any):
         if future is None:
@@ -315,7 +317,7 @@ class Spot:
                 )
             if self._bg_loop is None or self._executor is None:
                 if self._bg_loop is None:
-                    self._bg_loop = _BackgroundLoop(drain_timeout=self._drain_timeout)
+                    self._bg_loop = _BackgroundLoop(flush_timeout=self._flush_timeout)
                 if self._executor is None:
                     self._executor = ThreadPoolExecutor()
                 if self._finalizer is None:
@@ -353,7 +355,7 @@ class Spot:
         if self._finalizer is not None and self._finalizer.alive:
             self._finalizer.detach()
         if save_sync:
-            self._drain_futures()
+            self.flush()
 
         if self._bg_loop is not None:
             self._bg_loop.stop(save_sync=save_sync)
@@ -365,9 +367,9 @@ class Spot:
         """バックグラウンドで実行中のすべての保存タスクとDBの書き込みの完了を待機する。
 
         Args:
-            timeout (Optional[float], optional): 待機する最大時間（秒）。指定しない場合は初期化時の `drain_timeout` が使用される。
+            timeout (Optional[float], optional): 待機する最大時間（秒）。指定しない場合は初期化時の `flush_timeout` が使用される。
         """
-        timeout_val = timeout if timeout is not None else self._drain_timeout
+        timeout_val = timeout if timeout is not None else self._flush_timeout
         deadline = time.monotonic() + timeout_val
 
         while True:
@@ -378,15 +380,12 @@ class Spot:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
-            wait_timeout = min(self._drain_poll_interval, remaining)
+            wait_timeout = min(self._flush_poll_interval, remaining)
             wait(snapshot, timeout=wait_timeout)
 
         db_remaining = deadline - time.monotonic()
         if db_remaining > 0 and isinstance(self.cache.db, Flushable):
             self.cache.db.flush(timeout=db_remaining)
-
-    def _drain_futures(self) -> None:
-        self.flush()
 
     def _get_func_identifier(self, func: Callable) -> str:
         module = getattr(func, "__module__", None) or func.__class__.__module__
@@ -394,9 +393,9 @@ class Spot:
         return f"{module}.{qualname}"
 
     def _trigger_auto_eviction(self) -> None:
-        if self.eviction_rate <= 0.0:
+        if self.gc_probability <= 0.0:
             return
-        if random.random() >= self.eviction_rate:
+        if random.random() >= self.gc_probability:
             return
 
         with self._eviction_guard_lock:
@@ -407,7 +406,7 @@ class Spot:
                 return
             self._eviction_running = True
 
-        logger.debug(f"Triggering auto-eviction (rate: {self.eviction_rate})")
+        logger.debug(f"Triggering auto-eviction (gc_probability: {self.gc_probability})")
 
         with self._futures_lock:
             pending_futures = list(self._active_futures)
@@ -431,7 +430,7 @@ class Spot:
                 if pending_futures:
                     await asyncio.wait(
                         [asyncio.wrap_future(f) for f in pending_futures],
-                        timeout=self._drain_timeout,
+                        timeout=self._flush_timeout,
                     )
                 await loop.run_in_executor(executor, _run_clean_safe)
 
@@ -441,7 +440,9 @@ class Spot:
                 future.add_done_callback(lambda f: _clear_eviction_flag())
             else:
                 _clear_eviction_flag()
-        except Exception:
+        except BaseException:
+            # KeyboardInterrupt 等でもフラグを確実にクリアし、
+            # 以降の eviction がスキップされ続けるのを防ぐ。
             _clear_eviction_flag()
 
     def _resolve_key_fn(
@@ -661,7 +662,7 @@ class Spot:
                 self._submit_background_save(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
+                if self.on_save_error is None:
                     raise
 
     async def _persist_result_async(self, save_sync: bool, save_kwargs: dict) -> None:
@@ -688,7 +689,7 @@ class Spot:
                 self._submit_background_save(**save_kwargs)
             except Exception as e:
                 self._handle_save_error(e, save_kwargs)
-                if self.on_background_error is None:
+                if self.on_save_error is None:
                     raise
 
     def _execute_sync(
@@ -938,12 +939,12 @@ class Spot:
             f"Cache save failed for '{save_kwargs.get('func_name')}': {err}",
             exc_info=True,
         )
-        if self.on_background_error:
+        if self.on_save_error:
             try:
                 import sys
 
                 res = save_kwargs.get("result")
-                self.on_background_error(
+                self.on_save_error(
                     err,
                     SaveErrorContext(
                         func_name=save_kwargs.get("func_name", "unknown"),
@@ -959,7 +960,7 @@ class Spot:
                 )
             except Exception:
                 logger.error(
-                    "Error occurred within the 'on_background_error' callback",
+                    "Error occurred within the 'on_save_error' callback",
                     exc_info=True,
                 )
 

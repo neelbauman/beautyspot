@@ -12,8 +12,8 @@ def test_auto_eviction_flag_cleared_on_future_cancel(tmp_path):
     イベントループのシャットダウン等によりキャンセルされた場合でも、
     確実に _eviction_running フラグがリセットされることを検証する。
     """
-    # 確実にエビクションがトリガーされるよう eviction_rate=1.0 に設定
-    spot = bs.Spot("test_app", eviction_rate=1.0)
+    # 確実にエビクションがトリガーされるよう gc_probability=1.0 に設定
+    spot = bs.Spot("test_app", gc_probability=1.0)
 
     # 実行前の状態: フラグはリセットされている
     assert not spot._eviction_running
@@ -50,7 +50,7 @@ def test_auto_eviction_flag_cleared_on_task_rejection(tmp_path):
     シャットダウン中などの理由で bg_loop.submit がタスクを拒否し
     None を返した場合に、直ちにフラグがリセットされることを検証する。
     """
-    spot = bs.Spot("test_app", eviction_rate=1.0)
+    spot = bs.Spot("test_app", gc_probability=1.0)
     bg_loop, _ = spot._ensure_bg_resources()
 
     # RuntimeWarning対策: コルーチンを閉じてから None を返す

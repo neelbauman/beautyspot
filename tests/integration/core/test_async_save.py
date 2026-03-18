@@ -75,10 +75,10 @@ def test_shutdown_waits_for_pending_tasks(tmp_path):
     assert df.iloc[0]["result_type"] == "FILE"
 
 
-def test_on_background_error_called_on_save_failure(mocker):
+def test_on_save_error_called_on_save_failure(mocker):
     """
     バックグラウンド保存 (save_sync=False) 中に cache.set が例外を投げた場合、
-    on_background_error コールバックが正しい引数で呼ばれることを検証する。
+    on_save_error コールバックが正しい引数で呼ばれることを検証する。
     """
     # Arrange: コールバックのモックを作成
     mock_callback = MagicMock()
@@ -87,7 +87,7 @@ def test_on_background_error_called_on_save_failure(mocker):
     spot = Spot(
         name="test_spot",
         save_sync=False,
-        on_background_error=mock_callback,
+        on_save_error=mock_callback,
     )
 
     # cache.set が意図的に例外を投げるようにモック化
@@ -115,9 +115,9 @@ def test_on_background_error_called_on_save_failure(mocker):
     assert passed_context.result_type == "int"
 
 
-def test_on_background_error_does_not_crash_thread(mocker, caplog):
+def test_on_save_error_does_not_crash_thread(mocker, caplog):
     """
-    on_background_error コールバック自体が例外を投げた場合でも、
+    on_save_error コールバック自体が例外を投げた場合でも、
     スレッドがクラッシュせずにエラーがログに記録されることを検証する。
     """
 
@@ -127,7 +127,7 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
     spot = Spot(
         name="test_spot_faulty",
         save_sync=False,
-        on_background_error=faulty_callback,
+        on_save_error=faulty_callback,
     )
 
     mocker.patch.object(spot.cache, "set", side_effect=RuntimeError("Save failed"))
@@ -141,13 +141,13 @@ def test_on_background_error_does_not_crash_thread(mocker, caplog):
     spot.shutdown(save_sync=True)
 
     # Assert
-    assert "Error occurred within the 'on_background_error' callback" in caplog.text
+    assert "Error occurred within the 'on_save_error' callback" in caplog.text
     assert "Error inside callback!" in caplog.text
 
 
 def test_background_save_notifies_on_shutdown_rejection():
     """
-    シャットダウン後の submit 時に on_background_error が呼ばれ、
+    シャットダウン後の submit 時に on_save_error が呼ばれ、
     ログにも警告が出ることを検証する。
     """
     mock_callback = MagicMock()
@@ -160,7 +160,7 @@ def test_background_save_notifies_on_shutdown_rejection():
         storage_policy=MagicMock(),
         limiter=MagicMock(),
         save_sync=False,
-        on_background_error=mock_callback,
+        on_save_error=mock_callback,
     )
 
     # バックグラウンドリソースを初期化してからシャットダウン
@@ -189,7 +189,7 @@ def test_background_save_notifies_on_shutdown_rejection():
         assert "my_func" in log_msg
         assert "discarded" in log_msg
 
-    # on_background_error コールバックが呼ばれていること
+    # on_save_error コールバックが呼ばれていること
     mock_callback.assert_called_once()
     err, ctx = mock_callback.call_args[0]
     assert isinstance(err, RuntimeError)
@@ -202,7 +202,7 @@ def test_background_save_notifies_on_shutdown_rejection():
 
 def test_background_save_logs_warning_without_callback(caplog):
     """
-    on_background_error コールバック未設定でも、
+    on_save_error コールバック未設定でも、
     シャットダウン拒否時にログ警告が出ることを検証する。
     """
     spot = Spot(
@@ -213,7 +213,7 @@ def test_background_save_logs_warning_without_callback(caplog):
         storage_policy=MagicMock(),
         limiter=MagicMock(),
         save_sync=False,
-        on_background_error=None,  # コールバック未設定
+        on_save_error=None,  # コールバック未設定
     )
 
     spot._ensure_bg_resources()

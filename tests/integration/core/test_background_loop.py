@@ -85,12 +85,12 @@ def test_background_loop_with_blob_storage(tmp_path):
 
 
 def test_background_loop_fires_error_callback(tmp_path, mocker):
-    """バックグラウンド保存失敗時に on_background_error が呼ばれることを確認する。"""
+    """バックグラウンド保存失敗時に on_save_error が呼ばれることを確認する。"""
     mock_callback = MagicMock()
     spot = bs.Spot(
         name="err_test",
         save_sync=False,
-        on_background_error=mock_callback,
+        on_save_error=mock_callback,
     )
 
     test_exc = RuntimeError("disk full")
@@ -145,7 +145,7 @@ def test_background_loop_basic_submit_and_drain():
     """
     正常系: タスクを投入し、stop(save_sync=True) で全てのタスクが確実に完了（ドレイン）することを確認する。
     """
-    loop = _BackgroundLoop(drain_timeout=2.0)
+    loop = _BackgroundLoop(flush_timeout=2.0)
     results = []
 
     async def sample_task(task_id: int):
@@ -172,7 +172,7 @@ def test_background_loop_rejects_tasks_after_stop():
     """
     エッジケース: シャットダウンシーケンスに入った後は、新規タスクの投入が拒否（Noneが返却）されること。
     """
-    loop = _BackgroundLoop(drain_timeout=1.0)
+    loop = _BackgroundLoop(flush_timeout=1.0)
 
     # 停止
     loop.stop(save_sync=True)
@@ -193,7 +193,7 @@ def test_background_loop_handles_task_exceptions():
     異常系: バックグラウンドタスク内で例外が発生しても、ループ自体はクラッシュせず、
     Future経由で正しく例外を捕捉できること。
     """
-    loop = _BackgroundLoop(drain_timeout=1.0)
+    loop = _BackgroundLoop(flush_timeout=1.0)
 
     async def failing_task():
         await asyncio.sleep(0.05)
@@ -225,7 +225,7 @@ def test_background_loop_stop_no_wait():
     GCファイナライザ用: stop(save_sync=False) が呼ばれた場合、
     メインスレッドをブロックせずに即座に制御を返すこと。
     """
-    loop = _BackgroundLoop(drain_timeout=5.0)
+    loop = _BackgroundLoop(flush_timeout=5.0)
 
     task_started = threading.Event()
 

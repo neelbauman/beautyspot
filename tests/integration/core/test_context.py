@@ -40,7 +40,7 @@ def test_spot_explicit_shutdown(tmp_path):
         nonlocal error_raised
         error_raised = e
         
-    spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path), on_background_error=on_error)
+    spot = Spot(name="test_shutdown", db=SQLiteTaskDB(db_path), on_save_error=on_error)
 
     spot.shutdown(save_sync=True)
 

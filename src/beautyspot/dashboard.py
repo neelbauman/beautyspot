@@ -1,7 +1,6 @@
 # type: ignore
 # src/beautyspot/dashboard.py
 
-import atexit
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -28,11 +27,15 @@ except Exception:
 
 
 # --- Service Initialization ---
-# UIレイヤーは具体的なDBクラスやStorageクラスを知る必要がない
-service = MaintenanceService.from_path(DB_PATH)
-# from_path で生成した service は Writer Thread を所有するため、
-# プロセス終了時に確実に close() して Thread リークを防ぐ。
-atexit.register(service.close)
+# st.cache_resource でシングルトン管理することで、Streamlit のホットリロード時に
+# MaintenanceService（とその Writer Thread）が重複生成されるのを防ぐ。
+# キャッシュされたリソースはアプリ終了時に Streamlit が自動的に破棄する。
+@st.cache_resource
+def _init_service(db_path: str) -> MaintenanceService:
+    return MaintenanceService.from_path(db_path)
+
+
+service = _init_service(DB_PATH)
 
 
 st.set_page_config(page_title="beautyspot Dashboard", layout="wide", page_icon="🌑")

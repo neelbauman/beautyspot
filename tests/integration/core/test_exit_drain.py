@@ -95,7 +95,7 @@ import logging
 from beautyspot.core import _BackgroundLoop
 
 logging.basicConfig(level=logging.INFO)
-loop = _BackgroundLoop(drain_timeout=3.0)
+loop = _BackgroundLoop(flush_timeout=3.0)
 
 async def slow_io_task():
     await asyncio.sleep(1.0)  # 1秒かかるIO処理をシミュレート
@@ -127,7 +127,7 @@ sys.exit(0)
 def test_background_loop_timeout_on_exit(tmp_path):
     """
     異常系（安全網）:
-    atexit時、タスクが drain_timeout を超過した場合は無限ハングせずに
+    atexit時、タスクが flush_timeout を超過した場合は無限ハングせずに
     強制終了（警告ログを出力）してプロセスが確実に終わることを確認する。
     """
     script_path = tmp_path / "simulate_timeout.py"
@@ -143,7 +143,7 @@ from beautyspot.core import _BackgroundLoop
 logging.basicConfig(level=logging.WARNING)
 
 # タイムアウトを極端に短く（1秒）設定
-loop = _BackgroundLoop(drain_timeout=1.0)
+loop = _BackgroundLoop(flush_timeout=1.0)
 
 async def too_slow_task():
     await asyncio.sleep(3.0)  # タイムアウト(1秒)より長くかかるタスク

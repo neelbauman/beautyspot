@@ -40,7 +40,7 @@ class FailingDB(TaskDBBase):
 
 
 def test_save_failure_raises_sync_even_with_callback(tmp_path):
-    """save_sync=True の場合、on_background_error が設定されていても例外が伝播する。"""
+    """save_sync=True の場合、on_save_error が設定されていても例外が伝播する。"""
     errors: list[Exception] = []
 
     def on_error(err, _ctx):
@@ -50,7 +50,7 @@ def test_save_failure_raises_sync_even_with_callback(tmp_path):
         name="save_fail_sync",
         db=FailingDB(),
         storage_backend=LocalStorage(tmp_path / "blobs"),
-        on_background_error=on_error,
+        on_save_error=on_error,
     )
 
     @spot.mark
@@ -66,7 +66,7 @@ def test_save_failure_raises_sync_even_with_callback(tmp_path):
 
 @pytest.mark.asyncio
 async def test_save_failure_raises_async_even_with_callback(tmp_path):
-    """save_sync=True の場合、async関数でもon_background_error設定時に例外が伝播する。"""
+    """save_sync=True の場合、async関数でもon_save_error設定時に例外が伝播する。"""
     errors: list[Exception] = []
 
     def on_error(err, _ctx):
@@ -76,7 +76,7 @@ async def test_save_failure_raises_async_even_with_callback(tmp_path):
         name="save_fail_async",
         db=FailingDB(),
         storage_backend=LocalStorage(tmp_path / "blobs"),
-        on_background_error=on_error,
+        on_save_error=on_error,
     )
 
     @spot.mark

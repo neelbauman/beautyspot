@@ -118,6 +118,11 @@ def test_cache(tmp_path):
 | `@task` | `@mark` | Alias maintained |
 | `Project` | `Spot` | Alias maintained |
 | `run()` | `@mark` / `cached_run()` | Removed in v2.0 |
+| `eviction_rate` | `gc_probability` | DeprecationWarning via `_resolve_renamed` |
+| `tpm` | `tokens_per_minute` | DeprecationWarning via `_resolve_renamed` |
+| `drain_timeout` | `flush_timeout` | DeprecationWarning via `_resolve_renamed` |
+| `drain_poll_interval` | `flush_poll_interval` | DeprecationWarning via `_resolve_renamed` |
+| `on_background_error` | `on_save_error` | DeprecationWarning via `_resolve_renamed` |
 
 ## Specification-Driven Development
 
